@@ -20,6 +20,7 @@ namespace YOTO
         public static  EntityMgr entityMgr = new EntityMgr();
         private static PluginManager PluginMgr = new PluginManager();
         public static SoundMgr soundMgr = new SoundMgr();
+        public static TaskManager taskMgr = new TaskManager();
         public void Init()
         {
             if (!isInit)
@@ -36,6 +37,7 @@ namespace YOTO
                 entityMgr.Init();
                 uIMgr.Init();
                 soundMgr.Init();
+                taskMgr.Init();
             }
 
             Debug.Log("YTLOG初始化完成");
@@ -94,6 +96,8 @@ namespace YOTO
             PluginMgr.Unload();
             PluginMgr = null;
             storeMgr=null;
+            taskMgr.Unload();
+            taskMgr = null;
             Unload();
         }
 
