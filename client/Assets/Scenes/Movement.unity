@@ -252,7 +252,7 @@ Transform:
   m_GameObject: {fileID: 34478160}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -1.2, y: 0, z: -10.38}
+  m_LocalPosition: {x: -55.100002, y: -23.07, z: -49.07}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -999,7 +999,7 @@ Transform:
   m_GameObject: {fileID: 169156083}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: -53.9, y: -23.07, z: -38.69}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -1036,7 +1036,7 @@ Transform:
   m_GameObject: {fileID: 218569505}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0.26494732, z: -0, w: 0.9642629}
-  m_LocalPosition: {x: 0, y: 0, z: 2.76}
+  m_LocalPosition: {x: -53.9, y: -23.07, z: -35.93}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -2950,13 +2950,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 953010828}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.15383203, y: -0, z: -0, w: 0.988097}
-  m_LocalPosition: {x: 0, y: -1.55, z: 0}
+  m_LocalRotation: {x: -0.54820836, y: -0, z: -0, w: 0.83634186}
+  m_LocalPosition: {x: 0, y: 0.43, z: -0.36}
   m_LocalScale: {x: 10, y: 5, z: 3}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1409341406}
-  m_LocalEulerAnglesHint: {x: -17.698, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: -66.488, y: 0, z: 0}
 --- !u!65 &953010830
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -4824,7 +4824,7 @@ Transform:
   m_GameObject: {fileID: 1409341405}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -1.2, y: 0.12, z: -19.72}
+  m_LocalPosition: {x: -55.100002, y: -22.949999, z: -58.409996}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -5174,7 +5174,7 @@ GameObject:
   - component: {fileID: 1542358513}
   - component: {fileID: 1542358512}
   - component: {fileID: 1542358511}
-  m_Layer: 0
+  m_Layer: 11
   m_Name: Cube (1)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -5699,7 +5699,7 @@ GameObject:
   - component: {fileID: 1653145170}
   - component: {fileID: 1653145169}
   - component: {fileID: 1653145168}
-  m_Layer: 0
+  m_Layer: 11
   m_Name: Cube (2)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -5819,13 +5819,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1687056272}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.19494905, y: -0, z: -0, w: 0.9808134}
-  m_LocalPosition: {x: 0, y: -1.8, z: -3.23}
+  m_LocalRotation: {x: 0.39032525, y: -0, z: -0, w: 0.920677}
+  m_LocalPosition: {x: 0, y: -0.15, z: -5.55}
   m_LocalScale: {x: 10, y: 5, z: 3}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1409341406}
-  m_LocalEulerAnglesHint: {x: 22.483, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 45.95, y: 0, z: 0}
 --- !u!65 &1687056274
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -6495,7 +6495,7 @@ Transform:
   m_GameObject: {fileID: 1861229975}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -43.13, y: -6.36, z: 0}
+  m_LocalPosition: {x: -43.13, y: -8, z: 0}
   m_LocalScale: {x: 16.28621, y: 16.28621, z: 16.28621}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -6513,7 +6513,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b7a363e38aa332d4c8a1a990a2420d63, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  gravity: 9.81
+  gravity: 19.62
   outerRadius: 10
   outerFalloffRadius: 15
   innerFalloffRadius: 1
@@ -7220,17 +7220,13 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4558330505705390109, guid: 4147fb94986595a4faea9f5bab47aee2, type: 3}
+      propertyPath: maxClimbAngle
+      value: 180
+      objectReference: {fileID: 0}
+    - target: {fileID: 4558330505705390109, guid: 4147fb94986595a4faea9f5bab47aee2, type: 3}
       propertyPath: playerInputSpace
       value: 
       objectReference: {fileID: 1693479979}
-    - target: {fileID: 7519322404470801254, guid: 4147fb94986595a4faea9f5bab47aee2, type: 3}
-      propertyPath: m_Enabled
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 7519322404470801254, guid: 4147fb94986595a4faea9f5bab47aee2, type: 3}
-      propertyPath: floatToSleep
-      value: 1
-      objectReference: {fileID: 0}
     - target: {fileID: 8871548487554310274, guid: 4147fb94986595a4faea9f5bab47aee2, type: 3}
       propertyPath: m_Name
       value: player
