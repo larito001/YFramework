@@ -42,14 +42,18 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
     int groundContactCount, //与地面的接触的点
         steepContactCount; //与墙面的接触点
 
-    Vector3 velocity, desiredVelocity; //速度和期望速度
+    Vector3 velocity, desiredVelocity,connectionVelocity; //速度\期望速度\接触物体的速度
     int jumpPhase; //当前跳跃了几段
-    Rigidbody body;
+    Rigidbody body,
+        connectedBody,//当前接触的物体
+        previousConnectedBody;//上一个接触的物体
 
     int stepsSinceLastGrounded, //在空中的帧数
         stepsSinceLastJump; //跳跃时的帧数
 
     Vector3 upAxis, rightAxis, forwardAxis;//上轴 ，右轴，前轴
+    
+    Vector3 connectionWorldPosition,connectionLocalPosition;//接触物体的世界坐标和空间坐标
     void Awake()
     {
         body = GetComponent<Rigidbody>();
@@ -84,12 +88,16 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
             {
                 groundContactCount += 1;
                 contactNormal += normal;
+                connectedBody = collision.rigidbody;
             }
             else if (upDot  > -0.01f)
             {
                 //如果接触到了墙则，记录法线
                 steepContactCount += 1;
                 steepNormal += normal;
+                if (groundContactCount == 0) {
+                    connectedBody = collision.rigidbody;
+                }
             }
         }
     }
@@ -105,8 +113,7 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
         if (playerInputSpace) {
             //防止太远导致输入太小
             rightAxis = ProjectDirectionOnPlane(playerInputSpace.right, upAxis);
-            forwardAxis =
-                ProjectDirectionOnPlane(playerInputSpace.forward, upAxis);
+            forwardAxis = ProjectDirectionOnPlane(playerInputSpace.forward, upAxis);
         }
         else
         {
@@ -138,7 +145,9 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
     void ClearState()
     {
         groundContactCount = steepContactCount = 0;
-        contactNormal = steepNormal = Vector3.zero;
+        contactNormal = steepNormal=connectionVelocity  = Vector3.zero;
+        previousConnectedBody = connectedBody;
+        connectedBody = null;
     }
 
     void UpdateState()
@@ -164,8 +173,26 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
         {
             contactNormal = upAxis;
         }
+        if (connectedBody) {
+            if (connectedBody.isKinematic || connectedBody.mass >= body.mass)
+            {
+               
+                UpdateConnectionState(); 
+            }
+        }
     }
 
+    //刷新当前接触的物体的速度和位置
+    void UpdateConnectionState () {
+        if (connectedBody == previousConnectedBody)
+        {
+            Vector3 connectionMovement = connectedBody.transform.TransformPoint(connectionLocalPosition) - connectionWorldPosition;
+            connectionVelocity = connectionMovement / Time.deltaTime;
+        }
+
+        connectionWorldPosition = body.position;
+        connectionLocalPosition = connectedBody.transform.InverseTransformPoint(connectionWorldPosition);
+    }
     void Jump(Vector3 gravity)
     {
         Vector3 jumpDirection;
@@ -219,9 +246,11 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
         Vector3 xAxis = ProjectDirectionOnPlane(rightAxis, contactNormal);
         Vector3 zAxis = ProjectDirectionOnPlane(forwardAxis, contactNormal);
 
+        //链接接触物体和自身的移动
+        Vector3 relativeVelocity = velocity - connectionVelocity;
         //获取水平面和当前速度的cos，用于计算
-        float currentX = Vector3.Dot(velocity, xAxis);
-        float currentZ = Vector3.Dot(velocity, zAxis);
+        float currentX = Vector3.Dot(relativeVelocity, xAxis);
+        float currentZ = Vector3.Dot(relativeVelocity, zAxis);
 
         //如果在跳跃时，加速度变小，增大操控难度
         float acceleration = OnGround ? maxAcceleration : maxAirAcceleration;
@@ -275,7 +304,7 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
         {
             velocity = (velocity - hit.normal * dot).normalized * speed;
         }
-
+        connectedBody = hit.rigidbody;
         return true;
     }
 
