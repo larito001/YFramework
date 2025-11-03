@@ -15,6 +15,7 @@ GameObject:
   - component: {fileID: 4558330505705390109}
   - component: {fileID: 6331498871518340368}
   - component: {fileID: 2361579507093998945}
+  - component: {fileID: 7519322404470801254}
   m_Layer: 8
   m_Name: PlayerBase
   m_TagString: Untagged
@@ -124,13 +125,18 @@ MonoBehaviour:
   maxAcceleration: 42.5
   maxAirAcceleration: 1
   jumpHeight: 2
-  maxAirJumps: 3
+  maxAirJumps: 1
   maxGroundAngle: 31
+  maxStairsAngle: 50
   maxSnapSpeed: 57.5
   probeDistance: 1
   probeMask:
     serializedVersion: 2
     m_Bits: 1079
+  stairsMask:
+    serializedVersion: 2
+    m_Bits: 1024
+  playerInputSpace: {fileID: 0}
 --- !u!96 &6331498871518340368
 TrailRenderer:
   serializedVersion: 3
@@ -262,3 +268,16 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 112
   m_CollisionDetection: 0
+--- !u!114 &7519322404470801254
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8871548487554310274}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fa6b106096583f54e8fc25d145cc8391, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  floatToSleep: 0

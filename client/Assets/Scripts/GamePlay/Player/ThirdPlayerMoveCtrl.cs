@@ -49,9 +49,11 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
     int stepsSinceLastGrounded, //在空中的帧数
         stepsSinceLastJump; //跳跃时的帧数
 
+    Vector3 upAxis, rightAxis, forwardAxis;//上轴 ，右轴，前轴
     void Awake()
     {
         body = GetComponent<Rigidbody>();
+        body.useGravity = false;
         OnValidate();
     }
 
@@ -77,12 +79,13 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
         for (int i = 0; i < collision.contactCount; i++)
         {
             Vector3 normal = collision.GetContact(i).normal;
-            if (normal.y >= minDot)
+            float upDot = Vector3.Dot(upAxis, normal);
+            if (upDot  >= minDot)
             {
                 groundContactCount += 1;
                 contactNormal += normal;
             }
-            else if (normal.y > -0.01f)
+            else if (upDot  > -0.01f)
             {
                 //如果接触到了墙则，记录法线
                 steepContactCount += 1;
@@ -101,19 +104,16 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
         //目标速度
         if (playerInputSpace) {
             //防止太远导致输入太小
-            Vector3 forward = playerInputSpace.forward;
-            forward.y = 0f;
-            forward.Normalize();
-            Vector3 right = playerInputSpace.right;
-            right.y = 0f;
-            right.Normalize();
-            desiredVelocity =(forward * playerInput.y + right * playerInput.x) * maxSpeed;
+            rightAxis = ProjectDirectionOnPlane(playerInputSpace.right, upAxis);
+            forwardAxis =
+                ProjectDirectionOnPlane(playerInputSpace.forward, upAxis);
         }
         else
         {
-            desiredVelocity = new Vector3(playerInput.x, 0f, playerInput.y) * maxSpeed; 
+            rightAxis = ProjectDirectionOnPlane(Vector3.right, upAxis);
+            forwardAxis = ProjectDirectionOnPlane(Vector3.forward, upAxis);
         }
-   
+        desiredVelocity = new Vector3(playerInput.x, 0f, playerInput.y) * maxSpeed;
         GetComponent<Renderer>().material.SetColor(
             "_Color", OnGround ? Color.black : Color.white
         );
@@ -121,15 +121,16 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
 
     void FixedUpdate()
     {
+        Vector3 gravity = CustomGravity.GetGravity(body.position, out upAxis);
         UpdateState();
         //空气阻力，如果在跳跃时，加速度变小，增大操控难度
         AdjustVelocity();
         if (desiredJump)
         {
             desiredJump = false;
-            Jump();
+            Jump(gravity);
         }
-
+        velocity += gravity * Time.deltaTime;
         body.velocity = velocity;
         ClearState();
     }
@@ -161,11 +162,11 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
         }
         else
         {
-            contactNormal = Vector3.up;
+            contactNormal = upAxis;
         }
     }
 
-    void Jump()
+    void Jump(Vector3 gravity)
     {
         Vector3 jumpDirection;
         if (OnGround)
@@ -194,9 +195,9 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
         stepsSinceLastJump = 0;
         jumpPhase += 1;
         //限制跳跃速度，防止连续按跳跃后跳跃高度过大
-        float jumpSpeed = Mathf.Sqrt(-2f * Physics.gravity.y * jumpHeight);
+        float jumpSpeed = Mathf.Sqrt(2f * gravity.magnitude * jumpHeight);
         //跳跃刨墙
-        jumpDirection = (jumpDirection + Vector3.up).normalized;
+        jumpDirection = (jumpDirection + upAxis).normalized;
         float alignedSpeed = Vector3.Dot(velocity, jumpDirection);
         if (alignedSpeed > 0f)
         {
@@ -208,17 +209,15 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
     }
 
     //解决下坡时的跳跃问题，获取平面上，速度在水平面的投影
-    Vector3 ProjectOnContactPlane(Vector3 vector)
-    {
-        return vector - contactNormal * Vector3.Dot(vector, contactNormal);
-    }
-
+	Vector3 ProjectDirectionOnPlane (Vector3 direction, Vector3 normal) {
+		return (direction - normal * Vector3.Dot(direction, normal)).normalized;
+	}
     //解决下坡时，角色弹跳的问题，把速度由水平方向，变为斜坡方向
     void AdjustVelocity()
     {
         //获取x轴和z轴投影
-        Vector3 xAxis = ProjectOnContactPlane(Vector3.right).normalized;
-        Vector3 zAxis = ProjectOnContactPlane(Vector3.forward).normalized;
+        Vector3 xAxis = ProjectDirectionOnPlane(rightAxis, contactNormal);
+        Vector3 zAxis = ProjectDirectionOnPlane(forwardAxis, contactNormal);
 
         //获取水平面和当前速度的cos，用于计算
         float currentX = Vector3.Dot(velocity, xAxis);
@@ -254,13 +253,14 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
         }
 
         //向下方发射射线，如果没有返回false
-        if (!Physics.Raycast(body.position, Vector3.down, out RaycastHit hit, probeDistance, probeMask))
+        if (!Physics.Raycast(body.position, -upAxis, out RaycastHit hit, probeDistance, probeMask))
         {
             return false;
         }
 
+        float upDot = Vector3.Dot(upAxis, hit.normal);
         //击中的y轴必须能够爬坡
-        if (hit.normal.y < GetMinDot(hit.collider.gameObject.layer))
+        if (upDot< GetMinDot(hit.collider.gameObject.layer))
         {
             return false;
         }
@@ -292,8 +292,9 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
         if (steepContactCount > 1)
         {
             steepNormal.Normalize();
+            float upDot = Vector3.Dot(upAxis, steepNormal);
             //如果墙的角度和地面一致
-            if (steepNormal.y >= minGroundDotProduct)
+            if (upDot>= minGroundDotProduct)
             {
                 groundContactCount = 1;
                 contactNormal = steepNormal;
