@@ -7,14 +7,109 @@ using UnityEngine;
 /// </summary>
 public class ThirdPlayerMoveCtrl : MonoBehaviour
 {
-    [SerializeField, Range(0f, 100f)] float maxSpeed = 10f,//最大移动速度
-        maxClimbSpeed = 2f,//最大攀爬速度
-         maxSwimSpeed = 5f; //最大游泳速度
+    #region Render
+
+    [SerializeField] Transform ball = default;
+    [SerializeField, Min(0.1f)] float ballRadius = 0.5f; //球的半径
+
+    [SerializeField, Min(0f)] float ballAlignSpeed = 180f; //对准速度
+
+    [SerializeField, Min(0f)] float
+        ballAirRotation = 0.5f, //空中旋转速度
+        ballSwimRotation = 2f; //游泳旋转速度
+
+    Vector3 lastContactNormal, lastSteepNormal, lastConnectionVelocity; //上次接触的法线,上次陡坡的法线，上次接触物体的速度
+
+    Quaternion AlignBallRotation(Vector3 rotationAxis, Quaternion rotation, float traveledDistance)
+    {
+        Vector3 ballAxis = ball.up;
+        float dot = Mathf.Clamp(Vector3.Dot(ballAxis, rotationAxis), -1f, 1f);
+        float angle = Mathf.Acos(dot) * Mathf.Rad2Deg;
+        float maxAngle = ballAlignSpeed * traveledDistance;
+
+        Quaternion newAlignment =
+            Quaternion.FromToRotation(ballAxis, rotationAxis) * rotation;
+        if (angle <= maxAngle)
+        {
+            return newAlignment;
+        }
+        else
+        {
+            return Quaternion.SlerpUnclamped(
+                rotation, newAlignment, maxAngle / angle
+            );
+        }
+    }
+
+    void UpdateBall()
+    {
+        Material ballMaterial = normalMaterial;
+        Vector3 rotationPlaneNormal = lastContactNormal;
+        float rotationFactor = 1f;
+        if (Climbing)
+        {
+            ballMaterial = climbingMaterial;
+        }
+        else if (Swimming)
+        {
+            ballMaterial = swimmingMaterial;
+            rotationFactor = ballSwimRotation;
+        }
+        else if (!OnGround)
+        {
+            if (OnSteep)
+            {
+                rotationPlaneNormal = lastSteepNormal;
+            }
+            else
+            {
+                rotationFactor = ballAirRotation;
+            }
+        }
+
+        meshRenderer.material = ballMaterial;
+        Vector3 movement = (body.velocity - lastConnectionVelocity) * Time.deltaTime;
+        //忽略向上运动
+        movement -= rotationPlaneNormal * Vector3.Dot(movement, rotationPlaneNormal);
+        float distance = movement.magnitude;
+
+        //随平台旋转
+        Quaternion rotation = ball.localRotation;
+        if (connectedBody && connectedBody == previousConnectedBody)
+        {
+            rotation = Quaternion.Euler(connectedBody.angularVelocity * (Mathf.Rad2Deg * Time.deltaTime)) * rotation;
+            if (distance < 0.001f)
+            {
+                ball.localRotation = rotation;
+                return;
+            }
+        }
+        else if (distance < 0.001f)
+        {
+            return;
+        }
+
+        float angle =distance * rotationFactor * (180f / Mathf.PI) / ballRadius;
+        Vector3 rotationAxis = Vector3.Cross(rotationPlaneNormal, movement).normalized;
+        rotation = Quaternion.Euler(rotationAxis * angle) * rotation;
+        if (ballAlignSpeed > 0f)
+        {
+            rotation = AlignBallRotation(rotationAxis, rotation, distance);
+        }
+
+        ball.localRotation = rotation;
+    }
+
+    #endregion
+
+    [SerializeField, Range(0f, 100f)] float maxSpeed = 10f, //最大移动速度
+        maxClimbSpeed = 2f, //最大攀爬速度
+        maxSwimSpeed = 5f; //最大游泳速度
 
     [SerializeField, Range(0f, 100f)] float maxAcceleration = 10f, //最大加速度 
-        maxAirAcceleration = 1f,//在空中的最大加速度
-    maxClimbAcceleration = 20f,//攀爬时的最大加速度 
-        maxSwimAcceleration = 5f;//在游泳的最大加速度
+        maxAirAcceleration = 1f, //在空中的最大加速度
+        maxClimbAcceleration = 20f, //攀爬时的最大加速度 
+        maxSwimAcceleration = 5f; //在游泳的最大加速度
 
     [SerializeField, Range(0f, 10f)] float jumpHeight = 2f; //踢啊欧俄高度
     [SerializeField, Range(0, 5)] int maxAirJumps = 0; //跳跃段数
@@ -28,43 +123,34 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
 
     [SerializeField] LayerMask probeMask = -1, //检测的层
         stairsMask = -1, //楼梯的曾
-        climbMask = -1,  //攀爬的曾
-         waterMask = 0;//水的层
-    
+        climbMask = -1, //攀爬的曾
+        waterMask = 0; //水的层
+
 
     [SerializeField] Transform playerInputSpace = default; //输入空间，基于什么移动
 
     [SerializeField, Range(90, 180)] float maxClimbAngle = 140f; //最大爬升角（攀爬）
-    
-    [SerializeField]
-    float submergenceOffset = 0.5f;//淹没位置
 
-    [SerializeField, Min(0.1f)]
-    float submergenceRange = 1f;//物体高度
-    
-    [SerializeField, Range(0f, 10f)]
-    float waterDrag = 1f;//水中的速度缩放
+    [SerializeField] float submergenceOffset = 0.5f; //淹没位置
 
-    [SerializeField, Min(0f)]
-    float buoyancy = 1f;//浮力
-    
-    [SerializeField, Range(0.01f, 1f)]
-    float swimThreshold = 0.5f;//允许游泳的深度
+    [SerializeField, Min(0.1f)] float submergenceRange = 1f; //物体高度
 
-    
-    
-    
-    
+    [SerializeField, Range(0f, 10f)] float waterDrag = 1f; //水中的速度缩放
+
+    [SerializeField, Min(0f)] float buoyancy = 1f; //浮力
+
+    [SerializeField, Range(0.01f, 1f)] float swimThreshold = 0.5f; //允许游泳的深度
+
+
     [SerializeField] Material normalMaterial = default, climbingMaterial = default, swimmingMaterial = default;
 
-    
-    
+
     MeshRenderer meshRenderer;
 
     Vector3 contactNormal, //当前接触面的法线
         steepNormal, //墙面法线
         climbNormal, //攀爬法线
-        lastClimbNormal;//最后一次攀爬的法线，为了爬出裂缝
+        lastClimbNormal; //最后一次攀爬的法线，为了爬出裂缝
 
     float minGroundDotProduct, //允许的最大角度的余弦（比这个大就是在地上）
         minStairsDotProduct, //允许的最大角度的余弦（楼梯）（比这个大就是在地上）
@@ -72,11 +158,13 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
 
     bool desiredJump, //是否即将跳跃
         desiresClimbing; //是否即将吸附
+
     bool OnGround => groundContactCount > 0; //是否在地面
     bool OnSteep => steepContactCount > 0; //是否与墙面接触
-    bool Climbing => climbContactCount > 0&& stepsSinceLastJump > 2; //是否正在攀爬，防止刚跳就被吸住
+    bool Climbing => climbContactCount > 0 && stepsSinceLastJump > 2; //是否正在攀爬，防止刚跳就被吸住
     bool InWater => submergence > 0f;
     bool Swimming => submergence >= swimThreshold;
+
     int groundContactCount, //与地面的接触的点
         steepContactCount, //与墙面的接触点
         climbContactCount; //攀爬接触点数
@@ -95,11 +183,12 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
     Vector3 upAxis, rightAxis, forwardAxis; //上轴 ，右轴，前轴
 
     Vector3 connectionWorldPosition, connectionLocalPosition; //接触物体的世界坐标和空间坐标
-    
+
 
     float submergence;
 
     #region 初始化
+
     void OnValidate()
     {
         minGroundDotProduct = Mathf.Cos(maxGroundAngle * Mathf.Deg2Rad);
@@ -110,29 +199,33 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
     {
         body = GetComponent<Rigidbody>();
         body.useGravity = false;
-        meshRenderer = GetComponent<MeshRenderer>();
+        meshRenderer = ball.GetComponent<MeshRenderer>();
         OnValidate();
     }
-    
 
     #endregion
-    
+
     #region 状态更新
+
     void ClearState()
     {
+        lastContactNormal = contactNormal;
+        lastSteepNormal = steepNormal;
+        lastConnectionVelocity = connectionVelocity;
         groundContactCount = steepContactCount = climbContactCount = 0;
         contactNormal = steepNormal = climbNormal = connectionVelocity = Vector3.zero;
         previousConnectedBody = connectedBody;
         connectedBody = null;
         submergence = 0f;
     }
+
     void UpdateState()
     {
         stepsSinceLastGrounded += 1;
         stepsSinceLastJump += 1;
         velocity = body.velocity;
         //地面，爬坡黏贴，墙面视为地面（裂缝）
-        if (CheckClimbing()||CheckSwimming() || OnGround || SnapToGround() || CheckSteepContacts())
+        if (CheckClimbing() || CheckSwimming() || OnGround || SnapToGround() || CheckSteepContacts())
         {
             stepsSinceLastGrounded = 0;
             //如果跳跃帧数>1，防止错误着陆
@@ -159,20 +252,23 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
             }
         }
     }
+
     //解决下坡时，角色弹跳的问题，把速度由水平方向，变为斜坡方向
     void AdjustVelocity()
     {
         float acceleration, speed;
-        
+
         //获取x轴和z轴投影
         Vector3 xAxis, zAxis;
-        if (Climbing) {
+        if (Climbing)
+        {
             acceleration = maxClimbAcceleration;
             speed = maxClimbSpeed;
             xAxis = Vector3.Cross(contactNormal, upAxis);
             zAxis = upAxis;
         }
-        else if (InWater) {
+        else if (InWater)
+        {
             float swimFactor = Mathf.Min(1f, submergence / swimThreshold);
             acceleration = Mathf.LerpUnclamped(
                 OnGround ? maxAcceleration : maxAirAcceleration,
@@ -182,41 +278,35 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
             xAxis = rightAxis;
             zAxis = forwardAxis;
         }
-        else {
+        else
+        {
             acceleration = OnGround ? maxAcceleration : maxAirAcceleration;
-            speed = OnGround && desiresClimbing ? maxClimbSpeed : maxSpeed;//在攀爬前降低速度
+            speed = OnGround && desiresClimbing ? maxClimbSpeed : maxSpeed; //在攀爬前降低速度
             xAxis = rightAxis;
             zAxis = forwardAxis;
         }
+
         xAxis = ProjectDirectionOnPlane(xAxis, contactNormal);
         zAxis = ProjectDirectionOnPlane(zAxis, contactNormal);
 
         //链接接触物体和自身的移动
         Vector3 relativeVelocity = velocity - connectionVelocity;
         //获取水平面和当前速度的cos，用于计算
-        float currentX = Vector3.Dot(relativeVelocity, xAxis);
-        float currentZ = Vector3.Dot(relativeVelocity, zAxis);
-        
-        float maxSpeedChange = acceleration * Time.deltaTime;
+        Vector3 adjustment = default;
+        adjustment.x = playerInput.x * speed - Vector3.Dot(relativeVelocity, xAxis);
+        adjustment.z = playerInput.z * speed - Vector3.Dot(relativeVelocity, zAxis);
+        adjustment = Vector3.ClampMagnitude(adjustment, acceleration * Time.deltaTime);
 
-        //重新计算x轴和z轴在水平面的速度
-        float newX =
-            Mathf.MoveTowards(currentX, playerInput.x*speed, maxSpeedChange);
-        float newZ =
-            Mathf.MoveTowards(currentZ, playerInput.y*speed, maxSpeedChange);
         //分别给x轴和z轴赋值
-        velocity += xAxis * (newX - currentX) + zAxis * (newZ - currentZ);
-        if (Swimming) {
-            float currentY = Vector3.Dot(relativeVelocity, upAxis);
-            float newY = Mathf.MoveTowards(
-                currentY, playerInput.z * speed, maxSpeedChange
-            );
-            velocity += upAxis * (newY - currentY);
+        velocity += xAxis * adjustment.x + zAxis * adjustment.z;
+        if (Swimming)
+        {
+            velocity += upAxis * adjustment.y;
         }
     }
-    
+
     #endregion
-    
+
     #region 碰撞检测
 
     //刷新当前接触的物体的速度和位置
@@ -242,11 +332,14 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
     {
         EvaluateCollision(collision);
     }
+
     void EvaluateCollision(Collision collision)
     {
-        if (Swimming) {
+        if (Swimming)
+        {
             return;
         }
+
         int layer = collision.gameObject.layer;
         float minDot = GetMinDot(layer);
         for (int i = 0; i < collision.contactCount; i++)
@@ -274,7 +367,7 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
                 }
 
                 //检测爬坡
-                if (desiresClimbing &&upDot >= minClimbDotProduct && (climbMask & (1 << layer)) != 0)
+                if (desiresClimbing && upDot >= minClimbDotProduct && (climbMask & (1 << layer)) != 0)
                 {
                     climbContactCount += 1;
                     climbNormal += normal;
@@ -285,30 +378,41 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
         }
     }
 
-    void OnTriggerEnter (Collider other) {
-        if ((waterMask & (1 << other.gameObject.layer)) != 0) {
+    void OnTriggerEnter(Collider other)
+    {
+        if ((waterMask & (1 << other.gameObject.layer)) != 0)
+        {
             EvaluateSubmergence(other);
         }
     }
 
-    void OnTriggerStay (Collider other) {
-        if ((waterMask & (1 << other.gameObject.layer)) != 0) {
+    void OnTriggerStay(Collider other)
+    {
+        if ((waterMask & (1 << other.gameObject.layer)) != 0)
+        {
             EvaluateSubmergence(other);
         }
     }
+
     //水面检测
-    void EvaluateSubmergence(Collider collider) {
+    void EvaluateSubmergence(Collider collider)
+    {
         if (Physics.Raycast(
                 body.position + upAxis * submergenceOffset,
-                -upAxis, out RaycastHit hit, submergenceRange+ 1f,
+                -upAxis, out RaycastHit hit, submergenceRange + 1f,
                 waterMask, QueryTriggerInteraction.Collide
-            )) {
+            ))
+        {
             submergence = 1f - hit.distance / submergenceRange;
-        }else {
+        }
+        else
+        {
             submergence = 1f;
         }
+
         //在流动的水中游泳
-        if (Swimming) {
+        if (Swimming)
+        {
             connectedBody = collider.attachedRigidbody;
         }
     }
@@ -320,9 +424,10 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
     void Update()
     {
         playerInput.x = Input.GetAxis("Horizontal");
-        playerInput.y = Input.GetAxis("Vertical");
-        playerInput.z = Swimming ? Input.GetAxis("UpDown") : 0f;
-        if (Swimming) {
+        playerInput.z = Input.GetAxis("Vertical");
+        playerInput.y = Swimming ? Input.GetAxis("UpDown") : 0f;
+        if (Swimming)
+        {
             desiresClimbing = false;
         }
         else
@@ -331,7 +436,7 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
             desiresClimbing = Input.GetButton("Climb");
         }
 
-        playerInput =  Vector3.ClampMagnitude(playerInput, 1f);
+        playerInput = Vector3.ClampMagnitude(playerInput, 1f);
         //目标速度
         if (playerInputSpace)
         {
@@ -344,20 +449,22 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
             rightAxis = ProjectDirectionOnPlane(Vector3.right, upAxis);
             forwardAxis = ProjectDirectionOnPlane(Vector3.forward, upAxis);
         }
-        
-        meshRenderer.material = Climbing ? climbingMaterial : Swimming  ? swimmingMaterial : normalMaterial;
+
+        // meshRenderer.material = Climbing ? climbingMaterial : Swimming  ? swimmingMaterial : normalMaterial;
+        UpdateBall();
     }
 
     void FixedUpdate()
     {
         Vector3 gravity = CustomGravity.GetGravity(body.position, out upAxis);
         UpdateState();
-        
-        if (InWater) {
-            velocity *= 1f - waterDrag *submergence * Time.deltaTime;
+
+        if (InWater)
+        {
+            velocity *= 1f - waterDrag * submergence * Time.deltaTime;
         }
 
-        
+
         //空气阻力，如果在跳跃时，加速度变小，增大操控难度
         AdjustVelocity();
         if (desiredJump)
@@ -367,21 +474,26 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
         }
 
         //拐角攀爬
-        if (Climbing) {
-            velocity -= contactNormal * (maxClimbAcceleration* 0.9f * Time.deltaTime);
+        if (Climbing)
+        {
+            velocity -= contactNormal * (maxClimbAcceleration * 0.9f * Time.deltaTime);
         }
-        else if (InWater) {
+        else if (InWater)
+        {
             velocity += gravity * ((1f - buoyancy * submergence) * Time.deltaTime);
         }
         //如果速度极小，且在地面上，则消除缓慢滑落的重力
-        else if (OnGround && velocity.sqrMagnitude < 0.01f) {
+        else if (OnGround && velocity.sqrMagnitude < 0.01f)
+        {
             velocity += contactNormal * (Vector3.Dot(gravity, contactNormal) * Time.deltaTime);
         }
         //攀爬前降低速度
-        else if (desiresClimbing && OnGround) {
+        else if (desiresClimbing && OnGround)
+        {
             velocity += (gravity - contactNormal * (maxClimbAcceleration * 0.9f)) * Time.deltaTime;
         }
-        else {
+        else
+        {
             velocity += gravity * Time.deltaTime;
         }
 
@@ -390,7 +502,7 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
     }
 
     #endregion
-    
+
     #region 跳跃
 
     void Jump(Vector3 gravity)
@@ -425,11 +537,12 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
         jumpPhase += 1;
         //限制跳跃速度，防止连续按跳跃后跳跃高度过大
         float jumpSpeed = Mathf.Sqrt(2f * gravity.magnitude * jumpHeight);
-        
-        if (InWater) {
+
+        if (InWater)
+        {
             jumpSpeed *= Mathf.Max(0f, 1f - submergence / swimThreshold);
         }
-        
+
         //跳跃刨墙
         jumpDirection = (jumpDirection + upAxis).normalized;
         float alignedSpeed = Vector3.Dot(velocity, jumpDirection);
@@ -443,14 +556,14 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
     }
 
     #endregion
-    
+
     #region 地面检测
 
     //低速吸附在地面
     bool SnapToGround()
     {
         //如果空中帧数大于1且启动跳跃的前2帧被跳过，则不进行吸附
-        if (stepsSinceLastGrounded > 1 || stepsSinceLastJump <= 2) 
+        if (stepsSinceLastGrounded > 1 || stepsSinceLastJump <= 2)
         {
             return false;
         }
@@ -463,7 +576,8 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
         }
 
         //向下方发射射线，如果没有返回false
-        if (!Physics.Raycast(body.position, -upAxis, out RaycastHit hit, probeDistance, probeMask,QueryTriggerInteraction.Ignore))
+        if (!Physics.Raycast(body.position, -upAxis, out RaycastHit hit, probeDistance, probeMask,
+                QueryTriggerInteraction.Ignore))
         {
             return false;
         }
@@ -515,13 +629,16 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
         if (Climbing)
         {
             //确定是否有多个爬升触点（检测是否在裂缝中）
-            if (climbContactCount > 1) {
+            if (climbContactCount > 1)
+            {
                 climbNormal.Normalize();
                 float upDot = Vector3.Dot(upAxis, climbNormal);
-                if (upDot >= minGroundDotProduct) {
+                if (upDot >= minGroundDotProduct)
+                {
                     climbNormal = lastClimbNormal;
                 }
             }
+
             groundContactCount = 1;
             contactNormal = climbNormal;
             return true;
@@ -529,14 +646,17 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
 
         return false;
     }
-    
+
     //检测是否正在游泳
-    bool CheckSwimming () {
-        if (Swimming) {
+    bool CheckSwimming()
+    {
+        if (Swimming)
+        {
             groundContactCount = 0;
             contactNormal = upAxis;
             return true;
         }
+
         return false;
     }
 

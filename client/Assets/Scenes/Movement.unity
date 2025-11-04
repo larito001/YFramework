@@ -7493,9 +7493,21 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 4558330505705390109, guid: 4147fb94986595a4faea9f5bab47aee2, type: 3}
-      propertyPath: buoyancy
-      value: 2
+    - target: {fileID: 2915556196547977248, guid: 4147fb94986595a4faea9f5bab47aee2, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: -0.7071068
+      objectReference: {fileID: 0}
+    - target: {fileID: 2915556196547977248, guid: 4147fb94986595a4faea9f5bab47aee2, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2915556196547977248, guid: 4147fb94986595a4faea9f5bab47aee2, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0.7071068
+      objectReference: {fileID: 0}
+    - target: {fileID: 2915556196547977248, guid: 4147fb94986595a4faea9f5bab47aee2, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 270
       objectReference: {fileID: 0}
     - target: {fileID: 4558330505705390109, guid: 4147fb94986595a4faea9f5bab47aee2, type: 3}
       propertyPath: playerInputSpace
