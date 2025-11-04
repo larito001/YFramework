@@ -8,11 +8,13 @@ using UnityEngine;
 public class ThirdPlayerMoveCtrl : MonoBehaviour
 {
     [SerializeField, Range(0f, 100f)] float maxSpeed = 10f,//最大移动速度
-        maxClimbSpeed = 2f; //最大攀爬速度
+        maxClimbSpeed = 2f,//最大攀爬速度
+         maxSwimSpeed = 5f; //最大游泳速度
 
     [SerializeField, Range(0f, 100f)] float maxAcceleration = 10f, //最大加速度 
         maxAirAcceleration = 1f,//在空中的最大加速度
-    maxClimbAcceleration = 20f;//攀爬时的最大加速度 
+    maxClimbAcceleration = 20f,//攀爬时的最大加速度 
+        maxSwimAcceleration = 5f;//在游泳的最大加速度
 
     [SerializeField, Range(0f, 10f)] float jumpHeight = 2f; //踢啊欧俄高度
     [SerializeField, Range(0, 5)] int maxAirJumps = 0; //跳跃段数
@@ -26,14 +28,37 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
 
     [SerializeField] LayerMask probeMask = -1, //检测的层
         stairsMask = -1, //楼梯的曾
-        climbMask = -1; //攀爬的曾
+        climbMask = -1,  //攀爬的曾
+         waterMask = 0;//水的层
+    
 
     [SerializeField] Transform playerInputSpace = default; //输入空间，基于什么移动
 
     [SerializeField, Range(90, 180)] float maxClimbAngle = 140f; //最大爬升角（攀爬）
+    
+    [SerializeField]
+    float submergenceOffset = 0.5f;//淹没位置
 
-    [SerializeField] Material normalMaterial = default, climbingMaterial = default;
+    [SerializeField, Min(0.1f)]
+    float submergenceRange = 1f;//物体高度
+    
+    [SerializeField, Range(0f, 10f)]
+    float waterDrag = 1f;//水中的速度缩放
 
+    [SerializeField, Min(0f)]
+    float buoyancy = 1f;//浮力
+    
+    [SerializeField, Range(0.01f, 1f)]
+    float swimThreshold = 0.5f;//允许游泳的深度
+
+    
+    
+    
+    
+    [SerializeField] Material normalMaterial = default, climbingMaterial = default, swimmingMaterial = default;
+
+    
+    
     MeshRenderer meshRenderer;
 
     Vector3 contactNormal, //当前接触面的法线
@@ -50,12 +75,13 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
     bool OnGround => groundContactCount > 0; //是否在地面
     bool OnSteep => steepContactCount > 0; //是否与墙面接触
     bool Climbing => climbContactCount > 0&& stepsSinceLastJump > 2; //是否正在攀爬，防止刚跳就被吸住
-
+    bool InWater => submergence > 0f;
+    bool Swimming => submergence >= swimThreshold;
     int groundContactCount, //与地面的接触的点
         steepContactCount, //与墙面的接触点
         climbContactCount; //攀爬接触点数
 
-    Vector2 playerInput;
+    Vector3 playerInput;
     Vector3 velocity, connectionVelocity;
     int jumpPhase; //当前跳跃了几段
 
@@ -69,6 +95,9 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
     Vector3 upAxis, rightAxis, forwardAxis; //上轴 ，右轴，前轴
 
     Vector3 connectionWorldPosition, connectionLocalPosition; //接触物体的世界坐标和空间坐标
+    
+
+    float submergence;
 
     #region 初始化
     void OnValidate()
@@ -95,6 +124,7 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
         contactNormal = steepNormal = climbNormal = connectionVelocity = Vector3.zero;
         previousConnectedBody = connectedBody;
         connectedBody = null;
+        submergence = 0f;
     }
     void UpdateState()
     {
@@ -102,7 +132,7 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
         stepsSinceLastJump += 1;
         velocity = body.velocity;
         //地面，爬坡黏贴，墙面视为地面（裂缝）
-        if (CheckClimbing() || OnGround || SnapToGround() || CheckSteepContacts())
+        if (CheckClimbing()||CheckSwimming() || OnGround || SnapToGround() || CheckSteepContacts())
         {
             stepsSinceLastGrounded = 0;
             //如果跳跃帧数>1，防止错误着陆
@@ -142,6 +172,16 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
             xAxis = Vector3.Cross(contactNormal, upAxis);
             zAxis = upAxis;
         }
+        else if (InWater) {
+            float swimFactor = Mathf.Min(1f, submergence / swimThreshold);
+            acceleration = Mathf.LerpUnclamped(
+                OnGround ? maxAcceleration : maxAirAcceleration,
+                maxSwimAcceleration, swimFactor
+            );
+            speed = Mathf.LerpUnclamped(maxSpeed, maxSwimSpeed, swimFactor);
+            xAxis = rightAxis;
+            zAxis = forwardAxis;
+        }
         else {
             acceleration = OnGround ? maxAcceleration : maxAirAcceleration;
             speed = OnGround && desiresClimbing ? maxClimbSpeed : maxSpeed;//在攀爬前降低速度
@@ -166,6 +206,13 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
             Mathf.MoveTowards(currentZ, playerInput.y*speed, maxSpeedChange);
         //分别给x轴和z轴赋值
         velocity += xAxis * (newX - currentX) + zAxis * (newZ - currentZ);
+        if (Swimming) {
+            float currentY = Vector3.Dot(relativeVelocity, upAxis);
+            float newY = Mathf.MoveTowards(
+                currentY, playerInput.z * speed, maxSpeedChange
+            );
+            velocity += upAxis * (newY - currentY);
+        }
     }
     
     #endregion
@@ -195,9 +242,11 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
     {
         EvaluateCollision(collision);
     }
-
     void EvaluateCollision(Collision collision)
     {
+        if (Swimming) {
+            return;
+        }
         int layer = collision.gameObject.layer;
         float minDot = GetMinDot(layer);
         for (int i = 0; i < collision.contactCount; i++)
@@ -236,6 +285,34 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
         }
     }
 
+    void OnTriggerEnter (Collider other) {
+        if ((waterMask & (1 << other.gameObject.layer)) != 0) {
+            EvaluateSubmergence(other);
+        }
+    }
+
+    void OnTriggerStay (Collider other) {
+        if ((waterMask & (1 << other.gameObject.layer)) != 0) {
+            EvaluateSubmergence(other);
+        }
+    }
+    //水面检测
+    void EvaluateSubmergence(Collider collider) {
+        if (Physics.Raycast(
+                body.position + upAxis * submergenceOffset,
+                -upAxis, out RaycastHit hit, submergenceRange+ 1f,
+                waterMask, QueryTriggerInteraction.Collide
+            )) {
+            submergence = 1f - hit.distance / submergenceRange;
+        }else {
+            submergence = 1f;
+        }
+        //在流动的水中游泳
+        if (Swimming) {
+            connectedBody = collider.attachedRigidbody;
+        }
+    }
+
     #endregion
 
     #region 刷新
@@ -244,9 +321,17 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
     {
         playerInput.x = Input.GetAxis("Horizontal");
         playerInput.y = Input.GetAxis("Vertical");
-        desiredJump |= Input.GetButtonDown("Jump"); //desiredJump一直为true，直到desiredJump被手动改为false
-        desiresClimbing = Input.GetButton("Climb");
-        playerInput = Vector2.ClampMagnitude(playerInput, 1f);
+        playerInput.z = Swimming ? Input.GetAxis("UpDown") : 0f;
+        if (Swimming) {
+            desiresClimbing = false;
+        }
+        else
+        {
+            desiredJump |= Input.GetButtonDown("Jump"); //desiredJump一直为true，直到desiredJump被手动改为false
+            desiresClimbing = Input.GetButton("Climb");
+        }
+
+        playerInput =  Vector3.ClampMagnitude(playerInput, 1f);
         //目标速度
         if (playerInputSpace)
         {
@@ -260,13 +345,19 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
             forwardAxis = ProjectDirectionOnPlane(Vector3.forward, upAxis);
         }
         
-        meshRenderer.material = Climbing ? climbingMaterial : normalMaterial;
+        meshRenderer.material = Climbing ? climbingMaterial : Swimming  ? swimmingMaterial : normalMaterial;
     }
 
     void FixedUpdate()
     {
         Vector3 gravity = CustomGravity.GetGravity(body.position, out upAxis);
         UpdateState();
+        
+        if (InWater) {
+            velocity *= 1f - waterDrag *submergence * Time.deltaTime;
+        }
+
+        
         //空气阻力，如果在跳跃时，加速度变小，增大操控难度
         AdjustVelocity();
         if (desiredJump)
@@ -278,6 +369,9 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
         //拐角攀爬
         if (Climbing) {
             velocity -= contactNormal * (maxClimbAcceleration* 0.9f * Time.deltaTime);
+        }
+        else if (InWater) {
+            velocity += gravity * ((1f - buoyancy * submergence) * Time.deltaTime);
         }
         //如果速度极小，且在地面上，则消除缓慢滑落的重力
         else if (OnGround && velocity.sqrMagnitude < 0.01f) {
@@ -331,6 +425,11 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
         jumpPhase += 1;
         //限制跳跃速度，防止连续按跳跃后跳跃高度过大
         float jumpSpeed = Mathf.Sqrt(2f * gravity.magnitude * jumpHeight);
+        
+        if (InWater) {
+            jumpSpeed *= Mathf.Max(0f, 1f - submergence / swimThreshold);
+        }
+        
         //跳跃刨墙
         jumpDirection = (jumpDirection + upAxis).normalized;
         float alignedSpeed = Vector3.Dot(velocity, jumpDirection);
@@ -351,7 +450,7 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
     bool SnapToGround()
     {
         //如果空中帧数大于1且启动跳跃的前2帧被跳过，则不进行吸附
-        if (stepsSinceLastGrounded > 1 || stepsSinceLastJump <= 2)
+        if (stepsSinceLastGrounded > 1 || stepsSinceLastJump <= 2) 
         {
             return false;
         }
@@ -364,7 +463,7 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
         }
 
         //向下方发射射线，如果没有返回false
-        if (!Physics.Raycast(body.position, -upAxis, out RaycastHit hit, probeDistance, probeMask))
+        if (!Physics.Raycast(body.position, -upAxis, out RaycastHit hit, probeDistance, probeMask,QueryTriggerInteraction.Ignore))
         {
             return false;
         }
@@ -428,6 +527,16 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
             return true;
         }
 
+        return false;
+    }
+    
+    //检测是否正在游泳
+    bool CheckSwimming () {
+        if (Swimming) {
+            groundContactCount = 0;
+            contactNormal = upAxis;
+            return true;
+        }
         return false;
     }
 

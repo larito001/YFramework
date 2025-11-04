@@ -96,7 +96,7 @@ public class OrbitCamera : MonoBehaviour
         
         //摄像机碰撞
         if (Physics.BoxCast(castFrom,CameraHalfExtends, castDirection, 
-                out RaycastHit hit,lookRotation, castDistance,obstructionMask)) 
+                out RaycastHit hit,lookRotation, castDistance,obstructionMask, QueryTriggerInteraction.Ignore)) 
         {
             rectPosition = castFrom + castDirection * hit.distance;
             lookPosition = rectPosition - rectOffset;
