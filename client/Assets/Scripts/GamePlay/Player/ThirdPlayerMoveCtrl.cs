@@ -7,9 +7,14 @@ using UnityEngine;
 /// </summary>
 public class ThirdPlayerMoveCtrl : MonoBehaviour
 {
+    /// <summary>
+    /// 如何拓展Render：删除render和相关代码，然后外部update里读取状态和输入，然后播放动画等
+    /// </summary>
+
     #region Render
 
     [SerializeField] Transform ball = default;
+
     [SerializeField, Min(0.1f)] float ballRadius = 0.5f; //球的半径
 
     [SerializeField, Min(0f)] float ballAlignSpeed = 180f; //对准速度
@@ -17,6 +22,10 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
     [SerializeField, Min(0f)] float
         ballAirRotation = 0.5f, //空中旋转速度
         ballSwimRotation = 2f; //游泳旋转速度
+
+    [SerializeField] Material normalMaterial = default, climbingMaterial = default, swimmingMaterial = default;
+
+    MeshRenderer meshRenderer;
 
     Vector3 lastContactNormal, lastSteepNormal, lastConnectionVelocity; //上次接触的法线,上次陡坡的法线，上次接触物体的速度
 
@@ -89,7 +98,7 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
             return;
         }
 
-        float angle =distance * rotationFactor * (180f / Mathf.PI) / ballRadius;
+        float angle = distance * rotationFactor * (180f / Mathf.PI) / ballRadius;
         Vector3 rotationAxis = Vector3.Cross(rotationPlaneNormal, movement).normalized;
         rotation = Quaternion.Euler(rotationAxis * angle) * rotation;
         if (ballAlignSpeed > 0f)
@@ -102,50 +111,95 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
 
     #endregion
 
-    [SerializeField, Range(0f, 100f)] float maxSpeed = 10f, //最大移动速度
-        maxClimbSpeed = 2f, //最大攀爬速度
-        maxSwimSpeed = 5f; //最大游泳速度
+    #region 配置参数
 
-    [SerializeField, Range(0f, 100f)] float maxAcceleration = 10f, //最大加速度 
-        maxAirAcceleration = 1f, //在空中的最大加速度
-        maxClimbAcceleration = 20f, //攀爬时的最大加速度 
-        maxSwimAcceleration = 5f; //在游泳的最大加速度
+    [SerializeField, Range(0f, 100f), Tooltip("最大移动速度")]
+    float maxSpeed = 10f;
 
-    [SerializeField, Range(0f, 10f)] float jumpHeight = 2f; //踢啊欧俄高度
-    [SerializeField, Range(0, 5)] int maxAirJumps = 0; //跳跃段数
+    [SerializeField, Range(0f, 100f), Tooltip("最大攀爬速度")]
+    float maxClimbSpeed = 2f;
 
-    [SerializeField, Range(0f, 90f)] float maxGroundAngle = 25f, //允许最大爬坡角度
-        maxStairsAngle = 50f; //允许最大楼梯角度
+    [SerializeField, Range(0f, 100f), Tooltip("最大游泳速度")]
+    float maxSwimSpeed = 5f;
 
-    [SerializeField, Range(0f, 100f)] float maxSnapSpeed = 100f; //起飞速度，不大于这个速度会被牢牢吸附在平面
+    [SerializeField, Range(0f, 100f), Tooltip("最大加速度")]
+    float maxAcceleration = 10f;
 
-    [SerializeField, Min(0f)] float probeDistance = 1f; //当球体下方有地面时，无论距离有多远，我们都会进行捕捉
+    [SerializeField, Range(0f, 100f), Tooltip("在空中的最大加速度")]
+    float maxAirAcceleration = 1f;
 
-    [SerializeField] LayerMask probeMask = -1, //检测的层
-        stairsMask = -1, //楼梯的曾
-        climbMask = -1, //攀爬的曾
-        waterMask = 0; //水的层
+    [SerializeField, Range(0f, 100f), Tooltip("攀爬时的最大加速度")]
+    float maxClimbAcceleration = 20f;
+
+    [SerializeField, Range(0f, 100f), Tooltip("游泳时的最大加速度")]
+    float maxSwimAcceleration = 5f;
+
+    [SerializeField, Range(0f, 10f), Tooltip("跳跃高度")]
+    float jumpHeight = 2f;
+
+    [SerializeField, Range(0, 5), Tooltip("最大空中跳跃次数（多段跳）")]
+    int maxAirJumps = 0;
+
+    [SerializeField, Range(0f, 90f), Tooltip("允许的最大地面爬坡角度")]
+    float maxGroundAngle = 25f;
+
+    [SerializeField, Range(0f, 90f), Tooltip("允许的最大楼梯角度")]
+    float maxStairsAngle = 50f;
+
+    [SerializeField, Range(0f, 100f), Tooltip("最大贴地速度，小于此速度时会保持贴地状态")]
+    float maxSnapSpeed = 100f;
+
+    [SerializeField, Min(0f), Tooltip("地面检测的射线长度")]
+    float probeDistance = 1f;
+
+    [SerializeField, Tooltip("地面检测层（Ground）")]
+    LayerMask probeMask = -1;
+
+    [SerializeField, Tooltip("楼梯检测层（Stairs）")]
+    LayerMask stairsMask = -1;
+
+    [SerializeField, Tooltip("攀爬检测层（Climb）")]
+    LayerMask climbMask = -1;
+
+    [SerializeField, Tooltip("水检测层（Water）")]
+    LayerMask waterMask = 0;
+
+    [SerializeField, Tooltip("用于确定移动方向的输入空间（一般是摄像机）")]
+    Transform playerInputSpace = default;
+
+    [SerializeField, Range(90, 180), Tooltip("最大攀爬角度")]
+    float maxClimbAngle = 140f;
+
+    [SerializeField, Tooltip("计算淹没程度的偏移位置")]
+    float submergenceOffset = 0.5f;
+
+    [SerializeField, Min(0.1f), Tooltip("物体用于计算浮力的高度范围")]
+    float submergenceRange = 1f;
+
+    [SerializeField, Range(0f, 10f), Tooltip("水中运动的阻力（拖拽系数）")]
+    float waterDrag = 1f;
+
+    [SerializeField, Min(0f), Tooltip("浮力大小")]
+    float buoyancy = 1f;
+
+    [SerializeField, Range(0.01f, 1f), Tooltip("进入游泳状态所需的淹没深度比例")]
+    float swimThreshold = 0.5f;
+
+    #endregion
 
 
-    [SerializeField] Transform playerInputSpace = default; //输入空间，基于什么移动
+    #region 外部读取状态
 
-    [SerializeField, Range(90, 180)] float maxClimbAngle = 140f; //最大爬升角（攀爬）
+    public bool OnGround => groundContactCount > 0; //是否在地面
+    public bool OnSteep => steepContactCount > 0; //是否与墙面接触
+    public bool Climbing => climbContactCount > 0 && stepsSinceLastJump > 2; //是否正在攀爬，防止刚跳就被吸住
+    public bool InWater => submergence > 0f; //是否在水里
+    public bool Swimming => submergence >= swimThreshold; //是否在游泳
 
-    [SerializeField] float submergenceOffset = 0.5f; //淹没位置
-
-    [SerializeField, Min(0.1f)] float submergenceRange = 1f; //物体高度
-
-    [SerializeField, Range(0f, 10f)] float waterDrag = 1f; //水中的速度缩放
-
-    [SerializeField, Min(0f)] float buoyancy = 1f; //浮力
-
-    [SerializeField, Range(0.01f, 1f)] float swimThreshold = 0.5f; //允许游泳的深度
+    #endregion
 
 
-    [SerializeField] Material normalMaterial = default, climbingMaterial = default, swimmingMaterial = default;
-
-
-    MeshRenderer meshRenderer;
+    #region 私有变量，判断状态使用
 
     Vector3 contactNormal, //当前接触面的法线
         steepNormal, //墙面法线
@@ -158,12 +212,6 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
 
     bool desiredJump, //是否即将跳跃
         desiresClimbing; //是否即将吸附
-
-    bool OnGround => groundContactCount > 0; //是否在地面
-    bool OnSteep => steepContactCount > 0; //是否与墙面接触
-    bool Climbing => climbContactCount > 0 && stepsSinceLastJump > 2; //是否正在攀爬，防止刚跳就被吸住
-    bool InWater => submergence > 0f;
-    bool Swimming => submergence >= swimThreshold;
 
     int groundContactCount, //与地面的接触的点
         steepContactCount, //与墙面的接触点
@@ -184,8 +232,9 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
 
     Vector3 connectionWorldPosition, connectionLocalPosition; //接触物体的世界坐标和空间坐标
 
+    float submergence; //被水淹没得比例0-1
 
-    float submergence;
+    #endregion
 
     #region 初始化
 
@@ -419,7 +468,7 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
 
     #endregion
 
-    #region 刷新
+    #region update和fixupdate
 
     void Update()
     {
@@ -557,7 +606,7 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
 
     #endregion
 
-    #region 地面检测
+    #region 地面、吸附、游泳、攀爬等检测
 
     //低速吸附在地面
     bool SnapToGround()
