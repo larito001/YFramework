@@ -3,7 +3,7 @@ using UnityEngine;
 [RequireComponent(typeof(Camera))]
 public class OrbitCamera : MonoBehaviour
 {
-    [SerializeField] Transform focus = default;
+    [SerializeField]  Transform focus = default;
 
     [SerializeField, Range(1f, 20f)] float distance = 5f; //距离
     [SerializeField, Min(0f)] float focusRadius = 1f; //对焦半径
@@ -31,6 +31,22 @@ public class OrbitCamera : MonoBehaviour
     float lastManualRotationTime;
     Quaternion gravityAlignment = Quaternion.identity;
     Quaternion orbitRotation;
+
+    private bool isInit = false;
+
+    public void Init(Transform focus)
+    {
+        this.focus = focus;
+        isInit = true;
+        regularCamera = GetComponent<Camera>();
+        focusPoint = focus.position;  
+        transform.localRotation = orbitRotation = Quaternion.Euler(orbitAngles);
+    }
+
+    public void Uload()
+    {
+        isInit = false;
+    }
     void OnValidate()
     {
         if (maxVerticalAngle < minVerticalAngle)
@@ -54,12 +70,7 @@ public class OrbitCamera : MonoBehaviour
         }
     }
 
-    void Awake()
-    {
-        regularCamera = GetComponent<Camera>();
-        focusPoint = focus.position;
-        transform.localRotation = orbitRotation = Quaternion.Euler(orbitAngles);
-    }
+
     //
     Vector3 CameraHalfExtends {
         get {
@@ -74,6 +85,7 @@ public class OrbitCamera : MonoBehaviour
     }
     void LateUpdate()
     {
+        if (!isInit) return;
         UpdateGravityAlignment();
         UpdateFocusPoint();
         if (ManualRotation() || AutomaticRotation()) {

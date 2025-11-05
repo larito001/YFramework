@@ -45,7 +45,7 @@ public class PlayerEntity : ObjectBase, PoolItem<object>
     public void SetData(object data)
     {
         SetInVision(true);
-        SetPrefabBundlePath("Player/Player");
+        SetPrefabBundlePath("Player/PlayerBase");
         InstanceGObj();
     }
 
@@ -56,6 +56,9 @@ public class PlayerEntity : ObjectBase, PoolItem<object>
 
     protected override void AfterInstanceGObj()
     {
+       var orbitCamera = YOTOFramework.cameraMgr.getMainCamera().GetComponent<OrbitCamera>();
+       orbitCamera.Init(ObjTrans);
+       ObjTrans.GetComponent<ThirdPlayerMoveCtrl>().playerInputSpace = orbitCamera.transform;
     }
     
 }

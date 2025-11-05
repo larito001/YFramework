@@ -165,7 +165,7 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
     LayerMask waterMask = 0;
 
     [SerializeField, Tooltip("用于确定移动方向的输入空间（一般是摄像机）")]
-    Transform playerInputSpace = default;
+    public Transform playerInputSpace = default;
 
     [SerializeField, Range(90, 180), Tooltip("最大攀爬角度")]
     float maxClimbAngle = 140f;

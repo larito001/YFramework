@@ -17,13 +17,14 @@ public class GameStarter : MonoBehaviour
 #if !UNITY_EDITOR && (UNITY_IOS || UNITY_ANDROID)
         QualitySettings.vSyncCount = 0;
 #endif
-        if (SteamManager.Initialized)
-        {
-            SteamNetworkingUtils.InitRelayNetworkAccess();
-            string name = SteamFriends.GetPersonaName();
-            Debug.LogError("GetPersonaName:" + name);
-           
-        }
+        // if (SteamManager.Initialized)
+        // {
+        //     SteamNetworkingUtils.InitRelayNetworkAccess();
+        //     string name = SteamFriends.GetPersonaName();
+        //     Debug.LogError("GetPersonaName:" + name);
+        //    
+        // }
+        PlayerEntity playerEntity = PlayerEntity.pool.GetItem(null);
         FlyTextMgr.Instance.Init();
         Debug.Log("GameRoot 加载完成");
     }

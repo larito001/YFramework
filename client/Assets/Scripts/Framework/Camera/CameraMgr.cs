@@ -22,16 +22,24 @@ public class CameraMgr
         return mainCamera;
     }
 
-    public void Init()
+    public bool useVCamera = false;
+    public void Init(bool useVCamera =false)
     {
         GameObject cameraObject = GameObject.Find("MainCamera");
-        GameObject.DontDestroyOnLoad(cameraObject);
+        this.useVCamera=useVCamera;
         mainCamera = cameraObject.GetComponent<Camera>();
-        var brain = mainCamera.gameObject.AddComponent<CinemachineBrain>();
-        brain.m_UpdateMethod = CinemachineBrain.UpdateMethod.FixedUpdate;
-        brain.m_DefaultBlend.m_Time = 0.5f;
+        if (useVCamera)
+        {
+      
+            GameObject.DontDestroyOnLoad(cameraObject);
+     
+            var brain = mainCamera.gameObject.AddComponent<CinemachineBrain>();
+            brain.m_UpdateMethod = CinemachineBrain.UpdateMethod.FixedUpdate;
+            brain.m_DefaultBlend.m_Time = 0.5f;
 
-        getVirtualCamera("MainCameraVirtual");
+            getVirtualCamera("MainCameraVirtual");
+        }
+    
 
         isInit = true;
     }

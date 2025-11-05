@@ -26,13 +26,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7257995980083250291}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: 0, y: -0, z: 0.7071068, w: -0.7071068}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1486491997132035289}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 270}
 --- !u!33 &8167534601235598326
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -152,7 +152,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0d62d9c2f1bbdcd4c8c3dff7aa5227d3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ball: {fileID: 2915556196547977248}
   ballRadius: 0.5
+  ballAlignSpeed: 180
+  ballAirRotation: 0.5
+  ballSwimRotation: 2
+  normalMaterial: {fileID: 2100000, guid: 4ce635b72f44290409bbc0bcb64d7e71, type: 2}
+  climbingMaterial: {fileID: 2100000, guid: 864b8c67e25a9764f84bbe4576da7401, type: 2}
+  swimmingMaterial: {fileID: 2100000, guid: dc21201c5997e6b4bb88cf7868cc67c0, type: 2}
   maxSpeed: 10
   maxClimbSpeed: 2
   maxSwimSpeed: 5
@@ -179,16 +186,12 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 16
   playerInputSpace: {fileID: 0}
-  ball: {fileID: 2915556196547977248}
   maxClimbAngle: 180
   submergenceOffset: 0.5
   submergenceRange: 1
   waterDrag: 1
   buoyancy: 2
   swimThreshold: 0.5
-  normalMaterial: {fileID: 2100000, guid: 4ce635b72f44290409bbc0bcb64d7e71, type: 2}
-  climbingMaterial: {fileID: 2100000, guid: 864b8c67e25a9764f84bbe4576da7401, type: 2}
-  swimmingMaterial: {fileID: 2100000, guid: dc21201c5997e6b4bb88cf7868cc67c0, type: 2}
 --- !u!96 &6331498871518340368
 TrailRenderer:
   serializedVersion: 3

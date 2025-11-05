@@ -30,7 +30,6 @@ public class SoundMgr
             _sfxSources.Add(sfx);
         }
 
-        PlayBGM("Sound/BGM1",0.3f);
     }
 
     /// <summary>
@@ -45,7 +44,7 @@ public class SoundMgr
             // 释放旧的 BGM
             if (_currentBgm != null)
             {
-                YOTOFramework.resMgr.ReleasePack("Sound/BGM1",_currentBgm);
+                // YOTOFramework.resMgr.ReleasePack("Sound/BGM1",_currentBgm);
             }
 
             _currentBgm = clip;
