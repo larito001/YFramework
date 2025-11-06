@@ -228,7 +228,7 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
     int stepsSinceLastGrounded, //在空中的帧数
         stepsSinceLastJump; //跳跃时的帧数
 
-    Vector3 upAxis, rightAxis, forwardAxis; //上轴 ，右轴，前轴
+    public Vector3 upAxis, rightAxis, forwardAxis; //上轴 ，右轴，前轴
 
     Vector3 connectionWorldPosition, connectionLocalPosition; //接触物体的世界坐标和空间坐标
 
