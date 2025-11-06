@@ -49,15 +49,17 @@ public class BaseBulletEntity : ObjectBase, PoolItem<BulletConfig>
     private Vector3 pos;
     private Vector3 dir;
     private bool TryFire = false;
-
+    private float timer = 0;
+    private bool isLive = false;    
     public void Fire(Vector3 pos, Vector3 dir)
     {
+        timer = 0;
         this.dir = dir;
         this.pos = pos;
         TryFire = true;
         if (objTrans)
         {
-            objTrans.position = pos;
+         
             StartFire();
         }
     }
@@ -65,10 +67,14 @@ public class BaseBulletEntity : ObjectBase, PoolItem<BulletConfig>
     private void StartFire()
     {
         TryFire = false;
+        objTrans.position = pos;
+        objTrans.forward = dir;
     }
 
     public void AfterIntoObjectPool()
     {
+        isLive = false;
+        timer = 0;
         var trigger = ObjTrans.GetComponent<BulletTrigger>();
         trigger.Unload();
         SetInVision(false);
@@ -77,6 +83,8 @@ public class BaseBulletEntity : ObjectBase, PoolItem<BulletConfig>
 
     public void SetData(BulletConfig config)
     {
+        isLive = true;
+        timer = 0;
         _config = config;
         SetInVision(true);
         SetPrefabBundlePath(config.name);
@@ -115,6 +123,18 @@ public class BaseBulletEntity : ObjectBase, PoolItem<BulletConfig>
 
     public override void YOTOUpdate(float deltaTime)
     {
+        if (!isLive) return;
+        timer+= deltaTime;
+        if (timer>=_config.duration)
+        {
+            BaseBulletEntity.pool.RecoverItem(this);
+        }
+        if (objTrans)
+        {
+            
+            objTrans.position += dir * _config.moveSpeed * deltaTime;
+        }
+        
     }
 
     public override void YOTONetUpdate()

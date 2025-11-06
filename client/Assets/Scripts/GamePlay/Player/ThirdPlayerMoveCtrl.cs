@@ -229,7 +229,7 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
         stepsSinceLastJump; //跳跃时的帧数
 
     public Vector3 upAxis, rightAxis, forwardAxis; //上轴 ，右轴，前轴
-
+    public Vector3 adjustment = default;
     Vector3 connectionWorldPosition, connectionLocalPosition; //接触物体的世界坐标和空间坐标
 
     float submergence; //被水淹没得比例0-1
@@ -341,7 +341,7 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
         //链接接触物体和自身的移动
         Vector3 relativeVelocity = velocity - connectionVelocity;
         //获取水平面和当前速度的cos，用于计算
-        Vector3 adjustment = default;
+      
         adjustment.x = playerInput.x * speed - Vector3.Dot(relativeVelocity, xAxis);
         adjustment.z = playerInput.z * speed - Vector3.Dot(relativeVelocity, zAxis);
         adjustment = Vector3.ClampMagnitude(adjustment, acceleration * Time.deltaTime);

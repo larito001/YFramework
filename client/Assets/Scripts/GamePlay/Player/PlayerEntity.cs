@@ -1,5 +1,4 @@
-using System.Collections;
-using System.Collections.Generic;
+
 using UnityEngine;
 using YOTO;
 
@@ -21,10 +20,22 @@ public class PlayerEntity : ObjectBase, PoolItem<object>
 
     public override void YOTOUpdate(float deltaTime)
     {
+        if (Input.GetKeyDown(KeyCode.E))
+        {
+            BaseBulletEntity b = BaseBulletEntity.pool.GetItem(new BulletConfig()
+            {
+                name = "Bullet/bullet",
+                moveSpeed = 10,
+                damage = 1,
+                duration=1,
+            });
+            b.Fire(ObjTrans.position, ObjTrans.GetComponent<ThirdPlayerMoveCtrl>().forwardAxis);
+        }
     }
 
     public override void YOTONetUpdate()
     {
+        
     }
 
     public override void YOTOFixedUpdate(float deltaTime)
@@ -59,6 +70,7 @@ public class PlayerEntity : ObjectBase, PoolItem<object>
        var orbitCamera = YOTOFramework.cameraMgr.getMainCamera().GetComponent<OrbitCamera>();
        orbitCamera.Init(ObjTrans);
        ObjTrans.GetComponent<ThirdPlayerMoveCtrl>().playerInputSpace = orbitCamera.transform;
+      
     }
     
 }
