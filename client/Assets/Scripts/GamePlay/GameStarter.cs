@@ -25,8 +25,19 @@ public class GameStarter : MonoBehaviour
         //    
         // }
         PlayerEntity playerEntity = PlayerEntity.pool.GetItem(null);
+        playerEntity.Location= new Vector3(0, 0, 0);
         FlyTextMgr.Instance.Init();
         Debug.Log("GameRoot 加载完成");
+        EnemiesManager.instance.SetPlayer(playerEntity);
+        // for (int i = 0; i < 100; i++)
+        // {
+        //     EnemiesManager.instance.GenerateEnemyAt(new Vector3(Random.Range(-20, 20), Random.Range(-20, 20), Random.Range(-20, 20)));
+        // }
+        YOTOFramework.timeMgr.LoopCall(() =>
+        {
+
+            EnemiesManager.instance.GenerateAtPlayerMoveDir();
+        },3);
     }
 
   

@@ -13,6 +13,8 @@ public class SampleEnemyMoveCtrl : MonoBehaviour
     {
         rigidbody = GetComponent<Rigidbody>();
         rigidbody.useGravity = false;
+        //todo:随机颜色
+        GetComponent<Renderer>().material.color = new Color(UnityEngine.Random.Range(0, 1f), UnityEngine.Random.Range(0, 1f), UnityEngine.Random.Range(0, 1f));
     }
 
     public void SetPlayerPosition( Vector3 targetPos)
@@ -39,7 +41,7 @@ public class SampleEnemyMoveCtrl : MonoBehaviour
         //朝着角色方向给速度
         Vector3 dir = targetPos - transform.position;
         
-        rigidbody.velocity = dir.normalized * 10;
+        rigidbody.velocity = dir.normalized * 5;
         var up = CustomGravity.GetUpAxis(transform.position);
         var v =rigidbody.velocity;
         

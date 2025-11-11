@@ -31,7 +31,7 @@ public class PluginManager
 
     public void InitPlugins()
     {
-        // InstallPlugin<ServerDataPlugin>();
+        InstallPlugin<EnemiesManager>();
      
 
 

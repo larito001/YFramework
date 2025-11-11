@@ -105,19 +105,40 @@ public abstract class ObjectBase:BaseEntity
     {
         get { return location; }
 
-        set { location = value; }
+        set
+        {
+            if (objTrans != null)
+            {
+                objTrans.position = value;
+            }
+            location = value;
+        }
     }
     public virtual Quaternion Rotation
     {
         get { return rotation; }
 
-        set { rotation = value; }
+        set
+        {
+            if (objTrans != null)
+            {
+                objTrans.rotation = value;
+            }
+            rotation = value;
+        }
     }
     public virtual Transform Parent
     {
         get { return parent; }
 
-        set { parent = value; }
+        set
+        {
+            if (objTrans != null)
+            {
+                objTrans.SetParent(value);
+            }
+            parent = value;
+        }
     }
     /// <summary>
     /// 设置预制物路径

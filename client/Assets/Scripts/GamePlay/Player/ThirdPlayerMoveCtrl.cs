@@ -218,7 +218,7 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
         climbContactCount; //攀爬接触点数
 
     Vector3 playerInput;
-    Vector3 velocity, connectionVelocity;
+   public  Vector3 velocity, connectionVelocity;
     int jumpPhase; //当前跳跃了几段
 
     Rigidbody body,
