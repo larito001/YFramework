@@ -9,7 +9,7 @@ public class PlayerRenderer : MonoBehaviour
     private Rigidbody  rigidbody;
     private void Awake()
     {
-        rigidbody = thirdPlayerMoveCtrl.transform.GetComponent<Rigidbody>();
+        rigidbody = thirdPlayerMoveCtrl.GetComponent<Rigidbody>();
     }
 
     private void Update()
