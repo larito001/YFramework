@@ -2,30 +2,29 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class EnemyEntity : ObjectBase, PoolItem<object>
+public class EnemyEntity : ObjectBase, PoolItem<object>, IVictim
 {
     public static DataObjPool<EnemyEntity, object> pool =
         new DataObjPool<EnemyEntity, object>("EnemyEntity", 200);
+
     SampleEnemyMoveCtrl enemyMoveCtrl;
+    public Properties Properties;
+
     protected override void YOTOOnload()
     {
-        
     }
 
     public override void YOTOStart()
     {
-      
     }
 
     public override void YOTOUpdate(float deltaTime)
     {
-
         if (enemyMoveCtrl != null)
         {
             enemyMoveCtrl.SetPlayerPosition(EnemiesManager.instance.GetPlayerPos());
             CheckDistance();
         }
-
     }
 
     private void CheckDistance()
@@ -39,27 +38,28 @@ public class EnemyEntity : ObjectBase, PoolItem<object>
 
     public override void YOTONetUpdate()
     {
-        
     }
 
     public override void YOTOFixedUpdate(float deltaTime)
     {
-        
     }
 
     public override void YOTOOnHide()
     {
-        
     }
 
     public void SetTarget()
     {
-        
     }
-    
+
     protected override void AfterInstanceGObj()
     {
         enemyMoveCtrl = ObjTrans.GetComponent<SampleEnemyMoveCtrl>();
+        if (!ObjTrans.gameObject.TryGetComponent<TheVictim>(out TheVictim victim))
+        {
+            victim = ObjTrans.gameObject.AddComponent<TheVictim>();
+        }
+        victim.Victim = this;
     }
 
     public void AfterIntoObjectPool()
@@ -72,5 +72,18 @@ public class EnemyEntity : ObjectBase, PoolItem<object>
         SetInVision(true);
         SetPrefabBundlePath("Enemies/Enemy");
         InstanceGObj();
+        Properties = new Properties();
+        Properties.HP = 100;
+        Properties.OnDead = () => { EnemiesManager.instance.RemoveEnemy(this); };
+    }
+
+    public Properties GetProperties()
+    {
+        return Properties;
+    }
+
+    public void OnHurt(float hurt)
+    {
+        Properties.HP -= hurt;
     }
 }

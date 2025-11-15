@@ -1,4 +1,3 @@
-
 using UnityEngine;
 using YOTO;
 
@@ -13,7 +12,6 @@ public class PlayerEntity : ObjectBase, PoolItem<object>
     {
     }
 
-   
 
     public override void YOTOStart()
     {
@@ -23,24 +21,30 @@ public class PlayerEntity : ObjectBase, PoolItem<object>
     {
         if (Input.GetKeyDown(KeyCode.E))
         {
-            BaseBulletEntity b = BaseBulletEntity.pool.GetItem(new BulletConfig()
+            Vector3 pos = new Vector3();
+            if (EnemiesManager.instance.GetEnemyPos(out pos))
             {
-                name = "Bullet/bullet",
-                moveSpeed = 10,
-                damage = 1,
-                duration=1,
-            });
-            b.Fire(ObjTrans.position, playerMoveCtrl.forwardAxis);
+                BaseBulletEntity b = BaseBulletEntity.pool.GetItem(new BulletConfig()
+                {
+                    name = "Bullet/bullet",
+                    moveSpeed = 10,
+                    damage = 1,
+                    duration = 1,
+                });
+
+
+                b.Fire(ObjTrans.position, pos - ObjTrans.position);
+            }
         }
     }
 
     public Vector3 GetForwardPos(float distance)
     {
-        return ObjTrans.position+ playerMoveCtrl.velocity.normalized * distance;
+        return ObjTrans.position + playerMoveCtrl.velocity.normalized * distance;
     }
+
     public override void YOTONetUpdate()
     {
-        
     }
 
     public override void YOTOFixedUpdate(float deltaTime)
@@ -56,22 +60,20 @@ public class PlayerEntity : ObjectBase, PoolItem<object>
         RecoverObject();
     }
 
-  
+
     public void SetData(object data)
     {
         SetInVision(true);
         SetPrefabBundlePath("Player/PlayerBase");
         InstanceGObj();
     }
-    
+
 
     protected override void AfterInstanceGObj()
     {
-       var orbitCamera = YOTOFramework.cameraMgr.getMainCamera().GetComponent<OrbitCamera>();
-       orbitCamera.Init(ObjTrans);
-       playerMoveCtrl = ObjTrans.GetComponent<ThirdPlayerMoveCtrl>();
-       playerMoveCtrl.playerInputSpace = orbitCamera.transform;
-      
+        var orbitCamera = YOTOFramework.cameraMgr.getMainCamera().GetComponent<OrbitCamera>();
+        orbitCamera.Init(ObjTrans);
+        playerMoveCtrl = ObjTrans.GetComponent<ThirdPlayerMoveCtrl>();
+        playerMoveCtrl.playerInputSpace = orbitCamera.transform;
     }
-    
 }

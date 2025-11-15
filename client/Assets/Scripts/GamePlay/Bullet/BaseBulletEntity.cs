@@ -38,6 +38,7 @@ public struct BulletConfig
     public Camp camp; //阵营
     public float duration; //持续时间
     public bool isTrack; //是否追踪
+    public int TrggerCount ;
 }
 
 public class BaseBulletEntity : ObjectBase, PoolItem<BulletConfig>
@@ -50,13 +51,15 @@ public class BaseBulletEntity : ObjectBase, PoolItem<BulletConfig>
     private Vector3 dir;
     private bool TryFire = false;
     private float timer = 0;
-    private bool isLive = false;    
+    private bool isLive = false;
+    private int triggerCount=1;
     public void Fire(Vector3 pos, Vector3 dir)
     {
         timer = 0;
         this.dir = dir;
         this.pos = pos;
         TryFire = true;
+      
         if (objTrans)
         {
          
@@ -69,6 +72,7 @@ public class BaseBulletEntity : ObjectBase, PoolItem<BulletConfig>
         TryFire = false;
         objTrans.position = pos;
         objTrans.forward = dir;
+   
     }
 
     public void AfterIntoObjectPool()
@@ -91,9 +95,12 @@ public class BaseBulletEntity : ObjectBase, PoolItem<BulletConfig>
         InstanceGObj();
     }
 
+   
     protected override void AfterInstanceGObj()
     {
+        triggerCount = 2;
         var trigger = ObjTrans.GetComponent<BulletTrigger>();
+       
         trigger.Init(this);
         if (TryFire)
         {
@@ -101,15 +108,34 @@ public class BaseBulletEntity : ObjectBase, PoolItem<BulletConfig>
         }
     }
 
-    public void TriggerEnter()
+    public void TriggerEnter(Collider other)
+    {
+        if (!isLive) return;
+        if (triggerCount > 0)
+        {
+          
+       
+            if (other.TryGetComponent<TheVictim>(out TheVictim victim))
+            {
+                //todo:根据配置伤害
+                victim.Victim?.OnHurt(50);
+                triggerCount--;
+            }
+            if (triggerCount <=0)
+            {
+                pool.RecoverItem(this);
+            }
+        }
+      
+     
+        
+    }
+
+    public void TriggerExit(Collider other)
     {
     }
 
-    public void TriggerExit()
-    {
-    }
-
-    public void TriggerStay()
+    public void TriggerStay(Collider other)
     {
     }
 

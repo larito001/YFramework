@@ -20,18 +20,18 @@ public class BulletTrigger : MonoBehaviour
     private void OnTriggerEnter(Collider other)
     {
         if(isInit)
-        bullet.TriggerEnter();
+        bullet.TriggerEnter(other);
     }
 
     private void OnTriggerStay(Collider other)
     {
         if(isInit)
-        bullet.TriggerStay();
+        bullet.TriggerStay(other);
     }
 
     private void OnTriggerExit(Collider other)
     {
         if(isInit)
-        bullet.TriggerExit();
+        bullet.TriggerExit(other);
     }
 }
