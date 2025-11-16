@@ -32,9 +32,7 @@ public class PluginManager
     public void InitPlugins()
     {
         InstallPlugin<EnemiesManager>();
-     
-
-
+        InstallPlugin<CardPlugin>();
     }
     
 

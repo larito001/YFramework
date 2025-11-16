@@ -17,7 +17,16 @@ public class GameMainPanel : UIPageBase
 
     public override void OnShow()
     {
-       
+        YOTOFramework.timeMgr.DelayCall(()=>
+        {
+            YOTOFramework.uIMgr.Hide(UIEnum.GameMapPanel);
+
+            CardPlugin.Instance.ShowCards();
+        },3);
+        YOTOFramework.timeMgr.DelayCall(()=>
+        {
+            YOTOFramework.uIMgr.Hide(UIEnum.LoadingPanel);
+        },4);
     }
 
     public override void OnHide()

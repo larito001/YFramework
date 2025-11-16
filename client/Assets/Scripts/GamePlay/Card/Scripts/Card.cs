@@ -130,11 +130,21 @@ public class Card : MonoBehaviour, IDragHandler, IBeginDragHandler, IEndDragHand
         pointerDownTime = Time.time;
     }
 
+    public void SelectByCode()
+    {
+        
+        selected = !selected;
+        SelectEvent.Invoke(this, selected);
+
+        if (selected)
+            transform.localPosition += (cardVisual.transform.up * selectionOffset);
+        else
+            transform.localPosition = Vector3.zero;
+    }
     public void OnPointerUp(PointerEventData eventData)
     {
         if (eventData.button != PointerEventData.InputButton.Left)
             return;
-
         pointerUpTime = Time.time;
 
         PointerUpEvent.Invoke(this, pointerUpTime - pointerDownTime > .2f);
@@ -144,14 +154,12 @@ public class Card : MonoBehaviour, IDragHandler, IBeginDragHandler, IEndDragHand
 
         if (wasDragged)
             return;
-
-        selected = !selected;
-        SelectEvent.Invoke(this, selected);
-
+        SelectByCode();
         if (selected)
-            transform.localPosition += (cardVisual.transform.up * selectionOffset);
-        else
-            transform.localPosition = Vector3.zero;
+        {
+            CardPlugin.Instance.AddCard(cardVisual); 
+        }
+     
     }
 
     public void Deselect()
@@ -186,5 +194,12 @@ public class Card : MonoBehaviour, IDragHandler, IBeginDragHandler, IEndDragHand
     {
         if(cardVisual != null)
         Destroy(cardVisual.gameObject);
+    }
+
+    public int CardType = 0;
+    public void SetType(int cardType)
+    {
+        CardType = cardType;
+        
     }
 }

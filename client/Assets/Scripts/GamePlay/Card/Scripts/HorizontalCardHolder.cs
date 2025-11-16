@@ -17,32 +17,21 @@ public class HorizontalCardHolder : MonoBehaviour
 
     [Header("Spawn Settings")]
     [SerializeField] private int cardsToSpawn = 7;
-    public List<Card> cards;
+    public List<Card> cards =new List<Card>();
 
     bool isCrossing = false;
     [SerializeField] private bool tweenCardReturn = true;
-
-    void Start()
+    int cardCount = 0;
+    public void Init()
     {
         for (int i = 0; i < cardsToSpawn; i++)
         {
-            Instantiate(slotPrefab, transform);
+            var type =CardPlugin.Instance.RandomSelect();
+            AddCard(type);
         }
 
         rect = GetComponent<RectTransform>();
-        cards = GetComponentsInChildren<Card>().ToList();
-
-        int cardCount = 0;
-
-        foreach (Card card in cards)
-        {
-            card.PointerEnterEvent.AddListener(CardPointerEnter);
-            card.PointerExitEvent.AddListener(CardPointerExit);
-            card.BeginDragEvent.AddListener(BeginDrag);
-            card.EndDragEvent.AddListener(EndDrag);
-            card.name = cardCount.ToString();
-            cardCount++;
-        }
+        
 
         StartCoroutine(Frame());
 
@@ -87,14 +76,33 @@ public class HorizontalCardHolder : MonoBehaviour
         hoveredCard = null;
     }
 
+    public void RemoveCard(Card  card)
+    {
+        Destroy(card.transform.parent.gameObject);
+        cards.Remove(card);
+    }
+
+    public void AddCard(int cardType)
+    {
+    
+        var obj = Instantiate(slotPrefab, transform);
+        var card = obj.GetComponentInChildren<Card>();
+        card.SetType(cardType);
+        cards.Add(card);
+        card.PointerEnterEvent.AddListener(CardPointerEnter);
+        card.PointerExitEvent.AddListener(CardPointerExit);
+        card.BeginDragEvent.AddListener(BeginDrag);
+        card.EndDragEvent.AddListener(EndDrag);
+        card.name = cardCount.ToString();
+        cardCount++;
+    }
     void Update()
     {
         if (Input.GetKeyDown(KeyCode.Delete))
         {
             if (hoveredCard != null)
             {
-                Destroy(hoveredCard.transform.parent.gameObject);
-                cards.Remove(hoveredCard);
+                RemoveCard(hoveredCard);
 
             }
         }

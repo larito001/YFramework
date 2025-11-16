@@ -9,8 +9,15 @@ using Unity.VisualScripting;
 
 public class CardVisual : MonoBehaviour
 {
+    public int cardId;
+    public int CardType = 0;
+    public static int CardNumber=0;
+    
     private bool initalize = false;
 
+    public ShaderCode shaderCode;
+    
+    
     [Header("Card")]
     public Card parentCard;
     private Transform cardTransform;
@@ -89,6 +96,7 @@ public class CardVisual : MonoBehaviour
 
         //Initialization
         initalize = true;
+        cardId = CardNumber++;
     }
 
     public void UpdateIndex(int length)
@@ -156,7 +164,6 @@ public class CardVisual : MonoBehaviour
 
         if(scaleAnimations)
             transform.DOScale(scaleOnHover, scaleTransition).SetEase(scaleEase);
-
     }
 
     public void Swap(float dir = 1)

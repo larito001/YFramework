@@ -174,7 +174,7 @@ public class FlyTextCtrl : ObjectBase, PoolItem<Transform>
     public void SetData(Transform serverData)
     {
         SetInVision(true);
-        SetPrefabBundlePath("prefabs/UI/FlyTextPrefab");
+        SetPrefabBundlePath("UI/FlyTextPrefab");
         root = serverData;
     }
 }

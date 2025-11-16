@@ -40,6 +40,7 @@ public enum UIEnum
     None = 0,
     LoadingPanel,
     StartPanel,
+    GameMapPanel,
     GameMainPanel,
     FinishPanel,
     SettingPanel,
@@ -50,6 +51,7 @@ public class UIConfig
     private List<UIInfo> uiList = new List<UIInfo>()
     {
         new UIInfo(UIEnum.StartPanel, UILayerEnum.Normal, "UI/StartPanel"),
+        new UIInfo(UIEnum.GameMapPanel, UILayerEnum.Normal, "UI/GameMapPanel"),
         new UIInfo(UIEnum.GameMainPanel, UILayerEnum.Normal, "UI/GameMainPanel"),
         new UIInfo(UIEnum.LoadingPanel, UILayerEnum.RayCast, "UI/LoadingPanel"),
         new UIInfo(UIEnum.FinishPanel, UILayerEnum.Normal, "UI/FinishPanel"),

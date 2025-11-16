@@ -2,9 +2,9 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+
 public class ShaderCode : MonoBehaviour
 {
-
     Image image;
     Material m;
     CardVisual visual;
@@ -17,18 +17,25 @@ public class ShaderCode : MonoBehaviour
         image.material = m;
         visual = GetComponentInParent<CardVisual>();
 
-        string[] editions = new string[4];
-        editions[0] = "REGULAR";
-        editions[1] = "POLYCHROME";
-        editions[2] = "REGULAR";
-        editions[3] = "NEGATIVE";
 
         for (int i = 0; i < image.material.enabledKeywords.Length; i++)
         {
             image.material.DisableKeyword(image.material.enabledKeywords[i]);
         }
-        image.material.EnableKeyword("_EDITION_" + editions[Random.Range(0, editions.Length)]);
+        
+        editions[0] = "REGULAR";
+        editions[1] = "POLYCHROME";
+        editions[2] = "REGULAR";
+        editions[3] = "NEGATIVE";
+        image.material.EnableKeyword("_EDITION_" + editions[visual.parentCard.CardType]);
+       
+        visual.CardType = visual.parentCard.CardType;
+
+
     }
+
+    string[] editions = new string[4];
+    
 
     // Update is called once per frame
     // void Update()

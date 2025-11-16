@@ -135,7 +135,7 @@ namespace YOTO
                             callback();
                         } catch(Exception e)
                         {
-                            Debug.Log("Timerִд:"+e);
+                            Debug.LogError("Timer异常:"+e);
                         }
                     }
                     loopCount--;

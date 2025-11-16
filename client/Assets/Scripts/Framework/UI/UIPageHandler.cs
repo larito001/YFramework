@@ -125,7 +125,7 @@ public class UIPageHandler
         }
         catch (Exception e)
         {
-            Debug.LogError($"[UIPageHandler] Exception in OnLoaded: key={key}, error={e}");
+                Debug.LogError($"[UIPageHandler] Exception in OnLoaded: key={key}, error={e}");
         }
     }
 
