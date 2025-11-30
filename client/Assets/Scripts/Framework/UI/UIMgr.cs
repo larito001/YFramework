@@ -29,7 +29,7 @@ public class UILayer
         // 添加Canvas组件
         Canvas canvas = layerRoot.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        canvas.worldCamera = YOTOFramework.cameraMgr.getMainCamera();
+        canvas.worldCamera = YFramework.cameraMgr.getMainCamera();
         canvas.overrideSorting = true; // 重要：启用排序覆盖
         canvas.sortingOrder = ((int)layer * 100);
         CanvasScaler scaler = layerRoot.AddComponent<CanvasScaler>();

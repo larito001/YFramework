@@ -9,7 +9,7 @@ public class GameStarter : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        YOTOFramework.Instance.Init();
+        YFramework.Instance.Init();
         // 将帧率限制为60FPS
         Application.targetFrameRate = 60;
 
@@ -33,11 +33,14 @@ public class GameStarter : MonoBehaviour
         // {
         //     EnemiesManager.instance.GenerateEnemyAt(new Vector3(Random.Range(-20, 20), Random.Range(-20, 20), Random.Range(-20, 20)));
         // }
-        YOTOFramework.timeMgr.LoopCall(() =>
+        Timers.inst.Add(1,(o) =>
         {
-
-            EnemiesManager.instance.GenerateAtPlayerMoveDir();
-        },3);
+            YFramework.uIMgr.Show(UIEnum.LoadingPanel);
+        });
+        Timers.inst.Add(3,-1, (o) =>
+        {
+            EnemiesManager.instance.GenerateAtPlayerMoveDir(); 
+        });
     }
 
   

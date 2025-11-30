@@ -19,13 +19,13 @@ public class SoundMgr
     public void Init()
     {
         // 创建 BGM Source
-        _bgmSource = YOTOFramework.Instance.gameObject.AddComponent<AudioSource>();
+        _bgmSource = YFramework.Instance.gameObject.AddComponent<AudioSource>();
         _bgmSource.loop = true;
 
         // 初始化一个音效池
         for (int i = 0; i < 5; i++)
         {
-            var sfx = YOTOFramework.Instance.gameObject.AddComponent<AudioSource>();
+            var sfx = YFramework.Instance.gameObject.AddComponent<AudioSource>();
             sfx.playOnAwake = false;
             _sfxSources.Add(sfx);
         }
@@ -37,7 +37,7 @@ public class SoundMgr
     /// </summary>
     public void PlayBGM(string path, float volume = 1f)
     {
-        YOTOFramework.resMgr.LoadAudio(path, (clip) =>
+        YFramework.resMgr.LoadAudio(path, (clip) =>
         {
             if (clip == null) return;
 
@@ -63,7 +63,7 @@ public class SoundMgr
 
         if (_currentBgm != null)
         {
-            YOTOFramework.resMgr.ReleasePack("Sound/BGM1",_currentBgm);
+            YFramework.resMgr.ReleasePack("Sound/BGM1",_currentBgm);
             _currentBgm = null;
             _bgmSource.clip = null;
         }
@@ -74,7 +74,7 @@ public class SoundMgr
     /// </summary>
     public void PlaySFX(string path, float volume = 1f)
     {
-        YOTOFramework.resMgr.LoadAudio(path, (clip) =>
+        YFramework.resMgr.LoadAudio(path, (clip) =>
         {
             if (clip == null) return;
 
@@ -84,7 +84,7 @@ public class SoundMgr
             src.Play();
 
             // 播放完成后自动释放
-            YOTOFramework.Instance.StartCoroutine(ReleaseWhenDone(src, clip,path));
+            YFramework.Instance.StartCoroutine(ReleaseWhenDone(src, clip,path));
         });
     }
 
@@ -92,7 +92,7 @@ public class SoundMgr
     {
         yield return new WaitWhile(() => src.isPlaying);
         src.clip = null;
-        YOTOFramework.resMgr.ReleasePack(path,clip);
+        YFramework.resMgr.ReleasePack(path,clip);
     }
 
     /// <summary>
@@ -105,7 +105,7 @@ public class SoundMgr
             if (s.isPlaying) s.Stop();
             if (s.clip != null)
             {
-                YOTOFramework.resMgr.ReleasePack("Sound/BGM1",s.clip);
+                YFramework.resMgr.ReleasePack("Sound/BGM1",s.clip);
                 s.clip = null;
             }
         }

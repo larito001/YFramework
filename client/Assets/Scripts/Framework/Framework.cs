@@ -4,14 +4,12 @@ using UnityEngine;
 
 namespace YOTO
 {
-    public class YOTOFramework : SingletonMono<YOTOFramework>
+    public class YFramework : SingletonMono<YFramework>
     {
         private bool isInit = false;
         
         ScreenMonitor screenMonitor = new ScreenMonitor();
         
-        public static  TimeMgr timeMgr = new TimeMgr();
-        public static  Logger logger = new Logger();
         public static  EventMgr eventMgr = new EventMgr();
         public static  StoreMgr storeMgr = new StoreMgr();
         public static  ResMgr resMgr = new ResMgr();
@@ -29,10 +27,8 @@ namespace YOTO
     
                 storeMgr.Init();
                 PluginMgr.InitPlugins();
-                logger.Init();
+                Logger.Init();
                 resMgr.Init();
-                timeMgr.Init();
-                // gameInputMgr.Init();
                 cameraMgr.Init();
                 entityMgr.Init();
                 uIMgr.Init();
@@ -60,13 +56,10 @@ namespace YOTO
         }
         private void OnScreenResize(int width, int height)
         {
-        YOTOFramework.timeMgr.DelayCallFram(() =>
-        {
-            OnResizeScreen();
-        },2);
+            Timers.inst.CallLater(OnResizeScreen);
         }
 
-        private void OnResizeScreen()
+        private void OnResizeScreen(object o)
         {
             uIMgr.ResizeScreen();
         }
@@ -74,7 +67,6 @@ namespace YOTO
         private void Update()
         {
             float dt = Time.deltaTime;
-            timeMgr.Update(dt);
             entityMgr._Update(dt);
             cameraMgr.Update(dt);
             screenMonitor.Update();
@@ -83,12 +75,9 @@ namespace YOTO
         private void OnDestroy()
         {
             Debug.Log("YTLOG销毁完成");
-            logger.OnDisable();
+            Logger.OnDestroy();
             isInit = true;
-            
-            logger=null;
             resMgr=null;
-            timeMgr=null;
             cameraMgr=null;
             entityMgr=null;
             uIMgr=null;
@@ -100,10 +89,6 @@ namespace YOTO
             taskMgr = null;
             Unload();
         }
-
-        private void OnGUI()
-        {
-            logger.OnGUI();
-        }
+        
     }
 }

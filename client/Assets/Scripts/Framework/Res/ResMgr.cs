@@ -58,9 +58,8 @@ namespace YOTO
 
                 // 缓存Prefab
                 prefabCache[path] = new CachedResource<GameObject> { asset = t, refCount = 1 };
-
-                GameObject go = Object.Instantiate(t);
-                callBack(go);
+                
+                callBack(t);
 
                 RecycleLoader(loader);
             });

@@ -71,7 +71,7 @@ public class PlayerEntity : ObjectBase, PoolItem<object>
 
     protected override void AfterInstanceGObj()
     {
-        var orbitCamera = YOTOFramework.cameraMgr.getMainCamera().GetComponent<OrbitCamera>();
+        var orbitCamera = YFramework.cameraMgr.getMainCamera().GetComponent<OrbitCamera>();
         orbitCamera.Init(ObjTrans);
         playerMoveCtrl = ObjTrans.GetComponent<ThirdPlayerMoveCtrl>();
         playerMoveCtrl.playerInputSpace = orbitCamera.transform;

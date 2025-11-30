@@ -18,7 +18,7 @@ public class ParticleEntity :  PoolItem<ParticleEntityData>
     private bool loaded = false;
     public void AfterIntoObjectPool()
     {
-        YOTOFramework.resMgr.ReleasePack(_data.path,_obj);
+        YFramework.resMgr.ReleasePack(_data.path,_obj);
         _obj = null;
         loaded = false;
         needPlay = false;
@@ -27,7 +27,7 @@ public class ParticleEntity :  PoolItem<ParticleEntityData>
     public void SetData(ParticleEntityData data)
     {
         _data = data;
-      YOTOFramework.resMgr.LoadGameObject(data.path, OnLoad);
+      YFramework.resMgr.LoadGameObject(data.path, OnLoad);
       loaded = false;
     }
 

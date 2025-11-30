@@ -9,7 +9,7 @@ public class SimpleKillCondition : ITaskCondition
     // sourceId: 传入被击杀对象的 id（比如怪物类型 id）
     public bool TryApplyCondition(TaskInstance instance, string objectiveId, string sourceId,object[] param)
     {
-        var def =YOTOFramework.taskMgr.GetDefinition(instance.taskId);
+        var def =YFramework.taskMgr.GetDefinition(instance.taskId);
         var obj = def.objectives.Find(x => x.id == objectiveId);
         if (obj == null) return false;
 

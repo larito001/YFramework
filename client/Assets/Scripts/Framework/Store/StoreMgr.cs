@@ -61,12 +61,12 @@ namespace YOTO
 
         public void Save(Action onComplete = null)
         {
-            YOTOFramework.storeMgr.Save(this, onComplete);
+            YFramework.storeMgr.Save(this, onComplete);
         }
 
         public void Load(Action onComplete = null)
         {
-            YOTOFramework.storeMgr.Load(this, onComplete);
+            YFramework.storeMgr.Load(this, onComplete);
         }
     }
 
@@ -187,12 +187,12 @@ namespace YOTO
         public void Save<T>(DataContaner<T> dataContaner, Action onComplete = null) where T : class, new()
         {
             string json = _strategy.Serialize(dataContaner.GetData());
-            YOTOFramework.Instance.StartCoroutine(_storage.WriteCoroutine(dataContaner.SaveKey, json, onComplete));
+            YFramework.Instance.StartCoroutine(_storage.WriteCoroutine(dataContaner.SaveKey, json, onComplete));
         }
 
         public void Load<T>(DataContaner<T> dataContaner, Action onComplete) where T : class, new()
         {
-            YOTOFramework.Instance.StartCoroutine(_storage.ReadCoroutine<T>(dataContaner.SaveKey, _strategy, data =>
+            YFramework.Instance.StartCoroutine(_storage.ReadCoroutine<T>(dataContaner.SaveKey, _strategy, data =>
             {
                 if (data == null) data = new T();
                 dataContaner.__SetData(data);

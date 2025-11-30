@@ -25,7 +25,7 @@ public abstract  class BaseEntity
         _entityID=ids++;
         YOTOOnload();
         _isLoaded = true;
-        YOTOFramework.entityMgr._AddEntity(this);
+        YFramework.entityMgr._AddEntity(this);
     }
     protected abstract void YOTOOnload();
     public abstract void YOTOStart();
@@ -38,14 +38,14 @@ public abstract  class BaseEntity
     {
         YOTOOnHide();
         _isLoaded = false;
-        YOTOFramework.entityMgr._RemoveEntity(this);
+        YFramework.entityMgr._RemoveEntity(this);
     }
 
     public void RemoveThis()
     {
         YOTOOnHide();
         _isLoaded = false;
-        YOTOFramework.entityMgr._RemoveEntity(this);
+        YFramework.entityMgr._RemoveEntity(this);
     }
 
 

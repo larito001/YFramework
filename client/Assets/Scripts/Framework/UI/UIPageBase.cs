@@ -47,7 +47,7 @@ public abstract class UIPageBase : MonoBehaviour
     
     public void CloseSelf()
     {
-        YOTOFramework.uIMgr.Hide(uiType);
+        YFramework.uIMgr.Hide(uiType);
     }
 
 }

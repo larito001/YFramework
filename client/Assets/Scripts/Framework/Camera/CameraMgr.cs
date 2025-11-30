@@ -57,7 +57,7 @@ public class CameraMgr
     {
         List<RaycastResult> results = new List<RaycastResult>();
         Vector3 dir = new Vector3(touchPosition.x, touchPosition.y, touchPosition.z);
-        Ray ray = YOTOFramework.cameraMgr.getMainCamera().ScreenPointToRay(dir);
+        Ray ray = YFramework.cameraMgr.getMainCamera().ScreenPointToRay(dir);
         RaycastHit hitInfo;
         if (Physics.Raycast(ray, out hitInfo, 1000))
         {
