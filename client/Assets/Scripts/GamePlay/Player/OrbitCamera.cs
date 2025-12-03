@@ -3,6 +3,11 @@ using UnityEngine;
 [RequireComponent(typeof(Camera))]
 public class OrbitCamera : MonoBehaviour
 {
+    //锁定
+    [SerializeField] bool isLock = true;
+
+    [SerializeField] private Vector3 lockRotation;
+    
     [SerializeField]  Transform focus = default;
 
     [SerializeField, Range(1f, 20f)] float distance = 5f; //距离
@@ -39,8 +44,10 @@ public class OrbitCamera : MonoBehaviour
         this.focus = focus;
         isInit = true;
         regularCamera = GetComponent<Camera>();
-        focusPoint = focus.position;  
-        transform.localRotation = orbitRotation = Quaternion.Euler(orbitAngles);
+        focusPoint = focus.position;
+       
+        transform.localRotation = orbitRotation = isLock? Quaternion.Euler(lockRotation): Quaternion.Euler(orbitAngles);
+        
     }
 
     public void Uload()
@@ -160,7 +167,7 @@ public class OrbitCamera : MonoBehaviour
 
     bool ManualRotation()
     {
-    
+        if (isLock) return false;
         Vector2 input = new Vector2(
             -Input.GetAxis("Mouse Y"),
             Input.GetAxis("Mouse X") 
@@ -177,6 +184,7 @@ public class OrbitCamera : MonoBehaviour
     }
     //自动对齐
     bool AutomaticRotation () {
+        if (isLock) return false;
         if (Time.unscaledTime - lastManualRotationTime < alignDelay) {
             return false;
         }

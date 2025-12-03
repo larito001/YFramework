@@ -91,7 +91,6 @@ public class YOTOScrollView : MonoBehaviour, IBeginDragHandler, IDragHandler, IE
             enabled = false;
             return;
         }
-
         // Anchor content top-left
         content.anchorMin = new Vector2(0, 1);
         content.anchorMax = new Vector2(0, 1);

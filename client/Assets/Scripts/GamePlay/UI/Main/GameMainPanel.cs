@@ -10,14 +10,21 @@ using YOTO;
 
 public class GameMainPanel : UIPageBase
 {
+    public YOTOScrollView scrollView;
     public override void OnLoad()
+    {
+        scrollView.Initialize();
+        scrollView.SetRenderer(ItemRender);
+    }
+
+    private void ItemRender(YOTOScrollViewItem arg1, int arg2)
     {
         
     }
 
     public override void OnShow()
     {
-       
+        scrollView.SetData(8);
     }
 
     public override void OnHide()

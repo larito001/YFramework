@@ -17,6 +17,8 @@ public class GameStarter : MonoBehaviour
 #if !UNITY_EDITOR && (UNITY_IOS || UNITY_ANDROID)
         QualitySettings.vSyncCount = 0;
 #endif
+        YFramework.uIMgr.Show(UIEnum.StartPanel);
+        
         // if (SteamManager.Initialized)
         // {
         //     SteamNetworkingUtils.InitRelayNetworkAccess();
@@ -24,23 +26,18 @@ public class GameStarter : MonoBehaviour
         //     Debug.LogError("GetPersonaName:" + name);
         //    
         // }
-        PlayerEntity playerEntity = PlayerEntity.pool.GetItem(null);
-        playerEntity.Location= new Vector3(0, 0, 0);
+
         FlyTextMgr.Instance.Init();
         Debug.Log("GameRoot 加载完成");
-        EnemiesManager.instance.SetPlayer(playerEntity);
-        // for (int i = 0; i < 100; i++)
+        
+        // Timers.inst.Add(1,(o) =>
         // {
-        //     EnemiesManager.instance.GenerateEnemyAt(new Vector3(Random.Range(-20, 20), Random.Range(-20, 20), Random.Range(-20, 20)));
-        // }
-        Timers.inst.Add(1,(o) =>
-        {
-            YFramework.uIMgr.Show(UIEnum.LoadingPanel);
-        });
-        Timers.inst.Add(3,-1, (o) =>
-        {
-            EnemiesManager.instance.GenerateAtPlayerMoveDir(); 
-        });
+        //     YFramework.uIMgr.Show(UIEnum.LoadingPanel);
+        // });
+        // Timers.inst.Add(3,-1, (o) =>
+        // {
+        //     EnemiesManager.instance.GenerateAtPlayerMoveDir(); 
+        // });
     }
 
   
