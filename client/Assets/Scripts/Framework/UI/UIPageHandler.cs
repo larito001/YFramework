@@ -149,14 +149,18 @@ public class UIPageHandler
     public void OnHide()
     {
         Debug.Log($"[UIPageHandler] OnHide Start: key={key}, hasUI={uIPageBase != null}, hasCanvasGroup={uIPageBase?.canvasGroup != null}");
-        shouldBeHidden = true; // 设置隐藏标记
-        if (uIPageBase != null&&curState==PageState.Show)
+        if (curState!=PageState.Hide)
         {
-            Disable();
-            uIPageBase.OnHide();
-            curState = PageState.Hide;
-            Debug.Log($"[UIPageHandler] OnHide Complete: key={key}");
+            shouldBeHidden = true; // 设置隐藏标记
+            if (uIPageBase != null&&curState==PageState.Show)
+            {
+                Disable();
+                uIPageBase.OnHide();
+                curState = PageState.Hide;
+                Debug.Log($"[UIPageHandler] OnHide Complete: key={key}");
+            }
         }
+     
     }
 
     private void Disable()

@@ -24,7 +24,6 @@ public class SettingPanel : UIPageBase
     private void GoBack()
     {
         CloseSelf();
-        YFramework.soundMgr.PlaySFX("Sound/SFX_UI_Click_Designed_Pop_Negative_Close_1",0.5f);
     }
 
     public override void OnShow()

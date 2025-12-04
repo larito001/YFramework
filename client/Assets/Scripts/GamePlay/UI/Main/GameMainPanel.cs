@@ -11,6 +11,7 @@ using YOTO;
 public class GameMainPanel : UIPageBase
 {
     public YOTOScrollView scrollView;
+    public Button bagBtn;
     public override void OnLoad()
     {
         scrollView.Initialize();
@@ -24,7 +25,13 @@ public class GameMainPanel : UIPageBase
 
     public override void OnShow()
     {
+        bagBtn.onClick.AddListener(OnBagBtnClick);
         scrollView.SetData(8);
+    }
+
+    private void OnBagBtnClick()
+    {
+        YFramework.uIMgr.Show(UIEnum.BagPanel);
     }
 
     public override void OnHide()

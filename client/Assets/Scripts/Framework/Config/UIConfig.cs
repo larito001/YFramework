@@ -43,6 +43,10 @@ public enum UIEnum
     GameMainPanel,
     FinishPanel,
     SettingPanel,
+    ShopPanel,
+    WarehousePanel,
+    SkillTreePanel,
+    BagPanel
 }
 
 public class UIConfig
@@ -54,6 +58,10 @@ public class UIConfig
         new UIInfo(UIEnum.LoadingPanel, UILayerEnum.RayCast, "UI/LoadingPanel"),
         new UIInfo(UIEnum.FinishPanel, UILayerEnum.Normal, "UI/FinishPanel"),
         new UIInfo(UIEnum.SettingPanel, UILayerEnum.Normal, "UI/Setting/SettingPanel"),
+        new UIInfo(UIEnum.ShopPanel, UILayerEnum.Normal, "UI/Shop/ShopPanel"),
+        new UIInfo(UIEnum.WarehousePanel, UILayerEnum.Normal, "UI/bag/WarehousePanel"),
+        new UIInfo(UIEnum.SkillTreePanel, UILayerEnum.Normal, "UI/SkillTree/SkillTreePanel"),
+        new UIInfo(UIEnum.BagPanel, UILayerEnum.Normal, "UI/bag/BagPanel")
     };
 
     #region  对外

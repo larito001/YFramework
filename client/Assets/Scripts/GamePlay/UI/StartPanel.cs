@@ -15,6 +15,13 @@ public class StartPanel : UIPageBase
     public override void OnLoad()
     {
         btn_new.onClick.AddListener(OnNewClick);
+        btn_setting.onClick.AddListener(OnSettingClick);
+    }
+
+    private void OnSettingClick()
+    {
+        YFramework.uIMgr.Show(UIEnum.SettingPanel);
+        
     }
 
     private void OnNewClick()
