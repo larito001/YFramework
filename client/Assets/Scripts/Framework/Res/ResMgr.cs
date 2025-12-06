@@ -15,6 +15,7 @@ namespace YOTO
 
         private Dictionary<string, CachedResource<GameObject>> prefabCache = new();
         private Dictionary<string, CachedResource<AudioClip>> audioCache = new();
+        private Dictionary<string, CachedResource<TextAsset>> textCache = new();
 
         // 创建 ResLoader
         private ResLoader<T> CreateLoader<T>() where T : Object
@@ -91,7 +92,31 @@ namespace YOTO
                 RecycleLoader(loader);
             });
         }
+        public void LoadBytes(string path, Action<TextAsset> callBack)
+        {
+            if (textCache.TryGetValue(path, out var cached))
+            {
+                cached.refCount++;
+                callBack(cached.asset);
+                return;
+            }
 
+            ResLoader<TextAsset> loader = CreateLoader<TextAsset>();
+            loader.LoadAsync(path, (t) =>
+            {
+                if (t == null)
+                {
+                    callBack(null);
+                    RecycleLoader(loader);
+                    return;
+                }
+
+                textCache[path] = new CachedResource<TextAsset> { asset = t, refCount = 1 };
+                callBack(t);
+
+                RecycleLoader(loader);
+            });
+        }
         // 释放Prefab或Audio
         public void ReleasePack(string path, Object obj = null)
         {
