@@ -15,6 +15,7 @@ namespace Dreamteck.Splines.Examples
 
         private void Awake()
         {
+            follower = GetComponent<SplineFollower>();
             _wagon = GetComponent<Wagon>(); // 获取当前物体上的 Wagon 组件
         }
 
@@ -134,5 +135,97 @@ namespace Dreamteck.Splines.Examples
             // 更新车厢偏移（保持连接顺畅）
             _wagon.UpdateOffset();
         }
+        [Header("Train Control Settings")]
+        public float acceleration = 5f;  // 加速曲线（越大加速越猛）
+        public float deceleration = 3f;  // 减速曲线
+        public float maxSpeed = 20f;     // 最大速度（正反通用）
+
+        private float currentSpeed = 0f; // 当前速度
+        private SplineFollower follower;
+
+        private void Update()
+        {
+            HandleInput();
+        }
+
+        void HandleInput()
+        {
+            float targetAcceleration = 0f;
+
+            // 检测输入
+            if (Input.GetKey(KeyCode.W))
+            {
+                // 前进加速
+                targetAcceleration = acceleration;
+            }
+            else if (Input.GetKey(KeyCode.S))
+            {
+                // 倒车加速
+                targetAcceleration = -acceleration;
+            }
+            else
+            {
+                // 无按键时自动减速
+                if (currentSpeed > 0f) targetAcceleration = -deceleration;
+                else if (currentSpeed < 0f) targetAcceleration = deceleration;
+                else targetAcceleration = 0f;
+            }
+
+            // 平滑速度变化
+            currentSpeed += targetAcceleration * Time.deltaTime;
+
+            // 限制最大最小速度
+            currentSpeed = Mathf.Clamp(currentSpeed, -maxSpeed, maxSpeed);
+
+            // 自动方向切换：正值为前进，负值为倒车
+            if (Mathf.Abs(currentSpeed) > 0.05f)
+            {
+                follower.direction = currentSpeed >= 0f ? Spline.Direction.Forward : Spline.Direction.Backward;
+            }
+
+            // 设置 SplineFollower 的速度（确保为正的速度值）
+            follower.followSpeed = currentSpeed;
+
+            // 自动惰性减停
+            if (Mathf.Abs(currentSpeed) < 0.05f && targetAcceleration == 0f)
+                currentSpeed = 0f;
+        }
+        void LateUpdate()
+        {
+            if (_tracer == null || _tracer.spline == null) return;
+        
+            // 倒车时检测车尾是否靠近节点
+            if (_tracer.direction == Spline.Direction.Backward)
+            {
+                Wagon tail = _wagon;
+                while (tail.back != null) tail = tail.back;
+        
+                double tailPercent = tail.GetComponent<SplineTracer>().result.percent;
+        
+                // 检测是否接近终点或起点
+                if (tailPercent < 0.01)
+                {
+                    // 尝试查找当前样条起点是否连接 Node
+                    if (follower.followSpeed < 0)
+                    {
+                        follower.followSpeed = 0;
+                    }
+                }
+            }
+        }
+        // private Node FindConnectedNode(SplineComputer spline, int pointIndex)
+        // {
+        //     Node[] allNodes = FindObjectsOfType<Node>();
+        //     foreach (var node in allNodes)
+        //     {
+        //         var connections = node.GetConnections();
+        //         foreach (var conn in connections)
+        //         {
+        //             if (conn.spline == spline && conn.pointIndex == pointIndex)
+        //                 return node;
+        //         }
+        //     }
+        //     return null;
+        // }
     }
 }
