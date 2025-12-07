@@ -7,8 +7,8 @@ public class EnemyEntity : ObjectBase, PoolItem<object>, IVictim
     public static DataObjPool<EnemyEntity, object> pool =
         new DataObjPool<EnemyEntity, object>("EnemyEntity", 200);
 
-    SampleEnemyMoveCtrl enemyMoveCtrl;
     public Properties Properties;
+    private IGotSeeker seeker;
 
     protected override void YOTOOnload()
     {
@@ -20,20 +20,20 @@ public class EnemyEntity : ObjectBase, PoolItem<object>, IVictim
 
     public override void YOTOUpdate(float deltaTime)
     {
-        if (enemyMoveCtrl != null)
+        if (seeker != null)
         {
-            enemyMoveCtrl.SetPlayerPosition(EnemiesManager.instance.GetPlayerPos());
+            seeker.OncePathFinding( EnemiesManager.instance.GetPlayerPos());  
             CheckDistance();
         }
     }
 
     private void CheckDistance()
     {
-        var dis = objTrans.position - EnemiesManager.instance.GetPlayerPos();
-        if (dis.magnitude > 30)
-        {
-            EnemiesManager.instance.RemoveEnemy(this);
-        }
+        // var dis = objTrans.position - EnemiesManager.instance.GetPlayerPos();
+        // if (dis.magnitude > 30)
+        // {
+        //     EnemiesManager.instance.RemoveEnemy(this);
+        // }
     }
 
     public override void YOTONetUpdate()
@@ -54,11 +54,17 @@ public class EnemyEntity : ObjectBase, PoolItem<object>, IVictim
 
     protected override void AfterInstanceGObj()
     {
-        enemyMoveCtrl = ObjTrans.GetComponent<SampleEnemyMoveCtrl>();
         if (!ObjTrans.gameObject.TryGetComponent<TheVictim>(out TheVictim victim))
         {
             victim = ObjTrans.gameObject.AddComponent<TheVictim>();
         }
+
+        seeker = PathFindingFactory.GetSeeker();
+        var config = new AStarMidSeekerConfig(objTrans.gameObject);
+        config.UseObstacleAvoidance=true;
+        config.modifierType = ModifierType.FunnelModifier;
+        config.speed = 2f;
+        seeker.Init(config);
         victim.Victim = this;
     }
 

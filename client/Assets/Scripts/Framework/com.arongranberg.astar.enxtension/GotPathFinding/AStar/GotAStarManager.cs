@@ -14,14 +14,11 @@ public class GotAStarManager : IGotPathFindingManager
     #region 路径配置
 
     //editor保存路径
-    public const string fullPath ="Assets/ResourcesAssets/Config/Astar/" ;
+    public const string fullPath ="Assets/Resources/Config/Astar/" ;
     public const string keyPointPath ="Assets/Script/Editor/PathFinding/linePoints";
     //manager加载路径
     public const string basePath = "Config/Astar/";
     //graph加载前配置路径
-    public const string RoadPoint = "Road";
-    public const string RaycastMesh = "Road2";
-    public const string TowerDefenseRaycastMesh = "CityBigMesh";
     #endregion
     
     #region 单例
@@ -69,6 +66,7 @@ public class GotAStarManager : IGotPathFindingManager
         _loadCompeleteCallBack = loadCompeleteCallBack;
         astarPathObj = new GameObject("A*");
         var astarPath = astarPathObj.AddComponent<AstarPath>();
+         
         astarPath.logPathResults = Pathfinding.PathLog.None;
         ClearGraph();
         for (var i = 0; i < graphList.Length; i++)
