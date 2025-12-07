@@ -223,16 +223,12 @@ public class GotAStarSeeker : IGotSeeker, PoolItem<object>
         _radiusModifier = _seeker.AddComponent<RadiusModifier>();
         _radiusModifier.radius = 1;
         _radiusModifier.detail = 10;
-        _seeker.RegisterModifier(_radiusModifier);
     }
 
     private void FunnelModifierConfig(bool enable = true)
     {
         _funnelModifier = _seeker.AddComponent<FunnelModifier>();
         _funnelModifier.quality = FunnelModifier.FunnelQuality.Medium;
-        _funnelModifier.splitAtEveryPortal = false;
-        _funnelModifier.accountForGridPenalties = false;
-        _seeker.RegisterModifier(_funnelModifier);
     }
 
     private void StartEndModifierConfig(bool enable = true)

@@ -153,12 +153,12 @@ namespace Dreamteck.Splines.Examples
             float targetAcceleration = 0f;
 
             // 检测输入
-            if (Input.GetKey(KeyCode.W))
+            if (Input.GetKey(KeyCode.E))
             {
                 // 前进加速
                 targetAcceleration = acceleration;
             }
-            else if (Input.GetKey(KeyCode.S))
+            else if (Input.GetKey(KeyCode.Q))
             {
                 // 倒车加速
                 targetAcceleration = -acceleration;
