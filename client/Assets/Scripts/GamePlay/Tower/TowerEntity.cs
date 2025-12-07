@@ -33,9 +33,9 @@ public class TowerEntity: ObjectBase, PoolItem<Transform>
                 BaseBulletEntity b = BaseBulletEntity.pool.GetItem(new BulletConfig()
                 {
                     name = "Bullet/bullet",
-                    moveSpeed = 1,
+                    moveSpeed = 10,
                     damage = 1,
-                    duration = 1,
+                    duration = 10,
                 });
 
 

@@ -56,7 +56,7 @@ public class BaseBulletEntity : ObjectBase, PoolItem<BulletConfig>
     public void Fire(Vector3 pos, Vector3 dir)
     {
         timer = 0;
-        this.dir = dir;
+        this.dir = dir.normalized;
         this.pos = pos;
         TryFire = true;
       

@@ -43,7 +43,7 @@ public class StartPanel : UIPageBase
                     Vector3 basePos = playerEntity.Location;
                     float randomX = Random.Range(-50f,50f);
                     float randomZ =  Random.Range(-50f, 50f);
-                    float randomY = 1f;
+                    float randomY = 20f;
 
                     Vector3 spawnPos = basePos + new Vector3(randomX, randomY, randomZ);
 

@@ -29,11 +29,11 @@ public class EnemyEntity : ObjectBase, PoolItem<object>, IVictim
 
     private void CheckDistance()
     {
-        // var dis = objTrans.position - EnemiesManager.instance.GetPlayerPos();
-        // if (dis.magnitude > 30)
-        // {
-        //     EnemiesManager.instance.RemoveEnemy(this);
-        // }
+        var dis = objTrans.position - EnemiesManager.instance.GetPlayerPos();
+        if (dis.magnitude > 100)
+        {
+            EnemiesManager.instance.RemoveEnemy(this);
+        }
     }
 
     public override void YOTONetUpdate()
