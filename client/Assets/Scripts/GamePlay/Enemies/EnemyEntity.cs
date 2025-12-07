@@ -9,7 +9,7 @@ public class EnemyEntity : ObjectBase, PoolItem<object>, IVictim
 
     public Properties Properties;
     private IGotSeeker seeker;
-
+    private YStateMachine stateMachine;
     protected override void YOTOOnload()
     {
     }
@@ -38,6 +38,14 @@ public class EnemyEntity : ObjectBase, PoolItem<object>, IVictim
 
     public override void YOTONetUpdate()
     {
+        if (seeker != null)
+        {
+            if (!seeker.GetIsMoving())
+            {
+                
+                
+            }
+        }
     }
 
     public override void YOTOFixedUpdate(float deltaTime)
@@ -65,6 +73,7 @@ public class EnemyEntity : ObjectBase, PoolItem<object>, IVictim
         config.modifierType = ModifierType.FunnelModifier;
         config.speed = 2f;
         config.constrainInsideGraph = true;
+        config.stopDistance = 1;
         seeker.Init(config);
         victim.Victim = this;
     }
@@ -78,6 +87,7 @@ public class EnemyEntity : ObjectBase, PoolItem<object>, IVictim
     public void AfterIntoObjectPool()
     {
         RecoverObject();
+        stateMachine = null;
     }
 
     public void SetData(object serverData)
@@ -88,7 +98,7 @@ public class EnemyEntity : ObjectBase, PoolItem<object>, IVictim
         Properties = new Properties();
         Properties.HP = 100;
         Properties.OnDead = () => { EnemiesManager.instance.RemoveEnemy(this); };
-
+        stateMachine = new YStateMachine();
     }
 
     public Properties GetProperties()
