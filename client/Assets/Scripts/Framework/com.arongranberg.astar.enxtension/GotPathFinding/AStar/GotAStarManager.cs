@@ -190,7 +190,7 @@ public class GotAStarManager : IGotPathFindingManager
 
     public void ClearGraph()
     {
-        AstarPath.active.data.ClearGraphs();
+        AstarPath.active?.data?.ClearGraphs();
     }
     
     #endregion

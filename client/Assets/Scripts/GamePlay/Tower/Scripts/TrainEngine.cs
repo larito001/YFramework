@@ -137,7 +137,7 @@ namespace Dreamteck.Splines.Examples
         }
         [Header("Train Control Settings")]
         public float acceleration = 5f;  // 加速曲线（越大加速越猛）
-        public float deceleration = 3f;  // 减速曲线
+        public float deceleration = -3f;  // 减速曲线
         public float maxSpeed = 20f;     // 最大速度（正反通用）
 
         private float currentSpeed = 0f; // 当前速度
@@ -150,82 +150,50 @@ namespace Dreamteck.Splines.Examples
 
         void HandleInput()
         {
-            float targetAcceleration = 0f;
+            // --- 1. 根据输入，设定“目标速度” ---
+            float targetSpeed = 0f;
 
-            // 检测输入
             if (Input.GetKey(KeyCode.E))
             {
-                // 前进加速
-                targetAcceleration = acceleration;
+                // 目标：达到最大前进速度
+                targetSpeed = maxSpeed;
             }
             else if (Input.GetKey(KeyCode.Q))
             {
-                // 倒车加速
-                targetAcceleration = -acceleration;
+                // 目标：达到最大后退速度
+                targetSpeed = -maxSpeed;
             }
             else
             {
-                // 无按键时自动减速
-                if (currentSpeed > 0f) targetAcceleration = -deceleration;
-                else if (currentSpeed < 0f) targetAcceleration = deceleration;
-                else targetAcceleration = 0f;
+                // 目标：速度降为0（刹车）
+                targetSpeed = 0f;
             }
 
-            // 平滑速度变化
-            currentSpeed += targetAcceleration * Time.deltaTime;
+            // --- 2. 使用 Mathf.MoveTowards 平滑地改变当前速度 ---
+    
+            // 根据情况选择加速度或减速度
+            // 如果目标是停止 (targetSpeed == 0)，我们就用减速度；否则，用加速度。
+            float accel = (targetSpeed == 0f) ? deceleration : acceleration;
 
-            // 限制最大最小速度
-            currentSpeed = Mathf.Clamp(currentSpeed, -maxSpeed, maxSpeed);
+            // MoveTowards 是一个强大的函数，它会以 accel * Time.deltaTime 的速度，
+            // 将 currentSpeed 朝着 targetSpeed 移动，并且绝不会超过目标。
+            currentSpeed = Mathf.MoveTowards(currentSpeed, targetSpeed, accel * Time.deltaTime);
 
-            // 自动方向切换：正值为前进，负值为倒车
-            if (Mathf.Abs(currentSpeed) > 0.05f)
+            // --- 3. 更新 SplineFollower 组件 ---
+    
+            // （这部分和之前一样，保持不变）
+            follower.followSpeed = Mathf.Abs(currentSpeed);
+
+            if (currentSpeed > 0.01f)
             {
-                follower.direction = currentSpeed >= 0f ? Spline.Direction.Forward : Spline.Direction.Backward;
+                follower.direction = Spline.Direction.Forward;
             }
-
-            // 设置 SplineFollower 的速度（确保为正的速度值）
-            follower.followSpeed = currentSpeed;
-
-            // 自动惰性减停
-            if (Mathf.Abs(currentSpeed) < 0.05f && targetAcceleration == 0f)
-                currentSpeed = 0f;
-        }
-        void LateUpdate()
-        {
-            if (_tracer == null || _tracer.spline == null) return;
-        
-            // 倒车时检测车尾是否靠近节点
-            if (_tracer.direction == Spline.Direction.Backward)
+            else if (currentSpeed < -0.01f)
             {
-                Wagon tail = _wagon;
-                while (tail.back != null) tail = tail.back;
-        
-                double tailPercent = tail.GetComponent<SplineTracer>().result.percent;
-        
-                // 检测是否接近终点或起点
-                if (tailPercent < 0.01)
-                {
-                    // 尝试查找当前样条起点是否连接 Node
-                    if (follower.followSpeed < 0)
-                    {
-                        follower.followSpeed = 0;
-                    }
-                }
+                follower.direction = Spline.Direction.Backward;
             }
         }
-        // private Node FindConnectedNode(SplineComputer spline, int pointIndex)
-        // {
-        //     Node[] allNodes = FindObjectsOfType<Node>();
-        //     foreach (var node in allNodes)
-        //     {
-        //         var connections = node.GetConnections();
-        //         foreach (var conn in connections)
-        //         {
-        //             if (conn.spline == spline && conn.pointIndex == pointIndex)
-        //                 return node;
-        //         }
-        //     }
-        //     return null;
-        // }
+
+
     }
 }

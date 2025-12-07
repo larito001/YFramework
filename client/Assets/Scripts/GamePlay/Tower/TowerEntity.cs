@@ -19,26 +19,36 @@ public class TowerEntity: ObjectBase, PoolItem<Transform>
     }
 
     private float timer = 0;
-    private float attackInterval = 0.2f;
+    private float attackInterval = 3f;
 
     public override void YOTOUpdate(float deltaTime)
     {
+        if (objTrans == null) return;
         timer+= deltaTime;
         if (timer >= attackInterval)
         {
             timer-= attackInterval;
             Vector3 pos = new Vector3();
-            if (EnemiesManager.instance.GetEnemyPos(out pos))
+            if (EnemiesManager.instance.GetEnemyPos(objTrans.position,out pos))
             {
+                // BaseBulletEntity b = BaseBulletEntity.pool.GetItem(new BulletConfig()
+                // {
+                //     name = "Bullet/bullet",
+                //     moveSpeed = 10,
+                //     damage = 1,
+                //     duration = 10,
+                // });
                 BaseBulletEntity b = BaseBulletEntity.pool.GetItem(new BulletConfig()
                 {
-                    name = "Bullet/bullet",
-                    moveSpeed = 10,
+                    name = "Bullet/bulletFire",
+                    moveSpeed =0,
+                    attackType = AttackType.Near,
                     damage = 1,
-                    duration = 10,
+                    TrggerCount = 999,
+                    duration = 3,
+                    triggerTimer = 0.2f
                 });
-
-
+                pos += new Vector3(0, 1.5f, 0);
                 b.Fire(ObjTrans.position, pos - ObjTrans.position);
             }
         }

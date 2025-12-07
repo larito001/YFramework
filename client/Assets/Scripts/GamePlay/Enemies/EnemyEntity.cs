@@ -64,13 +64,15 @@ public class EnemyEntity : ObjectBase, PoolItem<object>, IVictim
         config.UseObstacleAvoidance=true;
         config.modifierType = ModifierType.FunnelModifier;
         config.speed = 2f;
+        config.constrainInsideGraph = true;
         seeker.Init(config);
         victim.Victim = this;
     }
 
     protected override void BeforeRecover(bool isDelete)
     {
-        
+        seeker.Remove();
+        seeker = null;
     }
 
     public void AfterIntoObjectPool()
@@ -86,6 +88,7 @@ public class EnemyEntity : ObjectBase, PoolItem<object>, IVictim
         Properties = new Properties();
         Properties.HP = 100;
         Properties.OnDead = () => { EnemiesManager.instance.RemoveEnemy(this); };
+
     }
 
     public Properties GetProperties()
@@ -95,6 +98,8 @@ public class EnemyEntity : ObjectBase, PoolItem<object>, IVictim
 
     public void OnHurt(float hurt)
     {
+        FlyTextMgr.Instance.AddText(hurt.ToString(), objTrans.position);
         Properties.HP -= hurt;
+
     }
 }

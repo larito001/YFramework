@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using Steamworks;
@@ -21,7 +22,10 @@ public class GameStarter : MonoBehaviour
         QualitySettings.vSyncCount = 0;
 #endif
         YFramework.uIMgr.Show(UIEnum.StartPanel);
-        
+        GotAStarManager.Instance.LoadPathFinding(() =>
+        {
+       
+        }, new string[] { "GraphCache" });
         // if (SteamManager.Initialized)
         // {
         //     SteamNetworkingUtils.InitRelayNetworkAccess();
@@ -43,5 +47,14 @@ public class GameStarter : MonoBehaviour
         // });
     }
 
-  
+    private void Update()
+    {
+        GotAStarManager.Instance.Update();
+        FlyTextMgr.Instance.Update(Time.deltaTime);
+    }
+
+    private void OnDestroy()
+    {
+        GotAStarManager.Instance.UnloadPathFinding();
+    }
 }

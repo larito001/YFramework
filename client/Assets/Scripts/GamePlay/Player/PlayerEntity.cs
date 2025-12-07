@@ -21,16 +21,21 @@ public class PlayerEntity : ObjectBase, PoolItem<object>
     {
         if (Input.GetKeyDown(KeyCode.E))
         {
+            if (objTrans == null) return;
             Vector3 pos = new Vector3();
-            if (EnemiesManager.instance.GetEnemyPos(out pos))
+            if (EnemiesManager.instance.GetEnemyPos(objTrans.position,out pos))
             {
                 BaseBulletEntity b = BaseBulletEntity.pool.GetItem(new BulletConfig()
                 {
                     name = "Bullet/bullet",
-                    moveSpeed = 10,
-                    damage = 1,
+                    moveSpeed =20,
+                    attackType = AttackType.Remote,
+                    damage = 50,
+                    TrggerCount = 1,
                     duration = 10,
+                    triggerTimer = 0f
                 });
+           
                 b.Fire(ObjTrans.position, pos - ObjTrans.position);
             }
         }

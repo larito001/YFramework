@@ -33,12 +33,12 @@ public struct BulletConfig
     public string name;
     public float moveSpeed; //移动速度
     public float damage; //伤害
-    public float attackRange; //攻击范围
     public AttackType attackType; //攻击类型
     public Camp camp; //阵营
     public float duration; //持续时间
     public bool isTrack; //是否追踪
-    public int TrggerCount ;
+    public int TrggerCount ;//触发次数
+    public float triggerTimer;//持续时间
 }
 
 public class BaseBulletEntity : ObjectBase, PoolItem<BulletConfig>
@@ -46,11 +46,13 @@ public class BaseBulletEntity : ObjectBase, PoolItem<BulletConfig>
     public static DataObjPool<BaseBulletEntity, BulletConfig> pool =
         new DataObjPool<BaseBulletEntity, BulletConfig>("BaseBulletEntity", 50);
 
+    List<TheVictim> victims = new List<TheVictim>();
     BulletConfig _config;
     private Vector3 pos;
     private Vector3 dir;
     private bool TryFire = false;
     private float timer = 0;
+    private float stayTimer = 0;
     private bool isLive = false;
     private int triggerCount=1;
     public void Fire(Vector3 pos, Vector3 dir)
@@ -69,8 +71,10 @@ public class BaseBulletEntity : ObjectBase, PoolItem<BulletConfig>
 
     private void StartFire()
     {
+        victims.Clear();
         TryFire = false;
         timer = 0;
+        stayTimer = 0;
         objTrans.position = pos;
         objTrans.forward = dir;
    
@@ -78,6 +82,7 @@ public class BaseBulletEntity : ObjectBase, PoolItem<BulletConfig>
 
     public void AfterIntoObjectPool()
     {
+        victims.Clear();
         isLive = false;
         timer = 0;
         var trigger = ObjTrans.GetComponent<BulletTrigger>();
@@ -88,6 +93,7 @@ public class BaseBulletEntity : ObjectBase, PoolItem<BulletConfig>
 
     public void SetData(BulletConfig config)
     {
+        victims.Clear();
         isLive = true;
         timer = 0;
         _config = config;
@@ -99,7 +105,7 @@ public class BaseBulletEntity : ObjectBase, PoolItem<BulletConfig>
    
     protected override void AfterInstanceGObj()
     {
-        triggerCount = 2;
+        triggerCount = _config.TrggerCount;
         var trigger = ObjTrans.GetComponent<BulletTrigger>();
        
         trigger.Init(this);
@@ -121,26 +127,30 @@ public class BaseBulletEntity : ObjectBase, PoolItem<BulletConfig>
         {
             if (other.TryGetComponent<TheVictim>(out TheVictim victim))
             {
-                //todo:根据配置伤害
-                victim.Victim?.OnHurt(50);
-                triggerCount--;
-            }
-            if (triggerCount <=0)
-            {
-                pool.RecoverItem(this);
+                victims.Add(victim);
             }
         }
-      
-     
-        
     }
 
     public void TriggerExit(Collider other)
     {
+        if (!isLive) return;
+        if (triggerCount > 0)
+        {
+            if (other.TryGetComponent<TheVictim>(out TheVictim victim))
+            {
+                if (victims.Contains(victim))
+                {
+                    victims.Remove(victim);
+                }
+          
+            }
+        }
     }
 
     public void TriggerStay(Collider other)
     {
+      
     }
 
     protected override void YOTOOnload()
@@ -164,6 +174,34 @@ public class BaseBulletEntity : ObjectBase, PoolItem<BulletConfig>
             
             objTrans.position += dir * _config.moveSpeed * deltaTime;
         }
+        stayTimer+= deltaTime;
+        if (stayTimer >= _config.triggerTimer)
+        {
+            
+            stayTimer-= _config.triggerTimer;
+            if (triggerCount > 0)
+            {
+          
+                foreach (var theVictim in victims)
+                {
+                    theVictim.Victim?.OnHurt(_config.damage);
+                    triggerCount--;
+                    if (triggerCount <= 0)
+                    {
+                        break;
+                    }
+                }
+                if (triggerCount <=0)
+                {
+                    Timers.inst.CallLater((o) =>
+                    {
+                        pool.RecoverItem(this); 
+                    });
+                 
+                }
+            }  
+        }
+  
         
     }
 
