@@ -14,7 +14,7 @@ public class LogicPluginBase
     {
         OnUninstall();
     }
-    
+
     protected virtual void OnInstall()
     {
     }
@@ -22,7 +22,6 @@ public class LogicPluginBase
     protected virtual void OnUninstall()
     {
     }
-    
 }
 
 public class PluginManager
@@ -32,11 +31,9 @@ public class PluginManager
     public void InitPlugins()
     {
         InstallPlugin<EnemiesManager>();
-     
-
-
+        InstallPlugin<TowerManager>();
     }
-    
+
 
     public void InstallPlugin<T>() where T : LogicPluginBase, new()
     {

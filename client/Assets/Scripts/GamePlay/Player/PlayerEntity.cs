@@ -76,4 +76,9 @@ public class PlayerEntity : ObjectBase, PoolItem<object>
         playerMoveCtrl = ObjTrans.GetComponent<ThirdPlayerMoveCtrl>();
         playerMoveCtrl.playerInputSpace = orbitCamera.transform;
     }
+
+    protected override void BeforeRecover(bool isDelete)
+    {
+        
+    }
 }

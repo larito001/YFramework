@@ -51,4 +51,9 @@ public class TestPoolObject : ObjectBase,PoolItem<Vector3>
     {
         
     }
+
+    protected override void BeforeRecover(bool isDelete)
+    {
+        
+    }
 }

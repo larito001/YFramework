@@ -6,9 +6,12 @@ using YOTO;
 
 public class GameStarter : MonoBehaviour
 {
+    public Transform playerOrgPos;
+    public static Transform PlayerOrgPos;
     // Start is called before the first frame update
-    void Start()
+    void Awake()
     {
+        PlayerOrgPos = playerOrgPos;
         YFramework.Instance.Init();
         // 将帧率限制为60FPS
         Application.targetFrameRate = 60;

@@ -34,7 +34,7 @@ public class StartPanel : UIPageBase
             {
                 CloseSelf();
                 PlayerEntity playerEntity = PlayerEntity.pool.GetItem(null);
-                playerEntity.Location = new Vector3(20, 1, -25);
+                playerEntity.Location = GameStarter.PlayerOrgPos.position;
                 YFramework.uIMgr.Show(UIEnum.GameMainPanel);
                 EnemiesManager.instance.SetPlayer(playerEntity);
                 for (int i = 0; i < 300; i++)

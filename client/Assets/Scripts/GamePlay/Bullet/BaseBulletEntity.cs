@@ -108,13 +108,16 @@ public class BaseBulletEntity : ObjectBase, PoolItem<BulletConfig>
         }
     }
 
+    protected override void BeforeRecover(bool isDelete)
+    {
+        
+    }
+
     public void TriggerEnter(Collider other)
     {
         if (!isLive) return;
         if (triggerCount > 0)
         {
-          
-       
             if (other.TryGetComponent<TheVictim>(out TheVictim victim))
             {
                 //todo:根据配置伤害

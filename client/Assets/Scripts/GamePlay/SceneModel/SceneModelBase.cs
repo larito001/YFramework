@@ -28,6 +28,20 @@ public abstract class SceneModelBase : MonoBehaviour
     {
         
     }
+
+    private void OnMouseDown()
+    {
+        
+    }
+    private void OnMouseUp()
+    {
+        OnClick();
+    }
+
+    protected virtual void OnClick()
+    {
+        
+    }
     
     private void OnTriggerEnter(Collider other)
     {

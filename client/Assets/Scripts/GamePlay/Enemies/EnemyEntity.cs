@@ -68,6 +68,11 @@ public class EnemyEntity : ObjectBase, PoolItem<object>, IVictim
         victim.Victim = this;
     }
 
+    protected override void BeforeRecover(bool isDelete)
+    {
+        
+    }
+
     public void AfterIntoObjectPool()
     {
         RecoverObject();

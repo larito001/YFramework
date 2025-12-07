@@ -1,3 +1,5 @@
+using System;
+
 namespace Dreamteck.Splines.Examples
 {
     using System.Collections;
@@ -102,8 +104,14 @@ namespace Dreamteck.Splines.Examples
         private void Awake()
         {
             tracer = GetComponent<SplineTracer>();
+       
             // 如果此车厢是引擎，则递归设置整列车的层级关系与样条段信息
             if (isEngine) SetupRecursively(null, new SplineSegment(tracer.spline, -1, tracer.direction));
+        }
+
+        private void Start()
+        {
+            TowerManager.Instance.GenerateTowerBaseAtTransform(this.transform,new Vector3(0,2,0));
         }
 
         // 递归设置每节车厢的前后关系与样条连接信息

@@ -61,9 +61,9 @@ public abstract class ObjectBase:BaseEntity
 
     private void OnPrefabReadyUse(Transform trans)
     {
+        trans.SetParent(Parent);
         trans.position = Location;
         trans.rotation = Rotation;
-        trans.SetParent(Parent);
         AfterInstanceGObj();
         
     }
@@ -242,11 +242,9 @@ public abstract class ObjectBase:BaseEntity
     /// <summary>
     /// 回收之前调用
     /// </summary>
-    protected virtual void BeforeRecover(bool isDelete)
-    {
-    }
+    protected abstract void BeforeRecover(bool isDelete);
 
 
     #endregion
-    
+
 }

@@ -166,6 +166,11 @@ public class FlyTextCtrl : ObjectBase, PoolItem<Transform>
         }
     }
 
+    protected override void BeforeRecover(bool isDelete)
+    {
+        
+    }
+
     public void AfterIntoObjectPool()
     {
         isInit = false;
