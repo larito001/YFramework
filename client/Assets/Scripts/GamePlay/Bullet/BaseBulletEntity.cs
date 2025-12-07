@@ -70,6 +70,7 @@ public class BaseBulletEntity : ObjectBase, PoolItem<BulletConfig>
     private void StartFire()
     {
         TryFire = false;
+        timer = 0;
         objTrans.position = pos;
         objTrans.forward = dir;
    
@@ -159,7 +160,7 @@ public class BaseBulletEntity : ObjectBase, PoolItem<BulletConfig>
             BaseBulletEntity.pool.RecoverItem(this);
         }
         if (objTrans)
-        {
+        {   
             
             objTrans.position += dir * _config.moveSpeed * deltaTime;
         }

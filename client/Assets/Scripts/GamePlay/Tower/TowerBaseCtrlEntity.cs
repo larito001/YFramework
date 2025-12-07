@@ -76,7 +76,9 @@ public class TowerBaseCtrlEntity : ObjectBase, PoolItem<object>
         if (_towerEntity == null)
         {
             _towerEntity = TowerEntity.pool.GetItem(objTrans);
-            _towerEntity.Location = Location;
+            _towerEntity.Parent = this.objTrans;
+            _towerEntity.Location = new Vector3(0,1,0);
+            _towerEntity.Rotation = Quaternion.identity;
         }
     }
 

@@ -769,7 +769,7 @@ namespace Pathfinding
             else
             {
                 // 由于不在一个程序集，所以只能写死
-                path = "Assets/ResourcesAssets/Config/Astar/" + fileName + ".bytes";
+                path = "Assets/Resources/Config/Astar/" + fileName + ".bytes";
                 // int i = 0;
                 // do {
                 // 	path = "Assets/GraphCaches/GraphCache" + (i == 0 ? "" : i.ToString()) + ".bytes";

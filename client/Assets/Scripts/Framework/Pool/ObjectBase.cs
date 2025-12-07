@@ -62,8 +62,8 @@ public abstract class ObjectBase:BaseEntity
     private void OnPrefabReadyUse(Transform trans)
     {
         trans.SetParent(Parent);
-        trans.position = Location;
-        trans.rotation = Rotation;
+        trans.localPosition = Location;
+        trans.localRotation = Rotation;
         AfterInstanceGObj();
         
     }
@@ -109,7 +109,7 @@ public abstract class ObjectBase:BaseEntity
         {
             if (objTrans != null)
             {
-                objTrans.position = value;
+                objTrans.localPosition = value;
             }
             location = value;
         }
@@ -122,7 +122,7 @@ public abstract class ObjectBase:BaseEntity
         {
             if (objTrans != null)
             {
-                objTrans.rotation = value;
+                objTrans.localRotation = value;
             }
             rotation = value;
         }

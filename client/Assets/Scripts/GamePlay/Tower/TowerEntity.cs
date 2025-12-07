@@ -18,9 +18,30 @@ public class TowerEntity: ObjectBase, PoolItem<Transform>
        
     }
 
+    private float timer = 0;
+    private float attackInterval = 0.2f;
+
     public override void YOTOUpdate(float deltaTime)
     {
-        
+        timer+= deltaTime;
+        if (timer >= attackInterval)
+        {
+            timer-= attackInterval;
+            Vector3 pos = new Vector3();
+            if (EnemiesManager.instance.GetEnemyPos(out pos))
+            {
+                BaseBulletEntity b = BaseBulletEntity.pool.GetItem(new BulletConfig()
+                {
+                    name = "Bullet/bullet",
+                    moveSpeed = 1,
+                    damage = 1,
+                    duration = 1,
+                });
+
+
+                b.Fire(ObjTrans.position, pos - ObjTrans.position);
+            }
+        }
     }
 
     public override void YOTONetUpdate()

@@ -27,12 +27,10 @@ public class PlayerEntity : ObjectBase, PoolItem<object>
                 BaseBulletEntity b = BaseBulletEntity.pool.GetItem(new BulletConfig()
                 {
                     name = "Bullet/bullet",
-                    moveSpeed = 10,
+                    moveSpeed = 1,
                     damage = 1,
                     duration = 1,
                 });
-
-
                 b.Fire(ObjTrans.position, pos - ObjTrans.position);
             }
         }

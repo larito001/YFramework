@@ -15,7 +15,8 @@ public class TowerManager : LogicPluginBase
     
     public void GenerateTowerBaseAtTransform(Transform parent, Vector3 offset)
     {
-        TowerBaseCtrlEntity ctrl = TowerBaseCtrlEntity.pool.GetItem(parent);
+        TowerBaseCtrlEntity ctrl = TowerBaseCtrlEntity.pool.GetItem(null);
+        ctrl.Parent = parent;
         ctrl.Location =offset;
         ctrl.Parent = parent;
     }
