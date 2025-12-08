@@ -19,7 +19,8 @@ namespace YOTO
         private static PluginManager PluginMgr = new PluginManager();
         public static SoundMgr soundMgr = new SoundMgr();
         public static TaskManager taskMgr = new TaskManager();
-        public void Init()
+        public static GotSceneManager sceneMgr = new ();
+        public void Init(GameObject sceneRoot)
         {
             if (!isInit)
             {
@@ -34,25 +35,17 @@ namespace YOTO
                 uIMgr.Init();
                 soundMgr.Init();
                 taskMgr.Init();
+                sceneMgr.Init(sceneRoot);
             }
 
             Debug.Log("YTLOG初始化完成");
         }
-
-      
-
-        private void OnEnable()
-        {
-        }
-
-        private void Start()
-        {
-        }
-
+        
         private void FixedUpdate()
         {
             float dt = Time.fixedDeltaTime;
             entityMgr._FixedUpdate(dt);
+            sceneMgr.OnFixedUpdate();
         }
         private void OnScreenResize(int width, int height)
         {
@@ -70,6 +63,7 @@ namespace YOTO
             entityMgr._Update(dt);
             cameraMgr.Update(dt);
             screenMonitor.Update();
+            sceneMgr.Update();
         }
 
         private void OnDestroy()

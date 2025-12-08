@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Object = UnityEngine.Object;
@@ -147,6 +148,35 @@ namespace YOTO
                         audioCache.Remove(path);
                     }
                 }
+            }
+        }
+
+        public  IEnumerator OnChangeScene(Action callBack =null)
+        {
+            int time = 0;
+            while (time < 5)
+            {
+                time++;
+                yield return null;
+            }
+
+            AsyncOperation unloadAsset = Resources.UnloadUnusedAssets();
+            while (!unloadAsset.isDone)
+            {
+                yield return null;
+            }
+
+            GC.Collect(); //GC回收
+            yield return null;
+            GC.Collect(); //GC回收
+            yield return null;
+            GC.Collect(); //GC回收
+            yield return null;
+            GC.Collect(); //GC回收
+            yield return null;
+            if (callBack != null)
+            {
+                callBack();
             }
         }
     }

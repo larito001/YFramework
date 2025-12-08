@@ -13,7 +13,7 @@ public class GameStarter : MonoBehaviour
     void Awake()
     {
         PlayerOrgPos = playerOrgPos;
-        YFramework.Instance.Init();
+        YFramework.Instance.Init(this.gameObject);
         // 将帧率限制为60FPS
         Application.targetFrameRate = 60;
 
@@ -22,10 +22,8 @@ public class GameStarter : MonoBehaviour
         QualitySettings.vSyncCount = 0;
 #endif
         YFramework.uIMgr.Show(UIEnum.StartPanel);
-        GotAStarManager.Instance.LoadPathFinding(() =>
-        {
-       
-        }, new string[] { "GraphCache" });
+
+
         // if (SteamManager.Initialized)
         // {
         //     SteamNetworkingUtils.InitRelayNetworkAccess();
@@ -33,28 +31,9 @@ public class GameStarter : MonoBehaviour
         //     Debug.LogError("GetPersonaName:" + name);
         //    
         // }
-
-        FlyTextMgr.Instance.Init();
         Debug.Log("GameRoot 加载完成");
         
-        // Timers.inst.Add(1,(o) =>
-        // {
-        //     YFramework.uIMgr.Show(UIEnum.LoadingPanel);
-        // });
-        // Timers.inst.Add(3,-1, (o) =>
-        // {
-        //     EnemiesManager.instance.GenerateAtPlayerMoveDir(); 
-        // });
     }
 
-    private void Update()
-    {
-        GotAStarManager.Instance.Update();
-        FlyTextMgr.Instance.Update(Time.deltaTime);
-    }
 
-    private void OnDestroy()
-    {
-        GotAStarManager.Instance.UnloadPathFinding();
-    }
 }

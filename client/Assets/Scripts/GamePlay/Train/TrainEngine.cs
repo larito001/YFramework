@@ -12,15 +12,15 @@ namespace Dreamteck.Splines.Examples
         private SplineTracer _tracer = null; // 引用样条追踪器（可以是 SplineFollower）
         private double _lastPercent = 0.0; // 上一帧曲线百分比位置（用于计算切换点）
         private Wagon _wagon; // 引用当前挂载的车厢组件
-
+        public bool canMove = false;
         private void Awake()
         {
             follower = GetComponent<SplineFollower>();
             _wagon = GetComponent<Wagon>(); // 获取当前物体上的 Wagon 组件
         }
-
-        void Start()
+        public void SetTracer(SplineComputer spline)
         {
+            _wagon.SetTracer(spline);
             _tracer = GetComponent<SplineTracer>(); // 获取样条追踪器组件
             // 当经过一个节点（Node，可能是岔路口）时触发事件
             _tracer.onNode += OnJunction;
@@ -145,6 +145,7 @@ namespace Dreamteck.Splines.Examples
 
         private void Update()
         {
+         
             HandleInput();
         }
 
@@ -152,13 +153,12 @@ namespace Dreamteck.Splines.Examples
         {
             // --- 1. 根据输入，设定“目标速度” ---
             float targetSpeed = 0f;
-
-            if (Input.GetKey(KeyCode.E))
+            if (canMove&&Input.GetKey(KeyCode.E))
             {
                 // 目标：达到最大前进速度
                 targetSpeed = maxSpeed;
             }
-            else if (Input.GetKey(KeyCode.Q))
+            else if (canMove&&Input.GetKey(KeyCode.Q))
             {
                 // 目标：达到最大后退速度
                 targetSpeed = -maxSpeed;

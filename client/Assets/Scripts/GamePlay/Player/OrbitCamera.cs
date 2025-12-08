@@ -10,7 +10,7 @@ public class OrbitCamera : MonoBehaviour
     
     [SerializeField]  Transform focus = default;
 
-    [SerializeField, Range(1f, 50f)] float distance = 5f; //距离
+    [SerializeField, Range(1f, 50f)] public float distance = 5f; //距离
     [SerializeField, Min(0f)] float focusRadius = 1f; //对焦半径
     Vector3 focusPoint,//追踪的点
         previousFocusPoint;//
@@ -41,17 +41,17 @@ public class OrbitCamera : MonoBehaviour
 
     public void Init(Transform focus)
     {
+        if (isInit) return;
         this.focus = focus;
         isInit = true;
         regularCamera = GetComponent<Camera>();
         focusPoint = focus.position;
-       
         transform.localRotation = orbitRotation = isLock? Quaternion.Euler(lockRotation): Quaternion.Euler(orbitAngles);
-        
     }
 
     public void Uload()
     {
+        if (!isInit) return;
         isInit = false;
     }
     void OnValidate()

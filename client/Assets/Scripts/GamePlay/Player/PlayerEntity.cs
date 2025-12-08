@@ -63,7 +63,7 @@ public class PlayerEntity : ObjectBase, PoolItem<object>
         RecoverObject();
     }
 
-
+    
     public void SetData(object data)
     {
         SetInVision(true);

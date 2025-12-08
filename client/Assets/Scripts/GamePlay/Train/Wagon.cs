@@ -104,9 +104,6 @@ namespace Dreamteck.Splines.Examples
         private void Awake()
         {
             tracer = GetComponent<SplineTracer>();
-       
-            // 如果此车厢是引擎，则递归设置整列车的层级关系与样条段信息
-            if (isEngine) SetupRecursively(null, new SplineSegment(tracer.spline, -1, tracer.direction));
         }
 
         private void Start()
@@ -229,6 +226,17 @@ namespace Dreamteck.Splines.Examples
         {
             if (direction == Spline.Direction.Forward) direction = Spline.Direction.Backward;
             else direction = Spline.Direction.Forward;
+        }
+
+        public void SetTracer(SplineComputer spline)
+        {
+            if (tracer != null)
+            {
+                tracer.spline = spline;
+            }
+            // 如果此车厢是引擎，则递归设置整列车的层级关系与样条段信息
+            if (isEngine) SetupRecursively(null, new SplineSegment(tracer.spline, -1, tracer.direction));
+            if (back != null) back.SetTracer(spline); // 递归更新下一节车厢
         }
     }
 }

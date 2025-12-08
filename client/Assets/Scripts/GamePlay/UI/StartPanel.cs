@@ -26,29 +26,8 @@ public class StartPanel : UIPageBase
 
     private void OnNewClick()
     {
-        YFramework.uIMgr.Show(UIEnum.LoadingPanel);
-        Timers.inst.Add(1.5f, (o) =>
-        {
-            CloseSelf();
-            PlayerEntity playerEntity = PlayerEntity.pool.GetItem(null);
-            playerEntity.Location = GameStarter.PlayerOrgPos.position;
-            YFramework.uIMgr.Show(UIEnum.GameMainPanel);
-            EnemiesManager.instance.SetPlayer(playerEntity);
-            for (int i = 0; i < 20; i++)
-            {
-                // todo：在范围内随机生成
-                Vector3 basePos = playerEntity.Location;
-                float randomX = Random.Range(-50f,50f);
-                float randomZ =  Random.Range(-50f, 50f);
-                float randomY = 20f;
-
-                Vector3 spawnPos = basePos + new Vector3(randomX, randomY, randomZ);
-
-                EnemiesManager.instance.GenerateEnemyAt(spawnPos);
-            }
-        });
-        Timers.inst.Add(5, (o) => { YFramework.uIMgr.Hide(UIEnum.LoadingPanel); });
-  
+     
+        YFramework.sceneMgr.SwitchScene(GotSceneType.GamePlay);
     }
 
     public override void OnShow()
