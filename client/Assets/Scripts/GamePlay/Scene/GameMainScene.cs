@@ -21,20 +21,30 @@ public class GameMainScene : GotSceneBase
             YFramework.uIMgr.Hide(UIEnum.StartPanel);
             PlayerManager.Instance.Init(() =>
             {
-     
-                for (int i = 0; i < 20; i++)
+                //
+                // for (int i = 0; i < 20; i++)
+                // {
+                //     // todo：在范围内随机生成
+                //     Vector3 basePos = PlayerManager.Instance.playerEntity.Location;
+                //     float randomX = Random.Range(-50f, 50f);
+                //     float randomZ = Random.Range(-50f, 50f);
+                //     float randomY = 20f;
+                //
+                //     Vector3 spawnPos = basePos + new Vector3(randomX, randomY, randomZ);
+                //
+                //     EnemiesManager.instance.GenerateEnemyAt(spawnPos);
+                // }
+
+                for (int i = 0; i < 1; i++)
                 {
                     // todo：在范围内随机生成
                     Vector3 basePos = PlayerManager.Instance.playerEntity.Location;
-                    float randomX = Random.Range(-50f, 50f);
-                    float randomZ = Random.Range(-50f, 50f);
-                    float randomY = 20f;
+           
 
-                    Vector3 spawnPos = basePos + new Vector3(randomX, randomY, randomZ);
+                    Vector3 spawnPos = basePos + new Vector3(5, 5, 15);
 
                     EnemiesManager.instance.GenerateEnemyAt(spawnPos);
                 }
-
                 EnterSceneComplete();
             });
    
@@ -53,8 +63,22 @@ public class GameMainScene : GotSceneBase
         else if(Input.GetKeyDown(KeyCode.Y))
         {
             PlayerManager.Instance.Switch(PlayerManager.PlayerCtrl.Role);
+            
         }
+        else if (Input.GetKeyDown(KeyCode.M))
+        {
 
+            for (int i = 0; i < 1; i++)
+            {
+                // todo：在范围内随机生成
+                Vector3 basePos = PlayerManager.Instance.playerEntity.Location;
+
+
+                Vector3 spawnPos = basePos + new Vector3(5, 5, 15);
+
+                EnemiesManager.instance.GenerateEnemyAt(spawnPos);
+            }  
+        }
     }
 
     protected override void OnLeaveScene()

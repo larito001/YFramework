@@ -17,10 +17,10 @@ public class EnemyPinState : IYState, PoolItem<object>
     public void EnterState(YStateMachine enemy)
     {
         _stateMachine = enemy as EnemyStateMachine;
-        _stateMachine.Enemy.OnPathCompleteAction+=OnPathComplete;
+        _stateMachine.Enemy.seeker.OncePathFinding(EnemiesManager.instance.GetPlayerPos());
     }
 
-    private void OnPathComplete()
+    private void OnPinPathComplete()
     {
         //todo:如果没有moving且到达索敌半径
         if (true)
@@ -33,11 +33,15 @@ public class EnemyPinState : IYState, PoolItem<object>
     {
         if (_stateMachine == null) return;
         _stateMachine.Enemy.seeker.OncePathFinding(EnemiesManager.instance.GetPlayerPos());
+        if (!_stateMachine.Enemy.seeker.GetIsMoving())
+        {
+            OnPinPathComplete();
+        }
+
     }
 
     public void ExitState(YStateMachine enemy)
     {
-        _stateMachine.Enemy.OnPathCompleteAction -= OnPathComplete;
         _stateMachine = null;
         pool.RecoverItem(this);
     }

@@ -19,6 +19,7 @@ public class EnemyIdelState : IYState, PoolItem<object>
     {
         _stateMachine = enemy as EnemyStateMachine;
         _stateMachine.Enemy.seeker.StopPathFinding();
+        timer = 3;
     }
 
     public void UpdateState(YStateMachine enemy,float dt)

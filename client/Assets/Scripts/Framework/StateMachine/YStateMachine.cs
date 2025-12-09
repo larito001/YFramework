@@ -25,6 +25,7 @@ public class YStateMachine
     {
         if (currentState!=null&&currentState.GetStateName() == newState.GetStateName())
         {
+            // Debug.LogError("重复调用："+newState.GetStateName());
             return;
         }
         
@@ -32,10 +33,12 @@ public class YStateMachine
         {
             previousState = currentState;
             currentState.ExitState(this);
+            // Debug.LogError("移除：" + currentState.GetStateName());
         }
         
         currentState = newState;
         currentState.EnterState(this);
+        // Debug.LogError("进入：" + currentState.GetStateName());
         
     }
     

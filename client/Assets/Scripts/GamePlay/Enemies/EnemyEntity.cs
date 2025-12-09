@@ -22,8 +22,14 @@ public class EnemyEntity : ObjectBase, PoolItem<object>, IVictim
     {
     }
 
+    
+    private UnityAction atkCallback = null;
+    private bool isCD = false;
+    private float cdTimer = 2;
     public void Atk(UnityAction callback)
     {
+        isCD = true;
+        atkCallback = callback;
         var pos = EnemiesManager.instance.GetPlayerPos();
         BaseBulletEntity b = BaseBulletEntity.pool.GetItem(new BulletConfig()
         {
@@ -38,16 +44,22 @@ public class EnemyEntity : ObjectBase, PoolItem<object>, IVictim
         });
         pos.y += Random.Range(0.5f, 2);
         b.Fire(ObjTrans.position, pos - ObjTrans.position);
-
-        Timers.inst.Add(0.5f, (o)=>
-        {
-            callback?.Invoke();
-        });
+        
     }
 
 
     public override void YOTOUpdate(float deltaTime)
     {
+        if (isCD)
+        {
+            cdTimer-= deltaTime;
+            if (cdTimer <= 0)
+            {
+                cdTimer = 2;
+                isCD = false;
+                atkCallback?.Invoke();
+            }
+        }
         if (seeker != null)
         {
             CheckDistance();
@@ -70,12 +82,6 @@ public class EnemyEntity : ObjectBase, PoolItem<object>, IVictim
 
     public override void YOTONetUpdate()
     {
-        if (seeker != null)
-        {
-            if (!seeker.GetIsMoving())
-            {
-            }
-        }
     }
 
     public override void YOTOFixedUpdate(float deltaTime)
@@ -103,8 +109,9 @@ public class EnemyEntity : ObjectBase, PoolItem<object>, IVictim
         config.modifierType = ModifierType.FunnelModifier;
         config.speed = 2f;
         config.constrainInsideGraph = true;
-        config.stopDistance = 1;
-        config.OnPathComplete += OnPathComplete;
+        config.stopDistance =2;
+        config.OnPathComplete = OnPathComplete;
+        config.slowDownDistance = 0;
         seeker.Init(config);
         victim.Init(new Vector3(5, 1, 5), this);
         NeedRound = true;
