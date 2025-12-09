@@ -334,7 +334,7 @@ public class GotAStarSeeker : IGotSeeker, PoolItem<object>
             _config.OnMovingDontUseLambda?.Invoke();
         }
 
-        if (_isStarting && !this.GetIsMoving() && !_config.isUpdate)
+        if (_isStarting && this.GetIsReached() && !_config.isUpdate)
         {
             PathFindingEnd();
         }
@@ -409,13 +409,14 @@ public class GotAStarSeeker : IGotSeeker, PoolItem<object>
 
         SetEnable(true);
         _aiEntity.destination = pos;
+
+        _aiEntity.isStopped = false;
+        _isStarting = true;
         if (immediately)
         {
             _aiEntity.SearchPath();
         }
 
-        _aiEntity.isStopped = false;
-        _isStarting = true;
     }
 
     public void TP(Vector3 pos)
@@ -535,7 +536,6 @@ public class GotAStarSeeker : IGotSeeker, PoolItem<object>
 
         _isStarting = false;
         _config.OnPathComplete?.Invoke();
-        SetEnable(false);
         // Debug.Log("[GotPathFinding] Path Finding End Success");
     }
 
@@ -606,14 +606,16 @@ public class GotAStarSeeker : IGotSeeker, PoolItem<object>
         return _aiEntity.velocity;
     }
 
-    public bool GetIsMoving()
+    public bool GetIsReached()
     {
         if (!CheckExist())
         {
             return false;
         }
-
-        return !(_aiEntity.reachedEndOfPath && !_aiEntity.pathPending);
+        //如果静止且计算完成
+        return !_aiEntity.pathPending
+               && _aiEntity.hasPath
+               && _aiEntity.reachedEndOfPath;
     }
 
     public void GetCanArrived(Vector3 pos, UnityAction<bool> callback)

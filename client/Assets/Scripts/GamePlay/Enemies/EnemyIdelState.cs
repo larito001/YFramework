@@ -39,6 +39,7 @@ public class EnemyIdelState : IYState, PoolItem<object>
 
     public void ExitState(YStateMachine enemy)
     {
+        _stateMachine.Enemy.seeker.ContinuePathFinding();
         _stateMachine = null;
         pool.RecoverItem(this);
     }

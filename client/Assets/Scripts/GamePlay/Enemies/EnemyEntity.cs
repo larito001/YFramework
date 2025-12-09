@@ -109,9 +109,9 @@ public class EnemyEntity : ObjectBase, PoolItem<object>, IVictim
         config.modifierType = ModifierType.FunnelModifier;
         config.speed = 2f;
         config.constrainInsideGraph = true;
-        config.stopDistance =2;
-        config.OnPathComplete = OnPathComplete;
+        config.stopDistance =1.5f;
         config.slowDownDistance = 0;
+        config.isUpdate = true;
         seeker.Init(config);
         victim.Init(new Vector3(5, 1, 5), this);
         NeedRound = true;
@@ -121,12 +121,7 @@ public class EnemyEntity : ObjectBase, PoolItem<object>, IVictim
         stateMachine.SwitchState(EnemyIdelState.pool.GetItem(null));
     }
 
-    public UnityAction OnPathCompleteAction;
 
-    private void OnPathComplete()
-    {
-        OnPathCompleteAction?.Invoke();
-    }
 
     protected override void BeforeRecover(bool isDelete)
     {
