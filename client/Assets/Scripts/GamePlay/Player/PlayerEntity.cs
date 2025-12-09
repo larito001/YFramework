@@ -107,7 +107,7 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim
 
     public void OnHurt(float hurt)
     {
-        FlyTextMgr.Instance.AddText(hurt.ToString(), objTrans.position);
+        FlyTextMgr.Instance.AddText(hurt.ToString(), objTrans.position,FlyTextType.PlayerHurt);
         Properties.HP -= hurt;
     }
 

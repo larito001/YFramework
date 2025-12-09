@@ -18,7 +18,7 @@ public class EnemyRoundState : IYState, PoolItem<object>
     public void EnterState(YStateMachine enemy)
     {
         _stateMachine = enemy as EnemyStateMachine;
-        center= _stateMachine.Enemy.ObjTrans.position;
+        center= _stateMachine.Enemy.OrgPos;
         var target = center + new Vector3(Random.Range(-5, 5), 0, Random.Range(-5, 5));
         _stateMachine.Enemy.seeker.OncePathFinding(target);
         _stateMachine.Enemy.OnPathCompleteAction += OnPathComplete;

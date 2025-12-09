@@ -1,3 +1,5 @@
+using UnityEngine;
+
 public interface IYState
 {
     string GetStateName();
@@ -21,6 +23,11 @@ public class YStateMachine
     // 切换状态
     public void SwitchState(IYState newState)
     {
+        if (currentState!=null&&currentState.GetStateName() == newState.GetStateName())
+        {
+            return;
+        }
+        
         if (currentState != null)
         {
             previousState = currentState;
@@ -29,6 +36,7 @@ public class YStateMachine
         
         currentState = newState;
         currentState.EnterState(this);
+        
     }
     
     // 返回上一个状态

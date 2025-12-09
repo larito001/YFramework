@@ -23,7 +23,7 @@ public class EnemyAtkState : IYState, PoolItem<object>
     private void OnAtkCallback()
     {
         //todo:根据怪物种类判断是巡逻还是idel
-        _stateMachine.SwitchState(EnemyRoundState.pool.GetItem(null));
+        _stateMachine.SwitchState(EnemyPinState.pool.GetItem(null));
     }
 
     public void UpdateState(YStateMachine enemy, float dt)

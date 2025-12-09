@@ -12,6 +12,8 @@ public class EnemyEntity : ObjectBase, PoolItem<object>, IVictim
     public IGotSeeker seeker;
     private EnemyStateMachine stateMachine;
     public bool NeedRound = false;
+    public Vector3 OrgPos = Vector3.zero;
+
     protected override void YOTOOnload()
     {
     }
@@ -22,15 +24,32 @@ public class EnemyEntity : ObjectBase, PoolItem<object>, IVictim
 
     public void Atk(UnityAction callback)
     {
-        callback?.Invoke();
+        var pos = EnemiesManager.instance.GetPlayerPos();
+        BaseBulletEntity b = BaseBulletEntity.pool.GetItem(new BulletConfig()
+        {
+            name = "Bullet/bullet",
+            moveSpeed = 20,
+            attackType = AttackType.Remote,
+            damage = 50,
+            TrggerCount = 1,
+            duration = 10,
+            triggerTimer = 0f,
+            camp = Camp.Enemy
+        });
+        pos.y += Random.Range(0.5f, 2);
+        b.Fire(ObjTrans.position, pos - ObjTrans.position);
+
+        Timers.inst.Add(0.5f, (o)=>
+        {
+            callback?.Invoke();
+        });
     }
-    
-    
+
+
     public override void YOTOUpdate(float deltaTime)
     {
         if (seeker != null)
         {
-            
             CheckDistance();
         }
 
@@ -55,8 +74,6 @@ public class EnemyEntity : ObjectBase, PoolItem<object>, IVictim
         {
             if (!seeker.GetIsMoving())
             {
-                
-                
             }
         }
     }
@@ -82,21 +99,23 @@ public class EnemyEntity : ObjectBase, PoolItem<object>, IVictim
 
         seeker = PathFindingFactory.GetSeeker();
         var config = new AStarMidSeekerConfig(objTrans.gameObject);
-        config.UseObstacleAvoidance=true;
+        config.UseObstacleAvoidance = true;
         config.modifierType = ModifierType.FunnelModifier;
         config.speed = 2f;
         config.constrainInsideGraph = true;
         config.stopDistance = 1;
         config.OnPathComplete += OnPathComplete;
         seeker.Init(config);
-        victim.Init(new Vector3(5,1,5),this);
-        NeedRound=true;
+        victim.Init(new Vector3(5, 1, 5), this);
+        NeedRound = true;
+        OrgPos = objTrans.position;
         stateMachine = new EnemyStateMachine();
         stateMachine.Init(this);
         stateMachine.SwitchState(EnemyIdelState.pool.GetItem(null));
     }
 
-    public UnityAction OnPathCompleteAction ;
+    public UnityAction OnPathCompleteAction;
+
     private void OnPathComplete()
     {
         OnPathCompleteAction?.Invoke();
@@ -112,7 +131,6 @@ public class EnemyEntity : ObjectBase, PoolItem<object>, IVictim
     public void AfterIntoObjectPool()
     {
         RecoverObject();
-    
     }
 
     public void SetData(object serverData)
@@ -138,8 +156,8 @@ public class EnemyEntity : ObjectBase, PoolItem<object>, IVictim
         {
             stateMachine.SwitchState(EnemyPinState.pool.GetItem(null));
         }
+
         Properties.HP -= hurt;
-      
     }
 
     public void OnEnter(Collider other)
@@ -148,6 +166,7 @@ public class EnemyEntity : ObjectBase, PoolItem<object>, IVictim
         {
             if (victim.Victim.GetProperties().Camp == Camp.Player)
             {
+                if(stateMachine.GetCurrentStateName() =="EnemyIdel"|| stateMachine.GetCurrentStateName() == "EnemyRound")
                 stateMachine.SwitchState(EnemyPinState.pool.GetItem(null));
             }
         }
