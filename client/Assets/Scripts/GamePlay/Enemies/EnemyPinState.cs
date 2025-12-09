@@ -33,7 +33,7 @@ public class EnemyPinState : IYState, PoolItem<object>
     {
         if (_stateMachine == null) return;
         _stateMachine.Enemy.seeker.OncePathFinding(EnemiesManager.instance.GetPlayerPos());
-        if (!_stateMachine.Enemy.seeker.GetIsMoving())
+        if (_stateMachine.Enemy.seeker.GetIsReached())
         {
             OnPinPathComplete();
         }

@@ -21,7 +21,6 @@ public class EnemyRoundState : IYState, PoolItem<object>
         center= _stateMachine.Enemy.OrgPos;
         var target = center + new Vector3(Random.Range(-5, 5), 0, Random.Range(-5, 5));
         _stateMachine.Enemy.seeker.OncePathFinding(target);
-        _stateMachine.Enemy.OnPathCompleteAction += OnPathComplete;
     }
 
     private void OnPathComplete()
@@ -32,11 +31,14 @@ public class EnemyRoundState : IYState, PoolItem<object>
     public void UpdateState(YStateMachine enemy,float dt)
     {
         if (_stateMachine == null) return;
+        if (_stateMachine.Enemy.seeker.GetIsReached())
+        {
+            OnPathComplete();
+        }
     }
 
     public void ExitState(YStateMachine enemy)
     {
-        _stateMachine.Enemy.OnPathCompleteAction -= OnPathComplete;
         _stateMachine = null;
         pool.RecoverItem(this);
     }

@@ -22,12 +22,12 @@ namespace YOTO
         
         public static  void OnDestroy()
         {
-            Application.logMessageReceived -= OnUnityLog;
+            // Application.logMessageReceived -= OnUnityLog;
         }
 
         public static void Init()
         {
-            Application.logMessageReceived += OnUnityLog;
+            // Application.logMessageReceived += OnUnityLog;
             logDirectory = Path.Combine(Environment.CurrentDirectory, "Logs");
 
             if (!Directory.Exists(logDirectory))

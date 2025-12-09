@@ -299,7 +299,7 @@ public interface IGotSeeker
     public Vector3 GetCurrentSpeed(); //获取当前速度
 
     public bool
-        GetIsMoving(); //获取是否正在寻路,没到目标点就是false，无延迟，同步【建议如果update中调用OncePathFinding，不使用OnPathComplete回调，使用GetIsMoving方法判断是否正在移动】
+        GetIsReached(); //获取是否正在寻路,没到目标点就是false，无延迟，同步【建议如果update中调用OncePathFinding，不使用OnPathComplete回调，使用GetIsMoving方法判断是否正在移动】
 
     public void GetCanArrived(Vector3 pos, UnityAction<bool> callback); //检查是否能到达
     public void GetCanArrived(Transform trans, UnityAction<bool> callback); //检查是否能到达
