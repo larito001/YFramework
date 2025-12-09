@@ -15,7 +15,7 @@ namespace YOTO
             Level3 = 3  // 只写 Error
         }
 
-        public static LogLevel CurrentLevel = LogLevel.Level1;
+        public static LogLevel CurrentLevel = LogLevel.Level3;
 
         private static string logDirectory;
         private static string logFilePath;

@@ -504,7 +504,7 @@ public class GotAStarSeeker : IGotSeeker, PoolItem<object>
         }
         else
         {
-            Debug.LogError("[GotPathFinding] PathFinding Stop Error,because is not starting!");
+            Debug.LogWarning("[GotPathFinding] PathFinding Stop Error,because is not starting!");
         }
     }
 
@@ -522,7 +522,7 @@ public class GotAStarSeeker : IGotSeeker, PoolItem<object>
         }
         else
         {
-            Debug.LogError("[GotPathFinding] PathFinding Stop Error,because is not starting!");
+            Debug.LogWarning("[GotPathFinding] PathFinding Stop Error,because is not starting!");
         }
     }
 

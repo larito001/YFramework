@@ -1,8 +1,8 @@
-
 public interface IYState
 {
+    string GetStateName();
     void EnterState(YStateMachine enemy);
-    void UpdateState(YStateMachine enemy);
+    void UpdateState(YStateMachine enemy, float dt);
     void ExitState(YStateMachine enemy);
 }
 public class YStateMachine
@@ -11,11 +11,11 @@ public class YStateMachine
     // 状态管理
     private IYState currentState;
     private IYState previousState;
-    
-    void Update()
+
+    public void Update(float dt)
     {
         // 更新当前状态
-        currentState?.UpdateState(this);
+        currentState?.UpdateState(this,dt);
     }
     
     // 切换状态
@@ -43,6 +43,6 @@ public class YStateMachine
     // 获取当前状态名称（用于UI显示或调试）
     public string GetCurrentStateName()
     {
-        return currentState?.GetType().Name ?? "No State";
+        return currentState?.GetStateName() ?? "No State";
     }
 }

@@ -46,7 +46,8 @@ public class TowerEntity: ObjectBase, PoolItem<Transform>
                     damage = 1,
                     TrggerCount = 999,
                     duration = 3,
-                    triggerTimer = 0.5f
+                    triggerTimer = 0.5f,
+                    camp  = Camp.Player
                 });
                 pos += new Vector3(0, 1.5f, 0);
                 b.Fire(ObjTrans.position, pos - ObjTrans.position);

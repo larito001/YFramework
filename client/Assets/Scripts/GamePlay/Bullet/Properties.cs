@@ -9,7 +9,7 @@ public class Properties
     private float _hp;
     private float _atk;
     private float _def;
-
+    private Camp _camp;
     public float HP
     {
         get
@@ -46,6 +46,17 @@ public class Properties
         set
         {
             _def = value;
+        }
+    }
+    public Camp Camp
+    {
+        get
+        {
+            return _camp;
+        }
+        set
+        {
+            _camp = value;
         }
     }
 }

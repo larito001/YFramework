@@ -127,7 +127,11 @@ public class BaseBulletEntity : ObjectBase, PoolItem<BulletConfig>
         {
             if (other.TryGetComponent<TheVictim>(out TheVictim victim))
             {
-                victims.Add(victim);
+                if (victim.Victim.GetProperties().Camp != _config.camp)
+                {
+                    victims.Add(victim); 
+                }
+           
             }
         }
     }
@@ -184,7 +188,7 @@ public class BaseBulletEntity : ObjectBase, PoolItem<BulletConfig>
           
                 foreach (var theVictim in victims)
                 {
-                    theVictim.Victim?.OnHurt(_config.damage);
+                    theVictim.OnHurt(_config.damage);
                     triggerCount--;
                     if (triggerCount <= 0)
                     {
