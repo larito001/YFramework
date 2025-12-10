@@ -27,7 +27,7 @@ public class EnemiesManager : LogicPluginBase
      }
      public void GenerateEnemyAt(Vector3  pos)
      {
-       var enemy =   EnemyEntity.pool.GetItem(null);
+       var enemy =   EnemyEntity.pool.GetItem(pos);
        enemy.Location = pos;
        enemies.Add(enemy);
      }

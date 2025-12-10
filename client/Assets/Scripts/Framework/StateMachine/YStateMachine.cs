@@ -11,9 +11,14 @@ public class YStateMachine
 {
 
     // 状态管理
-    private IYState currentState;
-    private IYState previousState;
+    protected IYState currentState;
+    protected IYState previousState;
 
+    public void ReSet()
+    {
+        currentState = null;
+        previousState = null;
+    }
     public void Update(float dt)
     {
         // 更新当前状态
@@ -25,7 +30,7 @@ public class YStateMachine
     {
         if (currentState!=null&&currentState.GetStateName() == newState.GetStateName())
         {
-            // Debug.LogError("重复调用："+newState.GetStateName());
+            Debug.LogError("重复调用："+newState.GetStateName());
             return;
         }
         
@@ -33,12 +38,12 @@ public class YStateMachine
         {
             previousState = currentState;
             currentState.ExitState(this);
-            // Debug.LogError("移除：" + currentState.GetStateName());
+            Debug.LogError("移除：" + currentState.GetStateName());
         }
         
         currentState = newState;
         currentState.EnterState(this);
-        // Debug.LogError("进入：" + currentState.GetStateName());
+         Debug.LogError("进入：" + currentState.GetStateName());
         
     }
     

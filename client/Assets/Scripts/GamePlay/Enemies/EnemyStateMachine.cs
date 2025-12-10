@@ -9,5 +9,6 @@ public class EnemyStateMachine : YStateMachine
     public void Init(EnemyEntity enemy)
     {
         Enemy = enemy;
+        ReSet();
     }
 }

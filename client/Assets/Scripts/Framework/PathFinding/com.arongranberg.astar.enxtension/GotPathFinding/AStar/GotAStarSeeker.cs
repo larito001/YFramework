@@ -80,8 +80,8 @@ public class GotAStarSeeker : IGotSeeker, PoolItem<object>
         }
 
         _seeker = obj.AddComponent<Seeker>();
-        _aiEntity = obj.AddComponent<AIPath>();
-        var ap = _aiEntity as AIPath;
+        _aiEntity = obj.AddComponent<YAIPath>();
+        var ap = _aiEntity as YAIPath;
         if (!config.enableGravity)
         {
             ap.gravity = Vector3.zero;
@@ -102,6 +102,8 @@ public class GotAStarSeeker : IGotSeeker, PoolItem<object>
         ap.slowdownDistance = config.slowDownDistance;
         ap.maxAcceleration = config.acceleration;
         ap.constrainInsideGraph = config.constrainInsideGraph; //让角色不穿模,路点不能开启
+        ap.RigesterReached(PathFindingEnd);
+        ap.rvoDensityBehavior = new RVODestinationCrowdedBehavior(true, 0.5f, true);
         _seeker.graphMask = GraphMask.everything;
         _seeker.traversalProvider = _graphMaskTraversalProvider;
         if (config.UseObstacleAvoidance)
@@ -124,8 +126,9 @@ public class GotAStarSeeker : IGotSeeker, PoolItem<object>
         }
 
         _seeker = obj.AddComponent<Seeker>();
-        _aiEntity = obj.AddComponent<AILerp>();
-        var al = _aiEntity as AILerp;
+        _aiEntity = obj.AddComponent<YAILerp>();
+        var al = _aiEntity as YAILerp;
+        al.RigesterReached(PathFindingEnd);
         // al.radius = _config.radio;不支持
         // al.height = _config.height;不支持
         al.speed = config.speed;
@@ -308,35 +311,9 @@ public class GotAStarSeeker : IGotSeeker, PoolItem<object>
             return;
         }
 
-        // var nodes = _seeker.GetCurrentPath().path;
-        // for (int i = 0; i < nodes.Count; i++)
-        // {
-        //     // 判断是否到达节点
-        //     Vector3 nodePos = (Vector3)nodes[i].position;
-        //     uint nodeIndex = nodes[i].NodeIndex;
-        //     // 已经触发过的节点跳过
-        //     if (reachedNodes.Contains(nodeIndex)) continue;
-        //     if (Vector3.Distance(obj.transform.position, nodePos) <= 2)
-        //     {
-        //         // 触发事件
-        //         Debug.Log("到达节点 / 节点位置: " + nodePos);
-        //         // 记录已触发
-        //         reachedNodes.Add(nodeIndex);
-        //
-        //
-        //         // 可在这里调用节点事件，比如：
-        //         // node.DoSomething();
-        //     }
-        // }
-
         if (_isStarting && !_config.isUpdate)
         {
             _config.OnMovingDontUseLambda?.Invoke();
-        }
-
-        if (_isStarting && this.GetIsReached() && !_config.isUpdate)
-        {
-            PathFindingEnd();
         }
     }
 
@@ -360,7 +337,9 @@ public class GotAStarSeeker : IGotSeeker, PoolItem<object>
         }
         else if (_config is AStarMidSeekerConfig)
         {
-            GameObject.Destroy(_aiEntity as AIPath);
+            var ap = _aiEntity as YAIPath;
+            ap.UnRigesterReached(PathFindingEnd);
+            GameObject.Destroy(ap);
 
             if (_config.UseObstacleAvoidance)
             {
@@ -371,7 +350,9 @@ public class GotAStarSeeker : IGotSeeker, PoolItem<object>
         }
         else if (_config is AStarLowSeekerConfig)
         {
-            GameObject.Destroy(_aiEntity as AILerp);
+            var lp = _aiEntity as YAILerp;
+            lp.UnRigesterReached(PathFindingEnd);
+            GameObject.Destroy(lp);
             if (_config.UseObstacleAvoidance)
             {
                 GameObject.Destroy(_rvoController);
@@ -407,6 +388,7 @@ public class GotAStarSeeker : IGotSeeker, PoolItem<object>
             return;
         }
 
+        Debug.Log("开始寻路"+pos);
         SetEnable(true);
         _aiEntity.destination = pos;
 
@@ -416,7 +398,6 @@ public class GotAStarSeeker : IGotSeeker, PoolItem<object>
         {
             _aiEntity.SearchPath();
         }
-
     }
 
     public void TP(Vector3 pos)
@@ -426,35 +407,35 @@ public class GotAStarSeeker : IGotSeeker, PoolItem<object>
 
     private Coroutine currentMoveCoroutine;
 
-    public void AddForce(Vector3 dir, float force,UnityAction callback)
+    public void AddForce(Vector3 dir, float force, UnityAction callback)
     {
         // 如果正在移动，停止之前的移动
         if (currentMoveCoroutine != null)
         {
             YFramework.Instance.StopCoroutine(currentMoveCoroutine);
-            currentMoveCoroutine=null;
+            currentMoveCoroutine = null;
         }
 
         // 计算目标位置
         Vector3 targetPosition = obj.transform.position + dir.normalized * force;
 
         // 开始安全的移动协程
-        currentMoveCoroutine =     YFramework.Instance.StartCoroutine(SafeMoveToPosition(targetPosition, callback));
+        currentMoveCoroutine = YFramework.Instance.StartCoroutine(SafeMoveToPosition(targetPosition, callback));
     }
 
-    private IEnumerator SafeMoveToPosition( Vector3 delta, UnityAction callback)
+    private IEnumerator SafeMoveToPosition(Vector3 delta, UnityAction callback)
     {
         Vector3 startPos = obj.transform.position;
         Vector3 targetPos = delta;
         if (AstarPath.active.Linecast(startPos, targetPos, out GraphHitInfo hitInfo))
         {
             //如果碰到障碍物了
-            targetPos=hitInfo.point;
+            targetPos = hitInfo.point;
             // 往回偏移 0.5，避免紧贴障碍
             Vector3 dir = (targetPos - startPos).normalized;
             targetPos -= dir * 0.5f;
         }
-        
+
         // 固定的移动时间
         float moveDuration = 0.5f;
         float t = 0f;
@@ -491,6 +472,7 @@ public class GotAStarSeeker : IGotSeeker, PoolItem<object>
         // 利用 PathUtilities 检查两点是否在同一连通区
         return PathUtilities.IsPathPossible(startNode, endNode);
     }
+
     public void StopPathFinding()
     {
         if (_isStarting && !_aiEntity.isStopped)
@@ -559,12 +541,12 @@ public class GotAStarSeeker : IGotSeeker, PoolItem<object>
         }
         else if (_config is AStarMidSeekerConfig)
         {
-            var ap = _aiEntity as AIPath;
+            var ap = _aiEntity as YAIPath;
             ap.maxSpeed = speed;
         }
         else if (_config is AStarLowSeekerConfig)
         {
-            var al = _aiEntity as AILerp;
+            var al = _aiEntity as YAILerp;
             al.speed = speed;
         }
     }
@@ -582,6 +564,7 @@ public class GotAStarSeeker : IGotSeeker, PoolItem<object>
             {
                 _rvoController = obj.AddComponent<RVOController>();
             }
+
             _rvoController.enabled = true;
         }
         else
@@ -592,6 +575,7 @@ public class GotAStarSeeker : IGotSeeker, PoolItem<object>
             }
         }
     }
+
     #endregion
 
     #region 获取当前状态（getter）
@@ -604,18 +588,6 @@ public class GotAStarSeeker : IGotSeeker, PoolItem<object>
         }
 
         return _aiEntity.velocity;
-    }
-
-    public bool GetIsReached()
-    {
-        if (!CheckExist())
-        {
-            return false;
-        }
-        //如果静止且计算完成
-        return !_aiEntity.pathPending
-               && _aiEntity.hasPath
-               && _aiEntity.reachedEndOfPath;
     }
 
     public void GetCanArrived(Vector3 pos, UnityAction<bool> callback)

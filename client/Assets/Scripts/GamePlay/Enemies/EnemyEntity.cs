@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 
-public class EnemyEntity : ObjectBase, PoolItem<object>, IVictim
+public class EnemyEntity : ObjectBase, PoolItem<Vector3>, IVictim
 {
-    public static DataObjPool<EnemyEntity, object> pool =
-        new DataObjPool<EnemyEntity, object>("EnemyEntity", 200);
+    public static DataObjPool<EnemyEntity, Vector3> pool =
+        new DataObjPool<EnemyEntity, Vector3>("EnemyEntity", 200);
 
     public Properties Properties;
     public IGotSeeker seeker;
@@ -29,6 +29,7 @@ public class EnemyEntity : ObjectBase, PoolItem<object>, IVictim
     public void Atk(UnityAction callback)
     {
         isCD = true;
+        cdTimer = 2;
         atkCallback = callback;
         var pos = EnemiesManager.instance.GetPlayerPos();
         BaseBulletEntity b = BaseBulletEntity.pool.GetItem(new BulletConfig()
@@ -103,6 +104,7 @@ public class EnemyEntity : ObjectBase, PoolItem<object>, IVictim
             victim = ObjTrans.gameObject.AddComponent<TheVictim>();
         }
 
+        OnPathComplete = null;
         seeker = PathFindingFactory.GetSeeker();
         var config = new AStarMidSeekerConfig(objTrans.gameObject);
         config.UseObstacleAvoidance = true;
@@ -112,19 +114,27 @@ public class EnemyEntity : ObjectBase, PoolItem<object>, IVictim
         config.stopDistance =1.5f;
         config.slowDownDistance = 0;
         config.isUpdate = true;
+        config.OnPathComplete = OnPathCompleteCallback;
         seeker.Init(config);
         victim.Init(new Vector3(5, 1, 5), this);
         NeedRound = true;
-        OrgPos = objTrans.position;
+        isCD = false;
+        OrgPos =Location;
         stateMachine = new EnemyStateMachine();
         stateMachine.Init(this);
         stateMachine.SwitchState(EnemyIdelState.pool.GetItem(null));
     }
 
-
-
+    public UnityAction OnPathComplete;
+    private void OnPathCompleteCallback()
+    {
+        OnPathComplete?.Invoke();
+    }
+    
     protected override void BeforeRecover(bool isDelete)
     {
+        isCD = false;
+        OnPathComplete = null;
         stateMachine = null;
         seeker.Remove();
         seeker = null;
@@ -135,8 +145,9 @@ public class EnemyEntity : ObjectBase, PoolItem<object>, IVictim
         RecoverObject();
     }
 
-    public void SetData(object serverData)
+    public void SetData(Vector3 serverData)
     {
+        Location = serverData;
         SetInVision(true);
         SetPrefabBundlePath("Enemies/Enemy");
         InstanceGObj();

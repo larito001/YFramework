@@ -297,10 +297,7 @@ public interface IGotSeeker
     public void ContinuePathFinding(); //继续寻路，配合StopPathFinding
     public float GetDistance(); //获取距离目标点距离
     public Vector3 GetCurrentSpeed(); //获取当前速度
-
-    public bool
-        GetIsReached(); //获取是否正在寻路,没到目标点就是false，无延迟，同步【建议如果update中调用OncePathFinding，不使用OnPathComplete回调，使用GetIsMoving方法判断是否正在移动】
-
+    
     public void GetCanArrived(Vector3 pos, UnityAction<bool> callback); //检查是否能到达
     public void GetCanArrived(Transform trans, UnityAction<bool> callback); //检查是否能到达
     public List<Vector3> GetPath(); //获取路径
