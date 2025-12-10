@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Events;
 
 /// <summary>
 /// 子弹基类，4种，近战，远程子弹，投掷，固定点爆破
@@ -39,6 +40,7 @@ public struct BulletConfig
     public bool isTrack; //是否追踪
     public int TrggerCount ;//触发次数
     public float triggerTimer;//持续时间
+    public UnityAction removeCallback;
 }
 
 public class BaseBulletEntity : ObjectBase, PoolItem<BulletConfig>
@@ -55,8 +57,10 @@ public class BaseBulletEntity : ObjectBase, PoolItem<BulletConfig>
     private float stayTimer = 0;
     private bool isLive = false;
     private int triggerCount=1;
-    public void Fire(Vector3 pos, Vector3 dir)
+    private IVictim _fireRole;
+    public void Fire(IVictim fireRole,Vector3 pos, Vector3 dir)
     {
+        _fireRole = fireRole;
         timer = 0;
         this.dir = dir.normalized;
         this.pos = pos;
@@ -117,17 +121,20 @@ public class BaseBulletEntity : ObjectBase, PoolItem<BulletConfig>
 
     protected override void BeforeRecover(bool isDelete)
     {
-        
+        _config.removeCallback?.Invoke();
     }
 
     public void TriggerEnter(Collider other)
     {
+
         if (!isLive) return;
         if (triggerCount > 0)
         {
+     
             if (other.TryGetComponent<TheVictim>(out TheVictim victim))
             {
-                if (victim.Victim.GetProperties().Camp != _config.camp)
+                var otherCamp = victim.Victim.GetProperties().Camp;
+                if (otherCamp != _config.camp)
                 {
                     victims.Add(victim); 
                 }
@@ -188,7 +195,7 @@ public class BaseBulletEntity : ObjectBase, PoolItem<BulletConfig>
           
                 foreach (var theVictim in victims)
                 {
-                    theVictim.OnHurt(_config.damage);
+                    theVictim.OnHurt(_fireRole,_config.damage);
                     triggerCount--;
                     if (triggerCount <= 0)
                     {
