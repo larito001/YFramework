@@ -8,93 +8,36 @@ public class EnemyEntity : ObjectBase, PoolItem<Vector3>, IVictim
     public static DataObjPool<EnemyEntity, Vector3> pool =
         new DataObjPool<EnemyEntity, Vector3>("EnemyEntity", 200);
 
-    public Properties Properties;
+    public Properties properties;
     public IGotSeeker seeker;
     private EnemyStateMachine stateMachine;
     public bool NeedRound = false;
     public Vector3 OrgPos = Vector3.zero;
 
-    protected override void YOTOOnload()
-    {
-    }
+    private IVictim _lockTarget = null;
 
-    public override void YOTOStart()
+    private IVictim LockTarget
     {
-    }
-
-    
-    private UnityAction atkCallback = null;
-    private bool isCD = false;
-    private float cdTimer = 2;
-    public void Atk(UnityAction callback)
-    {
-        isCD = true;
-        cdTimer = 2;
-        atkCallback = callback;
-        var pos = EnemiesManager.instance.GetPlayerPos();
-        BaseBulletEntity b = BaseBulletEntity.pool.GetItem(new BulletConfig()
+        get { return _lockTarget; }
+        set
         {
-            name = "Bullet/bullet",
-            moveSpeed = 20,
-            attackType = AttackType.Remote,
-            damage = 50,
-            TrggerCount = 1,
-            duration = 10,
-            triggerTimer = 0f,
-            camp = Camp.Enemy
-        });
-        pos.y += Random.Range(0.5f, 2);
-        b.Fire(ObjTrans.position, pos - ObjTrans.position);
-        
+            _lockTarget = value;
+      
+        }
     }
 
+    private UnityAction atkCallback = null;
+    public UnityAction OnPathComplete;
+
+    #region 生命周期
 
     public override void YOTOUpdate(float deltaTime)
     {
-        if (isCD)
-        {
-            cdTimer-= deltaTime;
-            if (cdTimer <= 0)
-            {
-                cdTimer = 2;
-                isCD = false;
-                atkCallback?.Invoke();
-            }
-        }
-        if (seeker != null)
-        {
-            CheckDistance();
-        }
 
         if (stateMachine != null)
         {
             stateMachine.Update(deltaTime);
         }
-    }
-
-    private void CheckDistance()
-    {
-        // var dis = objTrans.position - EnemiesManager.instance.GetPlayerPos();
-        // if (dis.magnitude > 100)
-        // {
-        //     EnemiesManager.instance.RemoveEnemy(this);
-        // }
-    }
-
-    public override void YOTONetUpdate()
-    {
-    }
-
-    public override void YOTOFixedUpdate(float deltaTime)
-    {
-    }
-
-    public override void YOTOOnHide()
-    {
-    }
-
-    public void SetTarget()
-    {
     }
 
     protected override void AfterInstanceGObj()
@@ -109,31 +52,23 @@ public class EnemyEntity : ObjectBase, PoolItem<Vector3>, IVictim
         var config = new AStarMidSeekerConfig(objTrans.gameObject);
         config.UseObstacleAvoidance = true;
         config.modifierType = ModifierType.FunnelModifier;
-        config.speed = 2f;
+        config.speed = 5f;
         config.constrainInsideGraph = true;
-        config.stopDistance =1.5f;
+        config.stopDistance = 3f;
         config.slowDownDistance = 0;
         config.isUpdate = true;
         config.OnPathComplete = OnPathCompleteCallback;
         seeker.Init(config);
         victim.Init(new Vector3(5, 1, 5), this);
         NeedRound = true;
-        isCD = false;
-        OrgPos =Location;
+        OrgPos = Location;
         stateMachine = new EnemyStateMachine();
         stateMachine.Init(this);
         stateMachine.SwitchState(EnemyIdelState.pool.GetItem(null));
     }
 
-    public UnityAction OnPathComplete;
-    private void OnPathCompleteCallback()
-    {
-        OnPathComplete?.Invoke();
-    }
-    
     protected override void BeforeRecover(bool isDelete)
     {
-        isCD = false;
         OnPathComplete = null;
         stateMachine = null;
         seeker.Remove();
@@ -151,41 +86,150 @@ public class EnemyEntity : ObjectBase, PoolItem<Vector3>, IVictim
         SetInVision(true);
         SetPrefabBundlePath("Enemies/Enemy");
         InstanceGObj();
-        Properties = new Properties();
-        Properties.HP = 100;
-        Properties.OnDead = () => { EnemiesManager.instance.RemoveEnemy(this); };
-        Properties.Camp = Camp.Enemy;
+        properties = new Properties();
+        properties.HP = 100;
+        properties.OnDead = () => { EnemiesManager.instance.RemoveEnemy(this); };
+        properties.Camp = Camp.Enemy;
+        properties.State = RoleState.Alive;
     }
+
+    #endregion
+
+    #region victim
 
     public Properties GetProperties()
     {
-        return Properties;
+        return properties;
     }
 
-    public void OnHurt(float hurt)
+    public void OnHurt(IVictim fireRole,float hurt)
     {
         FlyTextMgr.Instance.AddText(hurt.ToString(), objTrans.position);
-        if (stateMachine.GetCurrentStateName() == "EnemyIdel" || stateMachine.GetCurrentStateName() == "EnemyRound")
-        {
-            stateMachine.SwitchState(EnemyPinState.pool.GetItem(null));
-        }
-
-        Properties.HP -= hurt;
+        LockTarget = fireRole;
+        StartPin();
+        properties.HP -= hurt;
+        fireRole.OnHurtSomeone();
     }
 
+    private void StartPin()
+    {
+        if (_lockTarget != null)
+        {
+            if (stateMachine.GetCurrentStateName() == "EnemyIdel" || stateMachine.GetCurrentStateName() == "EnemyRound")
+                stateMachine.SwitchState(EnemyPinState.pool.GetItem(null));
+        }
+        else
+        {
+            stateMachine.SwitchState(EnemyIdelState.pool.GetItem(null));
+        }
+    }
+    List<IVictim> victims = new List<IVictim>();
     public void OnEnter(Collider other)
     {
         if (other.TryGetComponent(out TheVictim victim))
         {
             if (victim.Victim.GetProperties().Camp == Camp.Player)
             {
-                if(stateMachine.GetCurrentStateName() =="EnemyIdel"|| stateMachine.GetCurrentStateName() == "EnemyRound")
-                stateMachine.SwitchState(EnemyPinState.pool.GetItem(null));
+                if (!victims.Contains(victim.Victim))
+                {
+                    victims.Add(victim.Victim);
+                    if (LockTarget == null)
+                    {
+                        LockTarget = victim.Victim;
+                        StartPin();
+                    }
+                }
+            
             }
         }
     }
 
     public void OnExit(Collider other)
     {
+        if (other.TryGetComponent(out TheVictim victim))
+        {
+            if (victim.Victim.GetProperties().Camp == Camp.Player)
+            {
+                if (victims.Contains(victim.Victim))
+                {
+                    victims.Remove(victim.Victim); 
+                }
+           
+            }
+        }
+    }
+
+    public Vector3 GetPosition()
+    {
+        if (objTrans != null)
+        {
+            return objTrans.position;
+        }
+
+        return Location;
+    }
+
+    public void OnHurtSomeone()
+    {
+        
+    }
+
+    public void OnBulletEnd()
+    {
+      
+        //攻击完毕，检查是否有目标
+        var targetState = LockTarget.GetProperties().State;
+        if (targetState == RoleState.Dead)
+        {
+            victims.Remove(LockTarget);
+            LockTarget = null;
+            for (var i = 0; i < victims.Count; i++)
+            {
+                if (victims[i].GetProperties().State != RoleState.Dead)
+                {
+                    LockTarget = victims[i];
+               
+                    break;
+                }
+            }
+
+            StartPin();
+        }
+        else
+        {
+            atkCallback?.Invoke();
+        }
+    }
+
+    #endregion
+
+    public void Atk(UnityAction callback)
+    {
+        atkCallback = callback;
+        var pos = _lockTarget.GetPosition();
+        BaseBulletEntity b = BaseBulletEntity.pool.GetItem(new BulletConfig()
+        {
+            name = "Bullet/bullet",
+            moveSpeed = 20,
+            attackType = AttackType.Remote,
+            damage = 50,
+            TrggerCount = 1,
+            duration = 1,
+            triggerTimer = 0f,
+            camp = Camp.Enemy,
+            removeCallback = OnBulletEnd
+        });
+        // pos.y += Random.Range(0.5f, 2);
+        b.Fire(this,ObjTrans.position, pos - ObjTrans.position);
+    }
+
+    private void OnPathCompleteCallback()
+    {
+        OnPathComplete?.Invoke();
+    }
+
+    public IVictim GetTarget()
+    {
+        return LockTarget;
     }
 }

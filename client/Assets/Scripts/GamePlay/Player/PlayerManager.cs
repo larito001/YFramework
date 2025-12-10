@@ -80,4 +80,29 @@ public class PlayerManager : LogicPluginBase
             }
         }
     }
+
+    public void RebornPlayer()
+    {
+        playerEntity = PlayerEntity.pool.GetItem(null);
+        playerEntity.Location = trainEngine.transform.position + new Vector3(5, 0, 5);
+        var orbitCamera = YFramework.cameraMgr.getMainCamera().GetComponent<OrbitCamera>();
+        orbitCamera.Uload();
+        orbitCamera.distance = 20;
+        orbitCamera.Init(playerEntity.ObjTrans);
+    }
+
+    public void PlayerDie()
+    {
+        var orbitCamera = YFramework.cameraMgr.getMainCamera().GetComponent<OrbitCamera>();
+        orbitCamera.Uload();
+        orbitCamera.distance = 50;
+        orbitCamera.Init(trainEngine.transform);
+        PlayerEntity.pool.RecoverItem(playerEntity);
+        playerEntity = null;
+        Timers.inst.Add(3, (o) =>
+        {
+            RebornPlayer();
+        });
+
+    }
 }

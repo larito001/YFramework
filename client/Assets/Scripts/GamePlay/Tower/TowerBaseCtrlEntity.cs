@@ -29,35 +29,6 @@ public class TowerBaseCtrlEntity : ObjectBase, PoolItem<object>
     {
         _isEditing = isEditing;
     }
-    protected override void YOTOOnload()
-    {
-        
-    }
-
-    public override void YOTOStart()
-    {
-       
-    }
-
-    public override void YOTOUpdate(float deltaTime)
-    {
-        
-    }
-
-    public override void YOTONetUpdate()
-    {
-        
-    }
-
-    public override void YOTOFixedUpdate(float deltaTime)
-    {
-        
-    }
-
-    public override void YOTOOnHide()
-    {
-       
-    }
 
     protected override void AfterInstanceGObj()
     {
@@ -75,7 +46,7 @@ public class TowerBaseCtrlEntity : ObjectBase, PoolItem<object>
     {
         if (_towerEntity == null)
         {
-            _towerEntity = TowerEntity.pool.GetItem(objTrans);
+            _towerEntity = TowerEntity.pool.GetItem(this);
             _towerEntity.Parent = this.objTrans;
             _towerEntity.Location = new Vector3(0,1,0);
             _towerEntity.Rotation = Quaternion.identity;
@@ -92,6 +63,11 @@ public class TowerBaseCtrlEntity : ObjectBase, PoolItem<object>
         
         TowerManager.Instance.RemoveBaseCtrl(this);
         RecoverObject();
+    }
+
+    public void RemoveTower()
+    {
+        _towerEntity = null;
     }
 
     public void SetData(object serverData)

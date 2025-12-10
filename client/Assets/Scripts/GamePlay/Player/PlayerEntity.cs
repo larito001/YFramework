@@ -7,16 +7,7 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim
         new DataObjPool<PlayerEntity, object>("PlayerEntity", 4);
 
     ThirdPlayerMoveCtrl playerMoveCtrl;
-    public Properties Properties;
-    protected override void YOTOOnload()
-    {
-    }
-
-
-    public override void YOTOStart()
-    {
-    }
-
+    public Properties properties;
     public override void YOTOUpdate(float deltaTime)
     {
         if (Input.GetKeyDown(KeyCode.E))
@@ -37,7 +28,7 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim
                     camp = Camp.Player
                 });
                 pos.y += Random.Range(0.5f, 2);
-                b.Fire(ObjTrans.position, pos - ObjTrans.position);
+                b.Fire(this,ObjTrans.position, pos - ObjTrans.position);
             }
         }
     }
@@ -46,19 +37,7 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim
     {
         return ObjTrans.position + playerMoveCtrl.velocity.normalized * distance;
     }
-
-    public override void YOTONetUpdate()
-    {
-    }
-
-    public override void YOTOFixedUpdate(float deltaTime)
-    {
-    }
-
-    public override void YOTOOnHide()
-    {
-    }
-
+    
     public void AfterIntoObjectPool()
     {
         RecoverObject();
@@ -70,13 +49,17 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim
         SetInVision(true);
         SetPrefabBundlePath("Player/PlayerBase");
         InstanceGObj();
-        Properties = new Properties();
-        Properties.HP = 100;
-        Properties.OnDead = () =>
+        properties = new Properties();
+        properties.HP = 100;
+        properties.OnDead = () =>
         {
             //todo:玩家死亡
+            properties.State = RoleState.Dead;
+            PlayerManager.Instance.PlayerDie();
+      
         };
-        Properties.Camp = Camp.Player;
+        properties.Camp = Camp.Player;
+        properties.State = RoleState.Alive;
         
     }
 
@@ -102,13 +85,14 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim
 
     public Properties GetProperties()
     {
-        return new Properties();
+        return properties;
     }
 
-    public void OnHurt(float hurt)
+    public void OnHurt(IVictim fireRole, float hurt)
     {
         FlyTextMgr.Instance.AddText(hurt.ToString(), objTrans.position,FlyTextType.PlayerHurt);
-        Properties.HP -= hurt;
+        properties.HP -= hurt;
+        fireRole.OnHurtSomeone();
     }
 
     public void OnEnter(Collider other)
@@ -117,6 +101,21 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim
     }
 
     public void OnExit(Collider other)
+    {
+        
+    }
+
+    public Vector3 GetPosition()
+    {
+        if (objTrans != null)
+        {
+            return ObjTrans.position;
+        }
+
+        return Location;
+    }
+
+    public void OnHurtSomeone()
     {
         
     }

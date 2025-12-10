@@ -27,12 +27,36 @@ public abstract  class BaseEntity
         _isLoaded = true;
         YFramework.entityMgr._AddEntity(this);
     }
-    protected abstract void YOTOOnload();
-    public abstract void YOTOStart();
-    public abstract void YOTOUpdate(float deltaTime);
-    public abstract void YOTONetUpdate();
-    public abstract void YOTOFixedUpdate(float deltaTime);
-    public abstract void YOTOOnHide();
+
+    protected virtual void YOTOOnload()
+    {
+        
+    }
+
+    public virtual void YOTOStart()
+    {
+        
+    }
+
+    public virtual void YOTOUpdate(float deltaTime)
+    {
+        
+    }
+
+    public virtual void YOTONetUpdate()
+    {
+        
+    }
+
+    public virtual void YOTOFixedUpdate(float deltaTime)
+    {
+        
+    }
+
+    public virtual void YOTOOnHide()
+    {
+        
+    }
 
     public virtual void Free()
     {

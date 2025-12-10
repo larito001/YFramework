@@ -3,6 +3,11 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 
+public enum RoleState
+{
+    Alive,
+    Dead
+}
 public class Properties
 {
     public UnityAction OnDead;
@@ -10,6 +15,7 @@ public class Properties
     private float _atk;
     private float _def;
     private Camp _camp;
+    private RoleState _state;
     public float HP
     {
         get
@@ -57,6 +63,17 @@ public class Properties
         set
         {
             _camp = value;
+        }
+    }
+    public RoleState State
+    {
+        get
+        {
+            return _state;
+        }
+        set
+        {
+            _state = value;
         }
     }
 }
