@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Pathfinding.Examples;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -62,6 +63,8 @@ public class EnemyEntity : ObjectBase, PoolItem<Vector3>, IVictim
         config.slowDownDistance = 0;
         config.isUpdate = true;
         config.OnPathComplete = OnPathCompleteCallback;
+        var scale = Random.Range(1.5f, 3f);
+        config.radio =0.5f*scale;
         seeker.Init(config);
         m_victim.Init(new Vector3(1, 2, 1), new Vector3(50, 3, 50),this);
         NeedRound = true;
@@ -69,12 +72,16 @@ public class EnemyEntity : ObjectBase, PoolItem<Vector3>, IVictim
         stateMachine = new EnemyStateMachine();
         stateMachine.Init(this);
         stateMachine.SwitchState(EnemyIdelState.pool.GetItem(null));
+            //todo:test
+          var anim =  objTrans.GetComponentInChildren<MineBotAnimation>();
+          anim.transform.localScale = Vector3.one * scale;
+          anim.ai = seeker.GetSeeker();
     }
 
     protected override void BeforeRecover(bool isDelete)
     {
         OnPathComplete = null;
-        stateMachine = null;
+        stateMachine = null; 
         seeker.Remove();
         seeker = null;
     }
@@ -184,23 +191,23 @@ public class EnemyEntity : ObjectBase, PoolItem<Vector3>, IVictim
         var pos = _lockTarget.GetPosition();
         BaseBulletEntity b = BaseBulletEntity.pool.GetItem(new BulletConfig()
         {
-            name = "Bullet/bullet",
-            moveSpeed = 20,
+            name = "Bullet/bulletEnemy",
+            moveSpeed = 0,
             attackType = AttackType.Remote,
             damage = 5,
             TrggerCount = 1,
-            duration = 1,
-            triggerTimer = 0f,
+            duration = 2,
+            triggerTimer = 1f,
             camp = Camp.Enemy,
-            removeCallback = OnBulletFinish
+            removeCallback = OnBulletFinish,
         });
         // pos.y += Random.Range(0.5f, 2);
-        b.Fire(this, ObjTrans.position, pos - ObjTrans.position);
+        b.Fire(this, pos, pos - ObjTrans.position);
     }
 
     public void OnHurt(IVictim fireRole, float hurt)
     {
-        if (properties == null || properties.State == RoleState.Dead) return;
+        if (properties == null || properties.State == RoleState.Dead|| objTrans==null) return;
         FlyTextMgr.Instance.AddText(hurt.ToString(), objTrans.position);
         properties.HP -= hurt;
         fireRole.OnHurtSomeone();

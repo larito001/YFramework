@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Pathfinding;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -286,6 +287,7 @@ public abstract class PathFindingSeekerConfig
 public interface IGotSeeker
 {
     public void Init(PathFindingSeekerConfig config); //初始化
+    public IAstarAI GetSeeker();
     public void SetEnable(bool enable); //是否启用，默认启用,归还控制权
     public void SetSpeed(float speed); //设置移动速度
     public void SetGraph(string[] graphList); //设置层级
