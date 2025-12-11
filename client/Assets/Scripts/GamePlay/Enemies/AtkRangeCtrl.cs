@@ -21,6 +21,11 @@ public class AtkRangeCtrl : MonoBehaviour
         boxCollider.size = size;
     }
 
+    public void Remove()
+    {
+        Victim = null;
+        Destroy(this.gameObject);
+    }
     private void OnTriggerEnter(Collider other)
     {
         Victim?.OnEnter(other);
