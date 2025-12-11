@@ -58,7 +58,7 @@ public class TowerEntity: ObjectBase, PoolItem<TowerBaseCtrlEntity>,IVictim
             victim = ObjTrans.gameObject.AddComponent<TheVictim>();
         }
 
-        victim.Init(new Vector3(5, 1, 5), this);
+        victim.Init(new Vector3(1, 2, 1), new Vector3(50, 3, 50), this);
     }
 
     protected override void BeforeRecover(bool isDelete)
@@ -89,6 +89,11 @@ public class TowerEntity: ObjectBase, PoolItem<TowerBaseCtrlEntity>,IVictim
         };
         properties.Camp= Camp.Player;
         properties.State = RoleState.Alive;
+    }
+
+    public Transform GetTransform()
+    {
+        return ObjTrans;
     }
 
     public int GetId()

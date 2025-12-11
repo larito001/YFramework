@@ -76,12 +76,17 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim
             victim = ObjTrans.gameObject.AddComponent<TheVictim>();
         }
 
-        victim.Init(new Vector3(5, 1, 5), this);
+        victim.Init(new Vector3(1, 2, 1), new Vector3(50, 3, 50), this);
     }
 
     protected override void BeforeRecover(bool isDelete)
     {
         properties.State = RoleState.Dead;
+    }
+
+    public Transform GetTransform()
+    {
+        return ObjTrans;
     }
 
     public int GetId()

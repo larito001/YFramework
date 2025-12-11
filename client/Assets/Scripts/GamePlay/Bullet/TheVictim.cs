@@ -7,9 +7,10 @@ public delegate void OnVictim(TheVictim bullet);
 
 public interface IVictim
 {
+    public Transform GetTransform();
     public int GetId();
     public Properties GetProperties();
-    public void OnHurt(IVictim fireRole,float hurt);
+    public void OnHurt(IVictim fireRole, float hurt);
     public void OnEnter(Collider other);
     public void OnExit(Collider other);
     public Vector3 GetPosition();
@@ -21,31 +22,26 @@ public class TheVictim : MonoBehaviour
     public IVictim Victim;
     public int ID = 0;
     private BoxCollider boxCollider;
+    private AtkRangeCtrl atkRangeCtrl;
 
-    public void Init(Vector3 size, IVictim  victim)
+    public void Init(Vector3 boxSize,Vector3 rangeSize, IVictim victim)
     {
         Victim = victim;
         ID = Victim.GetId();
         boxCollider = GetComponent<BoxCollider>();
         boxCollider.isTrigger = true;
-        boxCollider.size = size;
-    }
-    public void OnHurt(IVictim fireRole,float  hurt)
-    {
-        Victim?.OnHurt(fireRole,hurt);
-    }
-    //索敌
-    private void OnTriggerEnter(Collider other)
-    {
-        Victim?.OnEnter( other);
+        boxCollider.size = boxSize;
+        GameObject obj = new GameObject("AtkRange");
+        atkRangeCtrl= obj.AddComponent<AtkRangeCtrl>();
+        atkRangeCtrl.Init(rangeSize, victim);
+
+    
+ 
     }
 
-    private void OnTriggerStay(Collider other)
+    public void OnHurt(IVictim fireRole, float hurt)
     {
+        Victim?.OnHurt(fireRole, hurt);
     }
-
-    private void OnTriggerExit(Collider other)
-    {
-        Victim?.OnExit(other);
-    }
+    
 }
