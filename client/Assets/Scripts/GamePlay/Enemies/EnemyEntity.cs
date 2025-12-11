@@ -80,6 +80,9 @@ public class EnemyEntity : ObjectBase, PoolItem<Vector3>, IVictim
 
     protected override void BeforeRecover(bool isDelete)
     {
+        m_victim.Remove();
+
+        m_victim = null;
         OnPathComplete = null;
         stateMachine = null; 
         seeker.Remove();
@@ -89,6 +92,7 @@ public class EnemyEntity : ObjectBase, PoolItem<Vector3>, IVictim
     public void AfterIntoObjectPool()
     {
         RecoverObject();
+        properties = null;
     }
 
     public void SetData(Vector3 serverData)
@@ -96,12 +100,17 @@ public class EnemyEntity : ObjectBase, PoolItem<Vector3>, IVictim
         Location = serverData;
         SetInVision(true);
         SetPrefabBundlePath("Enemies/Enemy");
-        InstanceGObj();
+
         properties = new Properties();
         properties.HP = 100;
-        properties.OnDead = () => { EnemiesManager.instance.RemoveEnemy(this); };
+        properties.OnDead = () =>
+        {
+            properties.State = RoleState.Dead;
+            EnemiesManager.instance.RemoveEnemy(this);
+        };
         properties.Camp = Camp.Enemy;
         properties.State = RoleState.Alive;
+        InstanceGObj();
     }
 
     #endregion
@@ -207,12 +216,12 @@ public class EnemyEntity : ObjectBase, PoolItem<Vector3>, IVictim
 
     public void OnHurt(IVictim fireRole, float hurt)
     {
-        if (properties == null || properties.State == RoleState.Dead|| objTrans==null) return;
+        if (properties == null || properties.State == RoleState.Dead) return;
         FlyTextMgr.Instance.AddText(hurt.ToString(), objTrans.position);
         properties.HP -= hurt;
         fireRole.OnHurtSomeone();
         OnHurtCallbackStateMachine?.Invoke(fireRole);
-    }
+    }   
 
     public void OnEnter(Collider other)
     {
@@ -244,9 +253,10 @@ public class EnemyEntity : ObjectBase, PoolItem<Vector3>, IVictim
 
     public void OnExit(Collider other)
     {
+        
         if (other.TryGetComponent(out TheVictim victim))
         {
-            if (victim.Victim.GetProperties().Camp == Camp.Player)
+            if (victim.Victim!=null&&victim.Victim.GetProperties().Camp == Camp.Player)
             {
                 if (victims.Contains(victim.Victim))
                 {

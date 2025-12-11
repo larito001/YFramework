@@ -366,6 +366,26 @@ public class GotAStarSeeker : IGotSeeker, PoolItem<object>
             GameObject.Destroy(obj.GetComponent<Seeker>());
         }
 
+        if (_funnelModifier != null)
+        {
+            GameObject.Destroy(_funnelModifier);
+        }
+        if (_simpleSmoothModifier != null)
+        {
+            GameObject.Destroy(_simpleSmoothModifier);
+        }
+
+        if (_radiusModifier != null)
+        {
+            GameObject.Destroy(_radiusModifier);
+        }
+
+        if (_raycastModifier != null)
+        {
+            GameObject.Destroy(_raycastModifier);
+        }
+        
+        
         isInit = false;
         obj = null;
         pool.RecoverItem(this);

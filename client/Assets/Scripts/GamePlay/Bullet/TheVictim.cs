@@ -39,6 +39,14 @@ public class TheVictim : MonoBehaviour
  
     }
 
+    public void Remove()
+    {
+        Victim = null;
+        atkRangeCtrl.Remove();
+
+        atkRangeCtrl = null;
+        GameObject.Destroy(this);
+    }
     public void OnHurt(IVictim fireRole, float hurt)
     {
         Victim?.OnHurt(fireRole, hurt);
