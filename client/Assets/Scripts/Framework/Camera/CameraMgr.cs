@@ -1,3 +1,4 @@
+using System;
 using Cinemachine;
 using System.Collections;
 using System.Collections.Generic;
@@ -53,18 +54,32 @@ public class CameraMgr
             Press();
         }
     }
-    
+
     private void Press()
     {
-        List<RaycastResult> results = new List<RaycastResult>();
-        Vector3 dir = new Vector3(touchPosition.x, touchPosition.y, touchPosition.z);
-        Ray ray = YFramework.cameraMgr.getMainCamera().ScreenPointToRay(dir);
-        RaycastHit hitInfo;
-        if (Physics.Raycast(ray, out hitInfo, 1000))
+        Vector3 screenPos = new Vector3(touchPosition.x, touchPosition.y, 0);
+        Ray ray = YFramework.cameraMgr.getMainCamera().ScreenPointToRay(screenPos);
+
+        int mask = 1 << LayerMask.NameToLayer("ModelTrigger");
+
+        RaycastHit hit;
+        if (Physics.Raycast(ray, out hit, 1000f, mask))
         {
-            // todo: 点击逻辑
+            GameObject obj = hit.collider.gameObject;
+            if (obj.TryGetComponent(out SceneModelBase sceneModelBase))
+            {
+                // todo: 点击逻辑
+                Debug.Log("Clicked ModelTrigger: " + obj.name);
+                sceneModelBase.OnMouseClick();
+            }
+            else
+            {
+                Debug.LogError("点击的物体不是模型触发器");
+            }
+
         }
     }
+
 
     #region 获取相机
 

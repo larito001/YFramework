@@ -23,7 +23,7 @@ public class PlayerManager : LogicPluginBase
         Role
     }
 
-    TrainEngine trainEngine;
+    public TrainEngine trainEngine;
     public PlayerEntity playerEntity;
     private bool _isReborn = false;
 

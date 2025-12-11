@@ -54,18 +54,19 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim
         properties.OnDead = () =>
         {
             //todo:玩家死亡
-            properties.State = RoleState.Dead;
+       
             PlayerManager.Instance.PlayerDie();
       
         };
         properties.Camp = Camp.Player;
-        properties.State = RoleState.Alive;
+
         
     }
 
 
     protected override void AfterInstanceGObj()
     {
+        properties.State = RoleState.Alive;
         var orbitCamera = YFramework.cameraMgr.getMainCamera().GetComponent<OrbitCamera>();
         orbitCamera.Init(ObjTrans);
         playerMoveCtrl = ObjTrans.GetComponent<ThirdPlayerMoveCtrl>();
@@ -80,7 +81,7 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim
 
     protected override void BeforeRecover(bool isDelete)
     {
-        
+        properties.State = RoleState.Dead;
     }
 
     public int GetId()

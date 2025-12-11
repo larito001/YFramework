@@ -71,9 +71,16 @@ public class GameMainScene : GotSceneBase
             for (int i = 0; i < 1; i++)
             {
                 // todo：在范围内随机生成
-                Vector3 basePos = PlayerManager.Instance.playerEntity.Location;
-
-
+                Vector3 basePos = new Vector3();
+                if (PlayerManager.Instance.playerEntity != null)
+                {
+                    basePos = PlayerManager.Instance.playerEntity.Location;
+                }
+                else
+                {
+                    basePos = PlayerManager.Instance.trainEngine.transform.position;
+                }
+                
                 Vector3 spawnPos = basePos + new Vector3(5, 5, 15);
 
                 EnemiesManager.instance.GenerateEnemyAt(spawnPos);

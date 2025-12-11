@@ -28,21 +28,14 @@ public abstract class SceneModelBase : MonoBehaviour
     {
         
     }
-
-    private void OnMouseDown()
-    {
-        
-    }
-    private void OnMouseUp()
-    {
-        OnClick();
-    }
-
     protected virtual void OnClick()
     {
         
     }
-    
+
+    #region 外部触发
+
+
     private void OnTriggerEnter(Collider other)
     {
         OnEnter(other);
@@ -52,4 +45,11 @@ public abstract class SceneModelBase : MonoBehaviour
     {
         OnExit(other);
     }
+
+    public void OnMouseClick()
+    {
+        OnClick();
+    }
+    #endregion
+
 }

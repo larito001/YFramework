@@ -60,7 +60,7 @@ public class EnemyEntity : ObjectBase, PoolItem<Vector3>, IVictim
         config.isUpdate = true;
         config.OnPathComplete = OnPathCompleteCallback;
         seeker.Init(config);
-        victim.Init(new Vector3(5, 1, 5), this);
+        victim.Init(new Vector3(50, 3, 50), this);
         NeedRound = true;
         OrgPos = Location;
         stateMachine = new EnemyStateMachine();
