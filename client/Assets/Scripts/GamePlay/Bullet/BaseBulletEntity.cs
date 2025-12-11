@@ -38,8 +38,8 @@ public struct BulletConfig
     public Camp camp; //阵营
     public float duration; //持续时间
     public bool isTrack; //是否追踪
-    public int TrggerCount ;//触发次数
-    public float triggerTimer;//持续时间
+    public int TrggerCount; //触发次数
+    public float triggerTimer; //触发延迟时间
     public UnityAction removeCallback;
 }
 
@@ -56,32 +56,30 @@ public class BaseBulletEntity : ObjectBase, PoolItem<BulletConfig>
     private float timer = 0;
     private float stayTimer = 0;
     private bool isLive = false;
-    private int triggerCount=1;
+    private int triggerCount = 1;
     private IVictim _fireRole;
-    public void Fire(IVictim fireRole,Vector3 pos, Vector3 dir)
+
+    public void Fire(IVictim fireRole, Vector3 pos, Vector3 dir)
     {
         _fireRole = fireRole;
         timer = 0;
         this.dir = dir.normalized;
         this.pos = pos;
         TryFire = true;
-      
+
         if (objTrans)
         {
-         
             StartFire();
         }
     }
 
     private void StartFire()
     {
-        victims.Clear();
         TryFire = false;
         timer = 0;
         stayTimer = 0;
         objTrans.position = pos;
         objTrans.forward = dir;
-   
     }
 
     public void AfterIntoObjectPool()
@@ -106,12 +104,12 @@ public class BaseBulletEntity : ObjectBase, PoolItem<BulletConfig>
         InstanceGObj();
     }
 
-   
+
     protected override void AfterInstanceGObj()
     {
         triggerCount = _config.TrggerCount;
         var trigger = ObjTrans.GetComponent<BulletTrigger>();
-       
+
         trigger.Init(this);
         if (TryFire)
         {
@@ -126,19 +124,17 @@ public class BaseBulletEntity : ObjectBase, PoolItem<BulletConfig>
 
     public void TriggerEnter(Collider other)
     {
-
         if (!isLive) return;
         if (triggerCount > 0)
         {
-     
             if (other.TryGetComponent<TheVictim>(out TheVictim victim))
             {
+                if (victims.Contains(victim)) return;
                 var otherCamp = victim.Victim.GetProperties().Camp;
                 if (otherCamp != _config.camp)
                 {
-                    victims.Add(victim); 
+                    victims.Add(victim);
                 }
-           
             }
         }
     }
@@ -150,25 +146,18 @@ public class BaseBulletEntity : ObjectBase, PoolItem<BulletConfig>
         {
             if (other.TryGetComponent<TheVictim>(out TheVictim victim))
             {
-                if (victims.Contains(victim))
-                {
-                    victims.Remove(victim);
-                }
-          
+                if (!victims.Contains(victim)) return;
+                victims.Remove(victim);
             }
         }
     }
 
     public void TriggerStay(Collider other)
     {
-      
     }
-    
+
     public override void YOTOUpdate(float deltaTime)
     {
-
-  
-        
     }
 
     public override void YOTOFixedUpdate(float deltaTime)
@@ -182,18 +171,15 @@ public class BaseBulletEntity : ObjectBase, PoolItem<BulletConfig>
 
         if (objTrans)
         {
-
             objTrans.position += dir * _config.moveSpeed * deltaTime;
         }
 
         stayTimer += deltaTime;
         if (stayTimer >= _config.triggerTimer)
         {
-
             stayTimer -= _config.triggerTimer;
             if (triggerCount > 0)
             {
-
                 foreach (var theVictim in victims)
                 {
                     theVictim.OnHurt(_fireRole, _config.damage);
@@ -207,11 +193,8 @@ public class BaseBulletEntity : ObjectBase, PoolItem<BulletConfig>
                 if (triggerCount <= 0)
                 {
                     Timers.inst.CallLater((o) => { pool.RecoverItem(this); });
-
                 }
             }
         }
     }
-
-
 }

@@ -303,6 +303,11 @@ public class GotAStarSeeker : IGotSeeker, PoolItem<object>
         isInit = true;
     }
 
+    public IAstarAI GetSeeker()
+    {
+        return _aiEntity;
+    }
+
     public void Update()
     {
         if (!isInit) return;

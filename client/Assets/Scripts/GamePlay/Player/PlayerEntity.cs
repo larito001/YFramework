@@ -102,7 +102,7 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim
     public void OnHurt(IVictim fireRole, float hurt)
     {
 
-        if (properties == null || properties.State == RoleState.Dead) return;
+        if (properties == null || properties.State == RoleState.Dead || objTrans == null) return;
         
         FlyTextMgr.Instance.AddText(hurt.ToString(), objTrans.position,FlyTextType.PlayerHurt);
         properties.HP -= hurt;
