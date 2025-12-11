@@ -21,10 +21,23 @@ public class EnemyRoundState : IYState, PoolItem<object>
         center= _stateMachine.Enemy.OrgPos;
         var target = center + new Vector3(Random.Range(-5, 5), 0, Random.Range(-5, 5));
         _stateMachine.Enemy.OnPathComplete += OnPathComplete;
+        _stateMachine.Enemy.OnEnterCallbackStateMachine += OnEnterCallback;
+        _stateMachine.Enemy.OnHurtCallbackStateMachine += OnHurtCallback;
         _stateMachine.Enemy.seeker.OncePathFinding(target);
 
     }
 
+    private void OnHurtCallback(IVictim target)
+    {
+        _stateMachine.Enemy.SetTarget(target);
+        _stateMachine.SwitchState(EnemyPinState.pool.GetItem(null));
+    }
+
+    private void OnEnterCallback(IVictim target)
+    {
+        _stateMachine.Enemy.SetTarget(target);
+        _stateMachine.SwitchState(EnemyPinState.pool.GetItem(null));
+    }
     private void OnPathComplete()
     {
         _stateMachine.SwitchState(EnemyIdelState.pool.GetItem(null));
@@ -38,6 +51,8 @@ public class EnemyRoundState : IYState, PoolItem<object>
     public void ExitState(YStateMachine enemy)
     {
         _stateMachine.Enemy.OnPathComplete -= OnPathComplete;
+        _stateMachine.Enemy.OnEnterCallbackStateMachine -= OnEnterCallback;
+        _stateMachine.Enemy.OnHurtCallbackStateMachine -= OnHurtCallback;
         _stateMachine = null;
         pool.RecoverItem(this);
     }

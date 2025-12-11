@@ -9,15 +9,6 @@ public class TowerEntity: ObjectBase, PoolItem<TowerBaseCtrlEntity>,IVictim
         new DataObjPool<TowerEntity, TowerBaseCtrlEntity>("TowerEntity", 20);
     public TowerBaseCtrlEntity towerBaseCtrl;
     Properties properties;
-    protected override void YOTOOnload()
-    {
-        
-    }
-
-    public override void YOTOStart()
-    {
-       
-    }
 
     private float timer = 0;
     private float attackInterval = 3f;
@@ -35,7 +26,7 @@ public class TowerEntity: ObjectBase, PoolItem<TowerBaseCtrlEntity>,IVictim
                 BaseBulletEntity b = BaseBulletEntity.pool.GetItem(new BulletConfig()
                 {
                     name = "Bullet/bullet",
-                    moveSpeed = 10,
+                    moveSpeed = 80,
                     damage = 2,
                     duration = 10,
                     TrggerCount=1,
@@ -58,21 +49,6 @@ public class TowerEntity: ObjectBase, PoolItem<TowerBaseCtrlEntity>,IVictim
                 b.Fire(this,ObjTrans.position, pos - ObjTrans.position);
             }
         }
-    }
-
-    public override void YOTONetUpdate()
-    {
-      
-    }
-
-    public override void YOTOFixedUpdate(float deltaTime)
-    {
-        
-    }
-
-    public override void YOTOOnHide()
-    {
-        
     }
 
     protected override void AfterInstanceGObj()
@@ -115,6 +91,11 @@ public class TowerEntity: ObjectBase, PoolItem<TowerBaseCtrlEntity>,IVictim
         properties.State = RoleState.Alive;
     }
 
+    public int GetId()
+    {
+        return _entityID;
+    }
+
     public Properties GetProperties()
     {
         return  properties;
@@ -122,6 +103,7 @@ public class TowerEntity: ObjectBase, PoolItem<TowerBaseCtrlEntity>,IVictim
 
     public void OnHurt(IVictim fireRole, float hurt)
     {
+        if (properties == null || properties.State == RoleState.Dead) return;
         FlyTextMgr.Instance.AddText(hurt.ToString(), objTrans.position, FlyTextType.Quick);
         properties.HP-= hurt;
         fireRole.OnHurtSomeone();

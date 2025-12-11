@@ -17,13 +17,17 @@ public class EnemyAtkState : IYState, PoolItem<object>
     public void EnterState(YStateMachine enemy)
     {
         _stateMachine = enemy as EnemyStateMachine;
-        _stateMachine.Enemy.Atk(OnAtkCallback);
+        _stateMachine.Enemy.OnAtkFinishCallbackStateMachine += OnAtkCallback;
+        _stateMachine.Enemy.Atk();
     }
 
     private void OnAtkCallback()
     {
-        //todo:根据怪物种类判断是巡逻还是idel
-        _stateMachine.SwitchState(EnemyPinState.pool.GetItem(null));
+        Timers.inst.Add(1f, (o) =>
+        {
+            _stateMachine.SwitchState(EnemyPinState.pool.GetItem(null)); 
+        });
+    
     }
 
     public void UpdateState(YStateMachine enemy, float dt)
@@ -33,6 +37,7 @@ public class EnemyAtkState : IYState, PoolItem<object>
 
     public void ExitState(YStateMachine enemy)
     {
+        _stateMachine.Enemy.OnAtkFinishCallbackStateMachine -= OnAtkCallback;
         _stateMachine = null;
         pool.RecoverItem(this);
     }

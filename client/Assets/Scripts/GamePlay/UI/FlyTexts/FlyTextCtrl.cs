@@ -65,16 +65,7 @@ public class FlyTextCtrl : ObjectBase, PoolItem<Transform>
             StartAnim(0.5f, 1.2f, 1.0f, 0.4f, 0.1f, 1, 1, Ease.OutQuad, Ease.InOutQuad,true);
         }
     }
-
-    protected override void YOTOOnload()
-    {
-    }
-
-    public override void YOTOStart()
-    {
-    }
-
-
+    
     public void StartAnim(float startScale, float MaxScale, float lastScale,
         float toMaxDuration, float toLastDuration,
         float upTime, float fadeTime,
