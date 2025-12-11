@@ -26,7 +26,7 @@ public class EnemyEntity : ObjectBase, PoolItem<Vector3>, IVictim
     public bool NeedRound = false;
     public Vector3 OrgPos = Vector3.zero;
     private IVictim _lockTarget = null;
-    
+    private TheVictim m_victim;
 
     #endregion
 
@@ -43,9 +43,12 @@ public class EnemyEntity : ObjectBase, PoolItem<Vector3>, IVictim
 
     protected override void AfterInstanceGObj()
     {
-        if (!ObjTrans.gameObject.TryGetComponent<TheVictim>(out TheVictim victim))
+        if (m_victim == null)
         {
-            victim = ObjTrans.gameObject.AddComponent<TheVictim>();
+            // GameObject obj = new GameObject("AtkRange");
+            // obj.transform.SetParent(ObjTrans);
+            // obj.layer=LayerMask.NameToLayer("EnemyAtkRangeTrigger");
+            m_victim = ObjTrans.gameObject.AddComponent<TheVictim>();
         }
 
         OnPathComplete = null;
@@ -60,7 +63,7 @@ public class EnemyEntity : ObjectBase, PoolItem<Vector3>, IVictim
         config.isUpdate = true;
         config.OnPathComplete = OnPathCompleteCallback;
         seeker.Init(config);
-        victim.Init(new Vector3(50, 3, 50), this);
+        m_victim.Init(new Vector3(1, 2, 1), new Vector3(50, 3, 50),this);
         NeedRound = true;
         OrgPos = Location;
         stateMachine = new EnemyStateMachine();
@@ -97,6 +100,11 @@ public class EnemyEntity : ObjectBase, PoolItem<Vector3>, IVictim
     #endregion
 
     #region get
+
+    public Transform GetTransform()
+    {
+        return objTrans;
+    }
 
     public int GetId()
     {
