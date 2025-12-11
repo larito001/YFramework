@@ -83,6 +83,11 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim
         
     }
 
+    public int GetId()
+    {
+        return _entityID;
+    }
+
     public Properties GetProperties()
     {
         return properties;
@@ -90,6 +95,9 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim
 
     public void OnHurt(IVictim fireRole, float hurt)
     {
+
+        if (properties == null || properties.State == RoleState.Dead) return;
+        
         FlyTextMgr.Instance.AddText(hurt.ToString(), objTrans.position,FlyTextType.PlayerHurt);
         properties.HP -= hurt;
         fireRole.OnHurtSomeone();

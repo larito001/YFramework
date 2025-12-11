@@ -18,8 +18,7 @@ public class EnemyPinState : IYState, PoolItem<object>
     {
         _stateMachine = enemy as EnemyStateMachine;
         _stateMachine.Enemy.OnPathComplete += OnPinPathComplete;
-        var target = _stateMachine.Enemy.GetTarget();
-        _stateMachine.Enemy.seeker.OncePathFinding(target.GetPosition());
+
     }
 
     private void OnPinPathComplete()
@@ -34,8 +33,20 @@ public class EnemyPinState : IYState, PoolItem<object>
     public void UpdateState(YStateMachine enemy, float dt)
     {
         if (_stateMachine == null) return;
+        PathFind();
+    }
+
+    private void PathFind()
+    {
         var target = _stateMachine.Enemy.GetTarget();
-        _stateMachine.Enemy.seeker.OncePathFinding(target.GetPosition());
+        if (target != null && target.GetProperties().State != RoleState.Dead)
+        {
+            _stateMachine.Enemy.seeker.OncePathFinding(target.GetPosition());
+        }
+        else
+        {
+            _stateMachine.SwitchState(EnemyIdelState.pool.GetItem(null));
+        }
     }
 
     public void ExitState(YStateMachine enemy)

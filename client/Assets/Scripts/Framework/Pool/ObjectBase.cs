@@ -187,7 +187,6 @@ public abstract class ObjectBase:BaseEntity
     {
         BeforeRecover(isDelete);
         RecoverObjTrans();
-
         isInVision = false;
         isDrawed = false;
         isRecover = true;

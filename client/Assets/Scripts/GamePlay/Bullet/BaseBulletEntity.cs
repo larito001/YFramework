@@ -163,68 +163,55 @@ public class BaseBulletEntity : ObjectBase, PoolItem<BulletConfig>
     {
       
     }
-
-    protected override void YOTOOnload()
-    {
-    }
-
-    public override void YOTOStart()
-    {
-    }
-
+    
     public override void YOTOUpdate(float deltaTime)
     {
+
+  
+        
+    }
+
+    public override void YOTOFixedUpdate(float deltaTime)
+    {
         if (!isLive) return;
-        timer+= deltaTime;
-        if (timer>=_config.duration)
+        timer += deltaTime;
+        if (timer >= _config.duration)
         {
             BaseBulletEntity.pool.RecoverItem(this);
         }
+
         if (objTrans)
-        {   
-            
+        {
+
             objTrans.position += dir * _config.moveSpeed * deltaTime;
         }
-        stayTimer+= deltaTime;
+
+        stayTimer += deltaTime;
         if (stayTimer >= _config.triggerTimer)
         {
-            
-            stayTimer-= _config.triggerTimer;
+
+            stayTimer -= _config.triggerTimer;
             if (triggerCount > 0)
             {
-          
+
                 foreach (var theVictim in victims)
                 {
-                    theVictim.OnHurt(_fireRole,_config.damage);
+                    theVictim.OnHurt(_fireRole, _config.damage);
                     triggerCount--;
                     if (triggerCount <= 0)
                     {
                         break;
                     }
                 }
-                if (triggerCount <=0)
+
+                if (triggerCount <= 0)
                 {
-                    Timers.inst.CallLater((o) =>
-                    {
-                        pool.RecoverItem(this); 
-                    });
-                 
+                    Timers.inst.CallLater((o) => { pool.RecoverItem(this); });
+
                 }
-            }  
+            }
         }
-  
-        
     }
 
-    public override void YOTONetUpdate()
-    {
-    }
 
-    public override void YOTOFixedUpdate(float deltaTime)
-    {
-    }
-
-    public override void YOTOOnHide()
-    {
-    }
 }

@@ -5,10 +5,10 @@ using UnityEngine;
 public class EnemyStateMachine : YStateMachine
 {
     public EnemyEntity Enemy;
-
     public void Init(EnemyEntity enemy)
     {
         Enemy = enemy;
         ReSet();
+        stateMachineId = enemy._entityID;
     }
 }

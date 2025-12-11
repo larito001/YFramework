@@ -7,6 +7,7 @@ public delegate void OnVictim(TheVictim bullet);
 
 public interface IVictim
 {
+    public int GetId();
     public Properties GetProperties();
     public void OnHurt(IVictim fireRole,float hurt);
     public void OnEnter(Collider other);
@@ -18,12 +19,13 @@ public interface IVictim
 public class TheVictim : MonoBehaviour
 {
     public IVictim Victim;
-
+    public int ID = 0;
     private BoxCollider boxCollider;
 
     public void Init(Vector3 size, IVictim  victim)
     {
         Victim = victim;
+        ID = Victim.GetId();
         boxCollider = GetComponent<BoxCollider>();
         boxCollider.isTrigger = true;
         boxCollider.size = size;

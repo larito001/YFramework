@@ -25,6 +25,7 @@ public class PlayerManager : LogicPluginBase
 
     TrainEngine trainEngine;
     public PlayerEntity playerEntity;
+    private bool _isReborn = false;
 
     public void Init(UnityAction loadEndCallback)
     {
@@ -45,6 +46,8 @@ public class PlayerManager : LogicPluginBase
 
     public void Switch(PlayerCtrl ctrl)
     {
+        if (_isReborn) return;
+        
         if (ctrl == PlayerCtrl.Train)
         {
             if (playerEntity!=null&&playerEntity.ObjTrans != null)
@@ -89,6 +92,7 @@ public class PlayerManager : LogicPluginBase
         orbitCamera.Uload();
         orbitCamera.distance = 20;
         orbitCamera.Init(playerEntity.ObjTrans);
+        _isReborn = false;
     }
 
     public void PlayerDie()
@@ -99,6 +103,7 @@ public class PlayerManager : LogicPluginBase
         orbitCamera.Init(trainEngine.transform);
         PlayerEntity.pool.RecoverItem(playerEntity);
         playerEntity = null;
+        _isReborn = true;
         Timers.inst.Add(3, (o) =>
         {
             RebornPlayer();

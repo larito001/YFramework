@@ -32,12 +32,6 @@ public abstract  class BaseEntity
     {
         
     }
-
-    public virtual void YOTOStart()
-    {
-        
-    }
-
     public virtual void YOTOUpdate(float deltaTime)
     {
         
@@ -57,13 +51,7 @@ public abstract  class BaseEntity
     {
         
     }
-
-    public virtual void Free()
-    {
-        YOTOOnHide();
-        _isLoaded = false;
-        YFramework.entityMgr._RemoveEntity(this);
-    }
+    
 
     public void RemoveThis()
     {
