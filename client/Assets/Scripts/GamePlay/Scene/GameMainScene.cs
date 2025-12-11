@@ -11,6 +11,7 @@ public class GameMainScene : GotSceneBase
     {
 
         FlyTextMgr.Instance.Init();
+        SceneResManager.Instance.Init();
         GotAStarManager.Instance.LoadPathFinding(() =>
         {
       

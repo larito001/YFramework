@@ -33,6 +33,7 @@ public class PluginManager
         InstallPlugin<EnemiesManager>();
         InstallPlugin<TowerManager>();
         InstallPlugin<PlayerManager>();
+        InstallPlugin<SceneResManager>();
     }
 
 
