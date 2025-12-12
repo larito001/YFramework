@@ -66,6 +66,12 @@ public class TowerBaseCtrlEntity : ObjectBase, PoolItem<object>
         RecoverObject();
     }
 
+    public override void OnObjectClick()
+    {
+        base.OnObjectClick();
+        OnBaseClick();
+    }
+
     public void RemoveTower()
     {
         _towerEntity = null;

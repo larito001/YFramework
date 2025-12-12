@@ -12,7 +12,6 @@ GameObject:
   - component: {fileID: 2673172139661364557}
   - component: {fileID: 4824582757901313766}
   - component: {fileID: 1136480976267437373}
-  - component: {fileID: 7253145244326916797}
   m_Layer: 13
   m_Name: towerBase
   m_TagString: Untagged
@@ -106,16 +105,3 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1, y: 1, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &7253145244326916797
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 9103963701319525790}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7b42f88db05886a4ca094df12e051738, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  modelType: 0

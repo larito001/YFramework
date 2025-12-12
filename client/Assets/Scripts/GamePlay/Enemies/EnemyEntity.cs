@@ -162,6 +162,7 @@ public class EnemyEntity : ObjectBase, PoolItem<Vector3>, IVictim
         if (TowerManager.Instance.CheckTowerIsInRange(out TowerEntity tower))
         {
             OnEnterCallbackStateMachine?.Invoke(tower);
+            return;
         }
         
         if (PlayerManager.Instance.CheckPlayerIsInRange(objTrans.position, 20))

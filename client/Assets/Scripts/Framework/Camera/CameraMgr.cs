@@ -59,11 +59,10 @@ public class CameraMgr
     {
         Vector3 screenPos = new Vector3(touchPosition.x, touchPosition.y, 0);
         Ray ray = YFramework.cameraMgr.getMainCamera().ScreenPointToRay(screenPos);
-
-        int mask = 1 << LayerMask.NameToLayer("ModelTrigger");
+        
 
         RaycastHit hit;
-        if (Physics.Raycast(ray, out hit, 1000f, mask))
+        if (Physics.Raycast(ray, out hit, 1000f))
         {
             GameObject obj = hit.collider.gameObject;
             if (obj.TryGetComponent(out SceneModelBase sceneModelBase))

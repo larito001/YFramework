@@ -52,6 +52,8 @@ public  class SceneModelBase : MonoBehaviour
         _objBase.OnColiderExit(other);
     }
 
+
+
     public void OnMouseClick()
     {
         if (_objBase != null)
