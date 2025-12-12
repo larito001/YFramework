@@ -25,23 +25,23 @@ public class ShopModel : SceneModelBase
     YFramework.uIMgr.Show(UIEnum.ShopPanel);
   }
 
-  protected override void OnEnter(Collider other)
-  {
-    base.OnEnter(other);
-    if (other.TryGetComponent(out ThirdPlayerMoveCtrl player))
-    {
-      hud.SetActive(true); 
-    }
-
-  }
-  protected override void OnExit(Collider other)
-  {
-    base.OnExit(other);
-    if (other.TryGetComponent(out ThirdPlayerMoveCtrl player))
-    {
-      hud.SetActive(false); 
-      YFramework.uIMgr.Hide(UIEnum.ShopPanel);
-    }
-
-  }
+  // protected override void OnEnter(Collider other)
+  // {
+  //   base.OnEnter(other);
+  //   if (other.TryGetComponent(out ThirdPlayerMoveCtrl player))
+  //   {
+  //     hud.SetActive(true); 
+  //   }
+  //
+  // }
+  // protected override void OnExit(Collider other)
+  // {
+  //   base.OnExit(other);
+  //   if (other.TryGetComponent(out ThirdPlayerMoveCtrl player))
+  //   {
+  //     hud.SetActive(false); 
+  //     YFramework.uIMgr.Hide(UIEnum.ShopPanel);
+  //   }
+  //
+  // }
 }

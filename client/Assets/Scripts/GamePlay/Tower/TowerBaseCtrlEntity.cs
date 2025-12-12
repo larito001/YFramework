@@ -16,7 +16,6 @@ public class TowerBaseCtrlEntity : ObjectBase, PoolItem<object>
     public TowerBaseState state = TowerBaseState.None;
     public TowerEntity _towerEntity;
     private bool _isEditing = false;
-    TowerBaseModel model;
     public static DataObjPool<TowerBaseCtrlEntity, object> pool =
         new DataObjPool<TowerBaseCtrlEntity, object>("TowerBaseCtrlEntity", 20);
 
@@ -30,16 +29,18 @@ public class TowerBaseCtrlEntity : ObjectBase, PoolItem<object>
         _isEditing = isEditing;
     }
 
+    public override string GetModelLayer()
+    {
+        return "Agent";
+    }
+
     protected override void AfterInstanceGObj()
     {
-        model = objTrans.GetComponent<TowerBaseModel>();
-        model.OnClickEvent = OnBaseClick;
+
     }
 
     protected override void BeforeRecover(bool isDelete)
     {
-        if(model!=null)
-        model.OnClickEvent = null;
     }
 
     private void OnBaseClick()
@@ -69,7 +70,10 @@ public class TowerBaseCtrlEntity : ObjectBase, PoolItem<object>
     {
         _towerEntity = null;
     }
-
+    public TowerEntity GetTower()
+    {
+        return _towerEntity;
+    }
     public void SetData(object serverData)
     {
         SetInVision(true);

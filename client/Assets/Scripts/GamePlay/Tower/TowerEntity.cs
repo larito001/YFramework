@@ -51,14 +51,14 @@ public class TowerEntity: ObjectBase, PoolItem<TowerBaseCtrlEntity>,IVictim
         }
     }
 
+    public override string GetModelLayer()
+    {
+        return "Agent";
+    }
+
     protected override void AfterInstanceGObj()
     {
-        if (!ObjTrans.gameObject.TryGetComponent<TheVictim>(out TheVictim victim))
-        {
-            victim = ObjTrans.gameObject.AddComponent<TheVictim>();
-        }
-
-        victim.Init(new Vector3(1, 2, 1), new Vector3(50, 3, 50), this);
+        
     }
 
     protected override void BeforeRecover(bool isDelete)
@@ -112,16 +112,6 @@ public class TowerEntity: ObjectBase, PoolItem<TowerBaseCtrlEntity>,IVictim
         FlyTextMgr.Instance.AddText(hurt.ToString(), objTrans.position, FlyTextType.Quick);
         properties.HP-= hurt;
         fireRole.OnHurtSomeone();
-    }
-
-    public void OnEnter(Collider other)
-    {
-    
-    }
-
-    public void OnExit(Collider other)
-    {
-       
     }
 
     public Vector3 GetPosition()

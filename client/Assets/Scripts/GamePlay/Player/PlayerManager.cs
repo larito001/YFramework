@@ -44,6 +44,11 @@ public class PlayerManager : LogicPluginBase
         });
     }
 
+    public bool CheckPlayerIsInRange(Vector3 pos, float range)
+    {
+        if (playerEntity == null) return false;
+        return (pos - playerEntity.Location).magnitude < range;
+    }
     public void Switch(PlayerCtrl ctrl)
     {
         if (_isReborn) return;

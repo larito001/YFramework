@@ -48,7 +48,7 @@ public class BaseBulletEntity : ObjectBase, PoolItem<BulletConfig>
     public static DataObjPool<BaseBulletEntity, BulletConfig> pool =
         new DataObjPool<BaseBulletEntity, BulletConfig>("BaseBulletEntity", 50);
 
-    List<TheVictim> victims = new List<TheVictim>();
+    List<IVictim> victims = new List<IVictim>();
     BulletConfig _config;
     private Vector3 pos;
     private Vector3 dir;
@@ -87,8 +87,6 @@ public class BaseBulletEntity : ObjectBase, PoolItem<BulletConfig>
         victims.Clear();
         isLive = false;
         timer = 0;
-        var trigger = ObjTrans.GetComponent<BulletTrigger>();
-        trigger.Unload();
         SetInVision(false);
         RecoverObject();
     }
@@ -105,12 +103,14 @@ public class BaseBulletEntity : ObjectBase, PoolItem<BulletConfig>
     }
 
 
+    public override string GetModelLayer()
+    {
+        return "BulletTrigger";
+    }
+
     protected override void AfterInstanceGObj()
     {
         triggerCount = _config.TrggerCount;
-        var trigger = ObjTrans.GetComponent<BulletTrigger>();
-
-        trigger.Init(this);
         if (TryFire)
         {
             StartFire();
@@ -122,15 +122,19 @@ public class BaseBulletEntity : ObjectBase, PoolItem<BulletConfig>
         _config.removeCallback?.Invoke();
     }
 
-    public void TriggerEnter(Collider other)
+    public override void OnColiderEnter(Collider other)
     {
+        base.OnColiderEnter(other);
         if (!isLive) return;
         if (triggerCount > 0)
         {
-            if (other.TryGetComponent<TheVictim>(out TheVictim victim))
+            if (other.TryGetComponent<SceneModelBase>(out SceneModelBase modelBase))
             {
+                var victim = modelBase.GetObjectBase() as IVictim;
+                if (victim == null) return;
+                
                 if (victims.Contains(victim)) return;
-                var otherCamp = victim.Victim.GetProperties().Camp;
+                var otherCamp = victim.GetProperties().Camp;
                 if (otherCamp != _config.camp)
                 {
                     victims.Add(victim);
@@ -139,25 +143,20 @@ public class BaseBulletEntity : ObjectBase, PoolItem<BulletConfig>
         }
     }
 
-    public void TriggerExit(Collider other)
+    public override void OnColiderExit(Collider other)
     {
+        base.OnColiderExit(other);
         if (!isLive) return;
         if (triggerCount > 0)
         {
-            if (other.TryGetComponent<TheVictim>(out TheVictim victim))
+            if (other.TryGetComponent<SceneModelBase>(out SceneModelBase modelBase))
             {
+                var victim = modelBase.GetObjectBase() as IVictim;
+                if (victim == null) return;
                 if (!victims.Contains(victim)) return;
                 victims.Remove(victim);
             }
         }
-    }
-
-    public void TriggerStay(Collider other)
-    {
-    }
-
-    public override void YOTOUpdate(float deltaTime)
-    {
     }
 
     public override void YOTOFixedUpdate(float deltaTime)

@@ -6,6 +6,12 @@ public class ResEntity : ObjectBase, PoolItem<Vector3>
 {
     public static DataObjPool<ResEntity, Vector3> pool =
         new DataObjPool<ResEntity, Vector3>("ResEntity", 50);
+
+    public override string GetModelLayer()
+    {
+        return "Agent";
+    }
+
     protected override void AfterInstanceGObj()
     {
         

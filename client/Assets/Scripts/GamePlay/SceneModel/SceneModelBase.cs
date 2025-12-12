@@ -3,53 +3,60 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public enum ModelType
+
+public  class SceneModelBase : MonoBehaviour
 {
-    None,
-    Shop,
-    Tree,
-    BigBag,
-}
-public abstract class SceneModelBase : MonoBehaviour
-{
-
-    public void Init(ModelType type )
+    protected ObjectBase _objBase;
+    public int EntityID;
+    
+    public void Init(ObjectBase objBase)
     {
-        this.modelType = type;
+        _objBase = objBase;
+        EntityID = _objBase._entityID;
+        this.gameObject.layer = LayerMask.NameToLayer(_objBase.GetModelLayer());
+        objBase.AfterModelColiderInit();
     }
 
-    [SerializeField] protected ModelType modelType;
+    public ObjectBase GetObjectBase()
+    {
+        return _objBase;
+    }
 
-    protected virtual void OnEnter(Collider other)
+    public void Remove()
     {
-        
+        if (_objBase != null)
+        _objBase.BeforeModelColiderRemove();
+        _objBase = null;
+        EntityID = -1;
     }
-    protected virtual void OnExit(Collider other)
-    {
-        
-    }
-    protected virtual void OnClick()
-    {
-        
-    }
+
 
     #region 外部触发
 
-
+    
     private void OnTriggerEnter(Collider other)
     {
-        OnEnter(other);
+        if (_objBase != null)
+        _objBase.OnColiderEnter(other);
+    }
+
+    private void OnTriggerStay(Collider other)
+    {
+        if (_objBase != null)
+        _objBase.OnColiderStay(other);
     }
 
     private void OnTriggerExit(Collider other)
     {
-        OnExit(other);
+        if(_objBase!=null)
+        _objBase.OnColiderExit(other);
     }
 
     public void OnMouseClick()
     {
-        OnClick();
+        if (_objBase != null)
+        _objBase.OnObjectClick();
     }
-    #endregion
 
+    #endregion
 }

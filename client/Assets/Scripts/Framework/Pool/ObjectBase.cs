@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using HotUpdate.Scripts.Framework.Pool.newPool;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.UIElements;
 using Object = UnityEngine.Object;
@@ -16,9 +17,10 @@ using Object = UnityEngine.Object;
 /// 回收调用逻辑
 /// 外部回收借口调用 ->RecoverObject ->BeforeRecover ->RecoverHud ->RecoverObjTrans ->AfterRecover
 /// </summary>
-public abstract class ObjectBase:BaseEntity
+public abstract class ObjectBase : BaseEntity
 {
     #region priavte私有
+
     private string prefabPath;
     private bool isInVision = false;
     private bool isDrawed = false;
@@ -28,7 +30,12 @@ public abstract class ObjectBase:BaseEntity
     private Quaternion rotation;
     private Transform parent;
     private bool isRecover;
-
+    SceneModelBase modelBase;
+    private bool _haveObj =false;
+    public bool HaveObj
+    {
+        get { return _haveObj; }
+    }
     private void loadPrefab()
     {
         poolBuffer.AsyncLoadAndGetItem(OnPrefabLoadFinished);
@@ -46,6 +53,7 @@ public abstract class ObjectBase:BaseEntity
             return;
         }
 
+        _haveObj = true;
         if (isRecover)
         {
             objTrans = origin.transform;
@@ -53,7 +61,14 @@ public abstract class ObjectBase:BaseEntity
             return;
         }
 
+   
         objTrans = origin.transform;
+
+        if (!objTrans.TryGetComponent(out modelBase))
+        {
+             modelBase = objTrans.AddComponent<SceneModelBase>();
+        }
+        modelBase.Init(this);
         objTrans.gameObject.SetActive(true);
 
         OnPrefabReadyUse(objTrans);
@@ -65,15 +80,18 @@ public abstract class ObjectBase:BaseEntity
         trans.localPosition = Location;
         trans.localRotation = Rotation;
         AfterInstanceGObj();
-        
     }
 
     private void RecoverObjTrans()
     {
+        _haveObj = false;
         if (poolBuffer != null)
         {
+         
             if (objTrans != null)
             {
+                modelBase.Remove();
+                modelBase = null;
                 poolBuffer.RecoverItem(objTrans.gameObject);
             }
 
@@ -85,22 +103,23 @@ public abstract class ObjectBase:BaseEntity
         {
             if (objTrans != null)
             {
+                modelBase.Remove();
+                modelBase = null;
                 Object.Destroy(objTrans.gameObject);
                 objTrans = null;
             }
         }
     }
 
-    
-
     #endregion
 
-    #region  public外部调用
+    #region public外部调用
 
     public Transform ObjTrans
     {
         get { return objTrans; }
     }
+
     public virtual Vector3 Location
     {
         get { return location; }
@@ -111,9 +130,11 @@ public abstract class ObjectBase:BaseEntity
             {
                 objTrans.localPosition = value;
             }
+
             location = value;
         }
     }
+
     public virtual Quaternion Rotation
     {
         get { return rotation; }
@@ -124,9 +145,11 @@ public abstract class ObjectBase:BaseEntity
             {
                 objTrans.localRotation = value;
             }
+
             rotation = value;
         }
     }
+
     public virtual Transform Parent
     {
         get { return parent; }
@@ -137,9 +160,11 @@ public abstract class ObjectBase:BaseEntity
             {
                 objTrans.SetParent(value);
             }
+
             parent = value;
         }
     }
+
     /// <summary>
     /// 设置预制物路径
     /// </summary>
@@ -158,6 +183,7 @@ public abstract class ObjectBase:BaseEntity
     {
         this.isInVision = isInVision;
     }
+
     /// <summary>
     /// 实例化对象
     /// </summary>
@@ -180,6 +206,7 @@ public abstract class ObjectBase:BaseEntity
             isDrawed = true;
         }
     }
+
     /// <summary>
     /// 回收
     /// </summary>
@@ -193,8 +220,8 @@ public abstract class ObjectBase:BaseEntity
     }
 
     #endregion
-    
-    #region  Virtual待实现
+
+    #region Virtual待实现
 
     /// <summary>
     /// 对象池内对象卸载，多久检测一次。
@@ -232,7 +259,39 @@ public abstract class ObjectBase:BaseEntity
         return 30;
     }
 
+    //*******************************************************SceneModelBase*****************************************************************
+    public virtual void OnColiderEnter(Collider other)
+    {
+    }
 
+    public virtual void OnColiderStay(Collider other)
+    {
+    }
+
+    public virtual void OnColiderExit(Collider other)
+    {
+    }
+
+    public virtual void OnObjectClick()
+    {
+    }
+
+    public virtual void AfterModelColiderInit()
+    {
+    }
+
+    public virtual void BeforeModelColiderRemove()
+    {
+    }
+
+    /// <summary>
+    /// 当前模型的层
+    /// </summary>
+    /// <returns></returns>
+    public abstract string GetModelLayer();
+    
+
+    //*******************************************************SceneModelBase*****************************************************************
     /// <summary>
     /// 实例化GObj之后调用
     /// </summary>
@@ -243,7 +302,5 @@ public abstract class ObjectBase:BaseEntity
     /// </summary>
     protected abstract void BeforeRecover(bool isDelete);
 
-
     #endregion
-
 }

@@ -20,14 +20,12 @@ public class EnemyEntity : ObjectBase, PoolItem<Vector3>, IVictim
     #endregion
 
     #region 属性
-
-    List<IVictim> victims = new List<IVictim>();
+    
     public Properties properties;
     public IGotSeeker seeker;
     public bool NeedRound = false;
     public Vector3 OrgPos = Vector3.zero;
     private IVictim _lockTarget = null;
-    private TheVictim m_victim;
 
     #endregion
 
@@ -39,18 +37,20 @@ public class EnemyEntity : ObjectBase, PoolItem<Vector3>, IVictim
         if (stateMachine != null)
         {
             stateMachine.Update(deltaTime);
+            if(stateMachine.GetCurrentStateName()=="EnemyIdel"||stateMachine.GetCurrentStateName()=="EnemyRound")
+            TryExchangeTarget();
         }
+    
+  
+    }
+
+    public override string GetModelLayer()
+    {
+        return "Agent";
     }
 
     protected override void AfterInstanceGObj()
     {
-        if (m_victim == null)
-        {
-            // GameObject obj = new GameObject("AtkRange");
-            // obj.transform.SetParent(ObjTrans);
-            // obj.layer=LayerMask.NameToLayer("EnemyAtkRangeTrigger");
-            m_victim = ObjTrans.gameObject.AddComponent<TheVictim>();
-        }
 
         OnPathComplete = null;
         seeker = PathFindingFactory.GetSeeker();
@@ -66,7 +66,6 @@ public class EnemyEntity : ObjectBase, PoolItem<Vector3>, IVictim
         var scale = Random.Range(1.5f, 3f);
         config.radio =0.5f*scale;
         seeker.Init(config);
-        m_victim.Init(new Vector3(1, 2, 1), new Vector3(50, 3, 50),this);
         NeedRound = true;
         OrgPos = Location;
         stateMachine = new EnemyStateMachine();
@@ -80,9 +79,6 @@ public class EnemyEntity : ObjectBase, PoolItem<Vector3>, IVictim
 
     protected override void BeforeRecover(bool isDelete)
     {
-        m_victim.Remove();
-
-        m_victim = null;
         OnPathComplete = null;
         stateMachine = null; 
         seeker.Remove();
@@ -156,44 +152,24 @@ public class EnemyEntity : ObjectBase, PoolItem<Vector3>, IVictim
 
     #region 状态转换
 
-    private void CheckVictimesIsAlive()
-    {
-        List<IVictim> removeList = new List<IVictim>();
-        if (victims.Count > 0)
-        {
-            foreach (var victim in victims)
-            {
-                if (victim.GetProperties().State == RoleState.Dead)
-                {
-                    removeList.Add(victim);
-                }
-            }
 
-            foreach (var victim in removeList)
-            {
-                victims.Remove(victim);
-            }
-        }
-    }
     /// <summary>
     /// 尝试索敌
     /// </summary>
     public void TryExchangeTarget()
     {
-        CheckVictimesIsAlive();
-        if (victims.Count > 0)
+        //todo:获取索敌对象
+        if (TowerManager.Instance.CheckTowerIsInRange(out TowerEntity tower))
         {
-            foreach (var victim in victims)
-            {
-                if (victim.GetProperties().State != RoleState.Dead)
-                {
-                    OnEnterCallbackStateMachine?.Invoke( victim);
-                    return;
-                }
-            }
+            OnEnterCallbackStateMachine?.Invoke(tower);
         }
-
-
+        
+        if (PlayerManager.Instance.CheckPlayerIsInRange(objTrans.position, 20))
+        {
+            var victim = PlayerManager.Instance.playerEntity;
+            OnEnterCallbackStateMachine?.Invoke(victim);
+        }
+        
     }
     public void Atk()
     {
@@ -221,22 +197,8 @@ public class EnemyEntity : ObjectBase, PoolItem<Vector3>, IVictim
         properties.HP -= hurt;
         fireRole.OnHurtSomeone();
         OnHurtCallbackStateMachine?.Invoke(fireRole);
-    }   
-
-    public void OnEnter(Collider other)
-    {
-        if (other.TryGetComponent(out TheVictim victim))
-        {
-            if (victim.Victim.GetProperties().Camp == Camp.Player)
-            {
-                if (!victims.Contains(victim.Victim))
-                {
-                    victims.Add(victim.Victim);
-                    OnEnterCallbackStateMachine?.Invoke(victim.Victim);
-                }
-            }
-        }
     }
+
 
     /// <summary>
     /// 射出的子弹被销毁后调用
@@ -250,22 +212,8 @@ public class EnemyEntity : ObjectBase, PoolItem<Vector3>, IVictim
     {
         OnPathComplete?.Invoke();
     }
-
-    public void OnExit(Collider other)
-    {
-        
-        if (other.TryGetComponent(out TheVictim victim))
-        {
-            if (victim.Victim!=null&&victim.Victim.GetProperties().Camp == Camp.Player)
-            {
-                if (victims.Contains(victim.Victim))
-                {
-                    victims.Remove(victim.Victim);
-                }
-            }
-        }
-    }
-
+    
+    
 
     /// <summary>
     /// 子弹打到对方

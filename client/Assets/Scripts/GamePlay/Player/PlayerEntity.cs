@@ -64,6 +64,11 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim
     }
 
 
+    public override string GetModelLayer()
+    {
+        return "Agent";
+    }
+
     protected override void AfterInstanceGObj()
     {
         properties.State = RoleState.Alive;
@@ -71,12 +76,6 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim
         orbitCamera.Init(ObjTrans);
         playerMoveCtrl = ObjTrans.GetComponent<ThirdPlayerMoveCtrl>();
         playerMoveCtrl.playerInputSpace = orbitCamera.transform;
-        if (!ObjTrans.gameObject.TryGetComponent<TheVictim>(out TheVictim victim))
-        {
-            victim = ObjTrans.gameObject.AddComponent<TheVictim>();
-        }
-
-        victim.Init(new Vector3(1, 2, 1), new Vector3(50, 3, 50), this);
     }
 
     protected override void BeforeRecover(bool isDelete)
@@ -108,16 +107,7 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim
         properties.HP -= hurt;
         fireRole.OnHurtSomeone();
     }
-
-    public void OnEnter(Collider other)
-    {
-       
-    }
-
-    public void OnExit(Collider other)
-    {
-        
-    }
+    
 
     public Vector3 GetPosition()
     {

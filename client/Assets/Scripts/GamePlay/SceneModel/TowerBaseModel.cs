@@ -7,12 +7,12 @@ public class TowerBaseModel : SceneModelBase
 {
     
     public UnityAction OnClickEvent;
-    protected override void OnClick()
-    {
-        base.OnClick();
-        if (OnClickEvent != null)
-        {
-            OnClickEvent();
-        }
-    }
+    // protected override void OnClick()
+    // {
+    //     base.OnClick();
+    //     if (OnClickEvent != null)
+    //     {
+    //         OnClickEvent();
+    //     }
+    // }
 }
