@@ -15,7 +15,7 @@ public class SceneResManager : LogicPluginBase
 
     public void Init()
     {
-        var root = GameObject.Find("ResPos");
+        var root = GameObject.Find("ResRoot");
         var tasnforms = root.GetComponentsInChildren<Transform>();
         for (var i = 0; i < tasnforms.Length; i++)
         { 

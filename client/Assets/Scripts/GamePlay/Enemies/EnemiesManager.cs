@@ -37,12 +37,7 @@ public class EnemiesManager : LogicPluginBase
          EnemyEntity.pool.RecoverItem( enemy);
          enemies.Remove(enemy);
      }
-
-     public void GenerateAtPlayerMoveDir()
-     {
-         GenerateEnemyAt(player.GetForwardPos(10));
-     }
-
+     
      public bool GetEnemyPos(Vector3 currentPos,out Vector3 pos)
      {
          pos = Vector3.zero;

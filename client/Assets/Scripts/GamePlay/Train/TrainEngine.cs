@@ -153,12 +153,12 @@ namespace Dreamteck.Splines.Examples
         {
             // --- 1. 根据输入，设定“目标速度” ---
             float targetSpeed = 0f;
-            if (canMove&&Input.GetKey(KeyCode.E))
+            if (canMove&&Input.GetKey(KeyCode.W))
             {
                 // 目标：达到最大前进速度
                 targetSpeed = maxSpeed;
             }
-            else if (canMove&&Input.GetKey(KeyCode.Q))
+            else if (canMove&&Input.GetKey(KeyCode.S))
             {
                 // 目标：达到最大后退速度
                 targetSpeed = -maxSpeed;

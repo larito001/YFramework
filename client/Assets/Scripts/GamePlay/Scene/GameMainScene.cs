@@ -57,14 +57,10 @@ public class GameMainScene : GotSceneBase
         base.Update();
         GotAStarManager.Instance.Update();
         FlyTextMgr.Instance.Update(Time.deltaTime);
-        if (Input.GetKeyDown(KeyCode.T))
+        if (Input.GetKeyDown(KeyCode.F))
         {
-            PlayerManager.Instance.Switch(PlayerManager.PlayerCtrl.Train);
-        }
-        else if(Input.GetKeyDown(KeyCode.Y))
-        {
-            PlayerManager.Instance.Switch(PlayerManager.PlayerCtrl.Role);
-            
+      
+            PlayerManager.Instance.Switch();
         }
         else if (Input.GetKeyDown(KeyCode.M))
         {

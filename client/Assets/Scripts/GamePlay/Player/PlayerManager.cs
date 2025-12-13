@@ -16,12 +16,7 @@ public class PlayerManager : LogicPluginBase
         Instance = this;
     }
 
-
-   public enum PlayerCtrl
-    {
-        Train,
-        Role
-    }
+    
 
     public TrainEngine trainEngine;
     public PlayerEntity playerEntity;
@@ -49,43 +44,38 @@ public class PlayerManager : LogicPluginBase
         if (playerEntity == null) return false;
         return (pos - playerEntity.Location).magnitude < range;
     }
-    public void Switch(PlayerCtrl ctrl)
+    
+
+    public void Switch()
     {
         if (_isReborn) return;
-        
-        if (ctrl == PlayerCtrl.Train)
+        if (playerEntity != null && playerEntity.ObjTrans != null)
         {
-            if (playerEntity!=null&&playerEntity.ObjTrans != null)
+            var dis = (trainEngine.transform.position - playerEntity.ObjTrans.position).magnitude;
+            if (dis < 10)
             {
-                var dis = (trainEngine.transform.position - playerEntity.ObjTrans.position).magnitude;
-                if (dis < 10)
+                if (playerEntity != null)
                 {
-                    if (playerEntity != null)
-                    {
-                        var orbitCamera = YFramework.cameraMgr.getMainCamera().GetComponent<OrbitCamera>();
-                        orbitCamera.Uload();
-                        orbitCamera.distance = 50;
-                        orbitCamera.Init(trainEngine.transform);
+                    var orbitCamera = YFramework.cameraMgr.getMainCamera().GetComponent<OrbitCamera>();
+                    orbitCamera.Uload();
+                    orbitCamera.distance = 50;
+                    orbitCamera.Init(trainEngine.transform);
 
-                        PlayerEntity.pool.RecoverItem(playerEntity);
-                        playerEntity = null;
-                        trainEngine.canMove = true;
-                    }
+                    PlayerEntity.pool.RecoverItem(playerEntity);
+                    playerEntity = null;
+                    trainEngine.canMove = true;
                 }
             }
         }
-        else if (ctrl == PlayerCtrl.Role)
+        else if (playerEntity == null)
         {
-            if (playerEntity == null)
-            {
-                playerEntity = PlayerEntity.pool.GetItem(null);
-                playerEntity.Location = trainEngine.transform.position + new Vector3(5, 0, 5);
-                var orbitCamera = YFramework.cameraMgr.getMainCamera().GetComponent<OrbitCamera>();
-                orbitCamera.Uload();
-                orbitCamera.distance = 20;
-                orbitCamera.Init(playerEntity.ObjTrans);
-                trainEngine.canMove = false;
-            }
+            playerEntity = PlayerEntity.pool.GetItem(null);
+            playerEntity.Location = trainEngine.transform.position + trainEngine.transform.right * 5;
+            var orbitCamera = YFramework.cameraMgr.getMainCamera().GetComponent<OrbitCamera>();
+            orbitCamera.Uload();
+            orbitCamera.distance = 20;
+            orbitCamera.Init(playerEntity.ObjTrans);
+            trainEngine.canMove = false;
         }
     }
 
@@ -109,10 +99,6 @@ public class PlayerManager : LogicPluginBase
         PlayerEntity.pool.RecoverItem(playerEntity);
         playerEntity = null;
         _isReborn = true;
-        Timers.inst.Add(3, (o) =>
-        {
-            RebornPlayer();
-        });
-
+        Timers.inst.Add(3, (o) => { RebornPlayer(); });
     }
 }

@@ -184,6 +184,9 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
 
     [SerializeField, Range(0.01f, 1f), Tooltip("进入游泳状态所需的淹没深度比例")]
     float swimThreshold = 0.5f;
+    
+    [SerializeField, Tooltip("是否允许移动")]
+    bool canmove = true;
 
     #endregion
 
@@ -256,6 +259,10 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
 
     #region 状态更新
 
+    public void SetCanMove(bool canMove)
+    {
+        this.canmove=canMove;
+    }
     void ClearState()
     {
         lastContactNormal = contactNormal;
@@ -484,6 +491,14 @@ public class ThirdPlayerMoveCtrl : MonoBehaviour
             desiredJump |= Input.GetButtonDown("Jump"); //desiredJump一直为true，直到desiredJump被手动改为false
             desiresClimbing = Input.GetButton("Climb");
         }
+
+        if (!canmove)
+        {
+            playerInput  =Vector3.zero;
+            desiredJump = false;
+            desiresClimbing =false;
+        }
+        
 
         playerInput = Vector3.ClampMagnitude(playerInput, 1f);
         //目标速度
