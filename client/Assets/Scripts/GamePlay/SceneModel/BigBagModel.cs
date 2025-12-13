@@ -22,7 +22,7 @@ public class BigBagModel : SceneModelBase
 
     private void OnClickShop()
     {
-        YFramework.uIMgr.Show(UIEnum.WarehousePanel);
+   
     }
 
     // protected override void OnEnter(Collider other)

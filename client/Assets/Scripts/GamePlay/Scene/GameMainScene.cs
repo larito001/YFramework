@@ -10,6 +10,15 @@ public class GameMainScene : GotSceneBase
     protected override void OnEnterScene()
     {
 
+        WarehouseEntity warehouse = new WarehouseEntity();
+        warehouse.SetEntity();
+        warehouse.SetInVision(true);
+        var warehouseObj =GameObject.Find("WareHouse");
+        warehouse.Location =warehouseObj.transform.position ;
+        warehouse.InstanceGObj();
+
+        
+
         FlyTextMgr.Instance.Init();
         SceneResManager.Instance.Init();
         GotAStarManager.Instance.LoadPathFinding(() =>
