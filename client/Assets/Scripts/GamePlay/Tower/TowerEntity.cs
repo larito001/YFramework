@@ -11,7 +11,7 @@ public class TowerEntity: ObjectBase, PoolItem<TowerBaseCtrlEntity>,IVictim
     Properties properties;
 
     private float timer = 0;
-    private float attackInterval = 3f;
+    private float attackInterval = 0.5f;
 
     public override void YOTOUpdate(float deltaTime)
     {
@@ -27,7 +27,7 @@ public class TowerEntity: ObjectBase, PoolItem<TowerBaseCtrlEntity>,IVictim
                 {
                     name = "Bullet/bullet",
                     moveSpeed = 80,
-                    damage = 2,
+                    damage = 20,
                     duration = 10,
                     TrggerCount=1,
                     triggerTimer=0,
@@ -78,7 +78,7 @@ public class TowerEntity: ObjectBase, PoolItem<TowerBaseCtrlEntity>,IVictim
         SetPrefabBundlePath("Tower/TowerRenderer");
         InstanceGObj();
         properties = new Properties();
-        properties.HP = 100;
+        properties.HP = 120;
         properties.OnDead = () =>
         {
             //todo:玩家死亡

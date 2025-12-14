@@ -14,18 +14,27 @@ public class TowerManager : LogicPluginBase
     List<TowerBaseCtrlEntity> towers = new List<TowerBaseCtrlEntity>();
     public bool isEditorMode = false;
 
-    public bool CheckTowerIsInRange(out TowerEntity tower)
+    public bool CheckTowerIsInRange(out TowerEntity tower,Vector3  pos)
     {
+
+        tower = null;
+        float distance = 9999f;
         foreach (var towerBaseCtrlEntity in towers)
         {
-            tower = towerBaseCtrlEntity.GetTower();
-            if (tower != null && tower.HaveObj)
+            var tempTower = towerBaseCtrlEntity.GetTower();
+            if (tempTower != null && tempTower.HaveObj)
             {
-                return true;
+
+                var tempdistance = (tempTower.ObjTrans.position - pos).magnitude;
+                if (tempdistance < distance)
+                {
+                    distance= tempdistance;
+                    tower = tempTower;
+                }
             }
         }
 
-        tower = null;
+        if (tower != null) return true;
         return false;
     }
 

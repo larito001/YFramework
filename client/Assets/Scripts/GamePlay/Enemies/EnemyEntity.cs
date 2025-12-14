@@ -40,6 +40,14 @@ public class EnemyEntity : ObjectBase, PoolItem<Vector3>, IVictim
             if(stateMachine.GetCurrentStateName()=="EnemyIdel"||stateMachine.GetCurrentStateName()=="EnemyRound")
             TryExchangeTarget();
         }
+
+        if (objTrans != null)
+        {
+            if (objTrans.position.y < -100)
+            {
+                EnemiesManager.instance.RemoveEnemy(this);
+            }
+        }
     
   
     }
@@ -98,7 +106,7 @@ public class EnemyEntity : ObjectBase, PoolItem<Vector3>, IVictim
         SetPrefabBundlePath("Enemies/Enemy");
 
         properties = new Properties();
-        properties.HP = 100;
+        properties.HP = 50;
         properties.OnDead = () =>
         {
             properties.State = RoleState.Dead;
@@ -159,7 +167,7 @@ public class EnemyEntity : ObjectBase, PoolItem<Vector3>, IVictim
     public void TryExchangeTarget()
     {
         //todo:获取索敌对象
-        if (TowerManager.Instance.CheckTowerIsInRange(out TowerEntity tower))
+        if (TowerManager.Instance.CheckTowerIsInRange(out TowerEntity tower,this.objTrans.position))
         {
             OnEnterCallbackStateMachine?.Invoke(tower);
             return;
@@ -180,7 +188,7 @@ public class EnemyEntity : ObjectBase, PoolItem<Vector3>, IVictim
             name = "Bullet/bulletEnemy",
             moveSpeed = 0,
             attackType = AttackType.Remote,
-            damage = 5,
+            damage = 15,
             TrggerCount = 1,
             duration = 2,
             triggerTimer = 1f,

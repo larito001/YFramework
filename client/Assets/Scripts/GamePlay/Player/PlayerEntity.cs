@@ -30,9 +30,9 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim, IUser
                 BaseBulletEntity b = BaseBulletEntity.pool.GetItem(new BulletConfig()
                 {
                     name = "Bullet/bullet",
-                    moveSpeed = 20,
+                    moveSpeed = 80,
                     attackType = AttackType.Remote,
-                    damage = 50,
+                    damage = 5,
                     TrggerCount = 1,
                     duration = 10,
                     triggerTimer = 0f,
