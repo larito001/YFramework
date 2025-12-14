@@ -22,7 +22,6 @@ public class FinishPanel : UIPageBase
         {
             YOTOFramework.uIMgr.Hide(UIEnum.GameMainPanel);
             YOTOFramework.uIMgr.Show(UIEnum.StartPanel);
-            CardPlugin.Instance.HideCards();
             CloseSelf();
         },5);
         YOTOFramework.timeMgr.DelayCall(() =>
