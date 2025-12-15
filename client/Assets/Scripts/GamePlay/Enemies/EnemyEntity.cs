@@ -66,7 +66,7 @@ public class EnemyEntity : ObjectBase, PoolItem<Vector3>, IVictim
         config.UseObstacleAvoidance = true;
         config.modifierType = ModifierType.FunnelModifier;
         config.speed = 5f;
-        config.stopDistance =4f;
+        config.stopDistance =3f;
         config.isUpdate = true;
         config.enableGravity = true;
         config.OnPathComplete = OnPathCompleteCallback;

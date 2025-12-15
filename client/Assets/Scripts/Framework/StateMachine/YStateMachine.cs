@@ -38,12 +38,12 @@ public class YStateMachine
         {
             previousState = currentState;
             currentState.ExitState(this);
-            Debug.Log(stateMachineId+"移除：" + currentState.GetStateName());
+            // Debug.Log(stateMachineId+"移除：" + currentState.GetStateName());
         }
         
         currentState = newState;
         currentState.EnterState(this);
-         Debug.Log(stateMachineId + "进入：" + currentState.GetStateName());
+         // Debug.Log(stateMachineId + "进入：" + currentState.GetStateName());
         
     }
     

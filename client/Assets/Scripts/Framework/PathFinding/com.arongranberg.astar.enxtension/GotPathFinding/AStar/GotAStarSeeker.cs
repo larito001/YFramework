@@ -414,7 +414,7 @@ public class GotAStarSeeker : IGotSeeker, PoolItem<object>
             return;
         }
 
-        Debug.Log("开始寻路" + pos);
+        // Debug.Log("开始寻路" + pos);
         SetEnable(true);
         _aiEntity.destination = pos;
 
@@ -529,10 +529,10 @@ public class GotAStarSeeker : IGotSeeker, PoolItem<object>
             _aiEntity.isStopped = false;
             _isStarting = true;
         }
-        else
-        {
-            Debug.LogWarning("[GotPathFinding] PathFinding Stop Error,because is not starting!");
-        }
+        // else
+        // {
+        //     Debug.LogWarning("[GotPathFinding] PathFinding Stop Error,because is not starting!");
+        // }
     }
 
     private void PathFindingEnd()
