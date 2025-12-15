@@ -99,6 +99,46 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 7409551093494533181}
     m_Modifications:
+    - target: {fileID: 1063989041961319909, guid: f67d4ce40fa7514439dafc2221ed78e4, type: 3}
+      propertyPath: m_CastShadows
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1063989041961319911, guid: f67d4ce40fa7514439dafc2221ed78e4, type: 3}
+      propertyPath: m_Enabled
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1063989041961319911, guid: f67d4ce40fa7514439dafc2221ed78e4, type: 3}
+      propertyPath: m_CastShadows
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1063989041961319921, guid: f67d4ce40fa7514439dafc2221ed78e4, type: 3}
+      propertyPath: m_CastShadows
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1063989041961319923, guid: f67d4ce40fa7514439dafc2221ed78e4, type: 3}
+      propertyPath: m_CastShadows
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1063989041961319927, guid: f67d4ce40fa7514439dafc2221ed78e4, type: 3}
+      propertyPath: m_CastShadows
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1063989041961319929, guid: f67d4ce40fa7514439dafc2221ed78e4, type: 3}
+      propertyPath: m_CastShadows
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1063989041961319931, guid: f67d4ce40fa7514439dafc2221ed78e4, type: 3}
+      propertyPath: m_CastShadows
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1063989041961319933, guid: f67d4ce40fa7514439dafc2221ed78e4, type: 3}
+      propertyPath: m_CastShadows
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1063989041961319935, guid: f67d4ce40fa7514439dafc2221ed78e4, type: 3}
+      propertyPath: m_CastShadows
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 3183671380723924524, guid: f67d4ce40fa7514439dafc2221ed78e4, type: 3}
       propertyPath: naturalSpeed
       value: 2
@@ -146,6 +186,10 @@ PrefabInstance:
     - target: {fileID: 4058646450681529835, guid: f67d4ce40fa7514439dafc2221ed78e4, type: 3}
       propertyPath: m_Name
       value: BotEntity
+      objectReference: {fileID: 0}
+    - target: {fileID: 7422092599747362333, guid: f67d4ce40fa7514439dafc2221ed78e4, type: 3}
+      propertyPath: m_CastShadows
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

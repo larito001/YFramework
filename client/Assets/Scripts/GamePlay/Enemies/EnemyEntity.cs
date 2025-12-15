@@ -62,17 +62,16 @@ public class EnemyEntity : ObjectBase, PoolItem<Vector3>, IVictim
 
         OnPathComplete = null;
         seeker = PathFindingFactory.GetSeeker();
-        var config = new AStarMidSeekerConfig(objTrans.gameObject);
+        var config = new AStarHighSeekerConfig(objTrans.gameObject);
         config.UseObstacleAvoidance = true;
         config.modifierType = ModifierType.FunnelModifier;
         config.speed = 5f;
-        config.constrainInsideGraph = true;
-        config.stopDistance = 3f;
-        config.slowDownDistance = 0;
+        config.stopDistance =4f;
         config.isUpdate = true;
+        config.enableGravity = true;
         config.OnPathComplete = OnPathCompleteCallback;
         var scale = Random.Range(1.5f, 3f);
-        config.radio =0.5f*scale;
+         config.radio =0.5f*scale;
         seeker.Init(config);
         NeedRound = true;
         OrgPos = Location;

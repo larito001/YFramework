@@ -44,30 +44,25 @@ public class GotAStarSeeker : IGotSeeker, PoolItem<object>
 
     private void HeighUseEntitiesConfig()
     {
-#if MODULE_ENTITIES
-            FollowerEntity fe = null;
-            obj.TryGetComponent<FollowerEntity>(out fe);
-            if (fe == null)
-            {
-                fe = obj.AddComponent<FollowerEntity>();
-            }
+        var config = _config as AStarHighSeekerConfig;
+        FollowerEntity fe = null;
+        obj.TryGetComponent<FollowerEntity>(out fe);
+        if (fe == null)
+        {
+            fe = obj.AddComponent<FollowerEntity>();
+        }
 
-            _aiEntity = fe;
-            fe.enableGravity = _config.enableGravity;
-            fe.radius = _config.radio;
-            fe.height = _config.height;
-            fe.maxSpeed = _config.speed;
-            fe.rotationSpeed = _config.rotateSpeed;
-            fe.stopDistance = _config.stopDistance;
-            fe.enableLocalAvoidance = config.UseObstacleAvoidance;
-
-            //这两行代码动了可能出问题
-            fe.pathfindingSettings.graphMask = GraphMask.everything;
-            fe.pathfindingSettings.traversalProvider = _graphMaskTraversalProvider;
-#endif
-#if !MODULE_ENTITIES
-        throw new Exception("[GotPathFinding] Entities未安装，请勿使用此质量寻路");
-#endif
+        _aiEntity = fe;
+        fe.enableGravity = config.enableGravity;
+        fe.radius = config.radio;
+        fe.height = config.height;
+        fe.maxSpeed = config.speed;
+        fe.rotationSpeed = config.rotateSpeed;
+        fe.stopDistance = config.stopDistance;
+        fe.enableLocalAvoidance = config.UseObstacleAvoidance;
+        //这两行代码动了可能出问题
+        fe.pathfindingSettings.graphMask = GraphMask.everything;
+        fe.pathfindingSettings.traversalProvider = _graphMaskTraversalProvider;
     }
 
     private void MidConfig()
@@ -102,7 +97,7 @@ public class GotAStarSeeker : IGotSeeker, PoolItem<object>
         ap.slowdownDistance = config.slowDownDistance;
         ap.maxAcceleration = config.acceleration;
         ap.constrainInsideGraph = config.constrainInsideGraph; //让角色不穿模,路点不能开启
-        ap.RigesterReached(PathFindingEnd);
+        // ap.RigesterReached(PathFindingEnd);
         ap.rvoDensityBehavior = new RVODestinationCrowdedBehavior(true, 0.5f, true);
         _seeker.graphMask = GraphMask.everything;
         _seeker.traversalProvider = _graphMaskTraversalProvider;
@@ -128,7 +123,7 @@ public class GotAStarSeeker : IGotSeeker, PoolItem<object>
         _seeker = obj.AddComponent<Seeker>();
         _aiEntity = obj.AddComponent<YAILerp>();
         var al = _aiEntity as YAILerp;
-        al.RigesterReached(PathFindingEnd);
+        // al.RigesterReached(PathFindingEnd);
         // al.radius = _config.radio;不支持
         // al.height = _config.height;不支持
         al.speed = config.speed;
@@ -320,6 +315,11 @@ public class GotAStarSeeker : IGotSeeker, PoolItem<object>
         {
             _config.OnMovingDontUseLambda?.Invoke();
         }
+
+        if (_isStarting && _aiEntity.reachedDestination&&_aiEntity.reachedEndOfPath&& _aiEntity.hasPath&&!_aiEntity.pathPending)
+        {
+            PathFindingEnd();
+        }
     }
 
     public void Remove()
@@ -370,6 +370,7 @@ public class GotAStarSeeker : IGotSeeker, PoolItem<object>
         {
             GameObject.Destroy(_funnelModifier);
         }
+
         if (_simpleSmoothModifier != null)
         {
             GameObject.Destroy(_simpleSmoothModifier);
@@ -384,8 +385,8 @@ public class GotAStarSeeker : IGotSeeker, PoolItem<object>
         {
             GameObject.Destroy(_raycastModifier);
         }
-        
-        
+
+
         isInit = false;
         obj = null;
         pool.RecoverItem(this);
@@ -413,7 +414,7 @@ public class GotAStarSeeker : IGotSeeker, PoolItem<object>
             return;
         }
 
-        Debug.Log("开始寻路"+pos);
+        Debug.Log("开始寻路" + pos);
         SetEnable(true);
         _aiEntity.destination = pos;
 
@@ -510,10 +511,10 @@ public class GotAStarSeeker : IGotSeeker, PoolItem<object>
             _aiEntity.isStopped = true;
             _isStarting = false;
         }
-        else
-        {
-            Debug.LogWarning("[GotPathFinding] PathFinding Stop Error,because is not starting!");
-        }
+        // else
+        // {
+        //     Debug.LogWarning("[GotPathFinding] PathFinding Stop Error,because is not starting!");
+        // }
     }
 
     public void ContinuePathFinding()
