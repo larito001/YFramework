@@ -2,17 +2,29 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class BagPlugin : MonoBehaviour
+public class BagPlugin 
 {
-    // Start is called before the first frame update
-    void Start()
+    public Dictionary<int ,int> ItemDict = new Dictionary<int, int>();//id,数量
+    public void AddItem(int id,int num)
     {
-        
+        if (ItemDict.ContainsKey(id))
+        {
+            ItemDict[id] += num;
+        }
+        else
+        {
+            ItemDict.Add(id, num);
+        }
     }
-
-    // Update is called once per frame
-    void Update()
+    public void RemoveItem(int id,int num)
     {
-        
+        if (ItemDict.ContainsKey(id))
+        {
+            ItemDict[id] -= num;
+            if (ItemDict[id] <= 0)
+            {
+                ItemDict.Remove(id);
+            }
+        }
     }
 }
