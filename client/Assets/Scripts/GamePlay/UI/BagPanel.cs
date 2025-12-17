@@ -5,6 +5,7 @@ using UnityEngine.UI;
 
 public class BagPanel : UIPageBase
 {
+    public YOTOScrollView bagList;
     public Button closeBtn;
     public override void OnLoad()
     {
@@ -14,6 +15,14 @@ public class BagPanel : UIPageBase
     public override void OnShow()
     {
         closeBtn.onClick.AddListener(CloseSelf);
+        bagList.Initialize();
+        bagList.SetRenderer(ItemRender);
+        bagList.SetData(50);
+    }
+
+    private void ItemRender(YOTOScrollViewItem arg1, int arg2)
+    {
+        
     }
 
     public override void OnHide()

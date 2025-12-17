@@ -34,6 +34,7 @@ public class PluginManager
         InstallPlugin<TowerManager>();
         InstallPlugin<PlayerManager>();
         InstallPlugin<SceneResManager>();
+        InstallPlugin<BagPlugin>();
     }
 
 

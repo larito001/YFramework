@@ -19,6 +19,7 @@ public class GameMainScene : GotSceneBase
 
         
 
+        BagPlugin.Instance.ReStar();
         FlyTextMgr.Instance.Init();
         SceneResManager.Instance.Init();
         GotAStarManager.Instance.LoadPathFinding(() =>
@@ -26,7 +27,7 @@ public class GameMainScene : GotSceneBase
       
           
             YFramework.uIMgr.Show(UIEnum.GameMainPanel);
-  
+            
         
             YFramework.uIMgr.Hide(UIEnum.StartPanel);
             PlayerManager.Instance.Init(() =>

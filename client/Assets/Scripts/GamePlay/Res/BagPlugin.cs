@@ -2,29 +2,54 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class BagPlugin 
+public class BagPlugin:LogicPluginBase
 {
-    public Dictionary<int ,int> ItemDict = new Dictionary<int, int>();//id,数量
+    private List<Vector2Int> ItemList = new ();
+    public static BagPlugin Instance;
+    public override void Init()
+    {
+        Instance = this;
+    }
+    public void ReStar()
+    {
+        ItemList.Clear();
+    }
     public void AddItem(int id,int num)
     {
-        if (ItemDict.ContainsKey(id))
+        ItemList.Add(new Vector2Int(id,num));
+    }
+    public int GetItemNum(int id)
+    {
+        for (var i = 0; i < ItemList.Count; i++)
         {
-            ItemDict[id] += num;
+            if (ItemList[i].x == id)
+            {
+                return ItemList[i].y;
+            }
         }
-        else
-        {
-            ItemDict.Add(id, num);
-        }
+        return 0;
     }
     public void RemoveItem(int id,int num)
     {
-        if (ItemDict.ContainsKey(id))
+        for (var i = 0; i < ItemList.Count; i++)
         {
-            ItemDict[id] -= num;
-            if (ItemDict[id] <= 0)
+            if (ItemList[i].x == id)
             {
-                ItemDict.Remove(id);
+                var lastNum = ItemList[i].y;
+                 ItemList[i] = new Vector2Int(id,lastNum-num);
+                 if (ItemList[i].y <= 0)
+                 {
+                     ItemList.RemoveAt(i);
+                 }
+                
             }
         }
+
+        ItemList.Remove(new Vector2Int(id,num));
+    }
+    public int GetListCount => ItemList.Count;
+    public Vector2Int GetItemByIndex(int index)
+    {
+        return ItemList[index];
     }
 }
