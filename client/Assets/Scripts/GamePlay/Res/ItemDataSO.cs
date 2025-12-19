@@ -8,3 +8,4 @@ public class ItemDataSO : ScriptableObject
     [SerializeField]
     public List<ItemData> ItemDatas = new List<ItemData>();
 }
+

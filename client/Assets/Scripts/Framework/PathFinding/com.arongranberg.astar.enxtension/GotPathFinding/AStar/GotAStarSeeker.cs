@@ -315,8 +315,8 @@ public class GotAStarSeeker : IGotSeeker, PoolItem<object>
         {
             _config.OnMovingDontUseLambda?.Invoke();
         }
-
-        if (_isStarting && _aiEntity.reachedDestination&&_aiEntity.reachedEndOfPath&& _aiEntity.hasPath&&!_aiEntity.pathPending)
+        //&& _aiEntity.reachedDestination
+        if (_isStarting &&_aiEntity.reachedEndOfPath&& _aiEntity.hasPath&&!_aiEntity.pathPending)
         {
             PathFindingEnd();
         }

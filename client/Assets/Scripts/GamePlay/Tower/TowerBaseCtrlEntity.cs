@@ -13,6 +13,7 @@ public enum TowerBaseState
 }
 public class TowerBaseCtrlEntity : ObjectBase, PoolItem<object>
 {
+    TowerBaseHud hud;
     public TowerBaseState state = TowerBaseState.None;
     public TowerEntity _towerEntity;
     private bool _isEditing = false;
@@ -37,23 +38,14 @@ public class TowerBaseCtrlEntity : ObjectBase, PoolItem<object>
     protected override void AfterInstanceGObj()
     {
 
+        hud = objTrans.GetComponentInChildren<TowerBaseHud>();
+        hud.Init(this);
     }
 
     protected override void BeforeRecover(bool isDelete)
     {
     }
-
-    private void OnBaseClick()
-    {
-        if (_towerEntity == null)
-        {
-            _towerEntity = TowerEntity.pool.GetItem(this);
-            _towerEntity.Parent = this.objTrans;
-            _towerEntity.Location = new Vector3(0,1,0);
-            _towerEntity.Rotation = Quaternion.identity;
-        }
-    }
-
+    
     public void AfterIntoObjectPool()
     {
         if (_towerEntity != null)
@@ -61,7 +53,8 @@ public class TowerBaseCtrlEntity : ObjectBase, PoolItem<object>
             TowerEntity.pool.RecoverItem(_towerEntity);
             _towerEntity = null;
         }
-        
+
+    
         TowerManager.Instance.RemoveBaseCtrl(this);
         RecoverObject();
     }
@@ -69,7 +62,12 @@ public class TowerBaseCtrlEntity : ObjectBase, PoolItem<object>
     public override void OnObjectClick()
     {
         base.OnObjectClick();
-        OnBaseClick();
+        // OnBaseClick();
+        if (_towerEntity == null)
+        {
+            hud.OnShow(); 
+        }
+
     }
 
     public void RemoveTower()
@@ -86,5 +84,17 @@ public class TowerBaseCtrlEntity : ObjectBase, PoolItem<object>
         SetPrefabBundlePath("Tower/towerBase");
         InstanceGObj();
         TowerManager.Instance.AddBaseCtrl(this);
+    }
+
+    public void GenerateTowerById(int id)
+    {
+        hud.OnHide();
+        if (_towerEntity == null)
+        {
+            _towerEntity = TowerEntity.pool.GetItem(this);
+            _towerEntity.Parent = this.objTrans;
+            _towerEntity.Location = new Vector3(0, 1, 0);
+            _towerEntity.Rotation = Quaternion.identity;
+        }
     }
 }
