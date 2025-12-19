@@ -16,6 +16,14 @@ public class BagPlugin:LogicPluginBase
     }
     public void AddItem(int id,int num)
     {
+        for (var i = 0; i < ItemList.Count; i++)
+        {
+            if (ItemList[i].x == id)
+            {
+                ItemList[i] = new Vector2Int(id,ItemList[i].y+num);
+                return;
+            }
+        }
         ItemList.Add(new Vector2Int(id,num));
     }
     public int GetItemNum(int id)

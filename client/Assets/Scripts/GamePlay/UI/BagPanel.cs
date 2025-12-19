@@ -7,9 +7,9 @@ public class BagPanel : UIPageBase
 {
     public YOTOScrollView bagList;
     public Button closeBtn;
+
     public override void OnLoad()
     {
-        
     }
 
     public override void OnShow()
@@ -17,12 +17,13 @@ public class BagPanel : UIPageBase
         closeBtn.onClick.AddListener(CloseSelf);
         bagList.Initialize();
         bagList.SetRenderer(ItemRender);
-        bagList.SetData(50);
+        bagList.SetData(BagPlugin.Instance.GetListCount);
     }
 
-    private void ItemRender(YOTOScrollViewItem arg1, int arg2)
+    private void ItemRender(YOTOScrollViewItem obj, int index)
     {
-        
+        var item = obj as CommonItem;
+        item.SetData(BagPlugin.Instance.GetItemByIndex(index));
     }
 
     public override void OnHide()
@@ -32,6 +33,5 @@ public class BagPanel : UIPageBase
 
     public override void OnResize()
     {
-      
     }
 }
