@@ -20,7 +20,7 @@ public class EnemyEntity : ObjectBase, PoolItem<Vector3>, IVictim
     #endregion
 
     #region 属性
-    
+
     public Properties properties;
     public IGotSeeker seeker;
     public bool NeedRound = false;
@@ -37,8 +37,8 @@ public class EnemyEntity : ObjectBase, PoolItem<Vector3>, IVictim
         if (stateMachine != null)
         {
             stateMachine.Update(deltaTime);
-            if(stateMachine.GetCurrentStateName()=="EnemyIdel"||stateMachine.GetCurrentStateName()=="EnemyRound")
-            TryExchangeTarget();
+            if (stateMachine.GetCurrentStateName() == "EnemyIdel" || stateMachine.GetCurrentStateName() == "EnemyRound")
+                TryExchangeTarget();
         }
 
         if (objTrans != null)
@@ -48,8 +48,6 @@ public class EnemyEntity : ObjectBase, PoolItem<Vector3>, IVictim
                 EnemiesManager.instance.RemoveEnemy(this);
             }
         }
-    
-  
     }
 
     public override string GetModelLayer()
@@ -59,35 +57,34 @@ public class EnemyEntity : ObjectBase, PoolItem<Vector3>, IVictim
 
     protected override void AfterInstanceGObj()
     {
-
         OnPathComplete = null;
         seeker = PathFindingFactory.GetSeeker();
         var config = new AStarHighSeekerConfig(objTrans.gameObject);
         config.UseObstacleAvoidance = true;
         config.modifierType = ModifierType.FunnelModifier;
         config.speed = 5f;
-        config.stopDistance =3f;
+        config.stopDistance = 3f;
         config.isUpdate = true;
         config.enableGravity = true;
         config.OnPathComplete = OnPathCompleteCallback;
         var scale = Random.Range(1.5f, 3f);
-         config.radio =0.5f*scale;
+        config.radio = 0.5f * scale;
         seeker.Init(config);
         NeedRound = true;
         OrgPos = Location;
         stateMachine = new EnemyStateMachine();
         stateMachine.Init(this);
         stateMachine.SwitchState(EnemyIdelState.pool.GetItem(null));
-            //todo:test
-          var anim =  objTrans.GetComponentInChildren<MineBotAnimation>();
-          anim.transform.localScale = Vector3.one * scale;
-          anim.ai = seeker.GetSeeker();
+        //todo:test
+        var anim = objTrans.GetComponentInChildren<MineBotAnimation>();
+        anim.transform.localScale = Vector3.one * scale;
+        anim.ai = seeker.GetSeeker();
     }
 
     protected override void BeforeRecover(bool isDelete)
     {
         OnPathComplete = null;
-        stateMachine = null; 
+        stateMachine = null;
         seeker.Remove();
         seeker = null;
     }
@@ -135,7 +132,7 @@ public class EnemyEntity : ObjectBase, PoolItem<Vector3>, IVictim
         return _lockTarget;
     }
 
-    public void SetTarget(IVictim  target)
+    public void SetTarget(IVictim target)
     {
         _lockTarget = target;
     }
@@ -159,26 +156,25 @@ public class EnemyEntity : ObjectBase, PoolItem<Vector3>, IVictim
 
     #region 状态转换
 
-
     /// <summary>
     /// 尝试索敌
     /// </summary>
     public void TryExchangeTarget()
     {
         //todo:获取索敌对象
-        if (TowerManager.Instance.CheckTowerIsInRange(out TowerEntity tower,this.objTrans.position))
+        if (TowerManager.Instance.CheckTowerIsInRange(out TowerEntity tower, this.objTrans.position))
         {
             OnEnterCallbackStateMachine?.Invoke(tower);
             return;
         }
-        
+
         if (PlayerManager.Instance.CheckPlayerIsInRange(objTrans.position, 20))
         {
             var victim = PlayerManager.Instance.playerEntity;
             OnEnterCallbackStateMachine?.Invoke(victim);
         }
-        
     }
+
     public void Atk()
     {
         var pos = _lockTarget.GetPosition();
@@ -220,8 +216,7 @@ public class EnemyEntity : ObjectBase, PoolItem<Vector3>, IVictim
     {
         OnPathComplete?.Invoke();
     }
-    
-    
+
 
     /// <summary>
     /// 子弹打到对方
