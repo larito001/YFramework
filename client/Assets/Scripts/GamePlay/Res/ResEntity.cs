@@ -2,11 +2,11 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class ResEntity : ObjectBase, PoolItem<Vector3>,IUsable
+public class ResEntity : ObjectBase, PoolItem<CircleItemMarker>,IUsable
 {
-    public static DataObjPool<ResEntity, Vector3> pool =
-        new DataObjPool<ResEntity, Vector3>("ResEntity", 50);
-
+    public static DataObjPool<ResEntity, CircleItemMarker> pool =
+        new DataObjPool<ResEntity, CircleItemMarker>("ResEntity", 50);
+    public int itemId =-1;
     public override string GetModelLayer()
     {
         return "Agent";
@@ -27,9 +27,10 @@ public class ResEntity : ObjectBase, PoolItem<Vector3>,IUsable
         RecoverObject();
     }
 
-    public void SetData(Vector3 serverData)
+    public void SetData(CircleItemMarker serverData)
     {
-        Location = serverData;
+        Location = serverData.transform.position;
+        itemId=serverData.itemId;
         SetInVision(true);
         SetPrefabBundlePath("Res/Res");
         InstanceGObj();
@@ -52,9 +53,11 @@ public class ResEntity : ObjectBase, PoolItem<Vector3>,IUsable
         }
      
     }
-
+    
     public void OnStop(object o )
     {
+        
+        BagPlugin.Instance.AddItem(itemId,1);
         currentUser.OnStopUsing();
         currentUser = null;
         pool.RecoverItem(this);

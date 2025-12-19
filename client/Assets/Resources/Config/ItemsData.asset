@@ -13,7 +13,11 @@ MonoBehaviour:
   m_Name: ItemsData
   m_EditorClassIdentifier: 
   ItemDatas:
-  - Id: 0
-    Name: 0
+  - Id: 1000
+    Name: 
+    ItemType: 0
+    Icon: {fileID: 0}
+  - Id: 1001
+    Name: 
     ItemType: 0
     Icon: {fileID: 0}

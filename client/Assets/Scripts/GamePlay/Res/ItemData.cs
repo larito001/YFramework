@@ -11,7 +11,7 @@ public enum ItemType
 public class ItemData
 {
    public int Id;
-   public int Name;
+   public string Name;
    public ItemType ItemType;
    public Sprite Icon;
 }

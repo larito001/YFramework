@@ -3,10 +3,10 @@ using UnityEngine;
 using System.Collections.Generic;
 
 /// <summary>
-/// 编辑器标记工具（最终修正版）
-/// - 不生成任何 Mesh / Renderer / Material
-/// - 使用 Handles 绘制圆
-/// - 使用 Handles.Button 实现无 Mesh 的可点击删除
+/// 圆形标记放置编辑器
+/// - Handles 绘制
+/// - 右键删除
+/// - 支持 ItemData 选择并写入 ItemId
 /// </summary>
 public class CirclePlacerEditor : EditorWindow
 {
@@ -14,10 +14,14 @@ public class CirclePlacerEditor : EditorWindow
     private GameObject resRoot;
 
     private const string ResRootName = "ResRoot";
-    private const string RedTag = "Red"; // 需在 Tag Manager 中创建
+    private const string RedTag = "Red";
 
     private const float CircleRadius = 0.5f;
-    private const float PickSize = 0.15f; // 点击判定半径
+
+    // ===== Item Data =====
+    private ItemDataSO itemDataSO;
+    private int selectedIndex;
+    private string[] itemOptions;
 
     [MenuItem("Tools/Circle Placer (Editor Mark)")]
     public static void Open()
@@ -25,8 +29,41 @@ public class CirclePlacerEditor : EditorWindow
         GetWindow<CirclePlacerEditor>("Circle Placer");
     }
 
+    private void OnEnable()
+    {
+        // 自动尝试加载（可删）
+        itemDataSO = Resources.Load<ItemDataSO>("Config/ItemsData");
+
+        RefreshItemOptions();
+    }
+
     private void OnGUI()
     {
+        GUILayout.Space(10);
+
+        EditorGUILayout.LabelField("Item 配置", EditorStyles.boldLabel);
+
+        ItemDataSO newSO = (ItemDataSO)EditorGUILayout.ObjectField(
+            "Item Data SO",
+            itemDataSO,
+            typeof(ItemDataSO),
+            false);
+
+        if (newSO != itemDataSO)
+        {
+            itemDataSO = newSO;
+            selectedIndex = 0;
+            RefreshItemOptions();
+        }
+
+        if (itemDataSO == null || itemOptions == null || itemOptions.Length == 0)
+        {
+            EditorGUILayout.HelpBox("请配置 ItemDataSO，且 Item 列表不能为空", MessageType.Warning);
+            return;
+        }
+
+        selectedIndex = EditorGUILayout.Popup("当前 Item", selectedIndex, itemOptions);
+
         GUILayout.Space(10);
 
         if (!isEnabled)
@@ -70,7 +107,7 @@ public class CirclePlacerEditor : EditorWindow
 
         DrawAndHandleMarkers(e);
 
-        // 左键：创建标记
+        // 左键创建
         if (e.type == EventType.MouseDown && e.button == 0 && !e.alt)
         {
             Ray ray = HandleUtility.GUIPointToWorldRay(e.mousePosition);
@@ -88,11 +125,13 @@ public class CirclePlacerEditor : EditorWindow
         marker.transform.position = position;
         marker.transform.SetParent(resRoot.transform);
         marker.tag = RedTag;
+
+        CircleItemMarker itemMarker = marker.AddComponent<CircleItemMarker>();
+        itemMarker.itemId = itemDataSO.ItemDatas[selectedIndex].Id;
+
+        Undo.RegisterCreatedObjectUndo(marker, "Create Circle Marker");
     }
 
-    /// <summary>
-    /// 绘制并处理点击逻辑（右键删除）
-    /// </summary>
     private void DrawAndHandleMarkers(Event e)
     {
         if (resRoot == null)
@@ -109,15 +148,12 @@ public class CirclePlacerEditor : EditorWindow
 
             Vector3 pos = child.position;
 
-            // 1. 只负责画
             Handles.DrawSolidDisc(pos, Vector3.up, CircleRadius);
 
-            // 2. 右键命中检测（关键）
             if (e.type == EventType.MouseDown && e.button == 1)
             {
                 float dist = HandleUtility.DistanceToCircle(pos, CircleRadius);
-
-                if (dist == 0f) // 命中
+                if (dist == 0f)
                 {
                     if (toRemove == null)
                         toRemove = new List<Transform>();
@@ -131,8 +167,24 @@ public class CirclePlacerEditor : EditorWindow
         if (toRemove != null)
         {
             foreach (var t in toRemove)
-                DestroyImmediate(t.gameObject);
+                Undo.DestroyObjectImmediate(t.gameObject);
         }
     }
 
+    private void RefreshItemOptions()
+    {
+        if (itemDataSO == null || itemDataSO.ItemDatas == null)
+        {
+            itemOptions = null;
+            return;
+        }
+
+        var items = itemDataSO.ItemDatas;
+        itemOptions = new string[items.Count];
+
+        for (int i = 0; i < items.Count; i++)
+        {
+            itemOptions[i] = $"Id: {items[i].Id}";
+        }
+    }
 }

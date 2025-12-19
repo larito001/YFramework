@@ -16,10 +16,10 @@ public class SceneResManager : LogicPluginBase
     public void Init()
     {
         var root = GameObject.Find("ResRoot");
-        var tasnforms = root.GetComponentsInChildren<Transform>();
+        var tasnforms = root.GetComponentsInChildren<CircleItemMarker>();
         for (var i = 0; i < tasnforms.Length; i++)
         { 
-            var res =ResEntity.pool.GetItem(tasnforms[i].position);
+            var res =ResEntity.pool.GetItem(tasnforms[i]);
             resList.Add(res);
         }
     }
