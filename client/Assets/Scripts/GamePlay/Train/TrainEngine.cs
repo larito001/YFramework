@@ -168,7 +168,18 @@ namespace Dreamteck.Splines.Examples
                 // 目标：速度降为0（刹车）
                 targetSpeed = 0f;
             }
-
+            var percent =follower.GetPercent();
+            foreach (var keyValuePair in TowerManager.Instance.trackFixDic)
+            {
+                if (percent >= keyValuePair.Key-0.05)
+                {
+                    if (!keyValuePair.Value&&currentSpeed>0)
+                    {
+                        
+                        targetSpeed = 0;
+                    }
+                }
+            }
             // --- 2. 使用 Mathf.MoveTowards 平滑地改变当前速度 ---
     
             // 根据情况选择加速度或减速度
@@ -180,7 +191,8 @@ namespace Dreamteck.Splines.Examples
             currentSpeed = Mathf.MoveTowards(currentSpeed, targetSpeed, accel * Time.deltaTime);
 
             // --- 3. 更新 SplineFollower 组件 ---
-    
+         
+            
             // （这部分和之前一样，保持不变）
             follower.followSpeed = Mathf.Abs(currentSpeed);
 

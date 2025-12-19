@@ -16,6 +16,24 @@ public class TowerManager : LogicPluginBase
     List<TowerBaseCtrlEntity> towers = new List<TowerBaseCtrlEntity>();
     public bool isEditorMode = false;
 
+    public void TrackInit()
+    {
+        trackFixDic.Add(0.95f,false);
+        trackFixDic.Add(0.4f,false);
+        TrackFixEntity trackFix = new TrackFixEntity();
+        trackFix.SetEntity(0.4f);
+        trackFix.SetInVision(true);
+        var trackFixobj = GameObject.Find("trackFixPos");
+        trackFix.Location = trackFixobj.transform.position;
+        trackFix.InstanceGObj();
+        
+        TrackFixEntity trackFix2 = new TrackFixEntity();
+        trackFix2.SetEntity(0.95f);
+        trackFix2.SetInVision(true);
+        var trackFixobj2 = GameObject.Find("trackFixPos2");
+        trackFix2.Location = trackFixobj2.transform.position;
+        trackFix2.InstanceGObj();
+    }
     public bool CheckTowerIsInRange(out TowerEntity tower, Vector3 pos)
     {
         tower = null;
@@ -45,10 +63,11 @@ public class TowerManager : LogicPluginBase
         ctrl.Location = offset;
         ctrl.Parent = parent;
     }
-
+    public Dictionary<float,bool> trackFixDic = new Dictionary<float, bool>();
     protected override void OnInstall()
     {
         base.OnInstall();
+   
         var so = Resources.Load<TowerDataSO>("Config/TowerData");
         foreach (var soTowerData in so.TowerDatas)
         {
@@ -57,7 +76,7 @@ public class TowerManager : LogicPluginBase
 
         Resources.UnloadAsset(so);
     }
-
+    
     protected override void OnUninstall()
     {
         base.OnUninstall();

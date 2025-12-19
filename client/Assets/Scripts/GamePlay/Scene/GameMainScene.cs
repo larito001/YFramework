@@ -17,12 +17,8 @@ public class GameMainScene : GotSceneBase
 
     protected override void OnEnterScene()
     {
-        TrackFixEntity trackFix = new TrackFixEntity();
-        trackFix.SetEntity();
-        trackFix.SetInVision(true);
-        var trackFixobj = GameObject.Find("trackFixPos");
-        trackFix.Location = trackFixobj.transform.position;
-        trackFix.InstanceGObj();
+
+        TowerManager.Instance.TrackInit();
         
         WarehouseEntity warehouse = new WarehouseEntity();
         warehouse.SetEntity();
