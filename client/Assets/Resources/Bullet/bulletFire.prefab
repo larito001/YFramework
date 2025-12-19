@@ -94,7 +94,6 @@ GameObject:
   - component: {fileID: 6374620367019846323}
   - component: {fileID: 2229767043042197077}
   - component: {fileID: 4412505028078885269}
-  - component: {fileID: -6684755430819497951}
   m_Layer: 15
   m_Name: bulletFire
   m_TagString: Untagged
@@ -147,15 +146,3 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 3, y: 1, z: 5}
   m_Center: {x: 0, y: 0, z: 2}
---- !u!114 &-6684755430819497951
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6172796744516778012}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8e04778b1a46b4946a4710a6ca1d0810, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 

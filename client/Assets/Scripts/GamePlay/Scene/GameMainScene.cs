@@ -5,30 +5,41 @@ using YOTO;
 
 public class GameMainScene : GotSceneBase
 {
-    public override GotSceneType SceneType { get{return GotSceneType.GamePlay;} }
-    public override string SceneName { get{return "GameMainScene";}}
+    public override GotSceneType SceneType
+    {
+        get { return GotSceneType.GamePlay; }
+    }
+
+    public override string SceneName
+    {
+        get { return "GameMainScene"; }
+    }
+
     protected override void OnEnterScene()
     {
-
+        TrackFixEntity trackFix = new TrackFixEntity();
+        trackFix.SetEntity();
+        trackFix.SetInVision(true);
+        var trackFixobj = GameObject.Find("trackFixPos");
+        trackFix.Location = trackFixobj.transform.position;
+        trackFix.InstanceGObj();
+        
         WarehouseEntity warehouse = new WarehouseEntity();
         warehouse.SetEntity();
         warehouse.SetInVision(true);
-        var warehouseObj =GameObject.Find("WareHouse");
-        warehouse.Location =warehouseObj.transform.position ;
+        var warehouseObj = GameObject.Find("WareHouse");
+        warehouse.Location = warehouseObj.transform.position;
         warehouse.InstanceGObj();
 
-        
 
         BagPlugin.Instance.ReStar();
         FlyTextMgr.Instance.Init();
         SceneResManager.Instance.Init();
         GotAStarManager.Instance.LoadPathFinding(() =>
         {
-      
-          
             YFramework.uIMgr.Show(UIEnum.GameMainPanel);
-            
-        
+
+
             YFramework.uIMgr.Hide(UIEnum.StartPanel);
             PlayerManager.Instance.Init(() =>
             {
@@ -45,10 +56,9 @@ public class GameMainScene : GotSceneBase
                 //
                 //     EnemiesManager.instance.GenerateEnemyAt(spawnPos);
                 // }
-                EnemiesManager.instance.GenerateAtRange( PlayerManager.Instance.playerEntity.Location);
+                EnemiesManager.instance.GenerateAtRange(PlayerManager.Instance.playerEntity.Location);
                 EnterSceneComplete();
             });
-   
         }, new string[] { "GraphCache" });
     }
 
@@ -59,13 +69,11 @@ public class GameMainScene : GotSceneBase
         FlyTextMgr.Instance.Update(Time.deltaTime);
         if (Input.GetKeyDown(KeyCode.F))
         {
-      
             PlayerManager.Instance.Switch();
         }
         else if (Input.GetKeyDown(KeyCode.M))
         {
-
-            EnemiesManager.instance.GenerateAtRange( PlayerManager.Instance.playerEntity.ObjTrans.position);
+            EnemiesManager.instance.GenerateAtRange(PlayerManager.Instance.playerEntity.ObjTrans.position);
         }
     }
 
