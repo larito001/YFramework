@@ -46,6 +46,7 @@ namespace YOTO
             float dt = Time.fixedDeltaTime;
             entityMgr._FixedUpdate(dt);
             sceneMgr.OnFixedUpdate();
+            cameraMgr.FixUpdate(dt);
         }
         private void OnScreenResize(int width, int height)
         {

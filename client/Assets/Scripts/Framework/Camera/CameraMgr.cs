@@ -55,6 +55,34 @@ public class CameraMgr
         }
     }
 
+    public void FixUpdate(float dt)
+    {
+        if (Input.GetMouseButton(0))
+        {
+            OnMouseDown(dt);
+        }
+    }
+
+    private void OnMouseDown(float dt)
+    {
+        Vector3 screenPos = new Vector3(touchPosition.x, touchPosition.y, 0);
+        Ray ray =mainCamera.ScreenPointToRay(screenPos);
+        RaycastHit hit;
+        if (Physics.Raycast(ray, out hit, 1000f))
+        {
+            GameObject obj = hit.collider.gameObject;
+            if (obj.TryGetComponent(out SceneModelBase sceneModelBase))
+            {
+                PlayerManager.Instance.OnClick(sceneModelBase.transform.position,dt);
+            }
+            else
+            {
+                PlayerManager.Instance.OnClick(hit.point,dt);
+            }
+
+        }
+    }
+
     private void Press()
     {
         Vector3 screenPos = new Vector3(touchPosition.x, touchPosition.y, 0);
@@ -73,7 +101,6 @@ public class CameraMgr
             }
             else
             {
-                Debug.LogError("点击的物体不是模型触发器");
             }
 
         }

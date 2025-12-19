@@ -11,7 +11,7 @@ public class TowerEntity: ObjectBase, PoolItem<TowerBaseCtrlEntity>,IVictim
     Properties properties;
 
     private float timer = 0;
-    private float attackInterval = 0.5f;
+    private float attackInterval = 0.15f;
 
     public override void YOTOUpdate(float deltaTime)
     {
@@ -27,7 +27,7 @@ public class TowerEntity: ObjectBase, PoolItem<TowerBaseCtrlEntity>,IVictim
                 {
                     name = "Bullet/bullet",
                     moveSpeed = 80,
-                    damage = 20,
+                    damage = 6,
                     duration = 10,
                     TrggerCount=1,
                     triggerTimer=0,

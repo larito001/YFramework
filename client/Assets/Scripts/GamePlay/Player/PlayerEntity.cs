@@ -21,27 +21,7 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim, IUser
             }
         }
 
-        if (Input.GetKeyDown(KeyCode.E))
-        {
-            if (objTrans == null) return;
-            Vector3 pos = new Vector3();
-            if (EnemiesManager.instance.GetEnemyPos(objTrans.position, out pos))
-            {
-                BaseBulletEntity b = BaseBulletEntity.pool.GetItem(new BulletConfig()
-                {
-                    name = "Bullet/bullet",
-                    moveSpeed = 80,
-                    attackType = AttackType.Remote,
-                    damage = 5,
-                    TrggerCount = 1,
-                    duration = 10,
-                    triggerTimer = 0f,
-                    camp = Camp.Player
-                });
-                pos.y += Random.Range(0.5f, 2);
-                b.Fire(this, ObjTrans.position, pos - ObjTrans.position);
-            }
-        }
+     
     }
 
     public void SetData(object data)
@@ -161,4 +141,35 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim, IUser
     }
 
     #endregion
+
+    private float weaponTimer = 0.05f;
+    private float weaponTimerTemp = 0.05f;
+    public void OnMouseClick(Vector3  hitPoint,float dt)
+    {
+        if (weaponTimerTemp >= weaponTimer)
+        {
+            weaponTimerTemp -= weaponTimer;
+        }
+        else
+        {
+            weaponTimerTemp += dt;
+            return;
+        }
+        if (objTrans == null) return;
+        BaseBulletEntity b = BaseBulletEntity.pool.GetItem(new BulletConfig()
+        {
+            name = "Bullet/bullet",
+            moveSpeed = 80,
+            attackType = AttackType.Remote,
+            damage = 5,
+            TrggerCount = 1,
+            duration = 10,
+            triggerTimer = 0f,
+            camp = Camp.Player
+        });
+        
+        //todo: 从相机发射射线，打到地面，开火方向是玩家 towards 鼠标点击位置;
+        hitPoint.y = 0.5f;
+        b.Fire(this, ObjTrans.position, hitPoint - ObjTrans.position);
+    }
 }
