@@ -89,13 +89,13 @@ public class GotSceneManager
         m_loadedScenes = new Stack<GotSceneType>();
     }
 
-    public void Update()
+    public void Update(float dt)
     {
         try
         {
             if (SwitchSceneComplete && CurrentScene != null)
             {
-                CurrentScene.Update();
+                CurrentScene.Update(dt);
             }
         }
         catch (System.Exception e)

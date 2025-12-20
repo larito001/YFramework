@@ -35,6 +35,7 @@ public class PluginManager
         InstallPlugin<PlayerManager>();
         InstallPlugin<SceneResManager>();
         InstallPlugin<BagPlugin>();
+        InstallPlugin<GameDayNightManager>();
     }
 
 

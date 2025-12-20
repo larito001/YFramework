@@ -34,7 +34,6 @@ public class PlayerManager : LogicPluginBase
             trainEngine.SetTracer(spline);
             playerEntity = PlayerEntity.pool.GetItem(null);
             playerEntity.Location = GameStarter.PlayerOrgPos.position;
-            EnemiesManager.instance.SetPlayer(playerEntity);
             loadEndCallback();
         });
     }

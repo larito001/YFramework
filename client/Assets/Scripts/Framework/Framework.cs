@@ -64,7 +64,7 @@ namespace YOTO
             entityMgr._Update(dt);
             cameraMgr.Update(dt);
             screenMonitor.Update();
-            sceneMgr.Update();
+            sceneMgr.Update(dt);
         }
 
         private void OnDestroy()

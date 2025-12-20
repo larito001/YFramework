@@ -52,16 +52,19 @@ public class GameMainScene : GotSceneBase
                 //
                 //     EnemiesManager.instance.GenerateEnemyAt(spawnPos);
                 // }
-                EnemiesManager.instance.GenerateAtRange(PlayerManager.Instance.playerEntity.Location);
+                // EnemiesManager.instance.GenerateAtRange(PlayerManager.Instance.playerEntity.Location);
                 EnterSceneComplete();
+
+                GameDayNightManager.Instance.ResetDayNight();
             });
         }, new string[] { "GraphCache" });
     }
 
-    public override void Update()
+    public override void Update(float dt)
     {
-        base.Update();
+        base.Update(dt);
         GotAStarManager.Instance.Update();
+        GameDayNightManager.Instance.Update(dt);
         FlyTextMgr.Instance.Update(Time.deltaTime);
         if (Input.GetKeyDown(KeyCode.F))
         {
@@ -69,7 +72,7 @@ public class GameMainScene : GotSceneBase
         }
         else if (Input.GetKeyDown(KeyCode.M))
         {
-            EnemiesManager.instance.GenerateAtRange(PlayerManager.Instance.playerEntity.ObjTrans.position);
+            // EnemiesManager.instance.GenerateAtRange(PlayerManager.Instance.playerEntity.ObjTrans.position);
         }
     }
 

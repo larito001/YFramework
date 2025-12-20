@@ -61,7 +61,7 @@ public abstract class GotSceneBase
         LeaveSceneComplete();
     }
 
-    public virtual void Update()
+    public virtual void Update(float dt)
     {
     }
 
