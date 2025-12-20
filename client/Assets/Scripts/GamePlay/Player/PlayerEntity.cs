@@ -8,7 +8,7 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim, IUser
 
     ThirdPlayerMoveCtrl playerMoveCtrl;
     public Properties properties;
-
+    RateHud rateHud; 
     #region 生命周期
 
     public override void YOTOUpdate(float deltaTime)
@@ -31,6 +31,7 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim, IUser
         InstanceGObj();
         properties = new Properties();
         properties.HP = 100;
+        properties.MaxHP = 100;
         properties.OnDead = () =>
         {
             //todo:玩家死亡
@@ -47,6 +48,10 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim, IUser
         orbitCamera.Init(ObjTrans);
         playerMoveCtrl = ObjTrans.GetComponent<ThirdPlayerMoveCtrl>();
         playerMoveCtrl.playerInputSpace = orbitCamera.transform;
+        rateHud = ObjTrans.GetComponentInChildren<RateHud>();
+        rateHud.Reset();
+        rateHud.Show();
+        rateHud.UpdateRate(properties.HP / properties.MaxHP);
     }
 
     protected override void BeforeRecover(bool isDelete)
@@ -75,6 +80,7 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim, IUser
         FlyTextMgr.Instance.AddText(hurt.ToString(), objTrans.position, FlyTextType.PlayerHurt);
         properties.HP -= hurt;
         fireRole.OnHurtSomeone();
+        rateHud.UpdateRate(properties.HP / properties.MaxHP);
     }
 
     public void OnHurtSomeone()

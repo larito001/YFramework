@@ -11,11 +11,13 @@ public enum RoleState
 public class Properties
 {
     public UnityAction OnDead;
+    private float _maxHP ;
     private float _hp;
     private float _atk;
     private float _def;
     private Camp _camp;
     private RoleState _state;
+
     public float HP
     {
         get
@@ -30,6 +32,17 @@ public class Properties
             {
                 OnDead();
             }
+        }
+    }
+    public float MaxHP
+    {
+        get
+        {
+            return _maxHP;
+        }
+        set
+        {
+            _maxHP = value;
         }
     }
     public float ATK

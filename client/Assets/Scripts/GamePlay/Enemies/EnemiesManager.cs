@@ -20,29 +20,29 @@ public class EnemiesManager : LogicPluginBase
      }
      
     
-     // public void GenerateAtRange(Vector3 center)
-     // {
-     //     //todo: 围绕center生成敌人
-     //     // 参数配置
-     //     int enemyCount = 50; // 生成数量
-     //     float minRadius = 30f; // 最小半径
-     //     float maxRadius = 40f; // 最大半径
-     //
-     //     for (int i = 0; i < enemyCount; i++)
-     //     {
-     //         // 随机角度和半径
-     //         float angle = Random.Range(0f, 360f);
-     //         float radius = Random.Range(minRadius, maxRadius);
-     //        
-     //         // 计算位置
-     //         float x = center.x + Mathf.Cos(angle * Mathf.Deg2Rad) * radius;
-     //         float z = center.z + Mathf.Sin(angle * Mathf.Deg2Rad) * radius;
-     //         Vector3 pos = new Vector3(x, center.y, z);
-     //    
-     //         // 生成敌人
-     //         GenerateEnemyAt(pos+new Vector3(0,10,0));
-     //     }
-     // }
+     public void GenerateAtRange(Vector3 center)
+     {
+         //todo: 围绕center生成敌人
+         // 参数配置
+         int enemyCount = 50; // 生成数量
+         float minRadius = 30f; // 最小半径
+         float maxRadius = 40f; // 最大半径
+     
+         for (int i = 0; i < enemyCount; i++)
+         {
+             // 随机角度和半径
+             float angle = Random.Range(0f, 360f);
+             float radius = Random.Range(minRadius, maxRadius);
+            
+             // 计算位置
+             float x = center.x + Mathf.Cos(angle * Mathf.Deg2Rad) * radius;
+             float z = center.z + Mathf.Sin(angle * Mathf.Deg2Rad) * radius;
+             Vector3 pos = new Vector3(x, center.y, z);
+        
+             // 生成敌人
+             GenerateEnemyAt(pos+new Vector3(0,10,0));
+         }
+     }
      public void GenerateEnemyAt(Vector3  pos)
      {
        var enemy =   EnemyEntity.pool.GetItem(pos);

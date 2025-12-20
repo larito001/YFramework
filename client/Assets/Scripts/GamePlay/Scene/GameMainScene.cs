@@ -72,7 +72,7 @@ public class GameMainScene : GotSceneBase
         }
         else if (Input.GetKeyDown(KeyCode.M))
         {
-            // EnemiesManager.instance.GenerateAtRange(PlayerManager.Instance.playerEntity.ObjTrans.position);
+            EnemiesManager.instance.GenerateAtRange(PlayerManager.Instance.playerEntity.ObjTrans.position);
         }
     }
 

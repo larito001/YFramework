@@ -1,12 +1,18 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using YOTO;
 
-public class ResEntity : ObjectBase, PoolItem<CircleItemMarker>,IUsable
+public class ResEntity : ObjectBase, PoolItem<CircleItemMarker>, IUsable
 {
     public static DataObjPool<ResEntity, CircleItemMarker> pool =
         new DataObjPool<ResEntity, CircleItemMarker>("ResEntity", 50);
-    public int itemId =-1;
+
+    public int itemId = -1;
+    RateHud rateHud;
+    public float rate = 0;
+    private IEnumerator GetIE;
+
     public override string GetModelLayer()
     {
         return "Agent";
@@ -14,12 +20,13 @@ public class ResEntity : ObjectBase, PoolItem<CircleItemMarker>,IUsable
 
     protected override void AfterInstanceGObj()
     {
+        rateHud = ObjTrans.GetComponentInChildren<RateHud>();
+        rateHud.Reset();
         
     }
 
     protected override void BeforeRecover(bool isDelete)
     {
-        
     }
 
     public void AfterIntoObjectPool()
@@ -30,7 +37,7 @@ public class ResEntity : ObjectBase, PoolItem<CircleItemMarker>,IUsable
     public void SetData(CircleItemMarker serverData)
     {
         Location = serverData.transform.position;
-        itemId=serverData.itemId;
+        itemId = serverData.itemId;
         SetInVision(true);
         SetPrefabBundlePath("Res/Res");
         InstanceGObj();
@@ -38,29 +45,59 @@ public class ResEntity : ObjectBase, PoolItem<CircleItemMarker>,IUsable
 
     IUser currentUser = null;
 
-    public void OnUse(IUser  user)
+    public void OnUse(IUser user)
     {
         if (currentUser == null)
         {
-            currentUser=user;
+            currentUser = user;
             user.OnUsing();
-            Timers.inst.Add(4,OnStop);
-        }else if (currentUser == user)
+            rate = 0;
+            if (GetIE != null)
+            {
+                YFramework.Instance.StopCoroutine(GetIE);
+                GetIE = null;
+    
+            }
+
+            GetIE = GetRes();
+            YFramework.Instance.StartCoroutine(GetIE);
+        }
+        else if (currentUser == user)
         {
-            Timers.inst.Remove(OnStop);
+            if (GetIE != null)
+            {
+                YFramework.Instance.StopCoroutine(GetIE);
+                GetIE = null;
+            }
+
+            rateHud.Hide();
+
             currentUser.OnStopUsing();
             currentUser = null;
         }
-     
     }
-    
-    public void OnStop(object o )
+
+    public void OnComplete()
     {
-        
-        BagPlugin.Instance.AddItem(itemId,1);
+        BagPlugin.Instance.AddItem(itemId, 1);
         currentUser.OnStopUsing();
         currentUser = null;
         pool.RecoverItem(this);
+        rateHud.Hide();
     }
-    
+
+    WaitForSeconds wait = new WaitForSeconds(0.01f);
+
+    IEnumerator GetRes()
+    {
+        rateHud.Show();
+        while (rate < 1)
+        {
+            yield return wait;
+            rate += 0.01f;
+            rateHud.UpdateRate(rate);
+        }
+
+        OnComplete();
+    }
 }
