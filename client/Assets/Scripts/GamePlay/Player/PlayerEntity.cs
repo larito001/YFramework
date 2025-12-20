@@ -170,6 +170,6 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim, IUser
         
         //todo: 从相机发射射线，打到地面，开火方向是玩家 towards 鼠标点击位置;
         hitPoint.y = 0.5f;
-        b.Fire(this, ObjTrans.position, hitPoint - ObjTrans.position);
+        b.Fire(this, ObjTrans.position, hitPoint);
     }
 }

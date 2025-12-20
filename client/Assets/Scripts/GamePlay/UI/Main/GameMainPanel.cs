@@ -18,15 +18,16 @@ public class GameMainPanel : UIPageBase
         scrollView.SetRenderer(ItemRender);
     }
 
-    private void ItemRender(YOTOScrollViewItem arg1, int arg2)
+    private void ItemRender(YOTOScrollViewItem arg1, int index)
     {
-        
+        var item = arg1 as CommonItem; 
+        item.SetData(BagPlugin.Instance.GetItemByIndex(index));
     }
 
     public override void OnShow()
     {
         bagBtn.onClick.AddListener(OnBagBtnClick);
-        scrollView.SetData(8);
+        scrollView.SetData(BagPlugin.Instance.GetListCount>8?8:BagPlugin.Instance.GetListCount);
     }
 
     private void OnBagBtnClick()

@@ -35,7 +35,7 @@ public class TowerBaseHud : HudAlwaysFaceToTransform
    private void ItemRender(YOTOScrollViewItem obj, int index)
    {
       var item = obj as CommonItem;
-      item.SetTowerData(TowerManager.Instance.towerDatas[index].Id, towerBaseCtrl);
+      item.SetTowerData(TowerManager.Instance.towerDatas[index], towerBaseCtrl);
    }
 
    public void OnHide()

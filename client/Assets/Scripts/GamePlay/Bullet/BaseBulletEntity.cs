@@ -51,6 +51,7 @@ public class BaseBulletEntity : ObjectBase, PoolItem<BulletConfig>
     List<IVictim> victims = new List<IVictim>();
     BulletConfig _config;
     private Vector3 pos;
+    private Vector3 _targetPos;
     private Vector3 dir;
     private bool TryFire = false;
     private float timer = 0;
@@ -59,14 +60,15 @@ public class BaseBulletEntity : ObjectBase, PoolItem<BulletConfig>
     private int triggerCount = 1;
     private IVictim _fireRole;
 
-    public void Fire(IVictim fireRole, Vector3 pos, Vector3 dir)
+    public void Fire(IVictim fireRole, Vector3 pos, Vector3 targetPos)
     {
         _fireRole = fireRole;
         timer = 0;
-        this.dir = dir.normalized;
+        this._targetPos = targetPos;
         this.pos = pos;
         TryFire = true;
-
+        dir = _targetPos - pos;
+        dir = dir.normalized;
         if (objTrans)
         {
             StartFire();
@@ -132,7 +134,7 @@ public class BaseBulletEntity : ObjectBase, PoolItem<BulletConfig>
             {
                 var victim = modelBase.GetObjectBase() as IVictim;
                 if (victim == null) return;
-                
+
                 if (victims.Contains(victim)) return;
                 var otherCamp = victim.GetProperties().Camp;
                 if (otherCamp != _config.camp)
@@ -166,34 +168,103 @@ public class BaseBulletEntity : ObjectBase, PoolItem<BulletConfig>
         if (timer >= _config.duration)
         {
             BaseBulletEntity.pool.RecoverItem(this);
+            return;
         }
 
-        if (objTrans)
+        if (_config.attackType == AttackType.Remote)
         {
-            objTrans.position += dir * _config.moveSpeed * deltaTime;
+            if (objTrans)
+            {
+                objTrans.position += dir * _config.moveSpeed * deltaTime;
+            }
+        }
+        else if (_config.attackType == AttackType.Throw)
+        {
+            // 真实抛体参数
+            const float gravity = 9.8f;
+
+            timer += deltaTime;
+
+            // 起点、终点
+            Vector3 startPos = pos;
+            Vector3 targetPos = _targetPos;
+
+            // 水平分量
+            Vector3 delta = targetPos - startPos;
+            Vector3 deltaXZ = new Vector3(delta.x, 0f, delta.z);
+            float distanceXZ = deltaXZ.magnitude;
+
+            // 初始水平速度（speed 即初速度）
+            float horizontalSpeed = _config.moveSpeed;
+            Vector3 horizontalDir = deltaXZ.normalized;
+
+            // 飞行时间（由水平匀速决定）
+            float totalTime = distanceXZ / horizontalSpeed;
+
+            if (timer >= totalTime)
+            {
+                objTrans.position = targetPos;
+                return;
+            }
+
+            // 竖直初速度（距离越近，totalTime 越小，vy 越小，高度自然越低）
+            float verticalSpeed =
+                (delta.y + 0.5f * gravity * totalTime * totalTime) / totalTime;
+
+            // 水平位移
+            Vector3 horizontalOffset =
+                horizontalDir * horizontalSpeed * timer;
+
+            // 竖直位移
+            float yOffset =
+                verticalSpeed * timer - 0.5f * gravity * timer * timer;
+
+            objTrans.position =
+                startPos + horizontalOffset + Vector3.up * yOffset;
+        }
+
+        else if (_config.attackType == AttackType.Near)
+        {
         }
 
         stayTimer += deltaTime;
-        if (stayTimer >= _config.triggerTimer)
-        {
-            stayTimer -= _config.triggerTimer;
-            if (triggerCount > 0)
-            {
-                foreach (var theVictim in victims)
-                {
-                    theVictim.OnHurt(_fireRole, _config.damage);
-                    triggerCount--;
-                    if (triggerCount <= 0)
-                    {
-                        break;
-                    }
-                }
 
+        if (_config.triggerTimer == 0 && triggerCount > 0)
+        {
+            foreach (var theVictim in victims)
+            {
+                theVictim.OnHurt(_fireRole, _config.damage);
+                triggerCount--;
                 if (triggerCount <= 0)
                 {
-                    Timers.inst.CallLater((o) => { pool.RecoverItem(this); });
+                    break;
                 }
             }
+
+            victims.Clear();
+            return;
         }
+
+
+        if (stayTimer >= _config.triggerTimer && triggerCount > 0)
+        {
+            stayTimer -= _config.triggerTimer;
+            foreach (var theVictim in victims)
+            {
+                theVictim.OnHurt(_fireRole, _config.damage);
+                triggerCount--;
+                if (triggerCount <= 0)
+                {
+                    break;
+                }
+            }
+
+            if (triggerCount <= 0)
+            {
+                pool.RecoverItem(this);
+            }
+        }
+
+     
     }
 }

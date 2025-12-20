@@ -77,6 +77,18 @@ public class TowerManager : LogicPluginBase
         Resources.UnloadAsset(so);
     }
     
+    public TowerData GetTowerDataById(int id)
+    {
+        foreach (var towerData in towerDatas)
+        {
+            if (towerData.Id == id)
+            {
+                return towerData;
+            }
+        }
+        return null;
+    }
+    
     protected override void OnUninstall()
     {
         base.OnUninstall();
@@ -90,7 +102,44 @@ public class TowerManager : LogicPluginBase
             towerBaseCtrlEntity.OnSwitchMode(isEditorMode);
         }
     }
+    public TowerEntity GetTowerById(int id,TowerBaseCtrlEntity  parent)
+    {
+        TowerEntity _towerEntity = null;
+        foreach (var towerData in towerDatas)
+        {
+            if (towerData.Id == id)
+            {
+                bool canBuild = true;
+                foreach (var vector2Int in towerData.UseIdAndNumber)
+                {
+                   var haveNum = BagPlugin.Instance.GetItemNum(vector2Int.x);
+                   if (haveNum < vector2Int.y)
+                   {
+                       canBuild = false;
+                   }
+                }
 
+                if (canBuild)
+                {
+                    foreach (var vector2Int in towerData.UseIdAndNumber)
+                    {
+                        BagPlugin.Instance.RemoveItem(vector2Int.x,vector2Int.y);
+                    }
+
+                    _towerEntity = TowerEntity.pool.GetItem(parent);
+                }
+                else
+                {
+                    Debug.Log("没有足够的物品");
+                }
+                
+            }
+        }
+       
+
+     
+        return _towerEntity;
+    }
     public void AddBaseCtrl(TowerBaseCtrlEntity ctrl)
     {
         towers.Add(ctrl);

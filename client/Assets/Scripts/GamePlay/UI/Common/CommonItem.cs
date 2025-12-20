@@ -6,26 +6,31 @@ using UnityEngine.UI;
 
 public class CommonItem : YOTOScrollViewItem
 {
-  public Button itemButton;
-  public TextMeshProUGUI itemCount;
-  private int towerId;
-  TowerBaseCtrlEntity towerBase;
-  public void SetData(Vector2Int item)
-  {
-    itemCount.text = item.y.ToString();
-  }
+    public Button itemButton;
+    public TextMeshProUGUI itemCount;
+    public TextMeshProUGUI itemName;
+    private int towerId;
+    TowerBaseCtrlEntity towerBase;
 
-  public void SetTowerData(int id,TowerBaseCtrlEntity ctrl)
-  {
-    towerBase = ctrl;
-    towerId = id;
-    itemCount.text = string.Empty;
-    itemButton.onClick.RemoveAllListeners();
-    itemButton.onClick.AddListener(OnClickCreateTower);
-  }
+    public void SetData(Vector2Int item)
+    {
+        itemCount.text = item.y.ToString();
+        var itemdata = BagPlugin.Instance.GetItemData(item.x);
+        itemName.text = itemdata.Name;
+    }
 
-  private void OnClickCreateTower()
-  {
-    towerBase.GenerateTowerById(towerId);
-  }
+    public void SetTowerData(TowerData data, TowerBaseCtrlEntity ctrl)
+    {
+        towerBase = ctrl;
+        towerId = data.Id;
+        itemCount.text = string.Empty;
+        itemButton.onClick.RemoveAllListeners();
+        itemButton.onClick.AddListener(OnClickCreateTower);
+        itemName.text = data.Name;
+    }
+
+    private void OnClickCreateTower()
+    {
+        towerBase.GenerateTowerById(towerId);
+    }
 }

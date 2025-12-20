@@ -63,7 +63,7 @@ public class EnemyEntity : ObjectBase, PoolItem<Vector3>, IVictim
         config.UseObstacleAvoidance = true;
         config.modifierType = ModifierType.FunnelModifier;
         config.speed = 5f;
-        config.stopDistance = 3f;
+        config.stopDistance = 2.5f;
         config.isUpdate = true;
         config.enableGravity = true;
         config.OnPathComplete = OnPathCompleteCallback;
@@ -191,7 +191,7 @@ public class EnemyEntity : ObjectBase, PoolItem<Vector3>, IVictim
             removeCallback = OnBulletFinish,
         });
         // pos.y += Random.Range(0.5f, 2);
-        b.Fire(this, pos, pos - ObjTrans.position);
+        b.Fire(this, pos, pos);
     }
 
     public void OnHurt(IVictim fireRole, float hurt)
@@ -214,7 +214,13 @@ public class EnemyEntity : ObjectBase, PoolItem<Vector3>, IVictim
 
     private void OnPathCompleteCallback()
     {
-        OnPathComplete?.Invoke();
+        //如果距离到达
+        if (seeker.GetDistance() < 3f)
+        {
+            OnPathComplete?.Invoke();
+        }
+        
+    
     }
 
 

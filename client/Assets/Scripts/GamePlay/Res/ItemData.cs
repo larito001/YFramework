@@ -18,6 +18,18 @@ public class ItemData
    public string Name;
    public ItemType ItemType;
    public Sprite Icon;
+
+   public ItemData()
+   {
+       
+   }
+   public ItemData(ItemData itemData)
+   {
+       Id = itemData.Id;
+       Name = itemData.Name;
+       ItemType = itemData.ItemType;
+       Icon = itemData.Icon;
+   }
 }
 
 [System.Serializable]

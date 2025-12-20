@@ -20,11 +20,9 @@ public class TowerBaseCtrlEntity : ObjectBase, PoolItem<object>
     public static DataObjPool<TowerBaseCtrlEntity, object> pool =
         new DataObjPool<TowerBaseCtrlEntity, object>("TowerBaseCtrlEntity", 20);
 
+    public int TowerId = -1;
   
-    public void AddTower(TowerEntity towerEntity)
-    {
-        _towerEntity = towerEntity;
-    }
+
     public void OnSwitchMode(bool isEditing)
     {
         _isEditing = isEditing;
@@ -89,9 +87,10 @@ public class TowerBaseCtrlEntity : ObjectBase, PoolItem<object>
     public void GenerateTowerById(int id)
     {
         hud.OnHide();
-        if (_towerEntity == null)
+        TowerId = id;
+        _towerEntity= TowerManager.Instance.GetTowerById(id,this);
+        if (_towerEntity != null)
         {
-            _towerEntity = TowerEntity.pool.GetItem(this);
             _towerEntity.Parent = this.objTrans;
             _towerEntity.Location = new Vector3(0, 1, 0);
             _towerEntity.Rotation = Quaternion.identity;
