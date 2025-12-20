@@ -5,7 +5,10 @@ using UnityEngine;
 
 public enum ItemType
 {
-    Weapon,
+    Currency,//货币
+    Res,//资源
+    Weapon,//武器
+    UsableRes,//可使用资源
 }
 
 [System.Serializable]

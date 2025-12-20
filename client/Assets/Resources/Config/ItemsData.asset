@@ -13,11 +13,39 @@ MonoBehaviour:
   m_Name: ItemsData
   m_EditorClassIdentifier: 
   ItemDatas:
-  - Id: 1000
-    Name: 
+  - Id: 10001
+    Name: "\u91D1\u5E01"
     ItemType: 0
     Icon: {fileID: 0}
-  - Id: 1001
-    Name: 
-    ItemType: 0
+  - Id: 20002
+    Name: "\u8840\u74F6"
+    ItemType: 3
+    Icon: {fileID: 0}
+  - Id: 20003
+    Name: "\u6D88\u9632\u65A7"
+    ItemType: 2
+    Icon: {fileID: 0}
+  - Id: 20004
+    Name: AK47
+    ItemType: 2
+    Icon: {fileID: 0}
+  - Id: 40001
+    Name: "\u6728\u5934"
+    ItemType: 1
+    Icon: {fileID: 0}
+  - Id: 40002
+    Name: "\u77F3\u5934"
+    ItemType: 1
+    Icon: {fileID: 0}
+  - Id: 40003
+    Name: "\u94C1\u5757"
+    ItemType: 1
+    Icon: {fileID: 0}
+  - Id: 40005
+    Name: "\u7535\u6C60"
+    ItemType: 1
+    Icon: {fileID: 0}
+  - Id: 40006
+    Name: "\u87BA\u4E1D\u9489"
+    ItemType: 1
     Icon: {fileID: 0}
