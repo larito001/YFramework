@@ -26,6 +26,13 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim, IUser
             }
         }
 
+        if (Input.GetKeyDown(KeyCode.W)||Input.GetKeyDown(KeyCode.A)||Input.GetKeyDown(KeyCode.S)||Input.GetKeyDown(KeyCode.D))
+        {
+            if (_usableItemInRange != null)
+            {
+                _usableItemInRange.UnUse(this);
+            }
+        }
         if (Input.GetKeyDown(KeyCode.Q))
         {
             if (currentWeapon is AxeEntity)

@@ -22,7 +22,6 @@ public class ResEntity : ObjectBase, PoolItem<CircleItemMarker>, IUsable
     {
         rateHud = ObjTrans.GetComponentInChildren<RateHud>();
         rateHud.Reset();
-        
     }
 
     protected override void BeforeRecover(bool isDelete)
@@ -56,13 +55,29 @@ public class ResEntity : ObjectBase, PoolItem<CircleItemMarker>, IUsable
             {
                 YFramework.Instance.StopCoroutine(GetIE);
                 GetIE = null;
-    
             }
 
             GetIE = GetRes();
             YFramework.Instance.StartCoroutine(GetIE);
         }
         else if (currentUser == user)
+        {
+            if (GetIE != null)
+            {
+                YFramework.Instance.StopCoroutine(GetIE);
+                GetIE = null;
+            }
+
+            rateHud.Hide();
+
+            currentUser.OnStopUsing();
+            currentUser = null;
+        }
+    }
+
+    public void UnUse(IUser user)
+    {
+        if (currentUser == user)
         {
             if (GetIE != null)
             {

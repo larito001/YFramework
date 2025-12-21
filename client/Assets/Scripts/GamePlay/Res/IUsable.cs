@@ -11,5 +11,6 @@ public interface IUser
 public interface IUsable
 {
     public void OnUse(IUser  user);
+    public void UnUse(IUser  user);
 }
 
