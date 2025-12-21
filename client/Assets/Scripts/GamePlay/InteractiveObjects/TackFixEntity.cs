@@ -7,7 +7,7 @@ public class TrackFixEntity : ObjectBase
 {
     public float Rate = 0f;
     private bool isInFix = false;
-    HudAlwaysFaceToTransform hud;
+    RateHud hud;
     private bool isInit = false;
     private float fixRate = 0f;
     public void SetEntity(float rate)
@@ -26,7 +26,6 @@ public class TrackFixEntity : ObjectBase
         base.OnColiderEnter(other);
         if (other.TryGetComponent(out ThirdPlayerMoveCtrl player))
         {
-            hud.gameObject.SetActive(true);
             isInFix = true;
         }
     }
@@ -37,12 +36,14 @@ public class TrackFixEntity : ObjectBase
         base.YOTOUpdate(deltaTime);
         if (isInFix)
         {
-            Rate+= deltaTime*10*5;
+            Rate+= deltaTime*10;
             if (Rate >= 100)
             {
                 TowerManager.Instance.trackFixDic[fixRate] = true;
                 RecoverObject();
+                isInFix = false;
             }
+            hud.UpdateRate(Rate/100);
         }
         else
         {
@@ -50,8 +51,11 @@ public class TrackFixEntity : ObjectBase
             if (Rate < 0)
             {
                 Rate = 0;
+                return;
             }
+            hud.UpdateRate(Rate/100);
         }
+
     }
 
     public override void OnObjectClick()
@@ -65,13 +69,14 @@ public class TrackFixEntity : ObjectBase
         base.OnColiderExit(other); ;
         if (other.TryGetComponent(out ThirdPlayerMoveCtrl player))
         {
-            hud.gameObject.SetActive(false);
             isInFix = false;
         }
     }
     protected override void AfterInstanceGObj()
     {
-        hud = objTrans.GetComponentInChildren<HudAlwaysFaceToTransform>();
+        hud = objTrans.GetComponentInChildren<RateHud>();
+        hud.Reset();
+        hud.Show();
         isInit = true;
     }
 
