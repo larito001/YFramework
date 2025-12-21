@@ -13,6 +13,8 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IVictim
     private float timer = 0;
     private float attackInterval = 1f;
 
+    public List<EnemyEntity> enemies = new List<EnemyEntity>();
+
     public override void YOTOUpdate(float deltaTime)
     {
         if (objTrans == null) return;
@@ -22,15 +24,17 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IVictim
             timer -= attackInterval;
             Vector3 pos = new Vector3();
             BaseBulletEntity b = null;
-            if (EnemiesManager.instance.GetEnemyPos(objTrans.position, out pos))
+            enemies.Clear();
+            if (EnemiesManager.instance.GetEnemyIsInRange(objTrans.position, 20, enemies))
             {
+                pos = enemies[0].ObjTrans.position;
                 if (towerBaseCtrl.TowerId == 1001)
                 {
                     //投石机
                     b = BaseBulletEntity.pool.GetItem(new BulletConfig()
                     {
                         name = "Bullet/bulletStone",
-                        moveSpeed =3,
+                        moveSpeed = 3,
                         damage = 30,
                         duration = 5,
                         TrggerCount = 5,
@@ -38,7 +42,6 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IVictim
                         attackType = AttackType.Throw,
                         camp = Camp.Player,
                     });
-                    
                 }
                 else if (towerBaseCtrl.TowerId == 1002)
                 {
@@ -73,7 +76,7 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IVictim
                     pos += new Vector3(0, 1.5f, 0);
                 }
 
-                
+
                 b.Fire(this, ObjTrans.position, pos);
             }
         }
@@ -132,7 +135,6 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IVictim
             //寒冰蛋
             attackInterval = 0.5f;
         }
-        
     }
 
     public Transform GetTransform()

@@ -8,7 +8,7 @@ public class EnemyEntity : ObjectBase, PoolItem<EnemyConfig>, IVictim
 {
     public static DataObjPool<EnemyEntity, EnemyConfig> pool =
         new DataObjPool<EnemyEntity, EnemyConfig>("EnemyEntity", 200);
-
+    
     #region stateMachine
 
     public UnityAction<IVictim> OnHurtCallbackStateMachine = null;
@@ -94,9 +94,10 @@ public class EnemyEntity : ObjectBase, PoolItem<EnemyConfig>, IVictim
         RecoverObject();
         properties = null;
     }
-
+    EnemyConfig config;
     public void SetData(EnemyConfig serverData)
     {
+        config=serverData;
         Location = serverData.Location;
         SetInVision(true);
         SetPrefabBundlePath("Enemies/Enemy");
@@ -162,13 +163,13 @@ public class EnemyEntity : ObjectBase, PoolItem<EnemyConfig>, IVictim
     public void TryExchangeTarget()
     {
         //todo:获取索敌对象
-        if (TowerManager.Instance.CheckTowerIsInRange(out TowerEntity tower, this.objTrans.position))
+        if (TowerManager.Instance.CheckTowerIsInRange(out TowerEntity tower, this.objTrans.position,config.atkRange))
         {
             OnEnterCallbackStateMachine?.Invoke(tower);
             return;
         }
 
-        if (PlayerManager.Instance.CheckPlayerIsInRange(objTrans.position, 20))
+        if (PlayerManager.Instance.CheckPlayerIsInRange(objTrans.position, config.atkRange))
         {
             var victim = PlayerManager.Instance.playerEntity;
             OnEnterCallbackStateMachine?.Invoke(victim);

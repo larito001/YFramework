@@ -30,7 +30,7 @@ public class GameDayNightManager : LogicPluginBase
     public void ResetDayNight()
     {
         _dayTime = 9f; // 15 分钟白天
-        _nightTime = 3f; // 5 分钟夜晚
+        _nightTime = 180f; // 5 分钟夜晚
 
         _allTimer = _dayTime + _nightTime;
         _currentTimer = 0f;
@@ -38,7 +38,7 @@ public class GameDayNightManager : LogicPluginBase
         CacheLight();
         OnEnterDay();
     }
-
+    private float lastGenerationThreshold = 0f; // 记录上一次生成的阈值
     /// <summary>
     /// 外部驱动更新（例如由 GameLogic.Update(dt) 调用）
     /// </summary>
@@ -69,8 +69,36 @@ public class GameDayNightManager : LogicPluginBase
                 OnEnterNight();
             }
         }
-    }
+        
+        //黑夜刷怪
+        if (!_isDay)
+        {
 
+           var rate = GetPhaseRate();
+           // 每增加0.2生成一次
+           // 检查rate是否达到了下一个0.2的阈值
+           float nextThreshold = lastGenerationThreshold + 0.34f;
+    
+           if (rate >= nextThreshold)
+           {
+               EnemiesManager.instance.OnNightGenerate(PlayerManager.Instance.trainEngine.transform.position);
+               lastGenerationThreshold = nextThreshold;
+        
+               // 如果rate一次性跨越了多个0.2区间，处理这种情况
+               while (rate >= lastGenerationThreshold + 0.34f)
+               {
+                   lastGenerationThreshold += 0.34f;
+                   EnemiesManager.instance.OnNightGenerate(PlayerManager.Instance.trainEngine.transform.position);
+               }
+           }
+        }
+        else
+        {
+            lastGenerationThreshold = -0.34f;
+        }
+        
+    }
+ 
     /// <summary>
     /// 当前整个昼夜周期进度（0~1）
     /// </summary>

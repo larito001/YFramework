@@ -40,8 +40,8 @@ public class PlayerManager : LogicPluginBase
 
     public bool CheckPlayerIsInRange(Vector3 pos, float range)
     {
-        if (playerEntity == null) return false;
-        return (pos - playerEntity.Location).magnitude < range;
+        if (playerEntity == null||playerEntity.ObjTrans==null) return false;
+        return (pos - playerEntity.ObjTrans.position).magnitude < range;
     }
     
 

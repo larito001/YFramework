@@ -34,19 +34,17 @@ public class TowerManager : LogicPluginBase
         trackFix2.Location = trackFixobj2.transform.position;
         trackFix2.InstanceGObj();
     }
-    public bool CheckTowerIsInRange(out TowerEntity tower, Vector3 pos)
+    public bool CheckTowerIsInRange(out TowerEntity tower, Vector3 pos,float range)
     {
         tower = null;
-        float distance = 9999f;
         foreach (var towerBaseCtrlEntity in towers)
         {
             var tempTower = towerBaseCtrlEntity.GetTower();
             if (tempTower != null && tempTower.HaveObj)
             {
                 var tempdistance = (tempTower.ObjTrans.position - pos).magnitude;
-                if (tempdistance < distance)
+                if (tempdistance < range)
                 {
-                    distance = tempdistance;
                     tower = tempTower;
                 }
             }
