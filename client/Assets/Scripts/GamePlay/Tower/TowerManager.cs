@@ -128,7 +128,7 @@ public class TowerManager : LogicPluginBase
                 }
                 else
                 {
-                    Debug.Log("没有足够的物品");
+                    FlyTextMgr.Instance.AddTextAtScreenCenter("资源不足");
                 }
                 
             }
@@ -146,5 +146,23 @@ public class TowerManager : LogicPluginBase
     public void RemoveBaseCtrl(TowerBaseCtrlEntity ctrl)
     {
         towers.Remove(ctrl);
+    }
+
+    public TowerBaseCtrlEntity CurrentClickBase;
+    public void ClickTower(TowerBaseCtrlEntity ctrl)
+    {
+        if (CurrentClickBase == null)
+        {
+            CurrentClickBase = ctrl;
+            YFramework.uIMgr.Show(UIEnum.SelectTowerPanel); 
+        }
+   
+    }
+
+    public void ClickGennerateTower(int id )
+    {
+        CurrentClickBase.GenerateTowerById(id);
+        CurrentClickBase = null;
+        YFramework.uIMgr.Hide(UIEnum.SelectTowerPanel);
     }
 }

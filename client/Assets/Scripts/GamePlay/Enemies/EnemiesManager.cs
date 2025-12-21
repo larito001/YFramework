@@ -30,7 +30,7 @@ public class EnemiesManager : LogicPluginBase
         instance = this;
     }
 
-    WaitForSeconds wait = new WaitForSeconds(0.5f);
+    WaitForSeconds wait = new WaitForSeconds(0.05f);
     // List<EnemyEntity> enemies = new List<EnemyEntity>();
 
     List<EnemyCamp> enemies = new();

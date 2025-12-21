@@ -13,7 +13,7 @@ public enum TowerBaseState
 }
 public class TowerBaseCtrlEntity : ObjectBase, PoolItem<object>
 {
-    TowerBaseHud hud;
+    // TowerBaseHud hud;
     public TowerBaseState state = TowerBaseState.None;
     public TowerEntity _towerEntity;
     private bool _isEditing = false;
@@ -36,8 +36,8 @@ public class TowerBaseCtrlEntity : ObjectBase, PoolItem<object>
     protected override void AfterInstanceGObj()
     {
 
-        hud = objTrans.GetComponentInChildren<TowerBaseHud>();
-        hud.Init(this);
+        // hud = objTrans.GetComponentInChildren<TowerBaseHud>();
+        // hud.Init(this);
     }
 
     protected override void BeforeRecover(bool isDelete)
@@ -63,7 +63,8 @@ public class TowerBaseCtrlEntity : ObjectBase, PoolItem<object>
         // OnBaseClick();
         if (_towerEntity == null)
         {
-            hud.OnShow(); 
+            TowerManager.Instance.ClickTower(this);
+            // hud.OnShow(); 
         }
 
     }
@@ -86,7 +87,6 @@ public class TowerBaseCtrlEntity : ObjectBase, PoolItem<object>
 
     public void GenerateTowerById(int id)
     {
-        hud.OnHide();
         TowerId = id;
         _towerEntity= TowerManager.Instance.GetTowerById(id,this);
         if (_towerEntity != null)

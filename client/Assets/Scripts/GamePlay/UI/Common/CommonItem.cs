@@ -19,18 +19,18 @@ public class CommonItem : YOTOScrollViewItem
         itemName.text = itemdata.Name;
     }
 
-    public void SetTowerData(TowerData data, TowerBaseCtrlEntity ctrl)
-    {
-        towerBase = ctrl;
-        towerId = data.Id;
-        itemCount.text = string.Empty;
-        itemButton.onClick.RemoveAllListeners();
-        itemButton.onClick.AddListener(OnClickCreateTower);
-        itemName.text = data.Name;
-    }
-
-    private void OnClickCreateTower()
-    {
-        towerBase.GenerateTowerById(towerId);
-    }
+    // public void SetTowerData(TowerData data, TowerBaseCtrlEntity ctrl)
+    // {
+    //     towerBase = ctrl;
+    //     towerId = data.Id;
+    //     itemCount.text = string.Empty;
+    //     itemButton.onClick.RemoveAllListeners();
+    //     itemButton.onClick.AddListener(OnClickCreateTower);
+    //     itemName.text = data.Name;
+    // }
+    //
+    // private void OnClickCreateTower()
+    // {
+    //     towerBase.GenerateTowerById(towerId);
+    // }
 }
