@@ -140,7 +140,6 @@ GameObject:
   - component: {fileID: 8934083328932155200}
   - component: {fileID: 590408562176372717}
   - component: {fileID: 1608502636092835493}
-  - component: {fileID: 1209704027678072532}
   m_Layer: 17
   m_Name: MapRedDot
   m_TagString: Untagged
@@ -213,27 +212,6 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!65 &1209704027678072532
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8395357417220891079}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
-  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &8871548487554310274
 GameObject:
   m_ObjectHideFlags: 0
