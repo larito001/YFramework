@@ -7,7 +7,7 @@ namespace YOTO
     public class YFramework : SingletonMono<YFramework>
     {
         private bool isInit = false;
-        
+        public bool isTest;
         ScreenMonitor screenMonitor = new ScreenMonitor();
         
         public static  EventMgr eventMgr = new EventMgr();

@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using YOTO;
 
 public class BagPlugin : LogicPluginBase
 {
@@ -12,6 +13,7 @@ public class BagPlugin : LogicPluginBase
     {
         Instance = this;
     }
+
     public ItemData GetItemData(int id)
     {
         for (var i = 0; i < ItemDatas.Count; i++)
@@ -24,6 +26,7 @@ public class BagPlugin : LogicPluginBase
 
         return null;
     }
+
     public void ReStar()
     {
         ItemList.Clear();
@@ -34,9 +37,12 @@ public class BagPlugin : LogicPluginBase
             ItemDatas.Add(new ItemData(itemDataSO.ItemDatas[i]));
         }
 
-        for (var i = 0; i < ItemDatas.Count; i++)
+        if (YFramework.Instance.isTest)
         {
-            ItemList.Add(new Vector2Int(ItemDatas[i].Id, 100));
+            for (var i = 0; i < ItemDatas.Count; i++)
+            {
+                ItemList.Add(new Vector2Int(ItemDatas[i].Id, 999));
+            }
         }
     }
 
