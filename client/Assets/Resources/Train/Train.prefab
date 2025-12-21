@@ -96,7 +96,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: e8c214b1c9314d645856258ee96f5ef7, type: 2}
+  - {fileID: 2100000, guid: 69e6947bdfb24bd48a846a76874e1864, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -411,10 +411,30 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 4139970886676284929, guid: 391ccd1311158d34296e2213b94985a7, type: 3}
+      propertyPath: m_Size.x
+      value: 8
+      objectReference: {fileID: 0}
+    - target: {fileID: 4139970886676284929, guid: 391ccd1311158d34296e2213b94985a7, type: 3}
+      propertyPath: m_Size.z
+      value: 18
+      objectReference: {fileID: 0}
+    - target: {fileID: 4139970886676284929, guid: 391ccd1311158d34296e2213b94985a7, type: 3}
+      propertyPath: m_Center.x
+      value: -0.0000000010973207
+      objectReference: {fileID: 0}
+    - target: {fileID: 4139970886676284929, guid: 391ccd1311158d34296e2213b94985a7, type: 3}
+      propertyPath: m_Center.z
+      value: -0.409533
+      objectReference: {fileID: 0}
     - target: {fileID: 4225345107655955930, guid: 391ccd1311158d34296e2213b94985a7, type: 3}
       propertyPath: back
       value: 
       objectReference: {fileID: 9193239608888291254}
+    - target: {fileID: 8488416181581919937, guid: 391ccd1311158d34296e2213b94985a7, type: 3}
+      propertyPath: rectangleSize.x
+      value: 8
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects:
