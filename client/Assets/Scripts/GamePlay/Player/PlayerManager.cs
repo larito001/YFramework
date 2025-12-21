@@ -69,7 +69,7 @@ public class PlayerManager : LogicPluginBase
         else if (playerEntity == null)
         {
             playerEntity = PlayerEntity.pool.GetItem(null);
-            playerEntity.Location = trainEngine.transform.position + trainEngine.transform.right * 5;
+            playerEntity.Location = trainEngine.transform.position + trainEngine.transform.right * 10+new Vector3(0,1,0);
             var orbitCamera = YFramework.cameraMgr.getMainCamera().GetComponent<OrbitCamera>();
             orbitCamera.Uload();
             orbitCamera.distance = 20;
@@ -81,7 +81,7 @@ public class PlayerManager : LogicPluginBase
     public void RebornPlayer()
     {
         playerEntity = PlayerEntity.pool.GetItem(null);
-        playerEntity.Location = trainEngine.transform.position + new Vector3(5, 0, 5);
+        playerEntity.Location = trainEngine.transform.position + trainEngine.transform.right * 10+new Vector3(0,1,0);
         var orbitCamera = YFramework.cameraMgr.getMainCamera().GetComponent<OrbitCamera>();
         orbitCamera.Uload();
         orbitCamera.distance = 20;
