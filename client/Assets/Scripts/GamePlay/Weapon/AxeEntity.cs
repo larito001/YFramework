@@ -15,8 +15,8 @@ public class AxeEntity :  ObjectBase,IWeapon
     {
         
     }
-    private float weaponTimer = 1f;
-    private float weaponTimerTemp = 1f;
+    private float weaponTimer =0.5f;
+    private float weaponTimerTemp = 0.5f;
     public void OnShoot(IVictim fireRole, Vector3 hitPoint, float dt)
     {
         if (weaponTimerTemp >= weaponTimer)
@@ -34,7 +34,7 @@ public class AxeEntity :  ObjectBase,IWeapon
             name = "Bullet/bulletAex",
             moveSpeed = 0,
             attackType = AttackType.Remote,
-            damage = 15,
+            damage = 30,
             TrggerCount = 999,
             duration = 0.1f,
             triggerTimer = 0f,

@@ -18,15 +18,18 @@ public class EnemyPinState : IYState, PoolItem<object>
     {
         _stateMachine = enemy as EnemyStateMachine;
         _stateMachine.Enemy.OnPathComplete += OnPinPathComplete;
-
     }
 
     private void OnPinPathComplete()
     {
         //todo:如果没有moving且到达索敌半径
-        if (true)
+        var target = _stateMachine.Enemy.GetTarget();
+        if (target != null)
         {
-            _stateMachine.SwitchState(EnemyAtkState.pool.GetItem(null));
+            if ((target.GetPosition() - _stateMachine.Enemy.GetPosition()).magnitude <= 4)
+            {
+                _stateMachine.SwitchState(EnemyAtkState.pool.GetItem(null));
+            }
         }
     }
 
