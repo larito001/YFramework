@@ -17,34 +17,38 @@ public class GameMainScene : GotSceneBase
 
     protected override void OnEnterScene()
     {
-        TowerManager.Instance.TrackInit();
-
-        WarehouseEntity warehouse = new WarehouseEntity();
-        warehouse.SetEntity();
-        warehouse.SetInVision(true);
-        var warehouseObj = GameObject.Find("WareHouse");
-        warehouse.Location = warehouseObj.transform.position;
-        warehouse.InstanceGObj();
-
-
-        BagPlugin.Instance.ReStar();
-        FlyTextMgr.Instance.Init();
-        SceneResManager.Instance.Init();
-        GotAStarManager.Instance.LoadPathFinding(() =>
+        Timers.inst.Add(2,(o) =>
         {
-            YFramework.uIMgr.Show(UIEnum.GameMainPanel);
+            TowerManager.Instance.TrackInit();
+
+            WarehouseEntity warehouse = new WarehouseEntity();
+            warehouse.SetEntity();
+            warehouse.SetInVision(true);
+            var warehouseObj = GameObject.Find("WareHouse");
+            warehouse.Location = warehouseObj.transform.position;
+            warehouse.InstanceGObj();
 
 
-            YFramework.uIMgr.Hide(UIEnum.StartPanel);
-            PlayerManager.Instance.Init(() =>
+            BagPlugin.Instance.ReStar();
+            FlyTextMgr.Instance.Init();
+            SceneResManager.Instance.Init();
+            GotAStarManager.Instance.LoadPathFinding(() =>
             {
-                EnemiesManager.instance.Init(() =>
+                YFramework.uIMgr.Show(UIEnum.GameMainPanel);
+
+
+                YFramework.uIMgr.Hide(UIEnum.StartPanel);
+                PlayerManager.Instance.Init(() =>
                 {
-                    EnterSceneComplete();
-                    GameDayNightManager.Instance.ResetDayNight();
+                    EnemiesManager.instance.Init(() =>
+                    {
+                        EnterSceneComplete();
+                        GameDayNightManager.Instance.ResetDayNight();
+                    });
                 });
-            });
-        }, new string[] { "GraphCache" });
+            }, new string[] { "GraphCache" });
+        });
+
     }
 
     public override void Update(float dt)
