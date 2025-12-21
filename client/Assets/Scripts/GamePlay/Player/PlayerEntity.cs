@@ -8,9 +8,13 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim, IUser
 
     ThirdPlayerMoveCtrl playerMoveCtrl;
     public Properties properties;
-    RateHud rateHud; 
+    RateHud rateHud;
+
     #region 生命周期
 
+    AxeEntity axeEntity;
+    GunEntity gunEntity;
+    private IWeapon currentWeapon;
     public override void YOTOUpdate(float deltaTime)
     {
         if (Input.GetKeyDown(KeyCode.F))
@@ -20,8 +24,6 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim, IUser
                 _usableItemInRange.OnUse(this);
             }
         }
-
-     
     }
 
     public void SetData(object data)
@@ -35,7 +37,8 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim, IUser
         properties.OnDead = () =>
         {
             //todo:玩家死亡
-
+            axeEntity.OnDie();
+            gunEntity.OnDie();
             PlayerManager.Instance.PlayerDie();
         };
         properties.Camp = Camp.Player;
@@ -52,6 +55,13 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim, IUser
         rateHud.Reset();
         rateHud.Show();
         rateHud.UpdateRate(properties.HP / properties.MaxHP);
+
+        axeEntity = new AxeEntity();
+        axeEntity.Init();
+        
+        gunEntity = new GunEntity();
+        gunEntity.Init();
+        currentWeapon = axeEntity;
     }
 
     protected override void BeforeRecover(bool isDelete)
@@ -102,9 +112,10 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim, IUser
     #region IUser
 
     private bool isUsing = false;
+
     public void OnUsing()
     {
-        isUsing =true;
+        isUsing = true;
         playerMoveCtrl.SetCanMove(!isUsing);
     }
 
@@ -148,34 +159,36 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim, IUser
 
     #endregion
 
-    private float weaponTimer = 0.05f;
-    private float weaponTimerTemp = 0.05f;
-    public void OnMouseClick(Vector3  hitPoint,float dt)
+
+
+    public void OnMouseClick(Vector3 hitPoint, float dt)
     {
-        if (weaponTimerTemp >= weaponTimer)
-        {
-            weaponTimerTemp -= weaponTimer;
-        }
-        else
-        {
-            weaponTimerTemp += dt;
-            return;
-        }
-        if (objTrans == null) return;
-        BaseBulletEntity b = BaseBulletEntity.pool.GetItem(new BulletConfig()
-        {
-            name = "Bullet/bullet",
-            moveSpeed = 80,
-            attackType = AttackType.Remote,
-            damage = 5,
-            TrggerCount = 1,
-            duration = 10,
-            triggerTimer = 0f,
-            camp = Camp.Player
-        });
-        
-        //todo: 从相机发射射线，打到地面，开火方向是玩家 towards 鼠标点击位置;
-        hitPoint.y = 0.5f;
-        b.Fire(this, ObjTrans.position, hitPoint);
+        currentWeapon.OnShoot(this,hitPoint,dt);
+        // if (weaponTimerTemp >= weaponTimer)
+        // {
+        //     weaponTimerTemp -= weaponTimer;
+        // }
+        // else
+        // {
+        //     weaponTimerTemp += dt;
+        //     return;
+        // }
+        //
+        // if (objTrans == null) return;
+        // BaseBulletEntity b = BaseBulletEntity.pool.GetItem(new BulletConfig()
+        // {
+        //     name = "Bullet/bullet",
+        //     moveSpeed = 80,
+        //     attackType = AttackType.Remote,
+        //     damage = 5,
+        //     TrggerCount = 1,
+        //     duration = 10,
+        //     triggerTimer = 0f,
+        //     camp = Camp.Player
+        // });
+        //
+        // //todo: 从相机发射射线，打到地面，开火方向是玩家 towards 鼠标点击位置;
+        // hitPoint.y = 0.5f;
+        // b.Fire(this, ObjTrans.position, hitPoint);
     }
 }
