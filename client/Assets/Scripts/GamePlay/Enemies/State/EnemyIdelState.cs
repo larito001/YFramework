@@ -58,7 +58,7 @@ public class EnemyIdelState : IYState, PoolItem<object>
     {
         _stateMachine.Enemy.OnEnterCallbackStateMachine -= OnEnterCallback;
         _stateMachine.Enemy.OnHurtCallbackStateMachine -= OnHurtCallback;
-        _stateMachine.Enemy.seeker.ContinuePathFinding();
+        _stateMachine.Enemy.seeker?.ContinuePathFinding();
         _stateMachine = null;
         pool.RecoverItem(this);
     }

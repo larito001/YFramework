@@ -19,7 +19,7 @@ public class EnemyRoundState : IYState, PoolItem<object>
     {
         _stateMachine = enemy as EnemyStateMachine;
         center= _stateMachine.Enemy.OrgPos;
-        var target = center + new Vector3(Random.Range(-5, 5), 0, Random.Range(-5, 5));
+        var target = center + new Vector3(Random.Range(-20, 20), 0, Random.Range(-20, 20));
         target.y = 0;
         _stateMachine.Enemy.OnPathComplete += OnPathComplete;
         _stateMachine.Enemy.OnEnterCallbackStateMachine += OnEnterCallback;

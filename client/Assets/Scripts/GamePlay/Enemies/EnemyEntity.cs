@@ -4,10 +4,10 @@ using Pathfinding.Examples;
 using UnityEngine;
 using UnityEngine.Events;
 
-public class EnemyEntity : ObjectBase, PoolItem<Vector3>, IVictim
+public class EnemyEntity : ObjectBase, PoolItem<EnemyConfig>, IVictim
 {
-    public static DataObjPool<EnemyEntity, Vector3> pool =
-        new DataObjPool<EnemyEntity, Vector3>("EnemyEntity", 200);
+    public static DataObjPool<EnemyEntity, EnemyConfig> pool =
+        new DataObjPool<EnemyEntity, EnemyConfig>("EnemyEntity", 200);
 
     #region stateMachine
 
@@ -95,9 +95,9 @@ public class EnemyEntity : ObjectBase, PoolItem<Vector3>, IVictim
         properties = null;
     }
 
-    public void SetData(Vector3 serverData)
+    public void SetData(EnemyConfig serverData)
     {
-        Location = serverData;
+        Location = serverData.Location;
         SetInVision(true);
         SetPrefabBundlePath("Enemies/Enemy");
 

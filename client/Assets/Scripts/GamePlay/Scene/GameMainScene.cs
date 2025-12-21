@@ -17,9 +17,8 @@ public class GameMainScene : GotSceneBase
 
     protected override void OnEnterScene()
     {
-
         TowerManager.Instance.TrackInit();
-        
+
         WarehouseEntity warehouse = new WarehouseEntity();
         warehouse.SetEntity();
         warehouse.SetInVision(true);
@@ -39,23 +38,11 @@ public class GameMainScene : GotSceneBase
             YFramework.uIMgr.Hide(UIEnum.StartPanel);
             PlayerManager.Instance.Init(() =>
             {
-                //
-                // for (int i = 0; i < 20; i++)
-                // {
-                //     // todo：在范围内随机生成
-                //     Vector3 basePos = PlayerManager.Instance.playerEntity.Location;
-                //     float randomX = Random.Range(-50f, 50f);
-                //     float randomZ = Random.Range(-50f, 50f);
-                //     float randomY = 20f;
-                //
-                //     Vector3 spawnPos = basePos + new Vector3(randomX, randomY, randomZ);
-                //
-                //     EnemiesManager.instance.GenerateEnemyAt(spawnPos);
-                // }
-                // EnemiesManager.instance.GenerateAtRange(PlayerManager.Instance.playerEntity.Location);
-                EnterSceneComplete();
-
-                GameDayNightManager.Instance.ResetDayNight();
+                EnemiesManager.instance.Init(() =>
+                {
+                    EnterSceneComplete();
+                    GameDayNightManager.Instance.ResetDayNight();
+                });
             });
         }, new string[] { "GraphCache" });
     }
@@ -72,7 +59,7 @@ public class GameMainScene : GotSceneBase
         }
         else if (Input.GetKeyDown(KeyCode.M))
         {
-            EnemiesManager.instance.GenerateAtRange(PlayerManager.Instance.playerEntity.ObjTrans.position);
+            // EnemiesManager.instance.GenerateAtRange(PlayerManager.Instance.playerEntity.ObjTrans.position);
         }
     }
 
