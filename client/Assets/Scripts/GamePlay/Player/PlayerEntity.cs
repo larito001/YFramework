@@ -17,6 +17,7 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim, IUser
     private IWeapon currentWeapon;
     public override void YOTOUpdate(float deltaTime)
     {
+        if (ObjTrans == null) return;
         if (Input.GetKeyDown(KeyCode.F))
         {
             if (_usableItemInRange != null)
@@ -24,6 +25,31 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim, IUser
                 _usableItemInRange.OnUse(this);
             }
         }
+
+        if (Input.GetKeyDown(KeyCode.Q))
+        {
+            if (currentWeapon is AxeEntity)
+            {
+                currentWeapon = gunEntity;
+            }
+            else
+            {
+                currentWeapon = axeEntity;
+            }
+        }
+
+        if (Input.GetKeyDown(KeyCode.E))
+        {
+            if (BagPlugin.Instance.GetItemNum(20002)>0)
+            {
+                BagPlugin.Instance.RemoveItem(20002,1);
+                properties.HP += 25;
+                FlyTextMgr.Instance.AddText("+"+25, ObjTrans.position, FlyTextType.AddHP);
+                rateHud.UpdateRate(properties.HP / properties.MaxHP);
+            }
+            
+        }
+        
     }
 
     public void SetData(object data)
@@ -124,7 +150,7 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim, IUser
         isUsing = false;
         playerMoveCtrl.SetCanMove(!isUsing);
     }
-
+    
     #endregion
 
     #region 触发

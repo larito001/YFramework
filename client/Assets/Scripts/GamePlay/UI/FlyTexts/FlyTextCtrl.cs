@@ -54,16 +54,13 @@ public class FlyTextCtrl : ObjectBase, PoolItem<Transform>
             StartAnim(0.5f, 1.2f, 1.0f, 0.4f, 0.1f, 1, 1, Ease.OutQuad, Ease.InOutQuad,true);
         }
 
-        if (data.flyTextType == FlyTextType.WoodRes)
+        if (data.flyTextType == FlyTextType.AddHP)
         {
-            tmp.color = new Color(101/255.0f, 67/255.0f, 33/255.0f,1);
+            //todo:绿色
+            tmp.color = new Color(0.5f, 1, 0);
             StartAnim(0.5f, 1.2f, 1.0f, 0.4f, 0.1f, 1, 1, Ease.OutQuad, Ease.InOutQuad,true);  
         }
-        if (data.flyTextType == FlyTextType.IronRes)
-        {
-            tmp.color =new Color(192/255.0f, 192/255.0f, 192/255.0f,1);
-            StartAnim(0.5f, 1.2f, 1.0f, 0.4f, 0.1f, 1, 1, Ease.OutQuad, Ease.InOutQuad,true);
-        }
+    
     }
     
     public void StartAnim(float startScale, float MaxScale, float lastScale,
