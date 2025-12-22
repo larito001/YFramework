@@ -6,14 +6,18 @@ public class EnemyCamp
 {
     List<EnemyEntity> enemyList = new List<EnemyEntity>();
 
-    public void GenerateEnemyAt(EnemyConfig pos)
+    public void GenerateEnemyAt(EnemyGroupData groupData,Vector3 pos)
     {
-        for (int i = 0; i <pos.number; i++)
+        foreach (var idAndNumber in groupData.enemyIdAndNumber)
         {
-            var enemy = EnemyEntity.pool.GetItem(pos);
-            enemy.Location = pos.Location;
-            enemyList.Add(enemy);
+            var enemyData = EnemiesManager.instance.enemyDatas[idAndNumber.x];
+            for (int i = 0; i < idAndNumber.y; i++)
+            {
+                var enemy = EnemyEntity.pool.GetItem((enemyData, pos));
+                enemyList.Add(enemy);
+            }
         }
+        
     }
     public void RemoveEnemy(EnemyEntity enemy)
     {

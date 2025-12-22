@@ -143,7 +143,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3403940903665679736, guid: 6b9eea85943814945b639bb15a3f2408, type: 3}
       propertyPath: offset
-      value: 15
+      value: 13
       objectReference: {fileID: 0}
     - target: {fileID: 5874427253914167417, guid: 6b9eea85943814945b639bb15a3f2408, type: 3}
       propertyPath: m_LocalPosition.x
@@ -227,6 +227,10 @@ PrefabInstance:
       propertyPath: back
       value: 
       objectReference: {fileID: 2384237378642888848}
+    - target: {fileID: 3403940903665679736, guid: 6b9eea85943814945b639bb15a3f2408, type: 3}
+      propertyPath: offset
+      value: 11
+      objectReference: {fileID: 0}
     - target: {fileID: 5874427253914167417, guid: 6b9eea85943814945b639bb15a3f2408, type: 3}
       propertyPath: m_LocalPosition.x
       value: 784.98254
@@ -394,24 +398,40 @@ PrefabInstance:
       value: 8
       objectReference: {fileID: 0}
     - target: {fileID: 4139970886676284929, guid: 391ccd1311158d34296e2213b94985a7, type: 3}
+      propertyPath: m_Size.y
+      value: 4.205576
+      objectReference: {fileID: 0}
+    - target: {fileID: 4139970886676284929, guid: 391ccd1311158d34296e2213b94985a7, type: 3}
       propertyPath: m_Size.z
-      value: 18
+      value: 13.48216
       objectReference: {fileID: 0}
     - target: {fileID: 4139970886676284929, guid: 391ccd1311158d34296e2213b94985a7, type: 3}
       propertyPath: m_Center.x
-      value: -0.0000000010973207
+      value: 0.00000001914681
+      objectReference: {fileID: 0}
+    - target: {fileID: 4139970886676284929, guid: 391ccd1311158d34296e2213b94985a7, type: 3}
+      propertyPath: m_Center.y
+      value: 1.8972121
       objectReference: {fileID: 0}
     - target: {fileID: 4139970886676284929, guid: 391ccd1311158d34296e2213b94985a7, type: 3}
       propertyPath: m_Center.z
-      value: -0.409533
+      value: 1.8493866
       objectReference: {fileID: 0}
     - target: {fileID: 4225345107655955930, guid: 391ccd1311158d34296e2213b94985a7, type: 3}
       propertyPath: back
       value: 
       objectReference: {fileID: 9193239608888291254}
     - target: {fileID: 8488416181581919937, guid: 391ccd1311158d34296e2213b94985a7, type: 3}
+      propertyPath: center.z
+      value: 2.47
+      objectReference: {fileID: 0}
+    - target: {fileID: 8488416181581919937, guid: 391ccd1311158d34296e2213b94985a7, type: 3}
       propertyPath: rectangleSize.x
       value: 8
+      objectReference: {fileID: 0}
+    - target: {fileID: 8488416181581919937, guid: 391ccd1311158d34296e2213b94985a7, type: 3}
+      propertyPath: rectangleSize.y
+      value: 15
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

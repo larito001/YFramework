@@ -32,6 +32,7 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim, IUser
             {
                 _usableItemInRange.UnUse(this);
             }
+    
         }
         if (Input.GetKeyDown(KeyCode.Q))
         {
@@ -156,6 +157,7 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim, IUser
     {
         isUsing = false;
         playerMoveCtrl.SetCanMove(!isUsing);
+        _usableItemInRange = null;
     }
     
     #endregion

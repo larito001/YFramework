@@ -228,7 +228,7 @@ public class BaseBulletEntity : ObjectBase, PoolItem<BulletConfig>
         }
 
         stayTimer += deltaTime;
-
+        //非延迟触发
         if (_config.triggerTimer == 0 && triggerCount > 0)
         {
             foreach (var theVictim in victims)
@@ -237,6 +237,7 @@ public class BaseBulletEntity : ObjectBase, PoolItem<BulletConfig>
                 triggerCount--;
                 if (triggerCount <= 0)
                 {
+                    pool.RecoverItem(this);
                     break;
                 }
             }
@@ -245,7 +246,7 @@ public class BaseBulletEntity : ObjectBase, PoolItem<BulletConfig>
             return;
         }
 
-
+        //延迟触发
         if (stayTimer >= _config.triggerTimer && triggerCount > 0)
         {
             stayTimer -= _config.triggerTimer;

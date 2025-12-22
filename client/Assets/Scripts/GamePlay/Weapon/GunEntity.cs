@@ -36,7 +36,7 @@ public class GunEntity : ObjectBase,IWeapon
             attackType = AttackType.Remote,
             damage = 5,
             TrggerCount = 1,
-            duration = 10,
+            duration = 2,
             triggerTimer = 0f,
             camp = Camp.Player
         });

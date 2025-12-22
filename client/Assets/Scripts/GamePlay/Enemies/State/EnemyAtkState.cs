@@ -23,7 +23,8 @@ public class EnemyAtkState : IYState, PoolItem<object>
 
     private void OnAtkCallback()
     {
-        Timers.inst.Add(1f, (o) =>
+        
+        Timers.inst.Add(1/_stateMachine.Enemy.enemyConfig.atkSpeed, (o) =>
         {
             _stateMachine.SwitchState(EnemyPinState.pool.GetItem(null)); 
         });

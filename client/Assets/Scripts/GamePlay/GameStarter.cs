@@ -9,11 +9,13 @@ public class GameStarter : MonoBehaviour
 {
     public Transform playerOrgPos;
     public static Transform PlayerOrgPos;
+    public bool isTest = false;
     // Start is called before the first frame update
     void Awake()
     {
         PlayerOrgPos = playerOrgPos;
         YFramework.Instance.Init(this.gameObject);
+        YFramework.Instance.isTest = isTest;
         // 将帧率限制为60FPS
         Application.targetFrameRate = 60;
 

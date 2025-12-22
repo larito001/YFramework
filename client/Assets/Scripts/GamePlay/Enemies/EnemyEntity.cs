@@ -4,11 +4,11 @@ using Pathfinding.Examples;
 using UnityEngine;
 using UnityEngine.Events;
 
-public class EnemyEntity : ObjectBase, PoolItem<EnemyConfig>, IVictim
+public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>, IVictim
 {
-    public static DataObjPool<EnemyEntity, EnemyConfig> pool =
-        new DataObjPool<EnemyEntity, EnemyConfig>("EnemyEntity", 200);
-    
+    public static DataObjPool<EnemyEntity, (EnemyData, Vector3)> pool =
+        new DataObjPool<EnemyEntity, (EnemyData, Vector3)>("EnemyEntity", 200);
+
     #region stateMachine
 
     public UnityAction<IVictim> OnHurtCallbackStateMachine = null;
@@ -62,23 +62,22 @@ public class EnemyEntity : ObjectBase, PoolItem<EnemyConfig>, IVictim
         var config = new AStarHighSeekerConfig(objTrans.gameObject);
         config.UseObstacleAvoidance = true;
         config.modifierType = ModifierType.FunnelModifier;
-        config.speed = 5f;
-        config.stopDistance = 2.5f;
+        config.speed = enemyConfig.moveSpeed;
+        config.stopDistance = enemyConfig.atkRange;
         config.isUpdate = true;
         config.enableGravity = true;
         config.OnPathComplete = OnPathCompleteCallback;
-        var scale = Random.Range(1.5f, 3f);
-        config.radio = 0.5f * scale;
+        var anim = objTrans.GetComponentInChildren<MineBotAnimation>();
+        config.radio = 0.5f * ChangeScale(anim.transform);
         seeker.Init(config);
+        anim.ai = seeker.GetSeeker();
         NeedRound = true;
         OrgPos = Location;
         stateMachine = new EnemyStateMachine();
         stateMachine.Init(this);
         stateMachine.SwitchState(EnemyIdelState.pool.GetItem(null));
-        //todo:test
-        var anim = objTrans.GetComponentInChildren<MineBotAnimation>();
-        anim.transform.localScale = Vector3.one * scale;
-        anim.ai = seeker.GetSeeker();
+
+        ChangeAllChildrenColor(objTrans);
     }
 
     protected override void BeforeRecover(bool isDelete)
@@ -94,16 +93,18 @@ public class EnemyEntity : ObjectBase, PoolItem<EnemyConfig>, IVictim
         RecoverObject();
         properties = null;
     }
-    EnemyConfig config;
-    public void SetData(EnemyConfig serverData)
+
+    public EnemyData enemyConfig;
+
+    public void SetData((EnemyData, Vector3) serverData)
     {
-        config=serverData;
-        Location = serverData.Location;
+        enemyConfig = serverData.Item1;
+        Location = serverData.Item2;
         SetInVision(true);
         SetPrefabBundlePath("Enemies/Enemy");
 
         properties = new Properties();
-        properties.HP = 50;
+        properties.HP = enemyConfig.hp;
         properties.OnDead = () =>
         {
             properties.State = RoleState.Dead;
@@ -112,6 +113,67 @@ public class EnemyEntity : ObjectBase, PoolItem<EnemyConfig>, IVictim
         properties.Camp = Camp.Enemy;
         properties.State = RoleState.Alive;
         InstanceGObj();
+    }
+
+    void ChangeAllChildrenColor(Transform parent)
+    {
+        // 遍历当前父对象下的所有子对象
+        foreach (Transform child in parent)
+        {
+            // 获取子对象的MeshRenderer组件
+            MeshRenderer renderer = child.GetComponent<MeshRenderer>();
+            if (renderer != null)
+            {
+                if (enemyConfig.enemyType == EnemyType.Normal)
+                {
+                    renderer.material.color = Color.green;
+                }
+                else if (enemyConfig.enemyType == EnemyType.Far)
+                {
+                    renderer.material.color = Color.blue;
+                }
+                else if (enemyConfig.enemyType == EnemyType.Summon)
+                {
+                    renderer.material.color = Color.yellow;
+                }
+                else if (enemyConfig.enemyType == EnemyType.Boss)
+                {
+                    // 设置材质颜色为红色
+                    renderer.material.color = Color.red;
+                }
+            }
+
+            // 递归处理子对象的子对象（孙对象）
+            if (child.childCount > 0)
+            {
+                ChangeAllChildrenColor(child);
+            }
+        }
+    }
+
+    private float ChangeScale(Transform trans)
+    {
+        float scale = 1.5f;
+        if (enemyConfig.enemyType == EnemyType.Normal)
+        {
+            scale = 1.5f;
+        }
+        else if (enemyConfig.enemyType == EnemyType.Far)
+        {
+            scale = 1.5f;
+        }
+        else if (enemyConfig.enemyType == EnemyType.Summon)
+        {
+            scale = 2.5f;
+        }
+        else if (enemyConfig.enemyType == EnemyType.Boss)
+        {
+            scale = 4;
+        }
+
+        trans.localScale = Vector3.one * scale;
+
+        return scale;
     }
 
     #endregion
@@ -163,13 +225,14 @@ public class EnemyEntity : ObjectBase, PoolItem<EnemyConfig>, IVictim
     public void TryExchangeTarget()
     {
         //todo:获取索敌对象
-        if (TowerManager.Instance.CheckTowerIsInRange(out TowerEntity tower, this.objTrans.position,config.atkRange))
+        if (TowerManager.Instance.CheckTowerIsInRange(out TowerEntity tower, this.objTrans.position,
+                enemyConfig.indexRange))
         {
             OnEnterCallbackStateMachine?.Invoke(tower);
             return;
         }
 
-        if (PlayerManager.Instance.CheckPlayerIsInRange(objTrans.position, config.atkRange))
+        if (PlayerManager.Instance.CheckPlayerIsInRange(objTrans.position, enemyConfig.indexRange))
         {
             var victim = PlayerManager.Instance.playerEntity;
             OnEnterCallbackStateMachine?.Invoke(victim);
@@ -179,20 +242,58 @@ public class EnemyEntity : ObjectBase, PoolItem<EnemyConfig>, IVictim
     public void Atk()
     {
         var pos = _lockTarget.GetPosition();
-        BaseBulletEntity b = BaseBulletEntity.pool.GetItem(new BulletConfig()
+        BaseBulletEntity b = null;
+        if (enemyConfig.enemyType == EnemyType.Far|| enemyConfig.enemyType == EnemyType.Summon)
         {
-            name = "Bullet/bulletEnemy",
-            moveSpeed = 0,
-            attackType = AttackType.Remote,
-            damage = 15,
-            TrggerCount = 1,
-            duration = 2,
-            triggerTimer = 1f,
-            camp = Camp.Enemy,
-            removeCallback = OnBulletFinish,
-        });
+            b = BaseBulletEntity.pool.GetItem(new BulletConfig()
+            {
+                name = "Bullet/bullet",
+                moveSpeed = 10,
+                attackType = AttackType.Remote,
+                damage = enemyConfig.atk,
+                TrggerCount = 1,
+                duration = 2,
+                triggerTimer = 0f,
+                removeCallback = OnBulletFinish,
+                camp = Camp.Enemy
+            });
+            b.Fire(this, objTrans.transform.position, pos);
+        }
+        else if (enemyConfig.enemyType == EnemyType.Boss)
+        {
+            b = BaseBulletEntity.pool.GetItem(new BulletConfig()
+            {
+                name = "Bullet/bulletEnemyBoss",
+                moveSpeed = 0,
+                attackType = AttackType.Remote,
+                damage = enemyConfig.atk,
+                TrggerCount = 1,
+                duration = 2,
+                triggerTimer = 0.8f,
+                camp = Camp.Enemy,
+                removeCallback = OnBulletFinish,
+            });
+            b.Fire(this, pos, pos);
+        }
+        else
+        {
+            b = BaseBulletEntity.pool.GetItem(new BulletConfig()
+            {
+                name = "Bullet/bulletEnemy",
+                moveSpeed = 0,
+                attackType = AttackType.Remote,
+                damage = enemyConfig.atk,
+                TrggerCount = 1,
+                duration = 2,
+                triggerTimer =0.5f,
+                camp = Camp.Enemy,
+                removeCallback = OnBulletFinish,
+            });
+            b.Fire(this, pos, pos);
+        }
+
         // pos.y += Random.Range(0.5f, 2);
-        b.Fire(this, pos, pos);
+
     }
 
     public void OnHurt(IVictim fireRole, float hurt)
@@ -216,12 +317,7 @@ public class EnemyEntity : ObjectBase, PoolItem<EnemyConfig>, IVictim
     private void OnPathCompleteCallback()
     {
         //如果距离到达
-        if (seeker.GetDistance() < 3f)
-        {
-            OnPathComplete?.Invoke();
-        }
-        
-    
+        OnPathComplete?.Invoke();
     }
 
 
