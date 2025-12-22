@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   EnemyDatas:
   - id: 2001
-    name: 
+    name: "\u666E\u901A\u5C0F\u602A"
     path: 
     enemyType: 0
     moveSpeed: 5
@@ -24,42 +24,42 @@ MonoBehaviour:
     atk: 15
     atkSpeed: 0.67
   - id: 2002
-    name: 
+    name: "\u8FDC\u7A0B\u654C\u4EBA"
     path: 
     enemyType: 1
-    moveSpeed: 5
-    atkRange: 1
-    indexRange: 10
-    hp: 100
-    atk: 15
+    moveSpeed: 2
+    atkRange: 15
+    indexRange: 20
+    hp: 60
+    atk: 8
     atkSpeed: 0.67
   - id: 2003
-    name: 
+    name: "\u9AD8\u901F\u602A"
     path: 
     enemyType: 0
-    moveSpeed: 5
+    moveSpeed: 10
     atkRange: 1
     indexRange: 10
-    hp: 100
-    atk: 15
-    atkSpeed: 0.67
+    hp: 30
+    atk: 10
+    atkSpeed: 2
   - id: 2004
-    name: 
+    name: "\u7CBE\u82F1\u602A1"
     path: 
     enemyType: 2
     moveSpeed: 5
-    atkRange: 1
-    indexRange: 10
-    hp: 100
-    atk: 15
+    atkRange: 15
+    indexRange: 15
+    hp: 150
+    atk: 20
     atkSpeed: 0.67
   - id: 2006
-    name: 
+    name: boss
     path: 
     enemyType: 3
-    moveSpeed: 5
-    atkRange: 1
-    indexRange: 10
-    hp: 100
-    atk: 15
+    moveSpeed: 3
+    atkRange: 3
+    indexRange: 20
+    hp: 1000
+    atk: 45
     atkSpeed: 0.67

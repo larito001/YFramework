@@ -26,7 +26,7 @@ public class EnemyPinState : IYState, PoolItem<object>
         var target = _stateMachine.Enemy.GetTarget();
         if (target != null)
         {
-            if ((target.GetPosition() - _stateMachine.Enemy.GetPosition()).magnitude <= 8)
+            if ((target.GetPosition() - _stateMachine.Enemy.GetPosition()).magnitude <= _stateMachine.Enemy.enemyConfig.atkRange+2)
             {
                 _stateMachine.SwitchState(EnemyAtkState.pool.GetItem(null));
             }
