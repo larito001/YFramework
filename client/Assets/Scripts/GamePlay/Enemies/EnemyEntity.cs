@@ -4,10 +4,10 @@ using Pathfinding.Examples;
 using UnityEngine;
 using UnityEngine.Events;
 
-public class EnemyEntity : ObjectBase, PoolItem<EnemyConfig>, IVictim
+public class EnemyEntity : ObjectBase, PoolItem<(EnemyData,Vector3)>, IVictim
 {
-    public static DataObjPool<EnemyEntity, EnemyConfig> pool =
-        new DataObjPool<EnemyEntity, EnemyConfig>("EnemyEntity", 200);
+    public static DataObjPool<EnemyEntity, (EnemyData, Vector3)> pool =
+        new DataObjPool<EnemyEntity, (EnemyData, Vector3)>("EnemyEntity", 200);
     
     #region stateMachine
 
@@ -94,11 +94,12 @@ public class EnemyEntity : ObjectBase, PoolItem<EnemyConfig>, IVictim
         RecoverObject();
         properties = null;
     }
-    EnemyConfig config;
-    public void SetData(EnemyConfig serverData)
+
+    EnemyData config;
+    public void SetData((EnemyData, Vector3) serverData)
     {
-        config=serverData;
-        Location = serverData.Location;
+        config=serverData.Item1;
+        Location = serverData.Item2;
         SetInVision(true);
         SetPrefabBundlePath("Enemies/Enemy");
 
@@ -163,13 +164,13 @@ public class EnemyEntity : ObjectBase, PoolItem<EnemyConfig>, IVictim
     public void TryExchangeTarget()
     {
         //todo:获取索敌对象
-        if (TowerManager.Instance.CheckTowerIsInRange(out TowerEntity tower, this.objTrans.position,config.atkRange))
+        if (TowerManager.Instance.CheckTowerIsInRange(out TowerEntity tower, this.objTrans.position,config.indexRange))
         {
             OnEnterCallbackStateMachine?.Invoke(tower);
             return;
         }
 
-        if (PlayerManager.Instance.CheckPlayerIsInRange(objTrans.position, config.atkRange))
+        if (PlayerManager.Instance.CheckPlayerIsInRange(objTrans.position, config.indexRange))
         {
             var victim = PlayerManager.Instance.playerEntity;
             OnEnterCallbackStateMachine?.Invoke(victim);

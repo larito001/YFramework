@@ -9,18 +9,28 @@ public class EnemyPlacerEditor : EditorWindow
 
     private const string ResRootName = "EnemyRoot";
     private const float CircleRadius = 0.5f;
-    private EnemyActionType selectedActionIndex;
+
+    // ===== Item =====
+    private EnemyGroupSO enemyGroupSo;
+    private int selectedIndex;
+    private string[] itemOptions;
+
     private bool showLabel = true;
-    [MenuItem("Tools/Enemy Placer (Editor Mark)")]
+
+    [MenuItem("Tools/EnemyPlacer Placer")]
     public static void Open()
     {
-        GetWindow<EnemyPlacerEditor>("Enemy Placer");
+        GetWindow<EnemyPlacerEditor>("Enmey Placer");
     }
 
     private void OnEnable()
     {
+        // 自动尝试加载（可删）
+        enemyGroupSo = Resources.Load<EnemyGroupSO>("Config/EnemyGroupSO");
         // 关键 1：自动启用 Scene 绘制
         Enable();
+
+        RefreshItemOptions();
 
         // 关键 2：强制 Scene 重绘
         SceneView.RepaintAll();
@@ -31,19 +41,33 @@ public class EnemyPlacerEditor : EditorWindow
         Disable();
     }
 
-    private int enemyNumber = 5;
-
     private void OnGUI()
     {
+        EditorGUILayout.LabelField("enemyGroup 配置", EditorStyles.boldLabel);
+
+        EnemyGroupSO newSO = (EnemyGroupSO)EditorGUILayout.ObjectField(
+            "enemyGroupSo",
+            enemyGroupSo,
+            typeof(EnemyGroupSO),
+            false);
+
+        if (newSO != enemyGroupSo)
+        {
+            enemyGroupSo = newSO;
+            selectedIndex = 0;
+            RefreshItemOptions();
+            SceneView.RepaintAll();
+        }
+
+        if (enemyGroupSo == null || itemOptions == null || itemOptions.Length == 0)
+        {
+            EditorGUILayout.HelpBox("请配置 enemyGroupSo", MessageType.Warning);
+            return;
+        }
+
+        selectedIndex = EditorGUILayout.Popup("当前 Item", selectedIndex, itemOptions);
+
         showLabel = EditorGUILayout.Toggle("显示 ItemId", showLabel);
-        
-        // 选择 EnemyActionType 枚举
-        selectedActionIndex = (EnemyActionType)EditorGUILayout.EnumPopup(
-            "敌人动作类型", 
-           selectedActionIndex);
-        enemyNumber = EditorGUILayout.IntSlider("敌人数量", enemyNumber, 0, 999);
-        //todo:文本提示
-        EditorGUILayout.HelpBox("动作行为名称|id|敌人数量|敌人动作类型", MessageType.Info);
     }
 
     private void Enable()
@@ -71,7 +95,7 @@ public class EnemyPlacerEditor : EditorWindow
 
     private void OnSceneGUI(SceneView sceneView)
     {
-        if (resRoot == null )
+        if (resRoot == null || enemyGroupSo == null)
             return;
 
         Event e = Event.current;
@@ -81,11 +105,13 @@ public class EnemyPlacerEditor : EditorWindow
         // ===== 先画 Handles =====
         foreach (Transform child in resRoot.transform)
         {
+            var data = enemyGroupSo.EnemyGroupDatas.Find(i => i.id ==int.Parse(child.name));
+            if (data == null)
+                continue;
 
             Vector3 pos = child.position;
 
             Handles.color = Color.red;
-            
             Handles.DrawSolidDisc(pos, Vector3.up, CircleRadius);
 
             if (showLabel)
@@ -105,8 +131,6 @@ public class EnemyPlacerEditor : EditorWindow
             }
         }
 
-        // ===== 再画 GUI（关键修复点）=====
-
         if (toRemove != null)
         {
             foreach (var t in toRemove)
@@ -124,14 +148,33 @@ public class EnemyPlacerEditor : EditorWindow
             }
         }
     }
+
     private void CreateMarker(Vector3 position)
     {
         GameObject go = new GameObject();
-        go.name = $"Enemy{(EnemyActionType)selectedActionIndex}|{resRoot.transform.childCount}|{enemyNumber}|{(int)selectedActionIndex}";
         go.transform.position = position;
         go.transform.SetParent(resRoot.transform);
+        go.name = enemyGroupSo.EnemyGroupDatas[selectedIndex].id.ToString();
         Undo.RegisterCreatedObjectUndo(go, "Create Enemy Marker");
         SceneView.RepaintAll();
     }
-    
+
+    private void RefreshItemOptions()
+    {
+        if (enemyGroupSo == null)
+        {
+            itemOptions = null;
+            return;
+        }
+
+        var items = enemyGroupSo.EnemyGroupDatas;
+        itemOptions = new string[items.Count];
+
+        for (int i = 0; i < items.Count; i++)
+        {
+            itemOptions[i] = $"Id:{items[i].id}名称:{items[i].name}";
+        }
+    }
+
+
 }
