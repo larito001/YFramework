@@ -6,11 +6,16 @@ public class EnemyCamp
 {
     List<EnemyEntity> enemyList = new List<EnemyEntity>();
 
-    public void GenerateEnemyAt(EnemyGroupData groupData,Vector3 pos)
+    public void GenerateEnemyAt(EnemyGroupData groupData,Vector3 pos,bool isNight=false)
     {
         foreach (var idAndNumber in groupData.enemyIdAndNumber)
         {
-            var enemyData = EnemiesManager.instance.enemyDatas[idAndNumber.x];
+            var enemyData = new EnemyData(EnemiesManager.instance.enemyDatas[idAndNumber.x]) ;
+            if (isNight)
+            {
+                enemyData.indexRange *= 5;  
+            }
+     
             for (int i = 0; i < idAndNumber.y; i++)
             {
                 var enemy = EnemyEntity.pool.GetItem((enemyData, pos));

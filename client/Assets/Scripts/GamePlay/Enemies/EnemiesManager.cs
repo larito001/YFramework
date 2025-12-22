@@ -93,7 +93,7 @@ public class EnemiesManager : LogicPluginBase
             float x = center.x + Mathf.Cos(angle * Mathf.Deg2Rad) * radius;
             float z = center.z + Mathf.Sin(angle * Mathf.Deg2Rad) * radius;
             Vector3 pos = new Vector3(x, center.y+10, z);
-            nightCamp.GenerateEnemyAt(enemyGroupdata[100004], pos);
+            nightCamp.GenerateEnemyAt(enemyGroupdata[100004], pos,true);
         }
     }
 
