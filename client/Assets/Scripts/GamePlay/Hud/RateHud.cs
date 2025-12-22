@@ -15,7 +15,9 @@ public class RateHud : HudAlwaysFaceToTransform
 
     public void Show()
     {
+        ForceLookAt();
         gameObject.SetActive(true);
+        
     }
     public void Hide()
     {

@@ -7,11 +7,15 @@ public class HudAlwaysFaceToTransform : MonoBehaviour
 {
    public  static Transform Target=null;
 
-   private void FixedUpdate()
+   public void ForceLookAt()
    {
       if(Target!=null)
-      //todo:当前物体，持续朝向目标
-      transform.LookAt(Target);
+         //todo:当前物体，持续朝向目标
+         transform.LookAt(Target);
       transform.Rotate(0,180,0);
+   }
+   private void FixedUpdate()
+   {
+      ForceLookAt();
    }
 }
