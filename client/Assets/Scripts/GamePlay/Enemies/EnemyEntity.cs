@@ -215,6 +215,15 @@ public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>, IVictim
         return Location;
     }
 
+    public Vector3 GetForward()
+    {
+        if (objTrans != null)
+        {
+            return objTrans.forward;
+        }
+         return Vector3.down;
+    }
+
     #endregion
 
     #region 状态转换
@@ -241,11 +250,10 @@ public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>, IVictim
 
     public void Atk()
     {
-        var pos = _lockTarget.GetPosition();
         BaseBulletEntity b = null;
         if (enemyConfig.enemyType == EnemyType.Far|| enemyConfig.enemyType == EnemyType.Summon)
         {
-            b = BaseBulletEntity.pool.GetItem(new BulletConfig()
+            b = NormalBulletEntity.pool.GetItem(new BulletConfig()
             {
                 name = "Bullet/bullet",
                 moveSpeed = 10,
@@ -257,11 +265,11 @@ public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>, IVictim
                 removeCallback = OnBulletFinish,
                 camp = Camp.Enemy
             });
-            b.Fire(this, objTrans.transform.position, pos);
+            b.Fire(this, objTrans.transform.position, _lockTarget.GetPosition());
         }
         else if (enemyConfig.enemyType == EnemyType.Boss)
         {
-            b = BaseBulletEntity.pool.GetItem(new BulletConfig()
+            b = NormalBulletEntity.pool.GetItem(new BulletConfig()
             {
                 name = "Bullet/bulletEnemyBoss",
                 moveSpeed = 0,
@@ -273,11 +281,11 @@ public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>, IVictim
                 camp = Camp.Enemy,
                 removeCallback = OnBulletFinish,
             });
-            b.Fire(this, pos, pos);
+            b.Fire(this, _lockTarget.GetPosition(), _lockTarget.GetPosition());
         }
         else
         {
-            b = BaseBulletEntity.pool.GetItem(new BulletConfig()
+            b = NormalBulletEntity.pool.GetItem(new BulletConfig()
             {
                 name = "Bullet/bulletEnemy",
                 moveSpeed = 0,
@@ -289,7 +297,7 @@ public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>, IVictim
                 camp = Camp.Enemy,
                 removeCallback = OnBulletFinish,
             });
-            b.Fire(this, pos, pos);
+            b.Fire(this, _lockTarget.GetPosition(), _lockTarget.GetPosition());
         }
 
         // pos.y += Random.Range(0.5f, 2);

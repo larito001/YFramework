@@ -29,7 +29,7 @@ public class GunEntity : ObjectBase,IWeapon
             return;
         }
 
-        BaseBulletEntity b = BaseBulletEntity.pool.GetItem(new BulletConfig()
+        NormalBulletEntity b = NormalBulletEntity.pool.GetItem(new BulletConfig()
         {
             name = "Bullet/bullet",
             moveSpeed = 80,

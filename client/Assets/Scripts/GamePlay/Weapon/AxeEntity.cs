@@ -28,8 +28,8 @@ public class AxeEntity :  ObjectBase,IWeapon
             weaponTimerTemp += dt;
             return;
         }
-        
-        BaseBulletEntity b = BaseBulletEntity.pool.GetItem(new BulletConfig()
+
+        NormalBulletEntity b = NormalBulletEntity.pool.GetItem(new BulletConfig()
         {
             name = "Bullet/bulletAex",
             moveSpeed = 0,

@@ -127,6 +127,16 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim, IUser
         rateHud.UpdateRate(properties.HP / properties.MaxHP);
     }
 
+    public Vector3 GetForward()
+    {
+        if (objTrans != null)
+        {
+            return objTrans.forward;
+        }
+
+        return Vector3.down;
+    }
+
     public void OnHurtSomeone()
     {
     }

@@ -18,7 +18,7 @@ public class PlayerManager : LogicPluginBase
 
     
 
-    public TrainEngine trainEngine;
+    public NewTrainEngine trainEngine;
     public PlayerEntity playerEntity;
     private bool _isReborn = false;
 
@@ -28,7 +28,7 @@ public class PlayerManager : LogicPluginBase
         YFramework.resMgr.LoadGameObject("Train/Train", (obj) =>
         {
             var train = UnityEngine.Object.Instantiate(obj);
-            trainEngine = train.GetComponentInChildren<TrainEngine>();
+            trainEngine = train.GetComponentInChildren<NewTrainEngine>();
             var spline = GameObject.Find("Spline").GetComponent<SplineComputer>();
 
             trainEngine.SetTracer(spline);
