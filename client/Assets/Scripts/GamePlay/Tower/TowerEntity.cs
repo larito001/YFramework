@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IVictim
@@ -117,7 +118,7 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IVictim
 
     private IVictim GetNearestEnemyPos()
     {
-        return enemies[0];
+        return enemies.OrderBy(x => Vector3.Distance(x.GetPosition(), ObjTrans.position)).FirstOrDefault();
     }
 
     public override string GetModelLayer()

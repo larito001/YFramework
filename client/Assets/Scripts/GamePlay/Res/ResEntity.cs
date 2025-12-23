@@ -35,10 +35,12 @@ public class ResEntity : ObjectBase, PoolItem<CircleItemMarker>, IUsable
 
     public void SetData(CircleItemMarker serverData)
     {
+       var data = BagPlugin.Instance.GetItemData(serverData.itemId);
+        
         Location = serverData.transform.position;
         itemId = serverData.itemId;
         SetInVision(true);
-        SetPrefabBundlePath("Res/Res");
+        SetPrefabBundlePath("Res/"+data.path);
         InstanceGObj();
     }
 

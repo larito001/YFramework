@@ -18,6 +18,7 @@ public class ItemData
     public string Name;
     public ItemType ItemType;
     public Sprite Icon;
+    public string path;
 
     public ItemData()
     {
@@ -29,6 +30,7 @@ public class ItemData
         Name = itemData.Name;
         ItemType = itemData.ItemType;
         Icon = itemData.Icon;
+        path = itemData.path;
     }
 }
 

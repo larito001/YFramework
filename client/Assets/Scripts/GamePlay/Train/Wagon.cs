@@ -108,10 +108,7 @@ namespace Dreamteck.Splines.Examples
 
         private void Start()
         {
-            TowerManager.Instance.GenerateTowerBaseAtTransform(this.transform,new Vector3(0,2,3));
-            TowerManager.Instance.GenerateTowerBaseAtTransform(this.transform, new Vector3(0, 2, -3));
-            TowerManager.Instance.GenerateTowerBaseAtTransform(this.transform, new Vector3(0, 2, 1.5f));
-            TowerManager.Instance.GenerateTowerBaseAtTransform(this.transform, new Vector3(0, 2, -1.5f));
+       
         }
 
         // 递归设置每节车厢的前后关系与样条连接信息

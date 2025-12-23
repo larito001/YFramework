@@ -9,10 +9,21 @@ public class NewTrainEngine : MonoBehaviour
     public float deceleration = -3f; // 减速曲线
     public float maxSpeed = 20f; // 最大速度（正反通用）
     public SplineFollower follower;
-    public List<SplinePositioner> positioners =new List<SplinePositioner>();
+    public List<SplinePositioner> positioners = new List<SplinePositioner>();
     private float currentSpeed = 0f; // 当前速度
     private SplineComputer spline;
     public bool canMove = false;
+
+    public void Start()
+    {
+        for (var i = 0; i < positioners.Count; i++)
+        {
+            TowerManager.Instance.GenerateTowerBaseAtTransform(positioners[i].transform, new Vector3(0, 2, 3));
+            TowerManager.Instance.GenerateTowerBaseAtTransform(positioners[i].transform, new Vector3(0, 2, -3));
+            TowerManager.Instance.GenerateTowerBaseAtTransform(positioners[i].transform, new Vector3(0, 2, 1.5f));
+            TowerManager.Instance.GenerateTowerBaseAtTransform(positioners[i].transform, new Vector3(0, 2, -1.5f));
+        }
+    }
 
     private void Update()
     {
@@ -65,12 +76,11 @@ public class NewTrainEngine : MonoBehaviour
 
     public void SetTracer(SplineComputer spline)
     {
-        this.spline=spline;
+        this.spline = spline;
         follower.spline = spline;
         for (var i = 0; i < positioners.Count; i++)
         {
             positioners[i].spline = spline;
-            
         }
     }
 }
