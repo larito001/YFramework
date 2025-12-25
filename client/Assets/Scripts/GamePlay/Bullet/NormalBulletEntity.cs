@@ -52,6 +52,7 @@ public class NormalBulletEntity : BaseBulletEntity, PoolItem<BulletConfig>
         var config = new ParticleEntityData();
         config.pos = objTrans.position;
         config.path = "Bullet/NormalBulletDestory";
+        config.scale = 1;
         var particle = ParticleEntity.pool.GetItem(config);
         particle.Play();
         pool.RecoverItem(this);

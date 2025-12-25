@@ -17,10 +17,10 @@ public class ThrowBulletEntity : BaseBulletEntity, PoolItem<BulletConfig>
             return;
         } // 真实抛体参数
 
-
         const float gravity = 9.8f;
 
-        timer += deltaTime;
+        // 注意：这里已经有一个 timer += deltaTime 在上面了，所以不需要重复添加
+        // timer += deltaTime; // 这行是重复的，应该删除
 
         // 起点、终点
         Vector3 startPos = pos;
@@ -41,6 +41,12 @@ public class ThrowBulletEntity : BaseBulletEntity, PoolItem<BulletConfig>
         if (timer >= totalTime)
         {
             objTrans.position = targetPos;
+            foreach (var theVictim in victims)
+            {
+                theVictim.OnHurt(_fireRole, _config.damage);
+            }
+
+            DestoryBullet();
             return;
         }
 
@@ -55,30 +61,36 @@ public class ThrowBulletEntity : BaseBulletEntity, PoolItem<BulletConfig>
         // 竖直位移
         float yOffset = verticalSpeed * timer - 0.5f * gravity * timer * timer;
 
-        objTrans.position = startPos + horizontalOffset + Vector3.up * yOffset;
+        // 计算当前位置
+        Vector3 currentPosition = startPos + horizontalOffset + Vector3.up * yOffset;
+        objTrans.position = currentPosition;
+
+        // 计算当前速度向量
+        Vector3 currentVelocity = new Vector3(
+            horizontalDir.x * horizontalSpeed, // 水平速度 x 分量
+            verticalSpeed - gravity * timer, // 垂直速度（考虑重力影响）
+            horizontalDir.z * horizontalSpeed // 水平速度 z 分量
+        );
+
+        // 设置 forward 方向为当前速度方向（如果速度不为零）
+        if (currentVelocity.sqrMagnitude > 0.001f)
+        {
+            objTrans.forward = currentVelocity.normalized;
+        }
 
         stayTimer += deltaTime;
-        //非延迟触发
-        if (_config.triggerTimer == 0 && triggerCount > 0)
-        {
-            foreach (var theVictim in victims)
-            {
-                theVictim.OnHurt(_fireRole, _config.damage);
-                triggerCount--;
-                if (triggerCount <= 0)
-                {
-                    pool.RecoverItem(this);
-                    break;
-                }
-            }
-
-            victims.Clear();
-            return;
-        }
     }
+
     public override void DestoryBullet()
     {
         base.DestoryBullet();
+        var config = new ParticleEntityData();
+        config.pos = objTrans.position;
+        config.path = "Bullet/StoneBulletDestory";
+        config.scale = 3;
+        var particle = ParticleEntity.pool.GetItem(config);
+        particle.Play();
+        particle.Rotation = Quaternion.LookRotation(-ObjTrans.forward, ObjTrans.up);
         pool.RecoverItem(this);
     }
 }

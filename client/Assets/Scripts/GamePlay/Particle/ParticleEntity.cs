@@ -7,6 +7,7 @@ public struct ParticleEntityData
 {
     public string path;
     public Vector3 pos;
+    public float scale;
 }
 
 public class ParticleEntity : ObjectBase, PoolItem<ParticleEntityData>
@@ -76,6 +77,7 @@ public class ParticleEntity : ObjectBase, PoolItem<ParticleEntityData>
         {
             Play();    
         }
+        ObjTrans.localScale= new Vector3(_data.scale, _data.scale, _data.scale);
 
     }
 
