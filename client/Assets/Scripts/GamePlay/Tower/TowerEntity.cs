@@ -70,8 +70,9 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IVictim
                 triggerTimer = 0,
                 attackType = AttackType.Throw,
                 camp = Camp.Player,
+                canAtkWall = false
             });
-            startOffset.y+= 2.1f;
+            startOffset.y += 2.1f;
             startOffset.z += 0.7f;
         }
         else if (towerBaseCtrl.TowerId == 1002)
@@ -86,7 +87,8 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IVictim
                 TrggerCount = 999,
                 duration = 4,
                 triggerTimer = 0.25f,
-                camp = Camp.Player
+                camp = Camp.Player,
+                canAtkWall = false
             });
             pos += new Vector3(0, 1.5f, 0);
             startOffset.y += 1f;
@@ -104,7 +106,7 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IVictim
                 TrggerCount = 999,
                 triggerTimer = 0,
                 attackType = AttackType.Remote,
-                camp = Camp.Player,
+                camp = Camp.Player, canAtkWall = false
             });
             pos += new Vector3(0, 1.5f, 0);
             startOffset.y += 1.2f;
@@ -113,7 +115,7 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IVictim
 
         //todo:再加z轴方向
 
-        b.Fire(this, ObjTrans.position+ ObjTrans.rotation * startOffset , pos);
+        b.Fire(this, ObjTrans.position + ObjTrans.rotation * startOffset, pos);
     }
 
     private IVictim GetNearestEnemyPos()

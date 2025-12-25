@@ -2,58 +2,56 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using YOTO;
+
 public struct ParticleEntityData
 {
     public string path;
     public Vector3 pos;
 }
-public class ParticleEntity :  PoolItem<ParticleEntityData>
+
+public class ParticleEntity : ObjectBase, PoolItem<ParticleEntityData>
 {
     public static DataObjPool<ParticleEntity, ParticleEntityData> pool =
         new DataObjPool<ParticleEntity, ParticleEntityData>("ParticleEntity", 4);
 
     private ParticleEntityData _data;
-    private GameObject _obj;
     private bool needPlay = false;
     private bool loaded = false;
+
     public void AfterIntoObjectPool()
     {
-        YFramework.resMgr.ReleasePack(_data.path,_obj);
-        _obj = null;
         loaded = false;
         needPlay = false;
+        SetInVision(false);
+        RecoverObject();
     }
 
     public void SetData(ParticleEntityData data)
     {
+        Location = data.pos;
         _data = data;
-      YFramework.resMgr.LoadGameObject(data.path, OnLoad);
-      loaded = false;
+        loaded = false;
+        SetInVision(true);
+        SetPrefabBundlePath(data.path);
+        InstanceGObj();
     }
-
-    private void OnLoad(GameObject  obj)
-    {
-        
-        _obj = obj;
-       obj.transform.position= _data.pos;
-       if (needPlay)
-       {
-           PlayParticle();
-       }
-
-       loaded = true;
-       needPlay = false;
-    }
-
+    
     private void PlayParticle()
     {
-      //获取obj及其子节点的所有粒子，然后播放
-      var list = _obj.GetComponentsInChildren<ParticleSystem>();
-      foreach (var item in list)
-      {
-          item.Play();
-      }
+        //获取obj及其子节点的所有粒子，然后播放
+        var list = ObjTrans.GetComponentsInChildren<ParticleSystem>();
+        foreach (var item in list)
+        {
+            item.Play();
+        }
+        Timers.inst.Add(1,DelayRemove);
     }
+
+    private void DelayRemove(object obj)
+    {
+        pool.RecoverItem(this);
+    }
+
     public void Play()
     {
         if (loaded)
@@ -64,6 +62,24 @@ public class ParticleEntity :  PoolItem<ParticleEntityData>
         {
             needPlay = true;
         }
+    }
 
+    public override string GetModelLayer()
+    {
+        return "Default";
+    }
+
+    protected override void AfterInstanceGObj()
+    {
+        loaded = true;
+        if (needPlay)
+        {
+            Play();    
+        }
+
+    }
+
+    protected override void BeforeRecover(bool isDelete)
+    {
     }
 }

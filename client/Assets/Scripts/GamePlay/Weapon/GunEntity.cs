@@ -55,7 +55,8 @@ public class GunEntity : ObjectBase,IWeapon
             TrggerCount = 1,
             duration = 2,
             triggerTimer = 0f,
-            camp = Camp.Player
+            camp = Camp.Player,
+            canAtkWall =  true
         });
 
         //todo: 从相机发射射线，打到地面，开火方向是玩家 towards 鼠标点击位置;

@@ -13,7 +13,7 @@ public class ThrowBulletEntity : BaseBulletEntity, PoolItem<BulletConfig>
         timer += deltaTime;
         if (timer >= _config.duration)
         {
-            ThrowBulletEntity.pool.RecoverItem(this);
+            DestoryBullet();
             return;
         } // 真实抛体参数
 
@@ -75,5 +75,10 @@ public class ThrowBulletEntity : BaseBulletEntity, PoolItem<BulletConfig>
             victims.Clear();
             return;
         }
+    }
+    public override void DestoryBullet()
+    {
+        base.DestoryBullet();
+        pool.RecoverItem(this);
     }
 }

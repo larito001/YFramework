@@ -9,11 +9,11 @@ public class NormalBulletEntity : BaseBulletEntity, PoolItem<BulletConfig>
 
     public override void YOTOFixedUpdate(float deltaTime)
     {
-          if (!isLive) return;
+        if (!isLive) return;
         timer += deltaTime;
         if (timer >= _config.duration)
         {
-            NormalBulletEntity.pool.RecoverItem(this);
+            DestoryBullet();
             return;
         }
 
@@ -21,6 +21,7 @@ public class NormalBulletEntity : BaseBulletEntity, PoolItem<BulletConfig>
         {
             objTrans.position += dir * _config.moveSpeed * deltaTime;
         }
+
         stayTimer += deltaTime;
         //延迟触发
         if (stayTimer >= _config.triggerTimer && triggerCount > 0)
@@ -38,8 +39,21 @@ public class NormalBulletEntity : BaseBulletEntity, PoolItem<BulletConfig>
 
             if (triggerCount <= 0)
             {
-                pool.RecoverItem(this);
+                DestoryBullet();
             }
         }
+    }
+
+    public override void DestoryBullet()
+    {
+        base.DestoryBullet();
+
+        //todo: 生成粒子
+        var config = new ParticleEntityData();
+        config.pos = objTrans.position;
+        config.path = "Bullet/NormalBulletDestory";
+        var particle = ParticleEntity.pool.GetItem(config);
+        particle.Play();
+        pool.RecoverItem(this);
     }
 }

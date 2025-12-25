@@ -14,7 +14,7 @@ public class FireBulletEntity : BaseBulletEntity, PoolItem<BulletConfig>
         timer += deltaTime;
         if (timer >= _config.duration || _fireRole.GetProperties().State == RoleState.Dead)
         {
-            FireBulletEntity.pool.RecoverItem(this);
+            DestoryBullet();
             return;
         }
 
@@ -44,5 +44,10 @@ public class FireBulletEntity : BaseBulletEntity, PoolItem<BulletConfig>
                 pool.RecoverItem(this);
             }
         }
+    }
+    public override void DestoryBullet()
+    {
+        base.DestoryBullet();
+        pool.RecoverItem(this);
     }
 }

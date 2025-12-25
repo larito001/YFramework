@@ -221,7 +221,8 @@ public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>, IVictim
         {
             return objTrans.forward;
         }
-         return Vector3.down;
+
+        return Vector3.down;
     }
 
     #endregion
@@ -251,7 +252,7 @@ public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>, IVictim
     public void Atk()
     {
         BaseBulletEntity b = null;
-        if (enemyConfig.enemyType == EnemyType.Far|| enemyConfig.enemyType == EnemyType.Summon)
+        if (enemyConfig.enemyType == EnemyType.Far || enemyConfig.enemyType == EnemyType.Summon)
         {
             b = NormalBulletEntity.pool.GetItem(new BulletConfig()
             {
@@ -263,7 +264,8 @@ public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>, IVictim
                 duration = 2,
                 triggerTimer = 0f,
                 removeCallback = OnBulletFinish,
-                camp = Camp.Enemy
+                camp = Camp.Enemy,
+                canAtkWall = false
             });
             b.Fire(this, objTrans.transform.position, _lockTarget.GetPosition());
         }
@@ -279,7 +281,8 @@ public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>, IVictim
                 duration = 2,
                 triggerTimer = 0.8f,
                 camp = Camp.Enemy,
-                removeCallback = OnBulletFinish,
+                removeCallback = OnBulletFinish, 
+                canAtkWall = false
             });
             b.Fire(this, _lockTarget.GetPosition(), _lockTarget.GetPosition());
         }
@@ -293,15 +296,15 @@ public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>, IVictim
                 damage = enemyConfig.atk,
                 TrggerCount = 1,
                 duration = 2,
-                triggerTimer =0.5f,
+                triggerTimer = 0.5f,
                 camp = Camp.Enemy,
-                removeCallback = OnBulletFinish,
+                removeCallback = OnBulletFinish, 
+                canAtkWall = false
             });
             b.Fire(this, _lockTarget.GetPosition(), _lockTarget.GetPosition());
         }
 
         // pos.y += Random.Range(0.5f, 2);
-
     }
 
     public void OnHurt(IVictim fireRole, float hurt)

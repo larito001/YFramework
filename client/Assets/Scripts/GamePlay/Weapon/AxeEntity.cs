@@ -56,6 +56,7 @@ public class AxeEntity :  ObjectBase,IWeapon
             duration = 0.1f,
             triggerTimer = 0f,
             camp = Camp.Player,
+            canAtkWall =  false
         });
 
         //todo: 从相机发射射线，打到地面，开火方向是玩家 towards 鼠标点击位置;
