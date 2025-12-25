@@ -209,31 +209,11 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim, IUser
     public void OnMouseClick(Vector3 hitPoint, float dt)
     {
         currentWeapon.OnShoot(this,hitPoint,dt);
-        // if (weaponTimerTemp >= weaponTimer)
-        // {
-        //     weaponTimerTemp -= weaponTimer;
-        // }
-        // else
-        // {
-        //     weaponTimerTemp += dt;
-        //     return;
-        // }
-        //
-        // if (objTrans == null) return;
-        // BaseBulletEntity b = BaseBulletEntity.pool.GetItem(new BulletConfig()
-        // {
-        //     name = "Bullet/bullet",
-        //     moveSpeed = 80,
-        //     attackType = AttackType.Remote,
-        //     damage = 5,
-        //     TrggerCount = 1,
-        //     duration = 10,
-        //     triggerTimer = 0f,
-        //     camp = Camp.Player
-        // });
-        //
-        // //todo: 从相机发射射线，打到地面，开火方向是玩家 towards 鼠标点击位置;
-        // hitPoint.y = 0.5f;
-        // b.Fire(this, ObjTrans.position, hitPoint);
+       
+    }
+
+    public void OnMouseUp()
+    {
+        currentWeapon.OnStop();
     }
 }

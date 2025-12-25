@@ -2,6 +2,7 @@ using System;
 using Cinemachine;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using YOTO;
@@ -61,8 +62,17 @@ public class CameraMgr
         {
             OnMouseDown(dt);
         }
+
+        if (Input.GetMouseButtonUp(0))
+        {
+            OnMouseUp();
+        }
     }
 
+    private void OnMouseUp()
+    {
+        PlayerManager.Instance.OnMouseUp();
+    }
     private void OnMouseDown(float dt)
     {
         Vector3 screenPos = new Vector3(touchPosition.x, touchPosition.y, 0);
@@ -73,11 +83,11 @@ public class CameraMgr
             GameObject obj = hit.collider.gameObject;
             if (obj.TryGetComponent(out SceneModelBase sceneModelBase))
             {
-                PlayerManager.Instance.OnClick(sceneModelBase.transform.position,dt);
+                PlayerManager.Instance.OnMouseDown(sceneModelBase.transform.position,dt);
             }
             else
             {
-                PlayerManager.Instance.OnClick(hit.point,dt);
+                PlayerManager.Instance.OnMouseDown(hit.point,dt);
             }
 
         }

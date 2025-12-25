@@ -6,5 +6,6 @@ public interface IWeapon
 {
     public void OnUse();
     public void OnShoot(IVictim fireRole,Vector3 hitPoint,float dt);
+    public void OnStop();
     public void OnDie();
 }

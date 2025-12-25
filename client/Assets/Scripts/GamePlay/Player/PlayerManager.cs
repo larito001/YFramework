@@ -101,9 +101,15 @@ public class PlayerManager : LogicPluginBase
         Timers.inst.Add(3, (o) => { RebornPlayer(); });
     }
 
-    public void OnClick(Vector3 hitPoint,float dt)
+    public void OnMouseDown(Vector3 hitPoint,float dt)
     {
         if(playerEntity!=null)
         playerEntity.OnMouseClick(hitPoint,dt);
+    }
+
+    public void OnMouseUp()
+    {
+        if(playerEntity!=null)
+            playerEntity.OnMouseUp();
     }
 }
