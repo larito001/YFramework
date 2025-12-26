@@ -4,10 +4,14 @@ using UnityEngine;
 
 public class GunEntity : ObjectBase,IWeapon
 {
-    public void Init()
+    public void Init(float cd=0.05f,float beforeCD=0.02f)
     {
-        SetPrefabBundlePath("Player/PlayerBase");
+        // SetPrefabBundlePath("Player/PlayerBase");
         SetInVision(true);
+        weaponCD=cd;
+        weaponTimer = weaponCD;
+        beforeAtkTimer=beforeCD;
+        beforeAtkCD = beforeCD;
         // InstanceGObj();
     }
     private float weaponTimer =0.05f;

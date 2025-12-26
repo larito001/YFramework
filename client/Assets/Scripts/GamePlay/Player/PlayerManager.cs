@@ -16,41 +16,41 @@ public class PlayerManager : LogicPluginBase
         Instance = this;
     }
 
-    
 
-    public NewTrainEngine trainEngine;
+    public TrainEntity train;
+
     public PlayerEntity playerEntity;
     private bool _isReborn = false;
 
     public void Init(UnityAction loadEndCallback)
     {
         //初始化角色和火车
-        YFramework.resMgr.LoadGameObject("Train/Train", (obj) =>
-        {
-            var train = UnityEngine.Object.Instantiate(obj);
-            trainEngine = train.GetComponentInChildren<NewTrainEngine>();
-            var spline = GameObject.Find("Spline").GetComponent<SplineComputer>();
+        train = new TrainEntity();
+        train.TrainInit();
 
-            trainEngine.SetTracer(spline);
-            playerEntity = PlayerEntity.pool.GetItem(null);
-            playerEntity.Location = GameStarter.PlayerOrgPos.position;
-            loadEndCallback();
-        });
+        playerEntity = PlayerEntity.pool.GetItem(null);
+        playerEntity.Location = GameStarter.PlayerOrgPos.position;
+        loadEndCallback();
     }
 
     public bool CheckPlayerIsInRange(Vector3 pos, float range)
     {
-        if (playerEntity == null||playerEntity.ObjTrans==null) return false;
+        if (playerEntity == null || playerEntity.ObjTrans == null) return false;
         return (pos - playerEntity.ObjTrans.position).magnitude < range;
     }
-    
+
+    public bool CheckTrainIsInRange(Vector3 pos, float range)
+    {
+        if (train == null || train.ObjTrans == null) return false;
+        return (pos - train.ObjTrans.position).magnitude < range;
+    }
 
     public void Switch()
     {
         if (_isReborn) return;
-        if (playerEntity != null && playerEntity.ObjTrans != null)
+        if (train.ObjTrans!=null&&playerEntity != null && playerEntity.ObjTrans != null)
         {
-            var dis = (trainEngine.transform.position - playerEntity.ObjTrans.position).magnitude;
+            var dis = (train.ObjTrans.transform.position - playerEntity.ObjTrans.position).magnitude;
             if (dis < 10)
             {
                 if (playerEntity != null)
@@ -58,30 +58,32 @@ public class PlayerManager : LogicPluginBase
                     var orbitCamera = YFramework.cameraMgr.getMainCamera().GetComponent<OrbitCamera>();
                     orbitCamera.Uload();
                     orbitCamera.distance = 50;
-                    orbitCamera.Init(trainEngine.transform);
+                    orbitCamera.Init(train.ObjTrans);
 
                     PlayerEntity.pool.RecoverItem(playerEntity);
                     playerEntity = null;
-                    trainEngine.canMove = true;
+                    train.canMove = true;
                 }
             }
         }
         else if (playerEntity == null)
         {
             playerEntity = PlayerEntity.pool.GetItem(null);
-            playerEntity.Location = trainEngine.transform.position + trainEngine.transform.right * 10+new Vector3(0,1,0);
+            playerEntity.Location =
+                train.ObjTrans.position + train.ObjTrans.right * 10 + new Vector3(0, 1, 0);
             var orbitCamera = YFramework.cameraMgr.getMainCamera().GetComponent<OrbitCamera>();
             orbitCamera.Uload();
             orbitCamera.distance = 20;
             orbitCamera.Init(playerEntity.ObjTrans);
-            trainEngine.canMove = false;
+            train.canMove = false;
         }
     }
 
     public void RebornPlayer()
     {
         playerEntity = PlayerEntity.pool.GetItem(null);
-        playerEntity.Location = trainEngine.transform.position + trainEngine.transform.right * 10+new Vector3(0,1,0);
+        playerEntity.Location =
+            train.ObjTrans.position +train.ObjTrans.right * 10 + new Vector3(0, 1, 0);
         var orbitCamera = YFramework.cameraMgr.getMainCamera().GetComponent<OrbitCamera>();
         orbitCamera.Uload();
         orbitCamera.distance = 20;
@@ -94,22 +96,22 @@ public class PlayerManager : LogicPluginBase
         var orbitCamera = YFramework.cameraMgr.getMainCamera().GetComponent<OrbitCamera>();
         orbitCamera.Uload();
         orbitCamera.distance = 50;
-        orbitCamera.Init(trainEngine.transform);
+        orbitCamera.Init(train.ObjTrans);
         PlayerEntity.pool.RecoverItem(playerEntity);
         playerEntity = null;
         _isReborn = true;
         Timers.inst.Add(3, (o) => { RebornPlayer(); });
     }
 
-    public void OnMouseDown(Vector3 hitPoint,float dt)
+    public void OnMouseDown(Vector3 hitPoint, float dt)
     {
-        if(playerEntity!=null)
-        playerEntity.OnMouseClick(hitPoint,dt);
+        if (playerEntity != null)
+            playerEntity.OnMouseClick(hitPoint, dt);
     }
 
     public void OnMouseUp()
     {
-        if(playerEntity!=null)
+        if (playerEntity != null)
             playerEntity.OnMouseUp();
     }
 }

@@ -11,29 +11,33 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IVictim
     public TowerBaseCtrlEntity towerBaseCtrl;
     Properties properties;
 
-    private float timer = 0;
-    private float attackInterval = 1f;
+    private float CDtimer = 0;
+    private float attackCD = 1f;
 
     public List<EnemyEntity> enemies = new List<EnemyEntity>();
 
     public IVictim lockTarget = null;
-
-    public override void YOTOFixedUpdate(float deltaTime)
+    private bool isCdEnd = false;
+    public override void YOTOFixedUpdate(float dt)
     {
         if (objTrans == null) return;
-        timer += deltaTime;
-        if (timer >= attackInterval)
+
+        if (CDtimer > 0)
         {
-            timer -= attackInterval;
-
-            enemies.Clear();
-            if (EnemiesManager.instance.GetEnemyIsInRange(objTrans.position, 20, enemies))
-            {
-                lockTarget = GetNearestEnemyPos();
-                GenerateBullet(lockTarget);
-            }
+            CDtimer -= dt;
+            
         }
-
+        else
+        {
+            isCdEnd = true;
+        }
+        
+        enemies.Clear();
+        if (EnemiesManager.instance.GetEnemyIsInRange(objTrans.position, 20, enemies))
+        {
+            lockTarget = GetNearestEnemyPos();
+              
+        }
         if (lockTarget != null)
         {
             //todo:让ObjTrans，朝向lockTarget，只旋转y轴
@@ -48,7 +52,22 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IVictim
             Quaternion targetRotation = Quaternion.LookRotation(direction);
 
             // 直接设置（立即转向）
-            ObjTrans.rotation = targetRotation;
+            //todo:lerp旋转，
+            ObjTrans.rotation = Quaternion.Slerp(ObjTrans.rotation, targetRotation, dt*2);
+            
+            //todo:如果两角相差1度以内则发射
+            if (Vector3.Angle(ObjTrans.forward, direction) < 1)
+            {
+                if (isCdEnd)
+                {
+                    isCdEnd = false;
+                    CDtimer = attackCD;
+                 
+                    GenerateBullet(lockTarget);
+                    lockTarget = null;
+                }
+            }
+            
         }
     }
 
@@ -100,13 +119,13 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IVictim
             b = NormalBulletEntity.pool.GetItem(new BulletConfig()
             {
                 name = "Bullet/bullet",
-                moveSpeed = 80,
+                moveSpeed = 30,
                 damage = 15,
                 duration = 10,
                 TrggerCount = 999,
                 triggerTimer = 0,
                 attackType = AttackType.Remote,
-                camp = Camp.Player, canAtkWall = false
+                camp = Camp.Player, canAtkWall = true
             });
             pos += new Vector3(0, 1.5f, 0);
             startOffset.y += 1.2f;
@@ -163,7 +182,7 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IVictim
         SetPrefabBundlePath(path);
         InstanceGObj();
         properties = new Properties();
-        properties.HP = 120;
+        properties.HP = 999999;
         properties.OnDead = () =>
         {
             //todo:玩家死亡
@@ -179,17 +198,17 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IVictim
         if (towerBaseCtrl.TowerId == 1001)
         {
             //投石机
-            attackInterval = 1f;
+            attackCD = 1f;
         }
         else if (towerBaseCtrl.TowerId == 1002)
         {
             //喷火器
-            attackInterval = 5f;
+            attackCD = 5f;
         }
         else if (towerBaseCtrl.TowerId == 1003)
         {
             //寒冰蛋
-            attackInterval = 0.5f;
+            attackCD = 0.5f;
         }
     }
 

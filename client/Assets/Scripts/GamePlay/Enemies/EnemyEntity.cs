@@ -246,6 +246,14 @@ public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>, IVictim
         {
             var victim = PlayerManager.Instance.playerEntity;
             OnEnterCallbackStateMachine?.Invoke(victim);
+            return;
+        }
+
+        if (PlayerManager.Instance.CheckTrainIsInRange(objTrans.position, enemyConfig.indexRange))
+        {
+            var victim = PlayerManager.Instance.train;
+            OnEnterCallbackStateMachine?.Invoke(victim);
+            return;
         }
     }
 

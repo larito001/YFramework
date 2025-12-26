@@ -15,7 +15,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1014743610318624867
 Transform:
   m_ObjectHideFlags: 0
@@ -138,17 +138,6 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 6b9eea85943814945b639bb15a3f2408, type: 3}
---- !u!114 &2576957158755912294 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 3308045199352414094, guid: 6b9eea85943814945b639bb15a3f2408, type: 3}
-  m_PrefabInstance: {fileID: 1021113652446361064}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0def5156137c6d14082064fa7b5d5247, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!4 &6894326043712200081 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 5874427253914167417, guid: 6b9eea85943814945b639bb15a3f2408, type: 3}
@@ -255,17 +244,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 5874427253914167417, guid: 6b9eea85943814945b639bb15a3f2408, type: 3}
   m_PrefabInstance: {fileID: 5812397250101138126}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &9025566690601758016 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 3308045199352414094, guid: 6b9eea85943814945b639bb15a3f2408, type: 3}
-  m_PrefabInstance: {fileID: 5812397250101138126}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0def5156137c6d14082064fa7b5d5247, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!1001 &7025859560056106141
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -359,11 +337,3 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b4f258be6916efa4d81ffa77bf7eb870, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  acceleration: 5
-  deceleration: -3
-  maxSpeed: 20
-  follower: {fileID: 4854078572883982882}
-  positioners:
-  - {fileID: 9025566690601758016}
-  - {fileID: 2576957158755912294}
-  canMove: 0

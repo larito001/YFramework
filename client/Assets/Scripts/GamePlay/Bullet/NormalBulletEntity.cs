@@ -36,6 +36,7 @@ public class NormalBulletEntity : BaseBulletEntity, PoolItem<BulletConfig>
                     break;
                 }
             }
+            victims.Clear();
 
             if (triggerCount <= 0)
             {
@@ -55,6 +56,7 @@ public class NormalBulletEntity : BaseBulletEntity, PoolItem<BulletConfig>
         config.scale = 1;
         var particle = ParticleEntity.pool.GetItem(config);
         particle.Play();
+        particle.Rotation = Quaternion.LookRotation(-ObjTrans.forward, ObjTrans.up);
         pool.RecoverItem(this);
     }
 }

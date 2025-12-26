@@ -18,9 +18,7 @@ namespace YOTO
        VotEndNotify,
        
        //
-       ForceFood,
-       UnForceFood,
-       RefreshMainRule,
+       RefreshBagList
     }
 
 

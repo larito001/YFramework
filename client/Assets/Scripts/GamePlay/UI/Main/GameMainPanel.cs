@@ -26,7 +26,13 @@ public class GameMainPanel : UIPageBase
 
     public override void OnShow()
     {
+        YFramework.eventMgr.AddEventListener(YOTOEventType.RefreshBagList,OnRefresh);
         bagBtn.onClick.AddListener(OnBagBtnClick);
+        OnRefresh();
+    }
+
+    private void OnRefresh()
+    {
         scrollView.SetData(BagPlugin.Instance.GetListCount>8?8:BagPlugin.Instance.GetListCount);
     }
 
@@ -37,7 +43,7 @@ public class GameMainPanel : UIPageBase
 
     public override void OnHide()
     {
-      
+        YFramework.eventMgr.RemoveEventListener(YOTOEventType.RefreshBagList,OnRefresh);
     }
 
     public override void OnResize()

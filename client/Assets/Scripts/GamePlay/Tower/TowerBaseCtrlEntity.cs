@@ -92,7 +92,7 @@ public class TowerBaseCtrlEntity : ObjectBase, PoolItem<object>
         if (_towerEntity != null)
         {
             _towerEntity.Parent = this.objTrans;
-            _towerEntity.Location = new Vector3(0, 1, 0);
+            _towerEntity.Location = new Vector3(0, 0, 0);
             _towerEntity.Rotation = Quaternion.identity;
         }
     }

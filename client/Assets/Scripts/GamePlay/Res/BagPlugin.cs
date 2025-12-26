@@ -44,6 +44,7 @@ public class BagPlugin : LogicPluginBase
                 ItemList.Add(new Vector2Int(ItemDatas[i].Id, 999));
             }
         }
+        YFramework.eventMgr.TriggerEvent(YOTOEventType.RefreshBagList);
     }
 
     public void AddItem(int id, int num)
@@ -58,6 +59,7 @@ public class BagPlugin : LogicPluginBase
         }
 
         ItemList.Add(new Vector2Int(id, num));
+        YFramework.eventMgr.TriggerEvent(YOTOEventType.RefreshBagList);
     }
 
     public int GetItemNum(int id)
@@ -89,6 +91,7 @@ public class BagPlugin : LogicPluginBase
         }
 
         ItemList.Remove(new Vector2Int(id, num));
+        YFramework.eventMgr.TriggerEvent(YOTOEventType.RefreshBagList);
     }
 
     public int GetListCount => ItemList.Count;
