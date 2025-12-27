@@ -6,52 +6,53 @@ using YOTO;
 
 public class TowerBaseHud : HudAlwaysFaceToTransform
 {
-   Canvas canvas;
-   TowerEntity tower;
-   public Button up;
-   public Button fix;
-   public Button remove;
-   private bool isInit = false;
+    Canvas canvas;
+    TowerEntity tower;
+    public Button up;
+    public Button fix;
+    public Button remove;
+    private bool isInit = false;
 
-   public void Init(TowerEntity towerEntity)
-   {
-      tower= towerEntity;
+    public void Init(TowerEntity towerEntity)
+    {
+        tower = towerEntity;
 
-      if (canvas == null)
-      {
-         canvas = GetComponent<Canvas>();
-         canvas.worldCamera = YFramework.cameraMgr.getMainCamera();
-      }
+        if (canvas == null)
+        {
+            canvas = GetComponent<Canvas>();
+            canvas.worldCamera = YFramework.cameraMgr.getMainCamera();
+        }
 
-      gameObject.SetActive(false);
-      up.onClick.AddListener(OnClickUp);
-      fix.onClick.AddListener(OnClickFix);
-      remove.onClick.AddListener(OnClickRemove);
-   }
+        gameObject.SetActive(false);
+        up.onClick.AddListener(OnClickUp);
+        fix.onClick.AddListener(OnClickFix);
+        remove.onClick.AddListener(OnClickRemove);
+    }
 
-   private void OnClickRemove()
-   {
-      tower.RemoveOnBase();
-   }
+    private void OnClickRemove()
+    {
+        tower.RemoveOnBase();
+    }
 
-   private void OnClickFix()
-   {
-      
-   }
+    private void OnClickFix()
+    {
+    }
 
-   private void OnClickUp()
-   {
-      tower.OnLevelUp();
-      OnHide();
-   }
-   public void OnShow()
-   {
-      gameObject.SetActive(true);
-   }
-   
+    private void OnClickUp()
+    {
+        tower.OnLevelUp();
+        OnHide();
+    }
 
-   public void OnHide()
-   {
-      gameObject.SetActive(false);
-   }
+    public void OnShow()
+    {
+        ForceLookAt();
+        gameObject.SetActive(true);
+    }
+
+
+    public void OnHide()
+    {
+        gameObject.SetActive(false);
+    }
 }

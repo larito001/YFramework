@@ -247,6 +247,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: TowerBaseHud
       objectReference: {fileID: 0}
+    - target: {fileID: 8085846340926371764, guid: 03cc5e9436506084890d7a07e49d74f6, type: 3}
+      propertyPath: m_PresetInfoIsWorld
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 8947696532568918018, guid: 03cc5e9436506084890d7a07e49d74f6, type: 3}
       propertyPath: m_Pivot.x
       value: 0.5
@@ -309,7 +313,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8947696532568918018, guid: 03cc5e9436506084890d7a07e49d74f6, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: 1.3284912
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8947696532568918018, guid: 03cc5e9436506084890d7a07e49d74f6, type: 3}
       propertyPath: m_AnchoredPosition.y

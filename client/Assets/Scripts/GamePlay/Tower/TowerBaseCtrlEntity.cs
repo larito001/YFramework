@@ -97,6 +97,20 @@ public class TowerBaseCtrlEntity : ObjectBase, PoolItem<object>
     {
         if (_towerEntity != null)
         {
+            foreach (var instanceTowerData in TowerManager.Instance.towerDatas)
+            {
+                if (instanceTowerData.Id == TowerId)
+                {
+                    foreach (var removeBackRe in instanceTowerData.RemoveBackRes)
+                    {
+                        BagPlugin.Instance.AddItem(removeBackRe.x,removeBackRe.y);
+                    } 
+                }
+            }
+         
+           
+            
+            
             TowerId = -1;
             TowerEntity.pool.RecoverItem(_towerEntity);
             _towerEntity = null;

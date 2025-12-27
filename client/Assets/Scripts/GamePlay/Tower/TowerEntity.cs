@@ -141,7 +141,6 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IVictim
 
     public override void OnObjectClick()
     {
-        base.OnObjectClick();
         towerHud.OnShow();
     }
 
@@ -282,5 +281,6 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IVictim
     public void RemoveOnBase()
     {
         towerBaseCtrl.RemoveTower();
+        
     }
 }
