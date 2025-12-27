@@ -47,7 +47,8 @@ public enum UIEnum
     WarehousePanel,
     SkillTreePanel,
     BagPanel,
-    SelectTowerPanel
+    SelectTowerPanel,
+    TowerUpPanel
 }
 
 public class UIConfig
@@ -63,7 +64,8 @@ public class UIConfig
         new UIInfo(UIEnum.WarehousePanel, UILayerEnum.Normal, "UI/bag/WarehousePanel"),
         new UIInfo(UIEnum.SkillTreePanel, UILayerEnum.Normal, "UI/SkillTree/SkillTreePanel"),
         new UIInfo(UIEnum.BagPanel, UILayerEnum.Normal, "UI/bag/BagPanel"),
-        new UIInfo(UIEnum.SelectTowerPanel, UILayerEnum.PopText, "UI/SelectTower/SelectTowerPanel")
+        new UIInfo(UIEnum.SelectTowerPanel, UILayerEnum.PopText, "UI/SelectTower/SelectTowerPanel"),
+        new UIInfo(UIEnum.TowerUpPanel, UILayerEnum.PopText, "UI/TowerUp/TowerUpPanel")
     };
 
     #region  对外
