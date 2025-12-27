@@ -166,6 +166,8 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IVictim
 
     protected override void BeforeRecover(bool isDelete)
     {
+        rateHud.Hide();
+        towerHud.OnHide();
     }
 
     public void AfterIntoObjectPool()

@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 using YOTO;
@@ -15,6 +16,7 @@ public class TowerBaseHud : HudAlwaysFaceToTransform
 
     public void Init(TowerEntity towerEntity)
     {
+
         tower = towerEntity;
 
         if (canvas == null)
@@ -40,12 +42,29 @@ public class TowerBaseHud : HudAlwaysFaceToTransform
 
     private void OnClickUp()
     {
-        tower.OnLevelUp();
+        TowerUpParam param = new TowerUpParam();
+
+        var data = TowerManager.Instance.GetTowerDataById(tower.towerBaseCtrl.TowerId);
+        param.useIdAndNumber = data.LevelUpRes.ToList(); 
+        param.confirmAction =OnUpConfirm;
+        YFramework.uIMgr.Show(UIEnum.TowerUpPanel, param);
+
+
         OnHide();
+    }
+
+    private void OnUpConfirm()
+    {
+        if (isInit&& tower.ObjTrans!=null)
+        {
+            tower.OnLevelUp();    
+        }
+
     }
 
     public void OnShow()
     {
+        isInit = true;
         ForceLookAt();
         gameObject.SetActive(true);
     }
@@ -53,6 +72,7 @@ public class TowerBaseHud : HudAlwaysFaceToTransform
 
     public void OnHide()
     {
+        isInit = false;
         gameObject.SetActive(false);
     }
 }

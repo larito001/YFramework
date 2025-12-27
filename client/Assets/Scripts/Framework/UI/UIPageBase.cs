@@ -25,6 +25,11 @@ public abstract class UIPageBase : MonoBehaviour
     public bool isEnable = false;
     public CanvasGroup canvasGroup;
     public abstract void OnLoad();
+
+    public virtual void BeforeShow(object param)
+    {
+        
+    }
     public abstract void OnShow();
     public abstract void OnHide();
 

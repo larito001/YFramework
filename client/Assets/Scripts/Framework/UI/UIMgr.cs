@@ -40,15 +40,14 @@ public class UILayer
         // 添加其他必要组件
         layerRoot.AddComponent<GraphicRaycaster>();
     }
-    
-    public void Show(UIInfo info)
+    public void Show(UIInfo info,object param)
     {
         UIPageHandler newHandler;
          if (!handlers.TryGetValue(info.uiEnum, out newHandler) || newHandler == null)
          {
              // Debug.LogError($"[UILayer] Show: Failed to get handler for {info.uiEnum}");
              newHandler = new UIPageHandler();
-             newHandler.Init(info.key,info.uiEnum);
+             newHandler.Init(info.key,info.uiEnum,param);
              handlers.Add(info.uiEnum,newHandler);
          }
          // 设置加载完成的回调
@@ -136,15 +135,18 @@ public class UIMgr
    
     }
 
-    public void Show(UIEnum uiEnum)
+    public void Show(UIEnum uiEnum,object param = null)
     {
         Debug.Log($"[UIMgr] Show: uiEnum={uiEnum}");
         UIInfo point = uIConfig.uiConfigDic[uiEnum];
 
         if (uiLayers.ContainsKey(point.layer))
         {
-            uiLayers[point.layer].Show(point);
+            uiLayers[point.layer].Show(point,param);
         }
+        
+        
+        
     }
 
     public void OnUILoaded(GameObject uiObject)

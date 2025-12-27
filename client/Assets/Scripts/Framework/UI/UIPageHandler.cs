@@ -21,8 +21,10 @@ public class UIPageHandler
     public PageState curState = PageState.UnLoad;
     private bool shouldBeHidden = false; // 新增：标记是否应该被隐藏
     private UIEnum type;
-    public void Init(string key,UIEnum t)
+    private object _param;
+    public void Init(string key,UIEnum t,object param)
     {
+        _param = param;
         this.type = t;
         this.key = key;
         shouldBeHidden = false; // 初始化时重置标记
@@ -135,6 +137,7 @@ public class UIPageHandler
         if (uIPageBase != null && uIPageBase.gameObject != null && uIPageBase.canvasGroup != null)
         {
             Enable();
+            uIPageBase.BeforeShow(_param);
             uIPageBase.OnShow();
             curState = PageState.Show;
             shouldBeHidden = false; // 显示时重置标记

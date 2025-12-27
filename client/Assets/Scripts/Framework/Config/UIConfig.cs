@@ -65,7 +65,7 @@ public class UIConfig
         new UIInfo(UIEnum.SkillTreePanel, UILayerEnum.Normal, "UI/SkillTree/SkillTreePanel"),
         new UIInfo(UIEnum.BagPanel, UILayerEnum.Normal, "UI/bag/BagPanel"),
         new UIInfo(UIEnum.SelectTowerPanel, UILayerEnum.PopText, "UI/SelectTower/SelectTowerPanel"),
-        new UIInfo(UIEnum.TowerUpPanel, UILayerEnum.PopText, "UI/TowerUp/TowerUpPanel")
+        new UIInfo(UIEnum.TowerUpPanel, UILayerEnum.PopText, "UI/TowerUpPanel")
     };
 
     #region  对外

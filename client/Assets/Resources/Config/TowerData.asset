@@ -20,7 +20,9 @@ MonoBehaviour:
     - {x: 40002, y: 5}
     - {x: 40001, y: 5}
     - {x: 40006, y: 1}
-    LevelUpRes: []
+    LevelUpRes:
+    - {x: 40002, y: 2}
+    - {x: 40001, y: 2}
     RemoveBackRes:
     - {x: 40006, y: 1}
     HP: 100
@@ -36,7 +38,8 @@ MonoBehaviour:
     - {x: 40003, y: 4}
     - {x: 40005, y: 1}
     - {x: 40006, y: 2}
-    LevelUpRes: []
+    LevelUpRes:
+    - {x: 40002, y: 1}
     RemoveBackRes:
     - {x: 40005, y: 1}
     - {x: 40006, y: 2}
@@ -53,7 +56,8 @@ MonoBehaviour:
     - {x: 40003, y: 4}
     - {x: 40005, y: 2}
     - {x: 40006, y: 1}
-    LevelUpRes: []
+    LevelUpRes:
+    - {x: 40002, y: 1}
     RemoveBackRes:
     - {x: 40005, y: 2}
     - {x: 40006, y: 1}

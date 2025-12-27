@@ -100,4 +100,28 @@ public class BagPlugin : LogicPluginBase
     {
         return ItemList[index];
     }
+
+    public bool CheckIsEnoughAndUse(List<Vector2Int> itemList)
+    {
+        for (var i = 0; i < itemList.Count; i++)
+        {
+            var item = itemList[i];
+            var itemData = GetItemData(item.x);
+            if (itemData == null)
+            {
+                return false;
+            }
+
+            if (item.y > GetItemNum(item.x))
+            {
+                return false;
+            }
+        }
+        for (var i = 0; i < itemList.Count; i++)
+        {
+            var item = itemList[i];
+            RemoveItem(item.x, item.y);
+        }
+        return true;
+    }
 }
