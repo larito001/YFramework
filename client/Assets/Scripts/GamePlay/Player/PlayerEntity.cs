@@ -36,14 +36,17 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim, IUser
         }
         if (Input.GetKeyDown(KeyCode.Q))
         {
+            currentWeapon.OnUnUse();
             if (currentWeapon is AxeEntity)
             {
+                
                 currentWeapon = gunEntity;
             }
             else
             {
                 currentWeapon = axeEntity;
             }
+            currentWeapon.OnUse();
         }
 
         if (Input.GetKeyDown(KeyCode.E))
@@ -91,16 +94,19 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim, IUser
         rateHud.UpdateRate(properties.HP / properties.MaxHP);
 
         axeEntity = new AxeEntity();
-        axeEntity.Init();
-        
+        axeEntity.InitAex(objTrans.GetComponentInChildren<PlayerRenderer>().transform);
+        axeEntity.Location = new Vector3(0.25f,0.5f,0);
         gunEntity = new GunEntity();
-        gunEntity.Init();
+        gunEntity.InitGun(objTrans.GetComponentInChildren<PlayerRenderer>().transform);
+        gunEntity.Location = new Vector3(0.25f,0.5f,0);
         currentWeapon = axeEntity;
     }
 
     protected override void BeforeRecover(bool isDelete)
     {
         properties.State = RoleState.Dead;
+        gunEntity.RecoverObject();
+        axeEntity.RecoverObject();
     }
 
     public void AfterIntoObjectPool()
@@ -211,9 +217,5 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim, IUser
         currentWeapon.OnShoot(this,hitPoint,dt);
        
     }
-
-    public void OnMouseUp()
-    {
-        currentWeapon.OnStop();
-    }
+    
 }

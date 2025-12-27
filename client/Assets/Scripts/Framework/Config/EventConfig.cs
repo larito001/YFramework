@@ -18,7 +18,8 @@ namespace YOTO
        VotEndNotify,
        
        //
-       RefreshBagList
+       RefreshBagList,
+       RefreshTrainHP,
     }
 
 

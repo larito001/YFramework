@@ -1,22 +1,21 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 using YOTO;
 
 public class TowerBaseHud : HudAlwaysFaceToTransform
 {
-   public YOTOScrollView scrollView;
    Canvas canvas;
-   TowerBaseCtrlEntity towerBaseCtrl;
+   TowerEntity tower;
+   public Button up;
+   public Button fix;
+   public Button remove;
    private bool isInit = false;
 
-   public void Init(TowerBaseCtrlEntity ctrl)
+   public void Init(TowerEntity towerEntity)
    {
-      towerBaseCtrl = ctrl;
-      scrollView.Initialize(10);
-      scrollView.SetRenderer(ItemRender);
-
-
+      tower= towerEntity;
 
       if (canvas == null)
       {
@@ -25,22 +24,34 @@ public class TowerBaseHud : HudAlwaysFaceToTransform
       }
 
       gameObject.SetActive(false);
+      up.onClick.AddListener(OnClickUp);
+      fix.onClick.AddListener(OnClickFix);
+      remove.onClick.AddListener(OnClickRemove);
+   }
+
+   private void OnClickRemove()
+   {
+      tower.RemoveOnBase();
+   }
+
+   private void OnClickFix()
+   {
+      
+   }
+
+   private void OnClickUp()
+   {
+      tower.OnLevelUp();
+      OnHide();
    }
    public void OnShow()
    {
       gameObject.SetActive(true);
-      scrollView.SetData(TowerManager.Instance.towerDatas.Count);
    }
-
-   private void ItemRender(YOTOScrollViewItem obj, int index)
-   {
-      var item = obj as CommonItem;
-      // item.SetTowerData(TowerManager.Instance.towerDatas[index], towerBaseCtrl);
-   }
+   
 
    public void OnHide()
    {
-      scrollView.SetData(0);
       gameObject.SetActive(false);
    }
 }

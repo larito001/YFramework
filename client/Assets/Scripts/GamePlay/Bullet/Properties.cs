@@ -16,8 +16,10 @@ public class Properties
     private float _atk;
     private float _def;
     private Camp _camp;
+    private int _level;
     private RoleState _state;
 
+    
     public float HP
     {
         get
@@ -76,6 +78,17 @@ public class Properties
         set
         {
             _camp = value;
+        }
+    }
+    public int Level
+    {
+        get
+        {
+            return _level;
+        }
+        set
+        {
+            _level = value;
         }
     }
     public RoleState State

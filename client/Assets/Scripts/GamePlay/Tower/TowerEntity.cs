@@ -11,6 +11,8 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IVictim
     public TowerBaseCtrlEntity towerBaseCtrl;
     Properties properties;
 
+    RateHud rateHud;
+    private TowerBaseHud towerHud;
     private float CDtimer = 0;
     private float attackCD = 1f;
 
@@ -137,6 +139,12 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IVictim
         b.Fire(this, ObjTrans.position + ObjTrans.rotation * startOffset, pos);
     }
 
+    public override void OnObjectClick()
+    {
+        base.OnObjectClick();
+        towerHud.OnShow();
+    }
+
     private IVictim GetNearestEnemyPos()
     {
         return enemies.OrderBy(x => Vector3.Distance(x.GetPosition(), ObjTrans.position)).FirstOrDefault();
@@ -149,6 +157,12 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IVictim
 
     protected override void AfterInstanceGObj()
     {
+        rateHud = ObjTrans.GetComponentInChildren<RateHud>();
+        rateHud.Show();
+        towerHud = ObjTrans.GetComponentInChildren<TowerBaseHud>();
+        towerHud.Init(this);
+        towerHud.OnHide();
+        rateHud.UpdateRate(properties.HP / properties.MaxHP);
     }
 
     protected override void BeforeRecover(bool isDelete)
@@ -164,6 +178,19 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IVictim
     {
         towerBaseCtrl = serverData;
         SetInVision(true);
+        properties = new Properties();
+        properties.HP = 100;
+        properties.MaxHP = 100;
+        properties.OnDead = () =>
+        {
+            //todo:玩家死亡
+            properties.State = RoleState.Dead;
+            towerBaseCtrl.RemoveTower();
+            // PlayerManager.Instance.Switch();
+        };
+        properties.Camp = Camp.Player;
+        properties.State = RoleState.Alive;
+        properties.Level = 1;
 
         string path = "Tower/TowerRendererNormal";
         if (towerBaseCtrl.TowerId == 1001)
@@ -181,20 +208,7 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IVictim
 
         SetPrefabBundlePath(path);
         InstanceGObj();
-        properties = new Properties();
-        properties.HP = 999999;
-        properties.OnDead = () =>
-        {
-            //todo:玩家死亡
-            properties.State = RoleState.Dead;
-            pool.RecoverItem(this);
-            towerBaseCtrl.RemoveTower();
-            // PlayerManager.Instance.Switch();
-        };
-        properties.Camp = Camp.Player;
-        properties.State = RoleState.Alive;
-
-
+     
         if (towerBaseCtrl.TowerId == 1001)
         {
             //投石机
@@ -233,6 +247,7 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IVictim
         FlyTextMgr.Instance.AddText(hurt.ToString(), objTrans.position, FlyTextType.Quick);
         properties.HP -= hurt;
         fireRole.OnHurtSomeone();
+        rateHud.UpdateRate(properties.HP / properties.MaxHP);
     }
 
     public Vector3 GetPosition()
@@ -257,5 +272,15 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IVictim
         }
 
         return Vector3.down;
+    }
+
+    public void OnLevelUp()
+    {
+        properties.Level++;
+    }
+    
+    public void RemoveOnBase()
+    {
+        towerBaseCtrl.RemoveTower();
     }
 }

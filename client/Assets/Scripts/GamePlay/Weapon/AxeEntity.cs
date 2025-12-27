@@ -4,11 +4,12 @@ using UnityEngine;
 
 public class AxeEntity :  ObjectBase,IWeapon
 {
-    public void Init()
+    public void InitAex(Transform parent)
     {
-        SetPrefabBundlePath("Player/PlayerBase");
+        Parent = parent;
+        SetPrefabBundlePath("Player/Aex");
         SetInVision(true);
-        // InstanceGObj();
+        InstanceGObj();
     }
     private float weaponTimer =0.5f;
     private float weaponCD= 0.5f;
@@ -39,7 +40,11 @@ public class AxeEntity :  ObjectBase,IWeapon
 
     public void OnUse()
     {
-        
+        ObjTrans.gameObject.SetActive(true);
+    }
+    public void OnUnUse()
+    {
+        ObjTrans.gameObject.SetActive(false);
     }
     IVictim _fireRole = null;
     Vector3 _hitPoint;
@@ -76,6 +81,8 @@ public class AxeEntity :  ObjectBase,IWeapon
            
         }
     }
+
+
 
     public void OnStop()
     {

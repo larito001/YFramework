@@ -1,15 +1,9 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using DG.Tweening;
-using TMPro;
-using UnityEngine;
 using UnityEngine.UI;
-using UnityEngine.EventSystems;
 using YOTO;
 
 public class GameMainPanel : UIPageBase
 {
+    public Scrollbar scrollBar;
     public YOTOScrollView scrollView;
     public Button bagBtn;
     public override void OnLoad()
@@ -27,8 +21,15 @@ public class GameMainPanel : UIPageBase
     public override void OnShow()
     {
         YFramework.eventMgr.AddEventListener(YOTOEventType.RefreshBagList,OnRefresh);
+        YFramework.eventMgr.AddEventListener(YOTOEventType.RefreshTrainHP,RefreshTrainHP);
         bagBtn.onClick.AddListener(OnBagBtnClick);
         OnRefresh();
+    }
+
+    private void RefreshTrainHP()
+    {
+        var property = PlayerManager.Instance.train.GetProperties();
+        scrollBar.size = property.HP / property.MaxHP;
     }
 
     private void OnRefresh()
@@ -44,6 +45,7 @@ public class GameMainPanel : UIPageBase
     public override void OnHide()
     {
         YFramework.eventMgr.RemoveEventListener(YOTOEventType.RefreshBagList,OnRefresh);
+        YFramework.eventMgr.RemoveEventListener(YOTOEventType.RefreshTrainHP,RefreshTrainHP);
     }
 
     public override void OnResize()

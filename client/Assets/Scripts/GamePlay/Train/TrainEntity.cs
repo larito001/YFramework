@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Dreamteck.Splines;
 using UnityEngine;
+using YOTO;
 
 public class TrainEntity : ObjectBase, IVictim
 {
@@ -28,6 +29,7 @@ public class TrainEntity : ObjectBase, IVictim
         {
             //todo:游戏结束
             properties.State =  RoleState.Dead;
+            FlyTextMgr.Instance.AddTextAtScreenCenter("你输了");
         };
         properties.Camp = Camp.Player;
         SetInVision(true);
@@ -52,7 +54,8 @@ public class TrainEntity : ObjectBase, IVictim
         positioners.Add(wagon);
         SetTracer(spline);
         gun = new GunEntity();
-        gun.Init(0.3f, 0.2f);
+        gun.InitGun(ObjTrans,0.3f, 0.2f);
+        YFramework.eventMgr.TriggerEvent(YOTOEventType.RefreshTrainHP);
     }
 
     public void SetTracer(SplineComputer spline)
@@ -144,6 +147,7 @@ public class TrainEntity : ObjectBase, IVictim
 
     protected override void BeforeRecover(bool isDelete)
     {
+        gun.RecoverObject();
     }
 
     public Properties GetProperties()
@@ -158,6 +162,7 @@ public class TrainEntity : ObjectBase, IVictim
         FlyTextMgr.Instance.AddText(hurt.ToString(), objTrans.position, FlyTextType.PlayerHurt);
         properties.HP -= hurt;
         fireRole.OnHurtSomeone();
+        YFramework.eventMgr.TriggerEvent(YOTOEventType.RefreshTrainHP);
     }
 
     public Vector3 GetPosition()

@@ -13,8 +13,7 @@ public class TowerManager : LogicPluginBase
         Instance = this;
     }
 
-    List<TowerBaseCtrlEntity> towers = new List<TowerBaseCtrlEntity>();
-    public bool isEditorMode = false;
+    List<TowerBaseCtrlEntity> towersBase = new List<TowerBaseCtrlEntity>();
 
     public void TrackInit()
     {
@@ -37,7 +36,7 @@ public class TowerManager : LogicPluginBase
     public bool CheckTowerIsInRange(out TowerEntity tower, Vector3 pos,float range)
     {
         tower = null;
-        foreach (var towerBaseCtrlEntity in towers)
+        foreach (var towerBaseCtrlEntity in towersBase)
         {
             var tempTower = towerBaseCtrlEntity.GetTower();
             if (tempTower != null && tempTower.HaveObj)
@@ -92,14 +91,7 @@ public class TowerManager : LogicPluginBase
         base.OnUninstall();
     }
 
-    public void SwitchMode()
-    {
-        isEditorMode = !isEditorMode;
-        foreach (var towerBaseCtrlEntity in towers)
-        {
-            towerBaseCtrlEntity.OnSwitchMode(isEditorMode);
-        }
-    }
+
     public TowerEntity GetTowerById(int id,TowerBaseCtrlEntity  parent)
     {
         TowerEntity _towerEntity = null;
@@ -138,14 +130,15 @@ public class TowerManager : LogicPluginBase
      
         return _towerEntity;
     }
+    
     public void AddBaseCtrl(TowerBaseCtrlEntity ctrl)
     {
-        towers.Add(ctrl);
+        towersBase.Add(ctrl);
     }
 
     public void RemoveBaseCtrl(TowerBaseCtrlEntity ctrl)
     {
-        towers.Remove(ctrl);
+        towersBase.Remove(ctrl);
     }
 
     public TowerBaseCtrlEntity CurrentClickBase;
