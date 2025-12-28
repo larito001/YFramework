@@ -9,6 +9,8 @@ public class ResEntity : ObjectBase, PoolItem<CircleItemMarker>, IUsable
         new DataObjPool<ResEntity, CircleItemMarker>("ResEntity", 50);
 
     public int itemId = -1;
+    public int count = 1;
+    ItemData itemData;
     RateHud rateHud;
     public float rate = 0;
     private IEnumerator GetIE;
@@ -35,12 +37,13 @@ public class ResEntity : ObjectBase, PoolItem<CircleItemMarker>, IUsable
 
     public void SetData(CircleItemMarker serverData)
     {
-       var data = BagPlugin.Instance.GetItemData(serverData.itemId);
+        count=serverData.count;
+        itemData= BagPlugin.Instance.GetItemData(serverData.itemId);
         
         Location = serverData.transform.position;
         itemId = serverData.itemId;
         SetInVision(true);
-        SetPrefabBundlePath("Res/"+data.path);
+        SetPrefabBundlePath("Res/"+itemData.path);
         InstanceGObj();
     }
 
@@ -96,7 +99,8 @@ public class ResEntity : ObjectBase, PoolItem<CircleItemMarker>, IUsable
 
     public void OnComplete()
     {
-        BagPlugin.Instance.AddItem(itemId, 1);
+        FlyTextMgr.Instance.AddText(itemData.Name+"x"+count,objTrans.position);
+        BagPlugin.Instance.AddItem(itemId, count);
         currentUser.OnStopUsing();
         currentUser = null;
         pool.RecoverItem(this);

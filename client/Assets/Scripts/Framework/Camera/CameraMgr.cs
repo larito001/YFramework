@@ -80,15 +80,7 @@ public class CameraMgr
         RaycastHit hit;
         if (Physics.Raycast(ray, out hit, 1000f))
         {
-            GameObject obj = hit.collider.gameObject;
-            if (obj.TryGetComponent(out SceneModelBase sceneModelBase))
-            {
-                PlayerManager.Instance.OnMouseDown(sceneModelBase.transform.position,dt);
-            }
-            else
-            {
-                PlayerManager.Instance.OnMouseDown(hit.point,dt);
-            }
+            PlayerManager.Instance.OnMouseDown(hit.point,dt);
 
         }
     }

@@ -111,6 +111,7 @@ public class PlayerManager : LogicPluginBase
 
     public void OnMouseUp()
     {
-    
+        if (playerEntity != null)
+            playerEntity.OnMouseUp();
     }
 }

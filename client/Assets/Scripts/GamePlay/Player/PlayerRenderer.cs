@@ -24,15 +24,27 @@ public class PlayerRenderer : MonoBehaviour
         ak.SetActive(false);
         nife.SetActive(true);
         animator.SetLayerWeight(0, 0);
-        animator.SetLayerWeight(1, 1);
+        animator.SetLayerWeight(1, 0);
+        animator.SetLayerWeight(2, 1);
+        animator.SetLayerWeight(3, 1);
+        animator.SetLayerWeight(4, 0);
     }
 
     public void UseAK()
     {
         ak.SetActive(true);
         nife.SetActive(false);
-        animator.SetLayerWeight(1, 0);
-        animator.SetLayerWeight(0, 1);
+        animator.SetLayerWeight(0, 0);
+        animator.SetLayerWeight(1, 1);
+        animator.SetLayerWeight(2, 0);
+        animator.SetLayerWeight(3, 0);
+        animator.SetLayerWeight(4, 1);
+        
+    }
+
+    public void SetAtacking(bool atk)
+    {
+        animator.SetBool("atking", atk);
     }
 
     private Vector3 touchPosition;

@@ -17,8 +17,9 @@ public class CirclePlacerEditor : EditorWindow
 
     private bool showLabel = true;
     private bool showIcon = true;
+    private int itemCount = 1;
 
-    [MenuItem("Tools/Circle Placer (Editor Mark)")]
+    [MenuItem("Tools/道具摆放")]
     public static void Open()
     {
         GetWindow<CirclePlacerEditor>("Circle Placer");
@@ -46,6 +47,7 @@ public class CirclePlacerEditor : EditorWindow
     {
         EditorGUILayout.LabelField("Item 配置", EditorStyles.boldLabel);
 
+        
         ItemDataSO newSO = (ItemDataSO)EditorGUILayout.ObjectField(
             "Item Data SO",
             itemDataSO,
@@ -67,7 +69,7 @@ public class CirclePlacerEditor : EditorWindow
         }
 
         selectedIndex = EditorGUILayout.Popup("当前 Item", selectedIndex, itemOptions);
-
+        itemCount = EditorGUILayout.IntField("数量", itemCount);
         showLabel = EditorGUILayout.Toggle("显示 ItemId", showLabel);
         showIcon = EditorGUILayout.Toggle("显示 Icon", showIcon);
     }
@@ -122,7 +124,7 @@ public class CirclePlacerEditor : EditorWindow
 
             if (showLabel)
             {
-                Handles.Label(pos + Vector3.up * 0.3f, $"Id:{data.Id}");
+                Handles.Label(pos + Vector3.up * 0.3f, $"Id:{data.Id}+{marker.count}");
             }
 
             // 右键删除
@@ -188,7 +190,7 @@ public class CirclePlacerEditor : EditorWindow
 
         var marker = go.AddComponent<CircleItemMarker>();
         marker.itemId = itemDataSO.ItemDatas[selectedIndex].Id;
-
+        marker.count=itemCount;
         Undo.RegisterCreatedObjectUndo(go, "Create Circle Marker");
         SceneView.RepaintAll();
     }

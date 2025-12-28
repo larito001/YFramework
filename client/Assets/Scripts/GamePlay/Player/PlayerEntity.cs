@@ -16,6 +16,7 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim, IUser
     GunEntity gunEntity;
     private IWeapon currentWeapon;
     private IUsable _usableItemInRange;
+
     public override void YOTOUpdate(float deltaTime)
     {
         if (ObjTrans == null) return;
@@ -28,60 +29,53 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim, IUser
             }
         }
 
-        if (Input.GetKeyDown(KeyCode.W)||Input.GetKeyDown(KeyCode.A)||Input.GetKeyDown(KeyCode.S)||Input.GetKeyDown(KeyCode.D))
+        if (Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.A) || Input.GetKeyDown(KeyCode.S) ||
+            Input.GetKeyDown(KeyCode.D))
         {
             if (_usableItemInRange != null)
             {
                 _usableItemInRange.UnUse(this);
                 _usableItemInRange = null;
             }
-    
         }
+
         if (Input.GetKeyDown(KeyCode.Q))
         {
             currentWeapon.OnUnUse();
-            var renderer=  ObjTrans.GetComponentInChildren<PlayerRenderer>();
+            var renderer = ObjTrans.GetComponentInChildren<PlayerRenderer>();
             if (currentWeapon is AxeEntity)
             {
-                
                 currentWeapon = gunEntity;
                 renderer.UseAK();
-         
-           
             }
             else
             {
                 currentWeapon = axeEntity;
                 renderer.UseNife();
-            
             }
+
             currentWeapon.OnUse();
         }
 
         if (Input.GetKeyDown(KeyCode.E))
         {
-            if (BagPlugin.Instance.GetItemNum(20002)>0)
+            if (BagPlugin.Instance.GetItemNum(20002) > 0)
             {
-                BagPlugin.Instance.RemoveItem(20002,1);
+                BagPlugin.Instance.RemoveItem(20002, 1);
                 properties.HP += 25;
-                FlyTextMgr.Instance.AddText("+"+25, ObjTrans.position, FlyTextType.AddHP);
+                FlyTextMgr.Instance.AddText("+" + 25, ObjTrans.position, FlyTextType.AddHP);
                 rateHud.UpdateRate(properties.HP / properties.MaxHP);
             }
-            
         }
-        
     }
 
     private void TryFindItemAndGetIt()
     {
         if (SceneResManager.Instance.GetNearestRes(objTrans.position, 10, out var res))
         {
-            
         }
-        
-       
     }
-    
+
 
     public void SetData(object data)
     {
@@ -115,11 +109,13 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim, IUser
 
         axeEntity = new AxeEntity();
         axeEntity.InitAex(objTrans.GetComponentInChildren<PlayerRenderer>().transform);
-        axeEntity.Location = new Vector3(0.25f,0.5f,0);
+        axeEntity.Location = new Vector3(0.25f, 0.5f, 0);
         gunEntity = new GunEntity();
         gunEntity.InitGun(objTrans.GetComponentInChildren<PlayerRenderer>().transform);
-        gunEntity.Location = new Vector3(0.25f,0.5f,0);
+        gunEntity.Location = new Vector3(0.25f, 0.5f, 0);
         currentWeapon = axeEntity;
+        var renderer = ObjTrans.GetComponentInChildren<PlayerRenderer>();
+        renderer.UseNife();
     }
 
     protected override void BeforeRecover(bool isDelete)
@@ -194,11 +190,10 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim, IUser
         isUsing = false;
         playerMoveCtrl.SetCanMove(!isUsing);
     }
-    
+
     #endregion
 
     #region 触发
-    
 
     public override string GetModelLayer()
     {
@@ -229,11 +224,16 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim, IUser
     #endregion
 
 
-
     public void OnMouseClick(Vector3 hitPoint, float dt)
     {
-        currentWeapon.OnShoot(this,hitPoint,dt);
-       
+        var renderer = ObjTrans.GetComponentInChildren<PlayerRenderer>();
+        renderer.SetAtacking(true);
+        currentWeapon.OnShoot(this, hitPoint, dt);
     }
-    
+
+    public void OnMouseUp()
+    {
+        var renderer = ObjTrans.GetComponentInChildren<PlayerRenderer>();
+        renderer.SetAtacking(false);
+    }
 }
