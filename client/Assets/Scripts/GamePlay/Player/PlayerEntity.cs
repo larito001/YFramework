@@ -15,14 +15,16 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim, IUser
     AxeEntity axeEntity;
     GunEntity gunEntity;
     private IWeapon currentWeapon;
+    private IUsable _usableItemInRange;
     public override void YOTOUpdate(float deltaTime)
     {
         if (ObjTrans == null) return;
         if (Input.GetKeyDown(KeyCode.F))
         {
-            if (_usableItemInRange != null)
+            if (SceneResManager.Instance.GetNearestRes(ObjTrans.position, 3, out var res))
             {
-                _usableItemInRange.OnUse(this);
+                _usableItemInRange = res;
+                res.OnUse(this);
             }
         }
 
@@ -31,20 +33,27 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim, IUser
             if (_usableItemInRange != null)
             {
                 _usableItemInRange.UnUse(this);
+                _usableItemInRange = null;
             }
     
         }
         if (Input.GetKeyDown(KeyCode.Q))
         {
             currentWeapon.OnUnUse();
+            var renderer=  ObjTrans.GetComponentInChildren<PlayerRenderer>();
             if (currentWeapon is AxeEntity)
             {
                 
                 currentWeapon = gunEntity;
+                renderer.UseAK();
+         
+           
             }
             else
             {
                 currentWeapon = axeEntity;
+                renderer.UseNife();
+            
             }
             currentWeapon.OnUse();
         }
@@ -62,6 +71,17 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim, IUser
         }
         
     }
+
+    private void TryFindItemAndGetIt()
+    {
+        if (SceneResManager.Instance.GetNearestRes(objTrans.position, 10, out var res))
+        {
+            
+        }
+        
+       
+    }
+    
 
     public void SetData(object data)
     {
@@ -173,14 +193,12 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim, IUser
     {
         isUsing = false;
         playerMoveCtrl.SetCanMove(!isUsing);
-        _usableItemInRange = null;
     }
     
     #endregion
 
     #region 触发
-
-    private IUsable _usableItemInRange;
+    
 
     public override string GetModelLayer()
     {
@@ -189,23 +207,23 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim, IUser
 
     public override void OnColiderEnter(Collider other)
     {
-        base.OnColiderEnter(other);
-        if (YUtils.GetIUsableFromCollider(other, out var usable))
-        {
-            _usableItemInRange = usable;
-        }
+        // base.OnColiderEnter(other);
+        // if (YUtils.GetIUsableFromCollider(other, out var usable))
+        // {
+        //     _usableItemInRange = usable;
+        // }
     }
 
     public override void OnColiderExit(Collider other)
     {
         base.OnColiderExit(other);
-        if (YUtils.GetIUsableFromCollider(other, out var usable))
-        {
-            if (_usableItemInRange == usable)
-            {
-                _usableItemInRange = null;
-            }
-        }
+        // if (YUtils.GetIUsableFromCollider(other, out var usable))
+        // {
+        //     if (_usableItemInRange == usable)
+        //     {
+        //         _usableItemInRange = null;
+        //     }
+        // }
     }
 
     #endregion

@@ -48,6 +48,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   thirdPlayerMoveCtrl: {fileID: 4558330505705390109}
   animator: {fileID: 8847604285523168757}
+  ak: {fileID: 8847604285513853743}
+  nife: {fileID: 8847604285513810053}
 --- !u!1 &1227492168859980090
 GameObject:
   m_ObjectHideFlags: 0
@@ -65,7 +67,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &8300662561487033883
 Transform:
   m_ObjectHideFlags: 0
@@ -351,7 +353,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1486491997132035289
 Transform:
   m_ObjectHideFlags: 0
@@ -412,7 +414,7 @@ MonoBehaviour:
   normalMaterial: {fileID: 2100000, guid: 4ce635b72f44290409bbc0bcb64d7e71, type: 2}
   climbingMaterial: {fileID: 2100000, guid: 864b8c67e25a9764f84bbe4576da7401, type: 2}
   swimmingMaterial: {fileID: 2100000, guid: dc21201c5997e6b4bb88cf7868cc67c0, type: 2}
-  maxSpeed: 10
+  maxSpeed: 7.5
   maxClimbSpeed: 2
   maxSwimSpeed: 5
   maxAcceleration: 42.5
@@ -420,7 +422,7 @@ MonoBehaviour:
   maxClimbAcceleration: 20
   maxSwimAcceleration: 5
   jumpHeight: 2
-  maxAirJumps: 1
+  maxAirJumps: 0
   maxGroundAngle: 31
   maxStairsAngle: 50
   maxSnapSpeed: 57.5
@@ -669,6 +671,16 @@ PrefabInstance:
 --- !u!4 &8847604285513645077 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 499978, guid: 38515754d2319ee44a0f3db2b5cdc71f, type: 3}
+  m_PrefabInstance: {fileID: 8847604285513669919}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &8847604285513810053 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 155034, guid: 38515754d2319ee44a0f3db2b5cdc71f, type: 3}
+  m_PrefabInstance: {fileID: 8847604285513669919}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &8847604285513853743 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 194096, guid: 38515754d2319ee44a0f3db2b5cdc71f, type: 3}
   m_PrefabInstance: {fileID: 8847604285513669919}
   m_PrefabAsset: {fileID: 0}
 --- !u!95 &8847604285523168757 stripped

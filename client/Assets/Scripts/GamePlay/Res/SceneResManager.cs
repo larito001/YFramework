@@ -24,7 +24,18 @@ public class SceneResManager : LogicPluginBase
         }
     }
 
-    public void GnerateResAt(Vector3 pos)
+    public bool GetNearestRes(Vector3 pos, float range, out ResEntity res)
     {
+        for (var i = 0; i < resList.Count; i++)
+        {
+            if (Vector3.Distance(resList[i].Location, pos) < range)
+            {
+                res = resList[i];
+                return true;
+            }
+        }
+        res = null;
+        return false;
+
     }
 }

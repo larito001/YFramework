@@ -10,11 +10,29 @@ public class PlayerRenderer : MonoBehaviour
     private Rigidbody rigidbody;
     Camera camera;
     public Animator animator;
+    public GameObject ak;
+    public GameObject nife;
 
     private void Awake()
     {
         camera = YFramework.cameraMgr.getMainCamera();
         rigidbody = thirdPlayerMoveCtrl.GetComponent<Rigidbody>();
+    }
+
+    public void UseNife()
+    {
+        ak.SetActive(false);
+        nife.SetActive(true);
+        animator.SetLayerWeight(0, 0);
+        animator.SetLayerWeight(1, 1);
+    }
+
+    public void UseAK()
+    {
+        ak.SetActive(true);
+        nife.SetActive(false);
+        animator.SetLayerWeight(1, 0);
+        animator.SetLayerWeight(0, 1);
     }
 
     private Vector3 touchPosition;
@@ -29,14 +47,19 @@ public class PlayerRenderer : MonoBehaviour
         if (Physics.Raycast(ray, out hit, 1000f))
         {
             var forward = hit.point - transform.position;
-            forward.y = transform.position.y;
+            forward.y = 0;
+            if (forward.sqrMagnitude < 0.0001f)
+            {
+                return; // 或保持当前朝向
+            }
+
             //当前角色转向hit的方向
             var target = Quaternion.LookRotation(forward, up);
 
 
             transform.rotation = Quaternion.Slerp(transform.rotation, target, Time.deltaTime * 5);
         }
-        
+
         var worldVelocity = rigidbody.velocity;
 
 // 转换到角色本地空间
@@ -50,9 +73,9 @@ public class PlayerRenderer : MonoBehaviour
         animator.SetFloat("horizontalSpeed", localVelocity.x);
         //
 
-        var v = rigidbody.velocity;
-        // 去掉垂直分量，只取水平速度
-        v -= up * Vector3.Dot(v, up);
+        // var v = rigidbody.velocity;
+        // // 去掉垂直分量，只取水平速度
+        // v -= up * Vector3.Dot(v, up);
         //
         // // 如果速度足够大，则更新朝向
         // if (v.sqrMagnitude > 0.001f)

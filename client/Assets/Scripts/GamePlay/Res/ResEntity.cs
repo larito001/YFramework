@@ -107,7 +107,14 @@ public class ResEntity : ObjectBase, PoolItem<CircleItemMarker>, IUsable
 
     IEnumerator GetRes()
     {
-        rateHud.Show();
+        if (rateHud != null)
+        {
+            rateHud.Show(); 
+        }
+        else
+        {
+            yield break;
+        }
         while (rate < 1)
         {
             yield return wait;

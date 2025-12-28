@@ -13,7 +13,7 @@ public class GunEntity : ObjectBase, IWeapon
         weaponTimer = weaponCD;
         beforeAtkTimer = beforeCD;
         beforeAtkCD = beforeCD;
-        InstanceGObj();
+        // InstanceGObj();
     }
 
     private float weaponTimer = 0.05f;
@@ -45,12 +45,12 @@ public class GunEntity : ObjectBase, IWeapon
 
     public void OnUse()
     {
-        ObjTrans.gameObject.SetActive(true);
+        // ObjTrans.gameObject.SetActive(true);
     }
 
     public void OnUnUse()
     {
-        ObjTrans.gameObject.SetActive(false);
+        // ObjTrans.gameObject.SetActive(false);
     }
 
     IVictim _fireRole = null;
@@ -73,7 +73,7 @@ public class GunEntity : ObjectBase, IWeapon
 
         //todo: 从相机发射射线，打到地面，开火方向是玩家 towards 鼠标点击位置;
         _hitPoint.y = 0.5f;
-        b.Fire(_fireRole, _fireRole.GetPosition(), _hitPoint);
+        b.Fire(_fireRole, _fireRole.GetPosition()+new Vector3(0,1.3f,0), _hitPoint);
     }
 
     public void OnShoot(IVictim fireRole, Vector3 hitPoint, float dt)
