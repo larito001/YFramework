@@ -226,14 +226,23 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim, IUser
 
     public void OnMouseClick(Vector3 hitPoint, float dt)
     {
-        var renderer = ObjTrans.GetComponentInChildren<PlayerRenderer>();
-        renderer.SetAtacking(true);
-        currentWeapon.OnShoot(this, hitPoint, dt);
+        if (ObjTrans != null)
+        {
+            var renderer = ObjTrans.GetComponentInChildren<PlayerRenderer>();
+            renderer.SetAtacking(true);
+            currentWeapon.OnShoot(this, hitPoint, dt);  
+        }
+      
     }
 
     public void OnMouseUp()
     {
-        var renderer = ObjTrans.GetComponentInChildren<PlayerRenderer>();
-        renderer.SetAtacking(false);
+        if (ObjTrans != null)
+        {
+            var renderer = ObjTrans.GetComponentInChildren<PlayerRenderer>();
+            renderer.SetAtacking(false); 
+        }
+        
+
     }
 }

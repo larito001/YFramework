@@ -8,9 +8,9 @@ using YOTO;
 public class TrainEntity : ObjectBase, IVictim
 {
     public Properties properties;
-    public float acceleration = 5f; // 加速曲线（越大加速越猛）
-    public float deceleration = -8f; // 减速曲线
-    public float maxSpeed = 20f; // 最大速度（正反通用）
+    public float acceleration = 10f; // 加速曲线（越大加速越猛）
+    public float deceleration = -15f; // 减速曲线
+    public float maxSpeed = 15f; // 最大速度（正反通用）
     public SplineFollower follower;
     private float currentSpeed = 0f; // 当前速度
     private SplineComputer spline;

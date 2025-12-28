@@ -17,17 +17,17 @@ public class TowerManager : LogicPluginBase
 
     public void TrackInit()
     {
-        trackFixDic.Add(0.95f,false);
-        trackFixDic.Add(0.4f,false);
+        trackFixDic.Add(0.85f,false);
+        trackFixDic.Add(0.42f,false);
         TrackFixEntity trackFix = new TrackFixEntity();
-        trackFix.SetEntity(0.4f);
+        trackFix.SetEntity(0.42f);
         trackFix.SetInVision(true);
         var trackFixobj = GameObject.Find("trackFixPos");
         trackFix.Location = trackFixobj.transform.position;
         trackFix.InstanceGObj();
         
         TrackFixEntity trackFix2 = new TrackFixEntity();
-        trackFix2.SetEntity(0.95f);
+        trackFix2.SetEntity(0.85f);
         trackFix2.SetInVision(true);
         var trackFixobj2 = GameObject.Find("trackFixPos2");
         trackFix2.Location = trackFixobj2.transform.position;
