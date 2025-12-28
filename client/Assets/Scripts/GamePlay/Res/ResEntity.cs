@@ -43,7 +43,15 @@ public class ResEntity : ObjectBase, PoolItem<CircleItemMarker>, IUsable
         Location = serverData.transform.position;
         itemId = serverData.itemId;
         SetInVision(true);
-        SetPrefabBundlePath("Res/"+itemData.path);
+        var res = itemData.path;
+        if (count ==3)
+        {  
+            res+= "_3";
+        }else if (count == 5)
+        {
+            res+= "_5";
+        }
+        SetPrefabBundlePath("Res/"+res);
         InstanceGObj();
     }
 
@@ -94,7 +102,11 @@ public class ResEntity : ObjectBase, PoolItem<CircleItemMarker>, IUsable
                 GetIE = null;
             }
 
-            rateHud.Hide();
+            if (rateHud != null)
+            {
+                rateHud.Hide();
+            }
+    
 
             currentUser.OnStopUsing();
             currentUser = null;

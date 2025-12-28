@@ -79,7 +79,7 @@ public class EnemiesManager : LogicPluginBase
 
         //todo: 围绕center生成敌人
         // 参数配置
-        int enemyCount = 40; // 生成数量
+        int enemyCount = 10; // 生成数量
         float minRadius = 50f; // 最小半径
         float maxRadius = 55f; // 最大半径
 
