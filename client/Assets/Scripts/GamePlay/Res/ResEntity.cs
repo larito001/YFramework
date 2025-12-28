@@ -73,7 +73,11 @@ public class ResEntity : ObjectBase, PoolItem<CircleItemMarker>, IUsable
                 GetIE = null;
             }
 
-            rateHud.Hide();
+            if (rateHud!=null)
+            {
+                rateHud.Hide(); 
+            }
+      
 
             currentUser.OnStopUsing();
             currentUser = null;
