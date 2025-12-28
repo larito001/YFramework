@@ -11,9 +11,9 @@ public class AxeEntity :  ObjectBase,IWeapon
         SetInVision(true);
         // InstanceGObj();
     }
-    private float weaponTimer =0.5f;
-    private float weaponCD= 0.5f;
-    private float beforeAtkTimer = 0.2f;
+    private float weaponTimer =0.7f;
+    private float weaponCD= 0.7f;
+    private float beforeAtkTimer = 0.3f;
     private float beforeAtkCD = 0f;
     public bool isBefore = false;//0-cd，1-before-atk，2-after-atk
     public override void YOTOUpdate(float deltaTime)
