@@ -92,6 +92,7 @@ public class CameraMgr
 
         }
     }
+    
 
     private void Press()
     {
