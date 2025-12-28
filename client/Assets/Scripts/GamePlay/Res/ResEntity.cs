@@ -135,7 +135,7 @@ public class ResEntity : ObjectBase, PoolItem<CircleItemMarker>, IUsable
         {
             yield break;
         }
-        while (rate < 1)
+        while (rate<0.2f)
         {
             yield return wait;
             rate += 0.01f;
