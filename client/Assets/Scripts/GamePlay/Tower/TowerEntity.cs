@@ -75,6 +75,8 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IVictim
 
     private void GenerateBullet(IVictim victim)
     {
+        if (ObjTrans == null) return;
+        
         Vector3 startOffset = new Vector3(0, 0, 0);
         Vector3 pos = victim.GetPosition();
         BaseBulletEntity b = null;
@@ -156,9 +158,9 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IVictim
 
     protected override void AfterInstanceGObj()
     {
-        rateHud = ObjTrans.GetComponentInChildren<RateHud>();
+        rateHud = ObjTrans.GetComponentInChildren<RateHud>(true);
         rateHud.Show();
-        towerHud = ObjTrans.GetComponentInChildren<TowerBaseHud>();
+        towerHud = ObjTrans.GetComponentInChildren<TowerBaseHud>(true);
         towerHud.Init(this);
         towerHud.OnHide();
         rateHud.UpdateRate(properties.HP / properties.MaxHP);
