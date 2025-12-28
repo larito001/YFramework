@@ -50,6 +50,7 @@ MonoBehaviour:
   animator: {fileID: 8847604285523168757}
   ak: {fileID: 8847604285513853743}
   nife: {fileID: 8847604285513810053}
+  firePos: {fileID: 8674671369992196054}
 --- !u!1 &1227492168859980090
 GameObject:
   m_ObjectHideFlags: 0
@@ -168,6 +169,37 @@ MonoBehaviour:
   m_LightCookieSize: {x: 1, y: 1}
   m_LightCookieOffset: {x: 0, y: 0}
   m_SoftShadowQuality: 0
+--- !u!1 &2616405567860918112
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8674671369992196054}
+  m_Layer: 0
+  m_Name: FirePos
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8674671369992196054
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2616405567860918112}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 1.97, y: 0.13, z: -0.06}
+  m_LocalScale: {x: 2.3649523, y: 2.3649533, z: 2.3649516}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 8847604285513568043}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &7257995980083250291
 GameObject:
   m_ObjectHideFlags: 0
@@ -665,9 +697,17 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
-    m_AddedGameObjects: []
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: 430644, guid: 38515754d2319ee44a0f3db2b5cdc71f, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8674671369992196054}
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 38515754d2319ee44a0f3db2b5cdc71f, type: 3}
+--- !u!4 &8847604285513568043 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 430644, guid: 38515754d2319ee44a0f3db2b5cdc71f, type: 3}
+  m_PrefabInstance: {fileID: 8847604285513669919}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &8847604285513645077 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 499978, guid: 38515754d2319ee44a0f3db2b5cdc71f, type: 3}

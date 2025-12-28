@@ -30,7 +30,7 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim, IUser
         }
 
         if (Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.A) || Input.GetKeyDown(KeyCode.S) ||
-            Input.GetKeyDown(KeyCode.D))
+            Input.GetKeyDown(KeyCode.D)||Input.GetMouseButton(0))
         {
             if (_usableItemInRange != null)
             {
@@ -111,7 +111,7 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim, IUser
         axeEntity.InitAex(objTrans.GetComponentInChildren<PlayerRenderer>().transform);
         axeEntity.Location = new Vector3(0.25f, 0.5f, 0);
         gunEntity = new GunEntity();
-        gunEntity.InitGun(objTrans.GetComponentInChildren<PlayerRenderer>().transform);
+        gunEntity.InitGun(objTrans.GetComponentInChildren<PlayerRenderer>().firePos);
         gunEntity.Location = new Vector3(0.25f, 0.5f, 0);
         currentWeapon = axeEntity;
         var renderer = ObjTrans.GetComponentInChildren<PlayerRenderer>();

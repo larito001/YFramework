@@ -12,7 +12,7 @@ public class PlayerRenderer : MonoBehaviour
     public Animator animator;
     public GameObject ak;
     public GameObject nife;
-
+    public Transform firePos;
     private void Awake()
     {
         camera = YFramework.cameraMgr.getMainCamera();
@@ -60,16 +60,16 @@ public class PlayerRenderer : MonoBehaviour
         {
             var forward = hit.point - transform.position;
             forward.y = 0;
-            if (forward.sqrMagnitude < 0.0001f)
+            if (forward.sqrMagnitude > 0.0001f)
             {
-                return; // 或保持当前朝向
+                //当前角色转向hit的方向
+                var target = Quaternion.LookRotation(forward, up);
+
+
+                transform.rotation = target; //Quaternion.Slerp(transform.rotation, target, Time.deltaTime * 5);
             }
 
-            //当前角色转向hit的方向
-            var target = Quaternion.LookRotation(forward, up);
-
-
-            transform.rotation = Quaternion.Slerp(transform.rotation, target, Time.deltaTime * 5);
+          
         }
 
         var worldVelocity = rigidbody.velocity;
@@ -79,7 +79,7 @@ public class PlayerRenderer : MonoBehaviour
 
 // 可选：忽略 Y
         localVelocity.y = 0f;
-
+        localVelocity = localVelocity.normalized;
 // 直接喂给 Animator
         animator.SetFloat("verticalSpeed", localVelocity.z);
         animator.SetFloat("horizontalSpeed", localVelocity.x);

@@ -9,7 +9,7 @@ public class TrainEntity : ObjectBase, IVictim
 {
     public Properties properties;
     public float acceleration = 5f; // 加速曲线（越大加速越猛）
-    public float deceleration = -3f; // 减速曲线
+    public float deceleration = -8f; // 减速曲线
     public float maxSpeed = 20f; // 最大速度（正反通用）
     public SplineFollower follower;
     private float currentSpeed = 0f; // 当前速度
