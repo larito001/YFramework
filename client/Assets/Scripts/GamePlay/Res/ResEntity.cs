@@ -22,7 +22,7 @@ public class ResEntity : ObjectBase, PoolItem<CircleItemMarker>, IUsable
 
     protected override void AfterInstanceGObj()
     {
-        rateHud = ObjTrans.GetComponentInChildren<RateHud>();
+        rateHud = ObjTrans.GetComponentInChildren<RateHud>(true);
         rateHud.Reset();
     }
 
@@ -119,8 +119,9 @@ public class ResEntity : ObjectBase, PoolItem<CircleItemMarker>, IUsable
         BagPlugin.Instance.AddItem(itemId, count);
         currentUser.OnStopUsing();
         currentUser = null;
-        pool.RecoverItem(this);
         rateHud.Hide();
+        SceneResManager.Instance.RemoveRes(this);
+
     }
 
     WaitForSeconds wait = new WaitForSeconds(0.01f);

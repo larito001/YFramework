@@ -17,6 +17,7 @@ public class SceneResManager : LogicPluginBase
     {
         var root = GameObject.Find("ResRoot");
         var tasnforms = root.GetComponentsInChildren<CircleItemMarker>();
+        resList.Clear();
         for (var i = 0; i < tasnforms.Length; i++)
         { 
             var res =ResEntity.pool.GetItem(tasnforms[i]);
@@ -28,7 +29,7 @@ public class SceneResManager : LogicPluginBase
     {
         for (var i = 0; i < resList.Count; i++)
         {
-            if (Vector3.Distance(resList[i].Location, pos) < range)
+            if (Vector3.Distance(resList[i].ObjTrans.position, pos) < range)
             {
                 res = resList[i];
                 return true;
@@ -37,5 +38,12 @@ public class SceneResManager : LogicPluginBase
         res = null;
         return false;
 
+    }
+
+    public void RemoveRes(ResEntity resEntity)
+    {
+        resList.Remove(resEntity);
+        ResEntity.pool.RecoverItem(resEntity);
+    
     }
 }
