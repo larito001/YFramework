@@ -128,6 +128,10 @@ public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>, IVictim
                 {
                     renderer.material.color = Color.green;
                 }
+                else if (enemyConfig.enemyType == EnemyType.Speed)
+                {
+                    renderer.material.color = Color.magenta;
+                }
                 else if (enemyConfig.enemyType == EnemyType.Far)
                 {
                     renderer.material.color = Color.blue;
@@ -157,6 +161,10 @@ public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>, IVictim
         if (enemyConfig.enemyType == EnemyType.Normal)
         {
             scale = 1.5f;
+        }
+        else if (enemyConfig.enemyType == EnemyType.Speed)
+        {
+            scale = 0.8f;
         }
         else if (enemyConfig.enemyType == EnemyType.Far)
         {

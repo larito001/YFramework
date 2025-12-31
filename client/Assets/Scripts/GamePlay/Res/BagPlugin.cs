@@ -54,6 +54,7 @@ public class BagPlugin : LogicPluginBase
             if (ItemList[i].x == id)
             {
                 ItemList[i] = new Vector2Int(id, ItemList[i].y + num);
+                YFramework.eventMgr.TriggerEvent(YOTOEventType.RefreshBagList);
                 return;
             }
         }

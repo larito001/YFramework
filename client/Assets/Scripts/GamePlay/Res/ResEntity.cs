@@ -140,7 +140,7 @@ public class ResEntity : ObjectBase, PoolItem<CircleItemMarker>, IUsable
         {
             yield return wait;
             rate += 0.01f;
-            rateHud.UpdateRate(rate);
+            rateHud.UpdateRate(rate/0.2f);
         }
 
         OnComplete();

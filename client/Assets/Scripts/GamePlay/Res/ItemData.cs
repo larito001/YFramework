@@ -72,6 +72,7 @@ public class TowerData
 public enum EnemyType
 {
     Normal,
+    Speed,
     Far,
     Summon,
     Boss,
