@@ -20,6 +20,7 @@ public class PlayerManager : LogicPluginBase
     public TrainEntity train;
 
     public PlayerEntity playerEntity;
+    public PetEntity pet;
     private bool _isReborn = false;
 
     public void Init(UnityAction loadEndCallback)
@@ -30,6 +31,11 @@ public class PlayerManager : LogicPluginBase
 
         playerEntity = PlayerEntity.pool.GetItem(null);
         playerEntity.Location = GameStarter.PlayerOrgPos.position;
+
+        pet = new PetEntity();
+        pet.PetInit();
+        pet.InstanceGObj();
+        
         loadEndCallback();
     }
 
