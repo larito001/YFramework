@@ -49,7 +49,9 @@ public class GameDayNightManager : LogicPluginBase
     }
 
     private float lastGenerationThreshold = 0f; // 记录上一次生成的阈值
-
+    private float lastDayGenerationThreshold = 0f; // 记录上一次生成的阈值
+    private float NightGeneratePoint = 0.34f;
+    private float DayGeneratePoint = 0.34f;
     /// <summary>
     /// 外部驱动更新（例如由 GameLogic.Update(dt) 调用）
     /// </summary>
@@ -87,24 +89,65 @@ public class GameDayNightManager : LogicPluginBase
             var rate = GetPhaseRate();
             // 每增加0.2生成一次
             // 检查rate是否达到了下一个0.2的阈值
-            float nextThreshold = lastGenerationThreshold + 0.34f;
+            float nextThreshold = lastGenerationThreshold + NightGeneratePoint;
 
             if (rate >= nextThreshold)
             {
-                EnemiesManager.instance.OnNightGenerate(PlayerManager.Instance.train.ObjTrans.position);
+                EnemiesManager.instance.OnNightGenerate(PlayerManager.Instance.train.ObjTrans.position,20);
                 lastGenerationThreshold = nextThreshold;
 
                 // 如果rate一次性跨越了多个0.2区间，处理这种情况
-                while (rate >= lastGenerationThreshold + 0.34f)
+                while (rate >= lastGenerationThreshold + NightGeneratePoint)
                 {
-                    lastGenerationThreshold += 0.34f;
-                    EnemiesManager.instance.OnNightGenerate(PlayerManager.Instance.train.ObjTrans.position);
+                    lastGenerationThreshold += NightGeneratePoint;
+                    EnemiesManager.instance.OnNightGenerate(PlayerManager.Instance.train.ObjTrans.position,20);
                 }
             }
         }
         else
         {
-            lastGenerationThreshold = -0.34f;
+            lastGenerationThreshold = -NightGeneratePoint;
+        }
+        //白天刷怪
+        if (_isDay)
+        {
+            var rate = GetPhaseRate();
+            // 每增加0.2生成一次
+            // 检查rate是否达到了下一个0.2的阈值
+            float nextThreshold = lastDayGenerationThreshold + DayGeneratePoint;
+
+            if (rate >= nextThreshold)
+            {
+                if (PlayerManager.Instance.playerEntity != null)
+                {
+                    EnemiesManager.instance.OnNightGenerate(PlayerManager.Instance.playerEntity.ObjTrans.position, 10);
+                }
+                else
+                {
+                    EnemiesManager.instance.OnNightGenerate(PlayerManager.Instance.train.ObjTrans.position, 10);
+                }
+     
+                lastDayGenerationThreshold = nextThreshold;
+
+                // 如果rate一次性跨越了多个0.2区间，处理这种情况
+                while (rate >= lastDayGenerationThreshold + DayGeneratePoint)
+                {
+                    lastDayGenerationThreshold += DayGeneratePoint;
+                    if (PlayerManager.Instance.playerEntity != null)
+                    {
+                        EnemiesManager.instance.OnNightGenerate(PlayerManager.Instance.playerEntity.ObjTrans.position, 10);
+                    }
+                    else
+                    {
+                        EnemiesManager.instance.OnNightGenerate(PlayerManager.Instance.train.ObjTrans.position, 10);
+                    }
+                  
+                }
+            }
+        }
+        else
+        {
+            lastDayGenerationThreshold = -DayGeneratePoint;
         }
     }
 

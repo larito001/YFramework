@@ -74,12 +74,11 @@ public class EnemiesManager : LogicPluginBase
   
     }
 
-    public void OnNightGenerate(Vector3 center)
+    public void OnNightGenerate(Vector3 center,int enemyCount)
     {
 
         //todo: 围绕center生成敌人
         // 参数配置
-        int enemyCount = 10; // 生成数量
         float minRadius = 50f; // 最小半径
         float maxRadius = 55f; // 最大半径
 
