@@ -22,7 +22,8 @@ public class PetEntity : ObjectBase, IVictim
     public void PetInit()
     {
         SetInVision( true);
-        SetPrefabBundlePath("Enemies/Enemy");
+        SetPrefabBundlePath("Enemies/Pet"); 
+        InstanceGObj();
     }
     public override void YOTOUpdate(float deltaTime)
     {
@@ -188,37 +189,18 @@ public class PetEntity : ObjectBase, IVictim
         {
             _lockTarget = GetNearestEnemyPos();
         }
-        
+        if(PlayerManager.Instance.playerEntity!=null)
         seeker.OncePathFinding(PlayerManager.Instance.playerEntity.GetPosition());
 
         if (_lockTarget != null)
         {
-            //todo:让ObjTrans，朝向lockTarget，只旋转y轴
-            // 计算水平方向（忽略Y轴高度差）
-            Vector3 direction = _lockTarget.GetPosition() - ObjTrans.position;
-            direction.y = 0f;
-
-            // 防止零向量导致异常
-            if (direction.sqrMagnitude < 0.0001f) return;
-
-            // 计算目标旋转
-            Quaternion targetRotation = Quaternion.LookRotation(direction);
-
-            // 直接设置（立即转向）
-            //todo:lerp旋转，
-            ObjTrans.rotation = Quaternion.Slerp(ObjTrans.rotation, targetRotation, dt * 2);
-
-            //todo:如果两角相差1度以内则发射
-            if (Vector3.Angle(ObjTrans.forward, direction) < 1)
+            if (isCdEnd)
             {
-                if (isCdEnd)
-                {
-                    isCdEnd = false;
-                    CDtimer = attackCD;
+                isCdEnd = false;
+                CDtimer = attackCD;
 
-                    GenerateBullet(_lockTarget);
-                    _lockTarget = null;
-                }
+                GenerateBullet(_lockTarget);
+                _lockTarget = null;
             }
 
         }
@@ -254,7 +236,7 @@ public class PetEntity : ObjectBase, IVictim
 
     public void OnHurt(IVictim fireRole, float hurt)
     {
-        if (properties == null || properties.State == RoleState.Dead) return;
+        if (objTrans!=null&& properties == null || properties.State == RoleState.Dead) return;
         FlyTextMgr.Instance.AddText(hurt.ToString(), objTrans.position);
         properties.HP -= hurt;
         fireRole.OnHurtSomeone();

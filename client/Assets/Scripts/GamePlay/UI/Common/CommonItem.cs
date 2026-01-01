@@ -9,6 +9,7 @@ public class CommonItem : YOTOScrollViewItem
     public Button itemButton;
     public TextMeshProUGUI itemCount;
     public TextMeshProUGUI itemName;
+    public Image itemIcon;
     private int towerId;
     TowerBaseCtrlEntity towerBase;
 
@@ -17,6 +18,7 @@ public class CommonItem : YOTOScrollViewItem
         itemCount.text = item.y.ToString();
         var itemdata = BagPlugin.Instance.GetItemData(item.x);
         itemName.text = itemdata.Name;
+        itemIcon.sprite = itemdata.Icon;
     }
 
     // public void SetTowerData(TowerData data, TowerBaseCtrlEntity ctrl)

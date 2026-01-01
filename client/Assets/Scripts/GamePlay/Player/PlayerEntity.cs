@@ -16,7 +16,7 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim, IUser
     GunEntity gunEntity;
     private IWeapon currentWeapon;
     private IUsable _usableItemInRange;
-
+    public PetEntity pet;
     public override void YOTOUpdate(float deltaTime)
     {
         if (ObjTrans == null) return;
@@ -79,9 +79,7 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim, IUser
 
     public void SetData(object data)
     {
-        SetInVision(true);
-        SetPrefabBundlePath("Player/PlayerBase");
-        InstanceGObj();
+
         properties = new Properties();
         properties.HP = 100;
         properties.MaxHP = 100;
@@ -93,6 +91,9 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim, IUser
             PlayerManager.Instance.PlayerDie();
         };
         properties.Camp = Camp.Player;
+        SetInVision(true);
+        SetPrefabBundlePath("Player/PlayerBase");
+        InstanceGObj();
     }
 
     protected override void AfterInstanceGObj()
@@ -116,6 +117,10 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim, IUser
         currentWeapon = axeEntity;
         var renderer = ObjTrans.GetComponentInChildren<PlayerRenderer>();
         renderer.UseNife();
+        
+        pet = new PetEntity();
+        pet.Location = ObjTrans.position;
+        pet.PetInit();
     }
 
     protected override void BeforeRecover(bool isDelete)
@@ -123,6 +128,8 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim, IUser
         properties.State = RoleState.Dead;
         gunEntity.RecoverObject();
         axeEntity.RecoverObject();
+        pet.RecoverObject();
+        pet=null;
     }
 
     public void AfterIntoObjectPool()

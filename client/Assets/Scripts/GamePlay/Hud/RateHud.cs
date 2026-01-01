@@ -5,11 +5,11 @@ using UnityEngine.UI;
 
 public class RateHud : HudAlwaysFaceToTransform
 {
-    public Scrollbar scrollbar;
+    public Image bar;
 
     public void Reset()
     {
-        scrollbar.size = 0;
+        bar.fillAmount = 0;
         Hide();
     }
 
@@ -25,6 +25,6 @@ public class RateHud : HudAlwaysFaceToTransform
     }
     public void UpdateRate(float rate)
     {
-        scrollbar.size = rate;
+        bar.fillAmount = rate;
     }
 }

@@ -17,17 +17,17 @@ public class TowerManager : LogicPluginBase
 
     public void TrackInit()
     {
-        trackFixDic.Add(0.85f,false);
-        trackFixDic.Add(0.42f,false);
+        trackFixDic.Add(firstFix,false);
+        trackFixDic.Add(secondFix,false);
         TrackFixEntity trackFix = new TrackFixEntity();
-        trackFix.SetEntity(0.42f);
+        trackFix.SetEntity(TowerManager.firstFix);
         trackFix.SetInVision(true);
         var trackFixobj = GameObject.Find("trackFixPos");
         trackFix.Location = trackFixobj.transform.position;
         trackFix.InstanceGObj();
         
         TrackFixEntity trackFix2 = new TrackFixEntity();
-        trackFix2.SetEntity(0.85f);
+        trackFix2.SetEntity(TowerManager.secondFix);
         trackFix2.SetInVision(true);
         var trackFixobj2 = GameObject.Find("trackFixPos2");
         trackFix2.Location = trackFixobj2.transform.position;
@@ -60,6 +60,8 @@ public class TowerManager : LogicPluginBase
         ctrl.Location = offset;
         ctrl.Parent = parent;
     }
+    public static float firstFix = 0.33f;
+    public static float secondFix = 0.85f;
     public Dictionary<float,bool> trackFixDic = new Dictionary<float, bool>();
     protected override void OnInstall()
     {
