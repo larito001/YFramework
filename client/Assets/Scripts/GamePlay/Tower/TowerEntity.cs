@@ -55,7 +55,11 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IVictim
 
             // 直接设置（立即转向）
             //todo:lerp旋转，
-            ObjTrans.rotation = Quaternion.Slerp(ObjTrans.rotation, targetRotation, dt*2);
+            ObjTrans.rotation =  Quaternion.RotateTowards(
+                ObjTrans.rotation,
+                targetRotation,
+                180 * dt
+            );
             
             //todo:如果两角相差1度以内则发射
             if (Vector3.Angle(ObjTrans.forward, direction) < 1)
@@ -76,10 +80,14 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IVictim
     private void GenerateBullet(IVictim victim)
     {
         if (ObjTrans == null) return;
-        
+        var config = new ParticleEntityData();
+  
+
+        config.scale = 1;
         Vector3 startOffset = new Vector3(0, 0, 0);
         Vector3 pos = victim.GetPosition();
         BaseBulletEntity b = null;
+
         if (towerBaseCtrl.TowerId == 1001)
         {
             //投石机
@@ -97,6 +105,11 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IVictim
             });
             startOffset.y += 2.1f;
             startOffset.z += 0.7f;
+            config.path = "Bullet/StoneBulletFire";
+            config.pos =ObjTrans.position + ObjTrans.rotation * startOffset;
+            var particle = ParticleEntity.pool.GetItem(config);
+            particle.Play();
+            particle.Rotation = Quaternion.LookRotation( ObjTrans.rotation * startOffset, ObjTrans.up);
         }
         else if (towerBaseCtrl.TowerId == 1002)
         {
@@ -122,7 +135,7 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IVictim
             //寒冰蛋
             b = NormalBulletEntity.pool.GetItem(new BulletConfig()
             {
-                name = "Bullet/bullet",
+                name = "Bullet/bulletIce",
                 moveSpeed = 30,
                 damage = 15,
                 duration = 10,
@@ -134,10 +147,15 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IVictim
             pos += new Vector3(0, 1.5f, 0);
             startOffset.y += 1.2f;
             startOffset.z += 1f;
+            config.path = "Bullet/IceBulletFire";
+            config.pos =ObjTrans.position + ObjTrans.rotation * startOffset;
+            var particle = ParticleEntity.pool.GetItem(config);
+            particle.Play();
+            particle.Rotation = Quaternion.LookRotation(ObjTrans.forward, ObjTrans.up);
         }
 
         //todo:再加z轴方向
-
+        anim.Play();
         b.Fire(this, ObjTrans.position + ObjTrans.rotation * startOffset, pos);
     }
 
@@ -155,7 +173,7 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IVictim
     {
         return "Agent";
     }
-
+    Animation anim;
     protected override void AfterInstanceGObj()
     {
         rateHud = ObjTrans.GetComponentInChildren<RateHud>(true);
@@ -164,6 +182,7 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IVictim
         towerHud.Init(this);
         towerHud.OnHide();
         rateHud.UpdateRate(properties.HP / properties.MaxHP);
+        anim = ObjTrans.GetComponentInChildren<Animation>();
     }
 
     protected override void BeforeRecover(bool isDelete)
@@ -182,8 +201,8 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IVictim
         towerBaseCtrl = serverData;
         SetInVision(true);
         properties = new Properties();
-        properties.HP = 100;
-        properties.MaxHP = 100;
+        properties.HP = 100+1000;
+        properties.MaxHP = 100+1000;
         properties.OnDead = () =>
         {
             //todo:玩家死亡

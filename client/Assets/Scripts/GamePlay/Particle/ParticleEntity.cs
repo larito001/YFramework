@@ -43,6 +43,7 @@ public class ParticleEntity : ObjectBase, PoolItem<ParticleEntityData>
         var list = ObjTrans.GetComponentsInChildren<ParticleSystem>();
         foreach (var item in list)
         {
+            item.Clear();
             item.Play();
         }
         Timers.inst.Add(1,DelayRemove);
