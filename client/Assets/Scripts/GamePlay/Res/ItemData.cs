@@ -41,6 +41,7 @@ public class TowerData
     public string Name;
     public float BuildTime;
     public List<Vector2Int> UseIdAndNumber = new();
+    public List<Vector2Int> FixRes = new();
     public List<Vector2Int> LevelUpRes = new();
     public List<Vector2Int> RemoveBackRes = new();
     public float HP;
@@ -59,6 +60,7 @@ public class TowerData
         Name = towerData.Name;
         BuildTime = towerData.BuildTime;
         UseIdAndNumber = towerData.UseIdAndNumber;
+        FixRes = towerData.FixRes;
         HP = towerData.HP;
         Attack = towerData.Attack;
         AttackSpeed = towerData.AttackSpeed;

@@ -170,6 +170,11 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim, IUser
     {
     }
 
+    public void OnSlowDown(float rate)
+    {
+        
+    }
+
     public Vector3 GetPosition()
     {
         if (objTrans != null)

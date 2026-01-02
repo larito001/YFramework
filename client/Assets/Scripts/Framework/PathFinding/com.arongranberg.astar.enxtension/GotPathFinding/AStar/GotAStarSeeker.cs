@@ -315,8 +315,9 @@ public class GotAStarSeeker : IGotSeeker, PoolItem<object>
         {
             _config.OnMovingDontUseLambda?.Invoke();
         }
+
         //&& _aiEntity.reachedDestination
-        if (_isStarting &&_aiEntity.reachedEndOfPath&& _aiEntity.hasPath&&!_aiEntity.pathPending)
+        if (_isStarting && _aiEntity.reachedEndOfPath && _aiEntity.hasPath && !_aiEntity.pathPending)
         {
             PathFindingEnd();
         }
@@ -560,10 +561,8 @@ public class GotAStarSeeker : IGotSeeker, PoolItem<object>
 
         if (_config is AStarHighSeekerConfig)
         {
-#if MODULE_ENTITIES
-        var fe = _aiEntity as FollowerEntity;
+            var fe = _aiEntity as FollowerEntity;
             fe.maxSpeed = speed;
-#endif
         }
         else if (_config is AStarMidSeekerConfig)
         {

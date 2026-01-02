@@ -182,4 +182,9 @@ public class TrainEntity : ObjectBase, IVictim
     public void OnHurtSomeone()
     {
     }
+
+    public void OnSlowDown(float rate)
+    {
+        
+    }
 }

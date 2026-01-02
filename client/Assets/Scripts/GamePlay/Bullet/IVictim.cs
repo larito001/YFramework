@@ -10,4 +10,5 @@ public interface IVictim
     public Vector3 GetPosition();
     public Vector3 GetForward();
     public void OnHurtSomeone();
+    public void OnSlowDown(float rate);
 }

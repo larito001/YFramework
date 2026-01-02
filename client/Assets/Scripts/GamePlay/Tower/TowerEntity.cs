@@ -133,7 +133,7 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IVictim
         else if (towerBaseCtrl.TowerId == 1003)
         {
             //寒冰蛋
-            b = NormalBulletEntity.pool.GetItem(new BulletConfig()
+            b = IceBulletEntity.pool.GetItem(new BulletConfig()
             {
                 name = "Bullet/bulletIce",
                 moveSpeed = 30,
@@ -201,8 +201,8 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IVictim
         towerBaseCtrl = serverData;
         SetInVision(true);
         properties = new Properties();
-        properties.HP = 100+1000;
-        properties.MaxHP = 100+1000;
+        properties.HP = 100;
+        properties.MaxHP = 100;
         properties.OnDead = () =>
         {
             //todo:玩家死亡
@@ -284,6 +284,11 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IVictim
 
     public void OnHurtSomeone()
     {
+    }
+
+    public void OnSlowDown(float rate)
+    {
+        
     }
 
     public Vector3 GetForward()

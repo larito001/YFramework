@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Pathfinding.Examples;
 using UnityEngine;
 using UnityEngine.Events;
+using YOTO;
 
 public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>, IVictim
 {
@@ -360,6 +361,41 @@ public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>, IVictim
     /// </summary>
     public void OnHurtSomeone()
     {
+    }
+    IEnumerator slowDownIE=null;
+    IEnumerator slowDownFunIE(float rate)
+    {
+        float timer = 3;
+        if (seeker != null)
+        {
+            seeker.SetSpeed(enemyConfig.moveSpeed*rate); 
+        }
+
+        float time = 0;
+        while (true)
+        {
+            yield return new WaitForSeconds(0.1f);
+            time+=0.1f;
+
+            if (time>=3)
+            {
+                if (seeker != null)
+                {
+                    seeker.SetSpeed(enemyConfig.moveSpeed);
+                }
+                break;
+            }
+        }
+    }
+    public void OnSlowDown(float rate)
+    {
+        if (slowDownIE != null)
+        {
+            YFramework.Instance.StopCoroutine(slowDownIE);
+            slowDownIE = null;
+        }
+        slowDownIE = slowDownFunIE(rate);
+        YFramework.Instance.StartCoroutine(slowDownIE);
     }
 
     #endregion
