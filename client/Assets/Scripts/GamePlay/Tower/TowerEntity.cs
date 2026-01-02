@@ -127,8 +127,6 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IVictim
                 canAtkWall = false
             });
             pos += new Vector3(0, 1.5f, 0);
-            startOffset.y += 1f;
-            startOffset.z += 1f;
         }
         else if (towerBaseCtrl.TowerId == 1003)
         {
