@@ -2,17 +2,18 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using YOTO;
 
 public class HudAlwaysFaceToTransform : MonoBehaviour
 {
-   public  static Transform Target=null;
-
+   public static Camera camera;
+   
    public void ForceLookAt()
    {
-      if(Target!=null)
-         //todo:当前物体，持续朝向目标
-         transform.LookAt(Target);
-      transform.Rotate(0,180,0);
+      if (camera != null)
+      {
+         transform.rotation = camera.transform.rotation;
+      }
    }
    private void FixedUpdate()
    {

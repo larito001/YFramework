@@ -236,7 +236,7 @@ public class PetEntity : ObjectBase, IVictim
 
     public void OnHurt(IVictim fireRole, float hurt)
     {
-        if (objTrans!=null&& properties == null || properties.State == RoleState.Dead) return;
+        if (objTrans==null&& properties == null || properties.State == RoleState.Dead) return;
         FlyTextMgr.Instance.AddText(hurt.ToString(), objTrans.position);
         properties.HP -= hurt;
         fireRole.OnHurtSomeone();

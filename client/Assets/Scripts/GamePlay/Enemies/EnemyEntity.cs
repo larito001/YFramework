@@ -109,6 +109,13 @@ public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>, IVictim
         {
             properties.State = RoleState.Dead;
             EnemiesManager.instance.RemoveEnemy(this);
+            //百分之10%概率掉落
+            if (Random.Range(0, 10) <10)
+            {
+                BagPlugin.Instance.AddItem(20002,1);
+            }
+            
+           
         };
         properties.Camp = Camp.Enemy;
         properties.State = RoleState.Alive;

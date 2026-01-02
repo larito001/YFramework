@@ -30,7 +30,7 @@ public class CameraMgr
         GameObject cameraObject = GameObject.Find("MainCamera");
         this.useVCamera=useVCamera;
         mainCamera = cameraObject.GetComponent<Camera>();
-        HudAlwaysFaceToTransform.Target = cameraObject.transform;
+        HudAlwaysFaceToTransform.camera = mainCamera;
         if (useVCamera)
         {
       
