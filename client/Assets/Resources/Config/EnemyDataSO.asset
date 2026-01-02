@@ -20,39 +20,39 @@ MonoBehaviour:
     moveSpeed: 2
     atkRange: 1
     indexRange: 10
-    hp: 60
+    hp: 80
     atk: 10
     atkSpeed: 0.5
   - id: 2002
     name: "\u8FDC\u7A0B\u654C\u4EBA"
     path: 
     enemyType: 2
-    moveSpeed: 2
+    moveSpeed: 3
     atkRange: 15
     indexRange: 20
-    hp: 35
+    hp: 60
     atk: 5
-    atkSpeed: 0.67
+    atkSpeed: 1
   - id: 2003
     name: "\u9AD8\u901F\u602A"
     path: 
     enemyType: 1
-    moveSpeed: 10
+    moveSpeed: 15
     atkRange: 1
     indexRange: 10
     hp: 25
     atk: 10
-    atkSpeed: 2
+    atkSpeed: 3
   - id: 2004
     name: "\u7CBE\u82F1\u602A1"
     path: 
     enemyType: 2
-    moveSpeed: 5
+    moveSpeed: 2
     atkRange: 15
     indexRange: 15
-    hp: 120
+    hp: 150
     atk: 20
-    atkSpeed: 0.67
+    atkSpeed: 1
   - id: 2006
     name: boss
     path: 
@@ -60,6 +60,6 @@ MonoBehaviour:
     moveSpeed: 3
     atkRange: 3
     indexRange: 20
-    hp: 800
+    hp: 700
     atk: 45
     atkSpeed: 0.67
