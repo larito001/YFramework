@@ -262,5 +262,10 @@ public class PetEntity : ObjectBase, IVictim
     {
     }
 
+    public void OnSlowDown(float rate)
+    {
+        
+    }
+
     #endregion
 }
