@@ -127,8 +127,6 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IVictim
                 canAtkWall = false
             });
             pos += new Vector3(0, 1.5f, 0);
-            startOffset.y += 1f;
-            startOffset.z += 1f;
         }
         else if (towerBaseCtrl.TowerId == 1003)
         {
@@ -305,7 +303,13 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IVictim
     {
         properties.Level++;
     }
-    
+
+    public void OnFix()
+    {
+        FlyTextMgr.Instance.AddText("+"+(properties.MaxHP-properties.HP), objTrans.position, FlyTextType.AddHP);
+        properties.HP =properties.MaxHP;
+        rateHud.UpdateRate(properties.HP / properties.MaxHP);
+    }
     public void RemoveOnBase()
     {
         towerBaseCtrl.RemoveTower();

@@ -20,7 +20,7 @@ public class FireBulletEntity : BaseBulletEntity, PoolItem<BulletConfig>
 
         if (ObjTrans != null)
         {
-            ObjTrans.position = _fireRole.GetPosition();
+            ObjTrans.position = _fireRole.GetPosition()+new Vector3(0,1,0);
             ObjTrans.forward = _fireRole.GetForward();
         }
 

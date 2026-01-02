@@ -23,8 +23,8 @@ public class TrainEntity : ObjectBase, IVictim
         properties = new Properties();
         properties.State = RoleState.Alive;
         properties.Camp = Camp.Player;
-        properties.HP = 100;
-        properties.MaxHP = 100;
+        properties.HP = 3000;
+        properties.MaxHP = 3000;
         properties.OnDead = () =>
         {
             //todo:游戏结束

@@ -12,6 +12,7 @@ public class TowerBaseHud : HudAlwaysFaceToTransform
     public Button up;
     public Button fix;
     public Button remove;
+    public Button onClose;
     private bool isInit = false;
 
     public void Init(TowerEntity towerEntity)
@@ -26,9 +27,14 @@ public class TowerBaseHud : HudAlwaysFaceToTransform
         }
 
         gameObject.SetActive(false);
+        up.onClick.RemoveAllListeners();
+        fix.onClick.RemoveAllListeners();
+        remove.onClick.RemoveAllListeners();
+        onClose.onClick.RemoveAllListeners();
         up.onClick.AddListener(OnClickUp);
         fix.onClick.AddListener(OnClickFix);
         remove.onClick.AddListener(OnClickRemove);
+        onClose.onClick.AddListener(OnHide);
     }
 
     private void OnClickRemove()
@@ -37,7 +43,25 @@ public class TowerBaseHud : HudAlwaysFaceToTransform
     }
 
     private void OnClickFix()
+    {  TowerUpParam param = new TowerUpParam();
+        var data = TowerManager.Instance.GetTowerDataById(tower.towerBaseCtrl.TowerId);
+        param.useIdAndNumber = data.FixRes.ToList(); 
+        param.confirmAction =OnFixConfirm;
+        YFramework.uIMgr.Show(UIEnum.TowerUpPanel, param);
+    }
+
+    private void OnFixConfirm()
     {
+        if (this != null)
+        {
+            if (isInit&& tower.ObjTrans!=null)
+            {
+                tower.OnFix();    
+            }
+            OnHide();
+        }
+        
+    
     }
 
     private void OnClickUp()
