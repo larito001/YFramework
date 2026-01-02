@@ -62,10 +62,10 @@ public class TrainEntity : ObjectBase, IVictim
         YFramework.eventMgr.TriggerEvent(YOTOEventType.RefreshTrainHP);
         
         
-        TowerManager.Instance.GenerateTowerBaseAtTransform(ObjTrans, new Vector3(0, 5, 3));
-        TowerManager.Instance.GenerateTowerBaseAtTransform(ObjTrans, new Vector3(0, 5, -3));
-        TowerManager.Instance.GenerateTowerBaseAtTransform(ObjTrans, new Vector3(0, 5, 1.5f));
-        TowerManager.Instance.GenerateTowerBaseAtTransform(ObjTrans, new Vector3(0, 5, -1.5f));
+        TowerManager.Instance.GenerateTowerBaseAtTransform(ObjTrans, new Vector3(-2.63f, 4.5f, -0.15f));
+        TowerManager.Instance.GenerateTowerBaseAtTransform(ObjTrans, new Vector3(-2.63f, 4.5f, -3.5f));
+        TowerManager.Instance.GenerateTowerBaseAtTransform(ObjTrans, new Vector3(2.8f,4.5f, -3.5f));
+        TowerManager.Instance.GenerateTowerBaseAtTransform(ObjTrans, new Vector3(2.8f, 4.5f, -0.15f));
         
     }
 

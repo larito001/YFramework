@@ -172,8 +172,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 8.47623, y: 5.6143513, z: 14.054847}
-  m_Center: {x: 0.000001192093, y: 2.5719714, z: 2.3442914}
+  m_Size: {x: 8.47623, y: 3.440367, z: 14.054847}
+  m_Center: {x: 0.0000014305115, y: 1.4849793, z: -0.5}
 --- !u!1001 &6998223063851536500
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -200,31 +200,31 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -4216859302048453862, guid: ea505bb61027f6348b47c50f5cb3caa0, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 783.319
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -4216859302048453862, guid: ea505bb61027f6348b47c50f5cb3caa0, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.26
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -4216859302048453862, guid: ea505bb61027f6348b47c50f5cb3caa0, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 945.8157
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -4216859302048453862, guid: ea505bb61027f6348b47c50f5cb3caa0, type: 3}
       propertyPath: m_LocalRotation.w
-      value: -0.05334828
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: -4216859302048453862, guid: ea505bb61027f6348b47c50f5cb3caa0, type: 3}
       propertyPath: m_LocalRotation.x
-      value: -0
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -4216859302048453862, guid: ea505bb61027f6348b47c50f5cb3caa0, type: 3}
       propertyPath: m_LocalRotation.y
-      value: 0.998576
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -4216859302048453862, guid: ea505bb61027f6348b47c50f5cb3caa0, type: 3}
       propertyPath: m_LocalRotation.z
-      value: -0
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -4216859302048453862, guid: ea505bb61027f6348b47c50f5cb3caa0, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
@@ -248,7 +248,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -927199367670048503, guid: ea505bb61027f6348b47c50f5cb3caa0, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents:
     - {fileID: -6057140222963153312, guid: ea505bb61027f6348b47c50f5cb3caa0, type: 3}
@@ -413,7 +413,7 @@ MonoBehaviour:
   circleResolution: 6
   height: 8
   meshScale: 1
-  center: {x: 0, y: 0, z: 2.47}
+  center: {x: 0, y: 0, z: -0.67}
   updateDistance: 0.4
   isDual: 0
   radiusExpansionMode: 1
@@ -466,8 +466,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 8, y: 5, z: 15}
-  m_Center: {x: 0, y: 2.14, z: 1.94}
+  m_Size: {x: 8, y: 3.2616954, z: 15}
+  m_Center: {x: 0, y: 1.270848, z: -0.8100004}
 --- !u!4 &2622249482725145454 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -4216859302048453862, guid: ea505bb61027f6348b47c50f5cb3caa0, type: 3}
