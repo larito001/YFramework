@@ -17,12 +17,12 @@ MonoBehaviour:
     name: "\u666E\u901A\u5C0F\u602A"
     path: 
     enemyType: 0
-    moveSpeed: 5
+    moveSpeed: 2
     atkRange: 1
     indexRange: 10
-    hp: 100
-    atk: 15
-    atkSpeed: 0.67
+    hp: 60
+    atk: 10
+    atkSpeed: 0.5
   - id: 2002
     name: "\u8FDC\u7A0B\u654C\u4EBA"
     path: 
@@ -30,8 +30,8 @@ MonoBehaviour:
     moveSpeed: 2
     atkRange: 15
     indexRange: 20
-    hp: 60
-    atk: 8
+    hp: 35
+    atk: 5
     atkSpeed: 0.67
   - id: 2003
     name: "\u9AD8\u901F\u602A"
@@ -40,7 +40,7 @@ MonoBehaviour:
     moveSpeed: 10
     atkRange: 1
     indexRange: 10
-    hp: 30
+    hp: 25
     atk: 10
     atkSpeed: 2
   - id: 2004
@@ -50,7 +50,7 @@ MonoBehaviour:
     moveSpeed: 5
     atkRange: 15
     indexRange: 15
-    hp: 150
+    hp: 120
     atk: 20
     atkSpeed: 0.67
   - id: 2006
@@ -60,6 +60,6 @@ MonoBehaviour:
     moveSpeed: 3
     atkRange: 3
     indexRange: 20
-    hp: 1000
+    hp: 800
     atk: 45
     atkSpeed: 0.67

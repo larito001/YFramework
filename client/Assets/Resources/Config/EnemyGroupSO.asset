@@ -17,13 +17,13 @@ MonoBehaviour:
     name: "\u8FD1\u6218\u3001\u8FDC\u7A0B\u6DF7\u5408"
     locationTemp: {x: 0, y: 0, z: 0}
     enemyIdAndNumber:
-    - {x: 2001, y: 10}
-    - {x: 2002, y: 10}
+    - {x: 2001, y: 3}
+    - {x: 2002, y: 1}
   - id: 100002
     name: "\u9AD8\u901F\u5C0F\u602A\u7FA4"
     locationTemp: {x: 0, y: 0, z: 0}
     enemyIdAndNumber:
-    - {x: 2003, y: 50}
+    - {x: 2003, y: 15}
   - id: 100003
     name: "\u7CBE\u82F1\u654C\u4EBA"
     locationTemp: {x: 0, y: 0, z: 0}
@@ -39,7 +39,7 @@ MonoBehaviour:
     name: "\u8FDC\u7A0B\u654C\u4EBA\u7FA4"
     locationTemp: {x: 0, y: 0, z: 0}
     enemyIdAndNumber:
-    - {x: 2002, y: 10}
+    - {x: 2002, y: 5}
   - id: 100006
     name: Boss
     locationTemp: {x: 0, y: 0, z: 0}
