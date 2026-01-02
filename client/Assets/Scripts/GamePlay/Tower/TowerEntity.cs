@@ -305,7 +305,13 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IVictim
     {
         properties.Level++;
     }
-    
+
+    public void OnFix()
+    {
+        FlyTextMgr.Instance.AddText("+"+(properties.MaxHP-properties.HP), objTrans.position, FlyTextType.AddHP);
+        properties.HP =properties.MaxHP;
+        rateHud.UpdateRate(properties.HP / properties.MaxHP);
+    }
     public void RemoveOnBase()
     {
         towerBaseCtrl.RemoveTower();
