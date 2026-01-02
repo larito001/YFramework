@@ -60,6 +60,13 @@ public class TrainEntity : ObjectBase, IVictim
         gun = new GunEntity();
         gun.InitGun(ObjTrans,0.3f, 0.2f);
         YFramework.eventMgr.TriggerEvent(YOTOEventType.RefreshTrainHP);
+        
+        
+        TowerManager.Instance.GenerateTowerBaseAtTransform(ObjTrans, new Vector3(0, 5, 3));
+        TowerManager.Instance.GenerateTowerBaseAtTransform(ObjTrans, new Vector3(0, 5, -3));
+        TowerManager.Instance.GenerateTowerBaseAtTransform(ObjTrans, new Vector3(0, 5, 1.5f));
+        TowerManager.Instance.GenerateTowerBaseAtTransform(ObjTrans, new Vector3(0, 5, -1.5f));
+        
     }
 
     public void SetTracer(SplineComputer spline)

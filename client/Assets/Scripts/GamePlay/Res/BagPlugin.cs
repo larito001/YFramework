@@ -37,13 +37,7 @@ public class BagPlugin : LogicPluginBase
             ItemDatas.Add(new ItemData(itemDataSO.ItemDatas[i]));
         }
 
-        if (YFramework.Instance.isTest)
-        {
-            for (var i = 0; i < ItemDatas.Count; i++)
-            {
-                ItemList.Add(new Vector2Int(ItemDatas[i].Id, 999));
-            }
-        }
+       
         YFramework.eventMgr.TriggerEvent(YOTOEventType.RefreshBagList);
     }
 
@@ -124,5 +118,13 @@ public class BagPlugin : LogicPluginBase
             RemoveItem(item.x, item.y);
         }
         return true;
+    }
+
+    public void GMGetAllItem()
+    {
+        for (var i = 0; i < ItemDatas.Count; i++)
+        {
+            ItemList.Add(new Vector2Int(ItemDatas[i].Id, 999));
+        }
     }
 }

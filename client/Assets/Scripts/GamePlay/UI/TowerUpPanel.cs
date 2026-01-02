@@ -13,15 +13,12 @@ public class TowerUpParam
 public class TowerUpPanel : UIPageBase
 {
     public YOTOScrollView scrollView;
-    TowerUpParam _param;
+        public   TowerUpParam _param;
     public Button closeBtn;
     public Button confirmBtn;
     public override void OnLoad()
     {
-        closeBtn.onClick.RemoveAllListeners();
-        closeBtn.onClick.AddListener(CloseSelf);
-        confirmBtn.onClick.RemoveAllListeners();
-        confirmBtn.onClick.AddListener(OnConfirm);
+
     }
 
     private void OnConfirm()
@@ -55,12 +52,16 @@ public class TowerUpPanel : UIPageBase
     }
 
     public override void OnShow()
-    {
+    {        closeBtn.onClick.RemoveAllListeners();
+        closeBtn.onClick.AddListener(CloseSelf);
+        confirmBtn.onClick.RemoveAllListeners();
+        confirmBtn.onClick.AddListener(OnConfirm);
         scrollView.SetData(_param.useIdAndNumber.Count);
     }
 
     public override void OnHide()
     {
+        _param = null;
     }
 
     public override void OnResize()

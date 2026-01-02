@@ -37,5 +37,12 @@ public class GameStarter : MonoBehaviour
         
     }
 
+    private void Update()
+    {
 
+        if (Input.GetKeyDown(KeyCode.O))
+        {
+            BagPlugin.Instance.GMGetAllItem();
+        }
+    }
 }

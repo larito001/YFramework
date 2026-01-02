@@ -47,9 +47,10 @@ public class UILayer
          {
              // Debug.LogError($"[UILayer] Show: Failed to get handler for {info.uiEnum}");
              newHandler = new UIPageHandler();
-             newHandler.Init(info.key,info.uiEnum,param);
+          
              handlers.Add(info.uiEnum,newHandler);
          }
+         newHandler.Init(info.key,info.uiEnum,param);
          // 设置加载完成的回调
          newHandler.SetLoadCallback(() =>
          {
