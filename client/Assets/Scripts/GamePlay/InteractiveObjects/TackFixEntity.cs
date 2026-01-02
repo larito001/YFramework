@@ -35,18 +35,23 @@ public class TrackFixEntity : ObjectBase,IVictim
     public override void OnObjectClick()
     {
         base.OnObjectClick();
-        TowerUpParam param = new TowerUpParam();
+        if (!canFix)
+        {        TowerUpParam param = new TowerUpParam();
         
-        List<Vector2Int> useIdAndNumber = new List<Vector2Int>();
-        useIdAndNumber.Add(new Vector2Int(40001, 5));
-        useIdAndNumber.Add(new Vector2Int(40002, 5));
-        useIdAndNumber.Add(new Vector2Int(40003, 5));
-        param.confirmAction = () =>
-        {
-            canFix = true;
-        };
+            List<Vector2Int> useIdAndNumber = new List<Vector2Int>();
+            useIdAndNumber.Add(new Vector2Int(40001, 5));
+            useIdAndNumber.Add(new Vector2Int(40002, 5));
+            useIdAndNumber.Add(new Vector2Int(40003, 5));
+            param.useIdAndNumber = useIdAndNumber;
+            param.confirmAction = () =>
+            {
+                canFix = true;
+            };
         
-        YFramework.uIMgr.Show(UIEnum.TowerUpPanel, param);
+            YFramework.uIMgr.Show(UIEnum.TowerUpPanel, param);
+            
+        }
+
 
     }
 
