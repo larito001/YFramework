@@ -111,12 +111,27 @@ public class PlayerManager : LogicPluginBase
     public void OnMouseDown(Vector3 hitPoint, float dt)
     {
         if (playerEntity != null)
-            playerEntity.OnMouseClick(hitPoint, dt);
+        {     playerEntity.OnMouseClick(hitPoint, dt);
+            
+        }
+
+        if (train != null)
+        {
+            train.OnMouseClick(hitPoint, dt);
+        }
+       
     }
 
     public void OnMouseUp()
     {
         if (playerEntity != null)
+        {
             playerEntity.OnMouseUp();
+        }
+        if (train != null)
+        {
+            train.OnMouseUp();
+        }
+    
     }
 }

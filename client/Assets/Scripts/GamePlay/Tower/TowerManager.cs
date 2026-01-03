@@ -14,11 +14,15 @@ public class TowerManager : LogicPluginBase
     }
 
     List<TowerBaseCtrlEntity> towersBase = new List<TowerBaseCtrlEntity>();
-
+    public static float firstFix = 0.26f;
+    public static float secondFix = 0.4f;
+    public static float thirdFix = 0.85f;
     public void TrackInit()
     {
         trackFixDic.Add(firstFix,false);
         trackFixDic.Add(secondFix,false);
+        trackFixDic.Add(thirdFix,false);
+        
         TrackFixEntity trackFix = new TrackFixEntity();
         trackFix.SetEntity(TowerManager.firstFix);
         trackFix.SetInVision(true);
@@ -32,6 +36,14 @@ public class TowerManager : LogicPluginBase
         var trackFixobj2 = GameObject.Find("trackFixPos2");
         trackFix2.Location = trackFixobj2.transform.position;
         trackFix2.InstanceGObj();
+        
+        TrackFixEntity trackFix3 = new TrackFixEntity();
+        trackFix3.SetEntity(TowerManager.thirdFix);
+        trackFix3.SetInVision(true);
+        var trackFixobj3 = GameObject.Find("trackFixPos3");
+        trackFix3.Location = trackFixobj3.transform.position;
+        trackFix3.InstanceGObj();
+        
     }
     public bool CheckTowerIsInRange(out TowerEntity tower, Vector3 pos,float range)
     {
@@ -60,8 +72,7 @@ public class TowerManager : LogicPluginBase
         ctrl.Location = offset;
         ctrl.Parent = parent;
     }
-    public static float firstFix = 0.33f;
-    public static float secondFix = 0.85f;
+
     public Dictionary<float,bool> trackFixDic = new Dictionary<float, bool>();
     protected override void OnInstall()
     {

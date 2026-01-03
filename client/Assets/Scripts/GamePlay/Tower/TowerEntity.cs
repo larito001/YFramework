@@ -20,6 +20,7 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IVictim
 
     public IVictim lockTarget = null;
     private bool isCdEnd = false;
+
     public override void YOTOFixedUpdate(float dt)
     {
         if (objTrans == null) return;
@@ -27,19 +28,18 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IVictim
         if (CDtimer > 0)
         {
             CDtimer -= dt;
-            
         }
         else
         {
             isCdEnd = true;
         }
-        
+
         enemies.Clear();
         if (EnemiesManager.instance.GetEnemyIsInRange(objTrans.position, 20, enemies))
         {
             lockTarget = GetNearestEnemyPos();
-              
         }
+
         if (lockTarget != null)
         {
             //todo:让ObjTrans，朝向lockTarget，只旋转y轴
@@ -55,12 +55,12 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IVictim
 
             // 直接设置（立即转向）
             //todo:lerp旋转，
-            ObjTrans.rotation =  Quaternion.RotateTowards(
+            ObjTrans.rotation = Quaternion.RotateTowards(
                 ObjTrans.rotation,
                 targetRotation,
                 180 * dt
             );
-            
+
             //todo:如果两角相差1度以内则发射
             if (Vector3.Angle(ObjTrans.forward, direction) < 1)
             {
@@ -68,12 +68,11 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IVictim
                 {
                     isCdEnd = false;
                     CDtimer = attackCD;
-                 
+
                     GenerateBullet(lockTarget);
                     lockTarget = null;
                 }
             }
-            
         }
     }
 
@@ -81,7 +80,7 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IVictim
     {
         if (ObjTrans == null) return;
         var config = new ParticleEntityData();
-  
+
 
         config.scale = 1;
         Vector3 startOffset = new Vector3(0, 0, 0);
@@ -94,8 +93,8 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IVictim
             b = ThrowBulletEntity.pool.GetItem(new BulletConfig()
             {
                 name = "Bullet/bulletStone",
-                moveSpeed = 3,
-                damage = 30,
+                moveSpeed = 9,
+                damage = 30 + 30 * properties.Level * 0.05f,
                 duration = 5,
                 TrggerCount = 5,
                 triggerTimer = 0,
@@ -106,10 +105,10 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IVictim
             startOffset.y += 2.1f;
             startOffset.z += 0.7f;
             config.path = "Bullet/StoneBulletFire";
-            config.pos =ObjTrans.position + ObjTrans.rotation * startOffset;
+            config.pos = ObjTrans.position + ObjTrans.rotation * startOffset;
             var particle = ParticleEntity.pool.GetItem(config);
             particle.Play();
-            particle.Rotation = Quaternion.LookRotation( ObjTrans.rotation * startOffset, ObjTrans.up);
+            particle.Rotation = Quaternion.LookRotation(ObjTrans.rotation * startOffset, ObjTrans.up);
         }
         else if (towerBaseCtrl.TowerId == 1002)
         {
@@ -119,7 +118,7 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IVictim
                 name = "Bullet/bulletFire",
                 moveSpeed = 0,
                 attackType = AttackType.Near,
-                damage = 7,
+                damage = 7+7*properties.Level * 0.05f,
                 TrggerCount = 999,
                 duration = 4,
                 triggerTimer = 0.25f,
@@ -135,7 +134,7 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IVictim
             {
                 name = "Bullet/bulletIce",
                 moveSpeed = 30,
-                damage = 15,
+                damage = 15+15*properties.Level * 0.05f,
                 duration = 10,
                 TrggerCount = 999,
                 triggerTimer = 0,
@@ -146,7 +145,7 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IVictim
             startOffset.y += 1.2f;
             startOffset.z += 1f;
             config.path = "Bullet/IceBulletFire";
-            config.pos =ObjTrans.position + ObjTrans.rotation * startOffset;
+            config.pos = ObjTrans.position + ObjTrans.rotation * startOffset;
             var particle = ParticleEntity.pool.GetItem(config);
             particle.Play();
             particle.Rotation = Quaternion.LookRotation(ObjTrans.forward, ObjTrans.up);
@@ -159,7 +158,7 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IVictim
 
     public override void OnObjectClick()
     {
-        towerHud.OnShow();
+        towerHud.OnShow(properties.Level);
     }
 
     private IVictim GetNearestEnemyPos()
@@ -171,7 +170,9 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IVictim
     {
         return "Agent";
     }
+
     Animation anim;
+
     protected override void AfterInstanceGObj()
     {
         rateHud = ObjTrans.GetComponentInChildren<RateHud>(true);
@@ -228,7 +229,7 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IVictim
 
         SetPrefabBundlePath(path);
         InstanceGObj();
-     
+
         if (towerBaseCtrl.TowerId == 1001)
         {
             //投石机
@@ -286,7 +287,6 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IVictim
 
     public void OnSlowDown(float rate)
     {
-        
     }
 
     public Vector3 GetForward()
@@ -302,17 +302,20 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IVictim
     public void OnLevelUp()
     {
         properties.Level++;
+        var newMaxHp = properties.MaxHP * properties.Level * 0.05f;
+        properties.MaxHP = newMaxHp;
+        properties.HP = newMaxHp;
     }
 
     public void OnFix()
     {
-        FlyTextMgr.Instance.AddText("+"+(properties.MaxHP-properties.HP), objTrans.position, FlyTextType.AddHP);
-        properties.HP =properties.MaxHP;
+        FlyTextMgr.Instance.AddText("+" + (properties.MaxHP - properties.HP), objTrans.position, FlyTextType.AddHP);
+        properties.HP = properties.MaxHP;
         rateHud.UpdateRate(properties.HP / properties.MaxHP);
     }
+
     public void RemoveOnBase()
     {
         towerBaseCtrl.RemoveTower();
-        
     }
 }

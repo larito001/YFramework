@@ -39,23 +39,23 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim, IUser
             }
         }
 
-        if (Input.GetKeyDown(KeyCode.Q))
-        {
-            currentWeapon.OnUnUse();
-            var renderer = ObjTrans.GetComponentInChildren<PlayerRenderer>();
-            if (currentWeapon is AxeEntity)
-            {
-                currentWeapon = gunEntity;
-                renderer.UseAK();
-            }
-            else
-            {
-                currentWeapon = axeEntity;
-                renderer.UseNife();
-            }
-
-            currentWeapon.OnUse();
-        }
+        // if (Input.GetKeyDown(KeyCode.Q))
+        // {
+        //     currentWeapon.OnUnUse();
+        //     var renderer = ObjTrans.GetComponentInChildren<PlayerRenderer>();
+        //     if (currentWeapon is AxeEntity)
+        //     {
+        //         currentWeapon = gunEntity;
+        //         renderer.UseAK();
+        //     }
+        //     else
+        //     {
+        //         currentWeapon = axeEntity;
+        //         renderer.UseNife();
+        //     }
+        //
+        //     currentWeapon.OnUse();
+        // }
 
         if (Input.GetKeyDown(KeyCode.E))
         {

@@ -89,7 +89,7 @@ public class PetEntity : ObjectBase, IVictim
             MeshRenderer renderer = child.GetComponent<MeshRenderer>();
             if (renderer != null)
             {
-                renderer.material.color = Color.magenta;
+                renderer.material.color = Color.green;
             }
 
             // 递归处理子对象的子对象（孙对象）

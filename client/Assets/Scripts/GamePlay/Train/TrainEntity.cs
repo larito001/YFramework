@@ -7,6 +7,7 @@ using YOTO;
 
 public class TrainEntity : ObjectBase, IVictim
 {
+    GatlingEntity gatling;
     public Properties properties;
     public float acceleration = 10f; // 加速曲线（越大加速越猛）
     public float deceleration = -15f; // 减速曲线
@@ -28,14 +29,13 @@ public class TrainEntity : ObjectBase, IVictim
         properties.OnDead = () =>
         {
             //todo:游戏结束
-            properties.State =  RoleState.Dead;
+            properties.State = RoleState.Dead;
             FlyTextMgr.Instance.AddTextAtScreenCenter("你输了");
         };
         properties.Camp = Camp.Player;
         SetInVision(true);
         SetPrefabBundlePath("Train/Engine");
         InstanceGObj();
-       
     }
 
     public override string GetModelLayer()
@@ -45,7 +45,6 @@ public class TrainEntity : ObjectBase, IVictim
 
     protected override void AfterInstanceGObj()
     {
-     
         follower = ObjTrans.GetComponent<SplineFollower>();
         var spline = GameObject.Find("Spline").GetComponent<SplineComputer>();
         var wagon = new TrainWagonEntity();
@@ -58,15 +57,18 @@ public class TrainEntity : ObjectBase, IVictim
         //  positioners.Add(wagon2);
         SetTracer(spline);
         gun = new GunEntity();
-        gun.InitGun(ObjTrans,0.3f, 0.2f);
+        gun.InitGun(ObjTrans, 0.3f, 0.2f);
         YFramework.eventMgr.TriggerEvent(YOTOEventType.RefreshTrainHP);
-        
-        
+
+
         TowerManager.Instance.GenerateTowerBaseAtTransform(ObjTrans, new Vector3(-2.63f, 4.5f, -0.15f));
         TowerManager.Instance.GenerateTowerBaseAtTransform(ObjTrans, new Vector3(-2.63f, 4.5f, -3.5f));
-        TowerManager.Instance.GenerateTowerBaseAtTransform(ObjTrans, new Vector3(2.8f,4.5f, -3.5f));
+        TowerManager.Instance.GenerateTowerBaseAtTransform(ObjTrans, new Vector3(2.8f, 4.5f, -3.5f));
         TowerManager.Instance.GenerateTowerBaseAtTransform(ObjTrans, new Vector3(2.8f, 4.5f, -0.15f));
-        
+        gatling = new GatlingEntity();
+        gatling.Parent = ObjTrans;
+        gatling.Location =  new Vector3(0f, 5f, 2f);
+        gatling.GatlingInit();
     }
 
     public void SetTracer(SplineComputer spline)
@@ -192,6 +194,22 @@ public class TrainEntity : ObjectBase, IVictim
 
     public void OnSlowDown(float rate)
     {
-        
+    }
+
+    public void OnMouseClick(Vector3 hitPoint, float dt)
+    {
+        if (ObjTrans != null)
+        {
+            gatling.OnShoot(this, hitPoint, dt);  
+        }
+    }
+
+    public void OnMouseUp()
+    {
+        if (ObjTrans != null)
+        {
+            gatling.OnEndShoot();  
+        }
+
     }
 }

@@ -26,7 +26,7 @@ public class EnemyAtkState : IYState, PoolItem<object>
         
         Timers.inst.Add(1/_stateMachine.Enemy.enemyConfig.atkSpeed, (o) =>
         {
-            _stateMachine.SwitchState(EnemyPinState.pool.GetItem(null)); 
+            _stateMachine.SwitchState(EnemyIdelState.pool.GetItem(null)); 
         });
     
     }

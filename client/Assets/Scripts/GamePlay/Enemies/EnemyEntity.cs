@@ -111,7 +111,7 @@ public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>, IVictim
             properties.State = RoleState.Dead;
             EnemiesManager.instance.RemoveEnemy(this);
             //百分之10%概率掉落
-            if (Random.Range(0, 10) <10)
+            if (Random.Range(0, 10) <0.5f)
             {
                 BagPlugin.Instance.AddItem(20002,1);
             }
@@ -134,7 +134,7 @@ public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>, IVictim
             {
                 if (enemyConfig.enemyType == EnemyType.Normal)
                 {
-                    renderer.material.color = Color.green;
+                    renderer.material.color = Color.black;
                 }
                 else if (enemyConfig.enemyType == EnemyType.Speed)
                 {
@@ -250,27 +250,34 @@ public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>, IVictim
     /// </summary>
     public void TryExchangeTarget()
     {
-        //todo:获取索敌对象
-        if (TowerManager.Instance.CheckTowerIsInRange(out TowerEntity tower, this.objTrans.position,
-                enemyConfig.indexRange))
+        if (objTrans != null)
         {
-            OnEnterCallbackStateMachine?.Invoke(tower);
-            return;
-        }
+            if (PlayerManager.Instance.CheckPlayerIsInRange(objTrans.position, enemyConfig.indexRange))
+            {
+                var victim = PlayerManager.Instance.playerEntity;
+                OnEnterCallbackStateMachine?.Invoke(victim);
+                return;
+            }
 
-        if (PlayerManager.Instance.CheckPlayerIsInRange(objTrans.position, enemyConfig.indexRange))
-        {
-            var victim = PlayerManager.Instance.playerEntity;
-            OnEnterCallbackStateMachine?.Invoke(victim);
-            return;
-        }
+        
+            //todo:获取索敌对象
+            if (TowerManager.Instance.CheckTowerIsInRange(out TowerEntity tower, this.objTrans.position,
+                    enemyConfig.indexRange))
+            {
+                OnEnterCallbackStateMachine?.Invoke(tower);
+                return;
+            }
 
-        if (PlayerManager.Instance.CheckTrainIsInRange(objTrans.position, enemyConfig.indexRange))
-        {
-            var victim = PlayerManager.Instance.train;
-            OnEnterCallbackStateMachine?.Invoke(victim);
-            return;
+ 
+            if (PlayerManager.Instance.CheckTrainIsInRange(objTrans.position, enemyConfig.indexRange))
+            {
+                var victim = PlayerManager.Instance.train;
+                OnEnterCallbackStateMachine?.Invoke(victim);
+                return;
+            }
         }
+        
+    
     }
 
     public void Atk()

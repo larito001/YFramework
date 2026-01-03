@@ -66,15 +66,15 @@ public class TowerBaseHud : HudAlwaysFaceToTransform
 
     private void OnClickUp()
     {
-        TowerUpParam param = new TowerUpParam();
+        if (_level <3)
+        {
+            TowerUpParam param = new TowerUpParam();
 
-        var data = TowerManager.Instance.GetTowerDataById(tower.towerBaseCtrl.TowerId);
-        param.useIdAndNumber = data.LevelUpRes.ToList(); 
-        param.confirmAction =OnUpConfirm;
-        YFramework.uIMgr.Show(UIEnum.TowerUpPanel, param);
-
-
-        OnHide();
+            var data = TowerManager.Instance.GetTowerDataById(tower.towerBaseCtrl.TowerId);
+            param.useIdAndNumber = data.LevelUpRes.ToList(); 
+            param.confirmAction =OnUpConfirm;
+            YFramework.uIMgr.Show(UIEnum.TowerUpPanel, param);
+        }
     }
 
     private void OnUpConfirm()
@@ -84,10 +84,13 @@ public class TowerBaseHud : HudAlwaysFaceToTransform
             tower.OnLevelUp();    
         }
 
+        OnHide();
     }
 
-    public void OnShow()
+    private int _level = 1;
+    public void OnShow(int level)
     {
+        _level=level;
         isInit = true;
         ForceLookAt();
         gameObject.SetActive(true);

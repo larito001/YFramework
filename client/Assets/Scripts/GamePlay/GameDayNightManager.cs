@@ -93,14 +93,14 @@ public class GameDayNightManager : LogicPluginBase
 
             if (rate >= nextThreshold)
             {
-                EnemiesManager.instance.OnNightGenerate(PlayerManager.Instance.train.ObjTrans.position,20);
+                EnemiesManager.instance.OnNightGenerate(PlayerManager.Instance.train.ObjTrans.position,20*2);
                 lastGenerationThreshold = nextThreshold;
 
                 // 如果rate一次性跨越了多个0.2区间，处理这种情况
                 while (rate >= lastGenerationThreshold + NightGeneratePoint)
                 {
                     lastGenerationThreshold += NightGeneratePoint;
-                    EnemiesManager.instance.OnNightGenerate(PlayerManager.Instance.train.ObjTrans.position,20);
+                    EnemiesManager.instance.OnNightGenerate(PlayerManager.Instance.train.ObjTrans.position,20*2);
                 }
             }
         }

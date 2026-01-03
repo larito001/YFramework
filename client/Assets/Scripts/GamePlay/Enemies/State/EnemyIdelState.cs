@@ -18,7 +18,7 @@ public class EnemyIdelState : IYState, PoolItem<object>
     public void EnterState(YStateMachine enemy)
     {
         _stateMachine = enemy as EnemyStateMachine;
-        _stateMachine.Enemy.seeker.StopPathFinding();
+        _stateMachine.Enemy.seeker?.StopPathFinding();
         _stateMachine.Enemy.OnEnterCallbackStateMachine += OnEnterCallback;
         _stateMachine.Enemy.OnHurtCallbackStateMachine += OnHurtCallback;
         timer = 3;

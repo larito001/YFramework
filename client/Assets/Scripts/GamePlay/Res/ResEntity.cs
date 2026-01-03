@@ -44,10 +44,7 @@ public class ResEntity : ObjectBase, PoolItem<CircleItemMarker>, IUsable
         itemId = serverData.itemId;
         SetInVision(true);
         var res = itemData.path;
-        if (count ==3)
-        {  
-            res+= "_3";
-        }else if (count == 5)
+       if (count >1)
         {
             res+= "_5";
         }

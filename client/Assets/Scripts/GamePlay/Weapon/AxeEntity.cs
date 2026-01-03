@@ -56,7 +56,7 @@ public class AxeEntity :  ObjectBase,IWeapon
             name = "Bullet/bulletAex",
             moveSpeed = 0,
             attackType = AttackType.Remote,
-            damage = 30,
+            damage =16,
             TrggerCount = 4,
             duration = 0.1f,
             triggerTimer = 0f,

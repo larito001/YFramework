@@ -61,8 +61,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 5.94, y: 5.52, z: 8}
-  m_Center: {x: 0, y: 0, z: 4.49}
+  m_Size: {x: 5.4084826, y: 5.52, z: 18.292482}
+  m_Center: {x: 0.031100154, y: 0, z: 9.636241}
 --- !u!1001 &8353339194465842216
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -74,6 +74,18 @@ PrefabInstance:
     - target: {fileID: 467705084309110139, guid: ec44cd80c10a53a4b831d706f53c5227, type: 3}
       propertyPath: m_Name
       value: Flamethrower
+      objectReference: {fileID: 0}
+    - target: {fileID: 2786774871915526539, guid: ec44cd80c10a53a4b831d706f53c5227, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 2786774871915526539, guid: ec44cd80c10a53a4b831d706f53c5227, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 2786774871915526539, guid: ec44cd80c10a53a4b831d706f53c5227, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 3191828273987224681, guid: ec44cd80c10a53a4b831d706f53c5227, type: 3}
       propertyPath: m_LocalPosition.x
