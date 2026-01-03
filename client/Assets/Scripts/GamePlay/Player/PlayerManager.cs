@@ -21,7 +21,7 @@ public class PlayerManager : LogicPluginBase
 
     public PlayerEntity playerEntity;
 
-    private bool _isReborn = false;
+    public bool _isReborn = false;
 
     public void Init(UnityAction loadEndCallback)
     {

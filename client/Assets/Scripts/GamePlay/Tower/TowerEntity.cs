@@ -134,7 +134,7 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IVictim
             {
                 name = "Bullet/bulletIce",
                 moveSpeed = 30,
-                damage = 15+15*properties.Level * 0.05f,
+                damage = 10+10*properties.Level * 0.05f,
                 duration = 10,
                 TrggerCount = 999,
                 triggerTimer = 0,

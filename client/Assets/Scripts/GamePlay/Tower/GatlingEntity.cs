@@ -147,7 +147,11 @@ public class GatlingEntity : ObjectBase, IVictim
     public void OnShoot(TrainEntity trainEntity, Vector3 hitPoint, float dt)
     {
         _hitPoint = hitPoint;
-        isShoot = true;
+        if (PlayerManager.Instance.playerEntity==null&&!PlayerManager.Instance._isReborn)
+        {
+            isShoot = true;
+        }
+
     }
 
     public void OnEndShoot()
