@@ -52,10 +52,10 @@ public class TrainEntity : ObjectBase, IVictim
         wagon.TrainInit();
         wagon.SetFollowTarget(14, follower);
         positioners.Add(wagon);
-        var wagon2 = new TrainWagonEntity();
-        wagon2.TrainInit();
-        wagon2.SetFollowTarget(26, follower);
-         positioners.Add(wagon2);
+        // var wagon2 = new TrainWagonEntity();
+        // wagon2.TrainInit();
+        // wagon2.SetFollowTarget(26, follower);
+        //  positioners.Add(wagon2);
         SetTracer(spline);
         gun = new GunEntity();
         gun.InitGun(ObjTrans,0.3f, 0.2f);

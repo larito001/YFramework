@@ -46,7 +46,7 @@ public class OrbitCamera : MonoBehaviour
         isInit = true;
         regularCamera = GetComponent<Camera>();
         focusPoint = focus.position;
-        transform.localRotation = orbitRotation = isLock? Quaternion.Euler(lockRotation): Quaternion.Euler(orbitAngles);
+     
     }
 
     public void Uload()
@@ -93,6 +93,7 @@ public class OrbitCamera : MonoBehaviour
     void LateUpdate()
     {
         if (!isInit) return;
+        transform.localRotation = orbitRotation = isLock? Quaternion.Euler(lockRotation): Quaternion.Euler(orbitAngles);
         UpdateGravityAlignment();
         UpdateFocusPoint();
         if (ManualRotation() || AutomaticRotation()) {
