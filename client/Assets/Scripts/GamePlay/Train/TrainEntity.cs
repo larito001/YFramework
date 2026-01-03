@@ -50,11 +50,11 @@ public class TrainEntity : ObjectBase, IVictim
         var spline = GameObject.Find("Spline").GetComponent<SplineComputer>();
         var wagon = new TrainWagonEntity();
         wagon.TrainInit();
-        wagon.SetFollowTarget(12, follower);
+        wagon.SetFollowTarget(14, follower);
         positioners.Add(wagon);
         var wagon2 = new TrainWagonEntity();
         wagon2.TrainInit();
-        wagon2.SetFollowTarget(24, follower);
+        wagon2.SetFollowTarget(26, follower);
          positioners.Add(wagon2);
         SetTracer(spline);
         gun = new GunEntity();

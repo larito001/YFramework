@@ -112,7 +112,7 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim, IUser
         axeEntity.InitAex(objTrans.GetComponentInChildren<PlayerRenderer>().transform);
         axeEntity.Location = new Vector3(0.25f, 0.5f, 0);
         gunEntity = new GunEntity();
-        gunEntity.InitGun(objTrans.GetComponentInChildren<PlayerRenderer>().firePos);
+        gunEntity.InitGun(objTrans);
         gunEntity.Location = new Vector3(0.25f, 0.5f, 0);
         currentWeapon = axeEntity;
         var renderer = ObjTrans.GetComponentInChildren<PlayerRenderer>();

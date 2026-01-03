@@ -73,9 +73,9 @@ public class GunEntity : ObjectBase, IWeapon
         });
 
         //todo: 从相机发射射线，打到地面，开火方向是玩家 towards 鼠标点击位置;
-        _hitPoint.y = 0.5f;
+        _hitPoint.y = _firePos.position.y+1.5f;
       
-        b.Fire(_fireRole, _firePos.position, _hitPoint);
+        b.Fire(_fireRole, _firePos.position+new Vector3(0,1.5f,0), _hitPoint);
     }
 
     public void OnShoot(IVictim fireRole, Vector3 hitPoint, float dt)
