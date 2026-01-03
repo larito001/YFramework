@@ -20,6 +20,7 @@ namespace YOTO
        //
        RefreshBagList,
        RefreshTrainHP,
+       RefreshTime
     }
 
 

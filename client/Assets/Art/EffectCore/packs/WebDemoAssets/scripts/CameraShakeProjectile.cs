@@ -19,6 +19,6 @@ public class CameraShakeProjectile : MonoBehaviour {
 
     public void ShakeCamera()
     {
-        CamerShakeAnimator.SetTrigger("CameraShakeTrigger");
+        CamerShakeAnimator.SetTrigger("CameraShakeTrigger"); 
     }
 }

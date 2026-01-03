@@ -24,7 +24,7 @@ public class TrainEntity : ObjectBase, IVictim
         properties = new Properties();
         properties.State = RoleState.Alive;
         properties.Camp = Camp.Player;
-        properties.HP = 1;
+        properties.HP = 3000;
         properties.MaxHP = 3000;
         properties.OnDead = () =>
         {
@@ -172,7 +172,7 @@ public class TrainEntity : ObjectBase, IVictim
     {
         if (properties == null || properties.State == RoleState.Dead || objTrans == null) return;
 
-        FlyTextMgr.Instance.AddText(hurt.ToString(), objTrans.position, FlyTextType.PlayerHurt);
+        // FlyTextMgr.Instance.AddText(hurt.ToString(), objTrans.position, FlyTextType.PlayerHurt);
         properties.HP -= hurt;
         fireRole.OnHurtSomeone();
         YFramework.eventMgr.TriggerEvent(YOTOEventType.RefreshTrainHP);

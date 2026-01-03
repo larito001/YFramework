@@ -16,7 +16,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &4579105899502435810
 Transform:
   m_ObjectHideFlags: 0
@@ -67,6 +67,14 @@ PrefabInstance:
     - target: {fileID: 6929073198339363643, guid: 03cc5e9436506084890d7a07e49d74f6, type: 3}
       propertyPath: m_Name
       value: TowerBaseHud
+      objectReference: {fileID: 0}
+    - target: {fileID: 6929073198339363643, guid: 03cc5e9436506084890d7a07e49d74f6, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8085846340926371764, guid: 03cc5e9436506084890d7a07e49d74f6, type: 3}
+      propertyPath: m_PresetInfoIsWorld
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 8947696532568918018, guid: 03cc5e9436506084890d7a07e49d74f6, type: 3}
       propertyPath: m_Pivot.x
@@ -242,6 +250,10 @@ PrefabInstance:
     - target: {fileID: 6929073198339363643, guid: 6c842242d0b08594b9246aedd1ca1f02, type: 3}
       propertyPath: m_Name
       value: RateHud
+      objectReference: {fileID: 0}
+    - target: {fileID: 6929073198339363643, guid: 6c842242d0b08594b9246aedd1ca1f02, type: 3}
+      propertyPath: m_IsActive
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 8085846340926371764, guid: 6c842242d0b08594b9246aedd1ca1f02, type: 3}
       propertyPath: m_PresetInfoIsWorld

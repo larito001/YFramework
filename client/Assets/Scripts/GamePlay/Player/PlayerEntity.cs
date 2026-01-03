@@ -154,6 +154,7 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim, IUser
         properties.HP -= hurt;
         fireRole.OnHurtSomeone();
         rateHud.UpdateRate(properties.HP / properties.MaxHP);
+        YFramework.cameraMgr.OnShakeCamera();
     }
 
     public Vector3 GetForward()

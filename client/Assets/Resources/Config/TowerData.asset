@@ -15,6 +15,7 @@ MonoBehaviour:
   TowerDatas:
   - Id: 1001
     Name: "\u6295\u77F3\u5668"
+    des: "\u5927\u8303\u56F4\u3001\u9AD8\u4F24\u5BB3\uFF0C\u4F46\u5BF9\u4E8E\u79FB\u52A8\u654C\u4EBA\u547D\u4E2D\u7387\u4F4E"
     BuildTime: 2
     UseIdAndNumber:
     - {x: 40002, y: 2}
@@ -34,9 +35,10 @@ MonoBehaviour:
     Attack: 25
     AttackSpeed: 1
     Range: 25
-    Icon: {fileID: 0}
+    Icon: {fileID: 21300000, guid: 100f54401b618604da5a9e2faf916c41, type: 3}
   - Id: 1003
     Name: "\u5BD2\u51B0\u5854"
+    des: "\u80FD\u65E0\u9650\u7A7F\u900F\u654C\u4EBA\uFF0C\u5E76\u7ED9\u654C\u4EBA\u65BD\u52A0\u51CF\u901F\u6548\u679C\uFF08\u9488\u5BF9\u5927\u578B\u654C\u4EBA\uFF09"
     BuildTime: 2
     UseIdAndNumber:
     - {x: 40002, y: 3}
@@ -57,9 +59,10 @@ MonoBehaviour:
     Attack: 10
     AttackSpeed: 2
     Range: 25
-    Icon: {fileID: 0}
+    Icon: {fileID: 21300000, guid: 129b8240159141b4faab3c8ba727eadb, type: 3}
   - Id: 1002
     Name: "\u55B7\u706B\u5668"
+    des: "\u5927\u8303\u56F4\u3001\u9AD8\u9891\u7387\u3001\u4F4E\u4F24\u5BB3\uFF08\u9488\u5BF9\u9AD8\u901F\u9760\u8FD1\uFF0C\u4F4E\u8840\u91CF\u7684\u654C\u4EBA\uFF09"
     BuildTime: 2
     UseIdAndNumber:
     - {x: 40001, y: 2}
@@ -79,4 +82,4 @@ MonoBehaviour:
     Attack: 8
     AttackSpeed: 4
     Range: 15
-    Icon: {fileID: 0}
+    Icon: {fileID: 21300000, guid: 2a742588b9f5e2641b120432df674576, type: 3}

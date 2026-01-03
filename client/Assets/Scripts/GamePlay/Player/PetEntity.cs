@@ -217,9 +217,9 @@ public class PetEntity : ObjectBase, IVictim
         {
             name = "Bullet/bullet",
             moveSpeed = 30,
-            damage = 15,
+            damage = 20,
             duration = 10,
-            TrggerCount = 999,
+            TrggerCount = 1,
             triggerTimer = 0,
             attackType = AttackType.Remote,
             camp = Camp.Player,
@@ -237,7 +237,7 @@ public class PetEntity : ObjectBase, IVictim
     public void OnHurt(IVictim fireRole, float hurt)
     {
         if (objTrans==null&& properties == null || properties.State == RoleState.Dead) return;
-        FlyTextMgr.Instance.AddText(hurt.ToString(), objTrans.position);
+        FlyTextMgr.Instance.AddText(hurt.ToString(), objTrans.position,FlyTextType.Quick);
         properties.HP -= hurt;
         fireRole.OnHurtSomeone();
     }

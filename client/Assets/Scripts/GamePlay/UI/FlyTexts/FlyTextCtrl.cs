@@ -49,7 +49,7 @@ public class FlyTextCtrl : ObjectBase, PoolItem<Transform>
 
         if (data.flyTextType == FlyTextType.PlayerHurt)
         {
-            tmp.color = Color.yellow;
+              tmp.color = Color.red;
 
             StartAnim(0.5f, 1.2f, 1.0f, 0.4f, 0.1f, 1, 1, Ease.OutQuad, Ease.InOutQuad,true);
         }

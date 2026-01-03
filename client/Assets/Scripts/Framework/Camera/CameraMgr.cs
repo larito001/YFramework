@@ -13,6 +13,9 @@ public class CameraMgr
     private Camera mainCamera;
     private Vector3 touchPosition;
     private bool isInit = false;
+    
+    //shake
+    public CameraShakeProjectile cameraShakeProjectile;
 
     private Dictionary<string, CinemachineVirtualCamera>
         cameraMap = new Dictionary<string, CinemachineVirtualCamera>(2);
@@ -30,6 +33,7 @@ public class CameraMgr
         GameObject cameraObject = GameObject.Find("MainCamera");
         this.useVCamera=useVCamera;
         mainCamera = cameraObject.GetComponent<Camera>();
+        cameraShakeProjectile = cameraObject.GetComponent<CameraShakeProjectile>();
         HudAlwaysFaceToTransform.camera = mainCamera;
         if (useVCamera)
         {
@@ -69,6 +73,10 @@ public class CameraMgr
         }
     }
 
+    public void OnShakeCamera()
+    {
+        cameraShakeProjectile?.ShakeCamera();
+    }
     private void OnMouseUp()
     {
         PlayerManager.Instance.OnMouseUp();

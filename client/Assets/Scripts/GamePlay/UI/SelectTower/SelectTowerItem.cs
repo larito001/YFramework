@@ -11,6 +11,7 @@ public class SelectTowerItem : YOTOScrollViewItem
     public YOTOScrollView scrollView;
     public  Image icon;
     public TextMeshProUGUI name;
+    public TextMeshProUGUI des;
     TowerData _towerData;
     public void RefreshItem(TowerData towerData)
     {
@@ -21,7 +22,7 @@ public class SelectTowerItem : YOTOScrollViewItem
         name.text = towerData.Name;
         icon.sprite = towerData.Icon;
         btn.onClick.RemoveAllListeners();
-
+        des.text = towerData.des;
         
         bool canBuild = true;
         foreach (var vector2Int in towerData.UseIdAndNumber)

@@ -47,7 +47,7 @@ public class GatlingEntity : ObjectBase, IVictim
             ObjTrans.rotation = Quaternion.RotateTowards(
                 ObjTrans.rotation,
                 targetRotation,
-                1800 * dt
+                180 * dt
             );
 
             if (isCdEnd)

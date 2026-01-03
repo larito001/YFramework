@@ -39,6 +39,7 @@ public class TowerData
 {
     public int Id;
     public string Name;
+    public string des;
     public float BuildTime;
     public List<Vector2Int> UseIdAndNumber = new();
     public List<Vector2Int> FixRes = new();
@@ -58,6 +59,7 @@ public class TowerData
     {
         Id = towerData.Id;
         Name = towerData.Name;
+        des = towerData.des;
         BuildTime = towerData.BuildTime;
         UseIdAndNumber = towerData.UseIdAndNumber;
         FixRes = towerData.FixRes;

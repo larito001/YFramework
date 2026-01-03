@@ -52,6 +52,7 @@ public class GameDayNightManager : LogicPluginBase
     private float lastDayGenerationThreshold = 0f; // 记录上一次生成的阈值
     private float NightGeneratePoint = 0.34f;
     private float DayGeneratePoint = 0.34f;
+
     /// <summary>
     /// 外部驱动更新（例如由 GameLogic.Update(dt) 调用）
     /// </summary>
@@ -66,7 +67,8 @@ public class GameDayNightManager : LogicPluginBase
         {
             _currentTimer -= _allTimer;
         }
-
+        YFramework.eventMgr.TriggerEvent(YOTOEventType.RefreshTime);
+        
         // 判定当前是否为白天
         _isDay = _currentTimer < _dayTime;
 
@@ -93,14 +95,14 @@ public class GameDayNightManager : LogicPluginBase
 
             if (rate >= nextThreshold)
             {
-                EnemiesManager.instance.OnNightGenerate(PlayerManager.Instance.train.ObjTrans.position,20*2);
+                EnemiesManager.instance.OnNightGenerate(PlayerManager.Instance.train.ObjTrans.position, 20 * 2);
                 lastGenerationThreshold = nextThreshold;
 
                 // 如果rate一次性跨越了多个0.2区间，处理这种情况
                 while (rate >= lastGenerationThreshold + NightGeneratePoint)
                 {
                     lastGenerationThreshold += NightGeneratePoint;
-                    EnemiesManager.instance.OnNightGenerate(PlayerManager.Instance.train.ObjTrans.position,20*2);
+                    EnemiesManager.instance.OnNightGenerate(PlayerManager.Instance.train.ObjTrans.position, 20 * 2);
                 }
             }
         }
@@ -108,6 +110,7 @@ public class GameDayNightManager : LogicPluginBase
         {
             lastGenerationThreshold = -NightGeneratePoint;
         }
+
         //白天刷怪
         if (_isDay)
         {
@@ -126,7 +129,7 @@ public class GameDayNightManager : LogicPluginBase
                 {
                     EnemiesManager.instance.OnNightGenerate(PlayerManager.Instance.train.ObjTrans.position, 10);
                 }
-     
+
                 lastDayGenerationThreshold = nextThreshold;
 
                 // 如果rate一次性跨越了多个0.2区间，处理这种情况
@@ -135,13 +138,13 @@ public class GameDayNightManager : LogicPluginBase
                     lastDayGenerationThreshold += DayGeneratePoint;
                     if (PlayerManager.Instance.playerEntity != null)
                     {
-                        EnemiesManager.instance.OnNightGenerate(PlayerManager.Instance.playerEntity.ObjTrans.position, 10);
+                        EnemiesManager.instance.OnNightGenerate(PlayerManager.Instance.playerEntity.ObjTrans.position,
+                            10);
                     }
                     else
                     {
                         EnemiesManager.instance.OnNightGenerate(PlayerManager.Instance.train.ObjTrans.position, 10);
                     }
-                  
                 }
             }
         }
@@ -272,5 +275,17 @@ public class GameDayNightManager : LogicPluginBase
         _mainLight.intensity = targetIntensity;
 
         _lightCoroutine = null;
+    }
+
+    public string GetTime()
+    {
+        if (_isDay)
+        {
+            return "白天倒计时：" + ((int)(_dayTime - _currentTimer)).ToString()+"s";
+        }
+        else
+        {
+            return "夜晚倒计时：" + ((int)(_nightTime - _currentTimer)).ToString()+"s";
+        }
     }
 }

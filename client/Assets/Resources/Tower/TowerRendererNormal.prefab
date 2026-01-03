@@ -149,6 +149,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: RateHud
       objectReference: {fileID: 0}
+    - target: {fileID: 6929073198339363643, guid: 6c842242d0b08594b9246aedd1ca1f02, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 8085846340926371764, guid: 6c842242d0b08594b9246aedd1ca1f02, type: 3}
       propertyPath: m_PresetInfoIsWorld
       value: 1
@@ -254,6 +258,10 @@ PrefabInstance:
     - target: {fileID: 6929073198339363643, guid: 03cc5e9436506084890d7a07e49d74f6, type: 3}
       propertyPath: m_Name
       value: TowerBaseHud
+      objectReference: {fileID: 0}
+    - target: {fileID: 6929073198339363643, guid: 03cc5e9436506084890d7a07e49d74f6, type: 3}
+      propertyPath: m_IsActive
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 8085846340926371764, guid: 03cc5e9436506084890d7a07e49d74f6, type: 3}
       propertyPath: m_PresetInfoIsWorld
