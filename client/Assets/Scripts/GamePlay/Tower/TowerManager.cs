@@ -15,7 +15,7 @@ public class TowerManager : LogicPluginBase
 
     List<TowerBaseCtrlEntity> towersBase = new List<TowerBaseCtrlEntity>();
     public static float firstFix = 0.26f;
-    public static float secondFix = 0.4f;
+    public static float secondFix = 0.38f;
     public static float thirdFix = 0.85f;
     public void TrackInit()
     {

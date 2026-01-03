@@ -12,7 +12,7 @@ public class GatlingEntity : ObjectBase, IVictim
     }
     private Properties properties;
     private float CDtimer = 0;
-    private float attackCD = 0.1f;
+    private float attackCD =4f;
     private bool isCdEnd = false;
     Animation anim;
     public override void YOTOFixedUpdate(float dt)
@@ -67,16 +67,17 @@ public class GatlingEntity : ObjectBase, IVictim
         Vector3 pos = point;
         BaseBulletEntity b = null;
         //寒冰蛋
-        b = NormalBulletEntity.pool.GetItem(new BulletConfig()
+        b = FireBulletEntity.pool.GetItem(new BulletConfig()
         {
-            name = "Bullet/bulletIce",
-            moveSpeed = 40,
-            damage = 5,
-            duration =0.5f,
-            TrggerCount = 1,
-            triggerTimer = 0,
-            attackType = AttackType.Remote,
-            camp = Camp.Player, canAtkWall = true
+            name = "Bullet/bulletFire",
+            moveSpeed = 0,
+            attackType = AttackType.Near,
+            damage = 7+7*properties.Level * 0.05f,
+            TrggerCount = 999,
+            duration = 4,
+            triggerTimer = 0.25f,
+            camp = Camp.Player,
+            canAtkWall = false
         });
         pos += new Vector3(0, 1.5f, 0);
         startOffset.y += 1.2f;

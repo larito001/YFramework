@@ -17,7 +17,7 @@ public class TrainEntity : ObjectBase, IVictim
     private SplineComputer spline;
     public bool canMove = false;
     public List<TrainWagonEntity> positioners = new List<TrainWagonEntity>();
-    private GunEntity gun;
+    // private GunEntity gun;
 
     public void TrainInit()
     {
@@ -56,8 +56,8 @@ public class TrainEntity : ObjectBase, IVictim
         // wagon2.SetFollowTarget(26, follower);
         //  positioners.Add(wagon2);
         SetTracer(spline);
-        gun = new GunEntity();
-        gun.InitGun(ObjTrans, 0.3f, 0.2f);
+        // gun = new GunEntity();
+        // gun.InitGun(ObjTrans, 0.3f, 0.2f);
         YFramework.eventMgr.TriggerEvent(YOTOEventType.RefreshTrainHP);
 
 
@@ -89,12 +89,12 @@ public class TrainEntity : ObjectBase, IVictim
         if (ObjTrans)
         {
             HandleInput();
-            enemies.Clear();
-            if (EnemiesManager.instance.GetEnemyIsInRange(objTrans.position, 20, enemies))
-            {
-                var lockTarget = GetNearestEnemyPos();
-                gun.OnShoot(this, lockTarget.GetPosition(), deltaTime);
-            }
+            // enemies.Clear();
+            // if (EnemiesManager.instance.GetEnemyIsInRange(objTrans.position, 20, enemies))
+            // {
+            //     var lockTarget = GetNearestEnemyPos();
+            //     gun.OnShoot(this, lockTarget.GetPosition(), deltaTime);
+            // }
         }
     }
 
@@ -160,7 +160,7 @@ public class TrainEntity : ObjectBase, IVictim
 
     protected override void BeforeRecover(bool isDelete)
     {
-        gun.RecoverObject();
+        // gun.RecoverObject();
     }
 
     public Properties GetProperties()

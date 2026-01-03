@@ -17,8 +17,8 @@ MonoBehaviour:
     Name: "\u6295\u77F3\u5668"
     BuildTime: 2
     UseIdAndNumber:
-    - {x: 40002, y: 5}
-    - {x: 40001, y: 5}
+    - {x: 40002, y: 2}
+    - {x: 40001, y: 3}
     - {x: 40006, y: 1}
     FixRes:
     - {x: 40001, y: 2}
@@ -26,14 +26,14 @@ MonoBehaviour:
     LevelUpRes:
     - {x: 40002, y: 3}
     - {x: 40001, y: 3}
-    - {x: 40003, y: 3}
     - {x: 40005, y: 2}
+    - {x: 40003, y: 3}
     RemoveBackRes:
     - {x: 40006, y: 1}
     HP: 100
-    Attack: 30
+    Attack: 25
     AttackSpeed: 1
-    Range: 30
+    Range: 25
     Icon: {fileID: 0}
   - Id: 1003
     Name: "\u5BD2\u51B0\u5854"
@@ -41,17 +41,20 @@ MonoBehaviour:
     UseIdAndNumber:
     - {x: 40002, y: 3}
     - {x: 40003, y: 2}
-    - {x: 40005, y: 2}
+    - {x: 40006, y: 1}
     FixRes:
     - {x: 40001, y: 2}
     - {x: 40002, y: 2}
     LevelUpRes:
-    - {x: 40002, y: 1}
+    - {x: 40001, y: 3}
+    - {x: 40002, y: 3}
+    - {x: 40003, y: 3}
+    - {x: 40005, y: 2}
     RemoveBackRes:
     - {x: 40005, y: 2}
     - {x: 40006, y: 1}
     HP: 80
-    Attack: 15
+    Attack: 10
     AttackSpeed: 2
     Range: 25
     Icon: {fileID: 0}
@@ -66,15 +69,14 @@ MonoBehaviour:
     - {x: 40001, y: 2}
     - {x: 40002, y: 2}
     LevelUpRes:
-    - {x: 40002, y: 3}
     - {x: 40001, y: 3}
+    - {x: 40002, y: 3}
     - {x: 40003, y: 3}
     - {x: 40005, y: 2}
     RemoveBackRes:
-    - {x: 40005, y: 1}
-    - {x: 40006, y: 2}
+    - {x: 40006, y: 1}
     HP: 100
-    Attack: 7
+    Attack: 8
     AttackSpeed: 4
     Range: 15
     Icon: {fileID: 0}
