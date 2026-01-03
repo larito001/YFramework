@@ -48,7 +48,8 @@ public enum UIEnum
     SkillTreePanel,
     BagPanel,
     SelectTowerPanel,
-    TowerUpPanel
+    TowerUpPanel,
+    WinPanel
 }
 
 public class UIConfig

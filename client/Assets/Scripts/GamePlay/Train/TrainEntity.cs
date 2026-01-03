@@ -24,13 +24,13 @@ public class TrainEntity : ObjectBase, IVictim
         properties = new Properties();
         properties.State = RoleState.Alive;
         properties.Camp = Camp.Player;
-        properties.HP = 3000;
+        properties.HP = 1;
         properties.MaxHP = 3000;
         properties.OnDead = () =>
         {
             //todo:游戏结束
             properties.State = RoleState.Dead;
-            FlyTextMgr.Instance.AddTextAtScreenCenter("你输了");
+            YFramework.uIMgr.Show(UIEnum.FinishPanel);
         };
         properties.Camp = Camp.Player;
         SetInVision(true);

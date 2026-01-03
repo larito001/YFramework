@@ -5,7 +5,6 @@ using UnityEngine;
 
 public class FinishPanel : UIPageBase
 {
-    public TextMeshProUGUI winName;
     public override void OnLoad()
     {
         

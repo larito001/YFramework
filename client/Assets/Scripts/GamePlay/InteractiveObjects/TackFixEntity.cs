@@ -76,6 +76,21 @@ public class TrackFixEntity : ObjectBase, IVictim
         properties.OnDead = () =>
         {
             TowerManager.Instance.trackFixDic[fixRate] = true;
+
+            bool isWin = true;
+            foreach (var valueTemp in TowerManager.Instance.trackFixDic.Values)
+            {
+                if (!valueTemp)
+                {
+                    isWin = false;
+                }
+            }
+
+            if (isWin)
+            {
+                YFramework.uIMgr.Show(UIEnum.WinPanel);
+            }
+            
             RecoverObject();
         };
         hud.UpdateRate(properties.HP / properties.MaxHP);
