@@ -96,6 +96,7 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim, IUser
         InstanceGObj();
     }
 
+    PlayerRenderer renderer;
     protected override void AfterInstanceGObj()
     {
         properties.State = RoleState.Alive;
@@ -115,7 +116,7 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim, IUser
         gunEntity.InitGun(objTrans);
         gunEntity.Location = new Vector3(0.25f, 0.5f, 0);
         currentWeapon = axeEntity;
-        var renderer = ObjTrans.GetComponentInChildren<PlayerRenderer>();
+        renderer = ObjTrans.GetComponentInChildren<PlayerRenderer>();
         renderer.UseNife();
         
         pet = new PetEntity();
@@ -161,7 +162,7 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim, IUser
     {
         if (objTrans != null)
         {
-            return objTrans.forward;
+            return renderer.transform.forward;
         }
 
         return Vector3.down;

@@ -340,11 +340,20 @@ public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>, IVictim
 
     public void OnHurt(IVictim fireRole, float hurt)
     {
-        if (properties == null || properties.State == RoleState.Dead) return;
+
+
+        if (objTrans==null||properties == null || properties.State == RoleState.Dead) return;
+        var config = new ParticleEntityData();
+        config.path = "HitPar/Hit";
+        config.pos = ObjTrans.position + new Vector3(0, 0.5f, 0);
+        config.scale = 1;
+        var particle = ParticleEntity.pool.GetItem(config);
+        particle.Play(0.3f);
         FlyTextMgr.Instance.AddText(hurt.ToString(), objTrans.position);
         properties.HP -= hurt;
         fireRole.OnHurtSomeone();
         OnHurtCallbackStateMachine?.Invoke(fireRole);
+      
     }
 
 

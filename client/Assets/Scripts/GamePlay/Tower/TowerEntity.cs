@@ -305,6 +305,15 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IVictim
         var newMaxHp = properties.MaxHP * properties.Level * 0.05f;
         properties.MaxHP = newMaxHp;
         properties.HP = newMaxHp;
+        
+        rateHud.UpdateRate(properties.HP / properties.MaxHP);
+
+        var config = new ParticleEntityData();
+        config.path = "LevelUp/Teleport";
+        config.pos = ObjTrans.position+new Vector3(0,0.5f,0);
+        config.scale = 1;
+        var particle = ParticleEntity.pool.GetItem(config);
+        particle.Play(0.3f);
     }
 
     public void OnFix()
@@ -316,6 +325,13 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IVictim
 
     public void RemoveOnBase()
     {
+        var config = new ParticleEntityData();
+        config.path = "Tower/SmokePuff";
+        config.pos = ObjTrans.position;
+        config.scale = 1;
+        var particle = ParticleEntity.pool.GetItem(config);
+        particle.Play();
+        
         towerBaseCtrl.RemoveTower();
     }
 }

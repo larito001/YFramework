@@ -18,7 +18,7 @@ public class ParticleEntity : ObjectBase, PoolItem<ParticleEntityData>
     private ParticleEntityData _data;
     private bool needPlay = false;
     private bool loaded = false;
-
+    private float tmepRate = 1;
     public void AfterIntoObjectPool()
     {
         loaded = false;
@@ -37,7 +37,7 @@ public class ParticleEntity : ObjectBase, PoolItem<ParticleEntityData>
         InstanceGObj();
     }
     
-    private void PlayParticle()
+    private void PlayParticle(float rate)
     {
         //获取obj及其子节点的所有粒子，然后播放
         var list = ObjTrans.GetComponentsInChildren<ParticleSystem>();
@@ -54,14 +54,15 @@ public class ParticleEntity : ObjectBase, PoolItem<ParticleEntityData>
         pool.RecoverItem(this);
     }
 
-    public void Play()
+    public void Play(float rate =1f)
     {
         if (loaded)
         {
-            PlayParticle();
+            PlayParticle(rate);
         }
         else
         {
+            tmepRate = rate;
             needPlay = true;
         }
     }
@@ -76,7 +77,7 @@ public class ParticleEntity : ObjectBase, PoolItem<ParticleEntityData>
         loaded = true;
         if (needPlay)
         {
-            Play();    
+            Play(tmepRate);    
         }
         ObjTrans.localScale= new Vector3(_data.scale, _data.scale, _data.scale);
 

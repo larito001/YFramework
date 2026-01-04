@@ -67,7 +67,14 @@ public class AxeEntity :  ObjectBase,IWeapon
         //todo: 从相机发射射线，打到地面，开火方向是玩家 towards 鼠标点击位置;
         _hitPoint.y = 0.5f;
         b.Fire(_fireRole, _fireRole.GetPosition(), _hitPoint);
-        weaponCD =weaponTimer;  
+        weaponCD =weaponTimer;
+        var config = new ParticleEntityData();
+        config.path = "Player/Slash";
+        config.pos = _fireRole.GetPosition();
+        config.scale = 1;
+        var particle = ParticleEntity.pool.GetItem(config);
+        particle.Play(2f);
+        particle.Rotation = Quaternion.LookRotation(_fireRole.GetForward(), Vector3.up);
     }
     public void OnShoot(IVictim fireRole, Vector3 hitPoint, float dt)
     {
@@ -76,9 +83,7 @@ public class AxeEntity :  ObjectBase,IWeapon
         {   isBefore = true;
             _fireRole=fireRole;
             _hitPoint = hitPoint;
-         
             beforeAtkCD= beforeAtkTimer;
-           
         }
     }
 

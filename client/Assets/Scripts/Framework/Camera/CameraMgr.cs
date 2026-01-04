@@ -98,10 +98,17 @@ public class CameraMgr
     {
         Vector3 screenPos = new Vector3(touchPosition.x, touchPosition.y, 0);
         Ray ray = YFramework.cameraMgr.getMainCamera().ScreenPointToRay(screenPos);
-        
+
+        // 如果鼠标/触摸在 UI 上，直接返回
+        if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
+        {
+            return;
+        }
+
+        int ignoreLayerMask = ~(1 << LayerMask.NameToLayer("BulletTrigger"));
 
         RaycastHit hit;
-        if (Physics.Raycast(ray, out hit, 1000f))
+        if (Physics.Raycast(ray, out hit, 1000f, ignoreLayerMask))
         {
             GameObject obj = hit.collider.gameObject;
             if (obj.TryGetComponent(out SceneModelBase sceneModelBase))

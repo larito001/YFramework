@@ -107,8 +107,6 @@ public class TowerBaseCtrlEntity : ObjectBase, PoolItem<object>
                     } 
                 }
             }
-         
-           
             
             
             TowerId = -1;

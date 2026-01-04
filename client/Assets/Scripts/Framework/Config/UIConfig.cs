@@ -49,7 +49,8 @@ public enum UIEnum
     BagPanel,
     SelectTowerPanel,
     TowerUpPanel,
-    WinPanel
+    WinPanel,
+    GuidePanel
 }
 
 public class UIConfig
@@ -67,7 +68,8 @@ public class UIConfig
         new UIInfo(UIEnum.BagPanel, UILayerEnum.Normal, "UI/bag/BagPanel"),
         new UIInfo(UIEnum.SelectTowerPanel, UILayerEnum.PopText, "UI/SelectTower/SelectTowerPanel"),
         new UIInfo(UIEnum.TowerUpPanel, UILayerEnum.PopText, "UI/TowerUpPanel"),
-        new UIInfo(UIEnum.WinPanel, UILayerEnum.Normal, "UI/WinPanel")
+        new UIInfo(UIEnum.WinPanel, UILayerEnum.Normal, "UI/WinPanel"),
+        new UIInfo(UIEnum.GuidePanel, UILayerEnum.Normal, "UI/GuidePanel"),
     };
 
     #region  对外

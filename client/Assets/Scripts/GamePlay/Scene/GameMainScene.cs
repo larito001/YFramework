@@ -44,6 +44,7 @@ public class GameMainScene : GotSceneBase
                     {
                         EnterSceneComplete();
                         GameDayNightManager.Instance.ResetDayNight();
+                        YFramework.uIMgr.Show(UIEnum.GuidePanel);
                     });
                 });
             }, new string[] { "GraphCache" });
