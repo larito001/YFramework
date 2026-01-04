@@ -285,7 +285,7 @@ public class GameDayNightManager : LogicPluginBase
         }
         else
         {
-            return "夜晚倒计时：" + ((int)(_nightTime - _currentTimer)).ToString()+"s";
+            return "夜晚倒计时：" + ((int)(_nightTime - (_currentTimer - _dayTime))).ToString()+"s";
         }
     }
 }
