@@ -41,33 +41,34 @@ Shader "Custom/TestShader"
             vertexToFrag vert(modelData v)
             {
                 vertexToFrag o;
-                //物体空间直接转换为裁剪空间
                 o.pos = UnityObjectToClipPos(v.pos);
-                float4 worldPos = mul(unity_ObjectToWorld, v.pos);
-                o.worldPos = worldPos.xyz;
-                o.normal = UnityObjectToWorldNormal(v.normal); //法线从物体空间转换为世界空间
-
+                o.worldPos = mul(unity_ObjectToWorld, v.pos).xyz;
+                o.normal = UnityObjectToWorldNormal(v.normal);
                 return o;
             }
 
             float4 frag(vertexToFrag i):SV_Target
             {
+                //缩放和旋转
+                float2 front = TRANSFORM_TEX(i.worldPos.xz, _MainTex);
+                float2 side = TRANSFORM_TEX(i.worldPos.yx, _MainTex);
+                float2 top = TRANSFORM_TEX(i.worldPos.zy, _MainTex);
 
-                float2 uv_front = TRANSFORM_TEX(i.worldPos.xy, _MainTex);
-                float2 uv_side = TRANSFORM_TEX(i.worldPos.zy, _MainTex);
-                float2 uv_top = TRANSFORM_TEX(i.worldPos.xz, _MainTex);
-                float4 fron = tex2D(_MainTex, uv_front);
-                float4 side = tex2D(_MainTex, uv_side);
-                float4 top = tex2D(_MainTex, uv_top);
+                float4 frontColor = tex2D(_MainTex, front);
+                float4 sideColor = tex2D(_MainTex, side);
+                float4 topColor = tex2D(_MainTex, top);
 
-                float3 weights = i.normal;
-                weights = abs(weights);
-                		weights = pow(weights, _Sharpness);
-                weights = weights / (weights.x + weights.y + weights.z);
-                fron *= weights.z;
-                side *= weights.x;
-                top *= weights.y;
-                return (fron + side + top) * _Color;
+
+                float3 weight =i.normal;
+                weight = abs(weight);//取绝对值只关心强度
+                weight = pow(weight, _Sharpness);//a的b次方
+                //
+                weight=weight / (weight.x + weight.y + weight.z);
+                frontColor *= weight.z;
+                sideColor *= weight.x;
+                topColor *= weight.y;
+                return frontColor + sideColor + topColor*_Color;
+                
             }
             ENDCG
         }
