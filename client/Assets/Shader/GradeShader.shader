@@ -2,9 +2,9 @@ Shader "Custom/GradeShader"
 {
     Properties
     {
-        _Color ("Color", Color) = (1,1,1,1)
-        _MainTex ("Albedo (RGB)", 2D) = "white" {}
-
+        _Scale ("Pattern Size", Range(0,10)) = 1
+        _EvenColor("Color 1", Color) = (0,0,0,1)
+        _OddColor("Color 2", Color) = (1,1,1,1)
     }
     SubShader
     {
@@ -16,8 +16,10 @@ Shader "Custom/GradeShader"
         {
             CGPROGRAM
             #include "UnityCG.cginc"
-            sampler2D _MainTex;
-            float4 _Color;
+    
+            float _Scale;
+            float4 _EvenColor;
+            float4 _OddColor;
             #pragma vertex  vert ;
             #pragma fragment frag;
             struct appdata
@@ -43,10 +45,12 @@ Shader "Custom/GradeShader"
 
             float4 frag(v2f IN) : SV_Target
             {
-                float chessboard = floor(IN.worldPos.x);
-                chessboard = frac(chessboard * 0.5);//只保留小数部分
-                // chessboard *= 2;
-                return chessboard;
+                float3 ad = IN.worldPos * _Scale;
+                float chessboard = floor(ad.x) + floor(ad.z) + floor(ad.y);
+                chessboard = frac(chessboard * 0.5); //只保留小数部分
+                chessboard *= 2;
+                float4 color = lerp(_EvenColor, _OddColor, chessboard);
+                return color;
             }
             ENDCG
         }

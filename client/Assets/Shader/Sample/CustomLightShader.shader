@@ -55,7 +55,7 @@ Shader "Unlit/CustomLightShader"
                 lightIntensity=lightIntensity*0.5f+0.5f;
                 lightIntensity = tex2D(_Ramp, lightIntensity).rgb;
                 fixed4 col = tex2D(_MainTex, i.uv);
-                return col+lightIntensity;
+                return col*lightIntensity;
             }
             ENDCG
         }

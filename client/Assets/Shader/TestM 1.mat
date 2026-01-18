@@ -121,6 +121,7 @@ Material:
     - _QueueControl: 0
     - _QueueOffset: 17
     - _ReceiveShadows: 1
+    - _Scale: 2.91
     - _Sharpness: 64
     - _Size: 1
     - _Smoothness: 0.5
@@ -135,6 +136,8 @@ Material:
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
+    - _EvenColor: {r: 0.509434, g: 0.509434, b: 0.509434, a: 1}
+    - _OddColor: {r: 1, g: 1, b: 1, a: 1}
     - _SecondaryColor: {r: 0.21960786, g: 0.21960786, b: 0.21960786, a: 1}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
     - _Tint: {r: 1, g: 1, b: 1, a: 0}
