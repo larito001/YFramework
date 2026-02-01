@@ -48,10 +48,7 @@ public abstract class ObjectBase : BaseEntity
             return;
         }
 
-        if (!isInVision)
-        {
-            return;
-        }
+   
 
         _haveObj = true;
         if (isRecover)
@@ -69,7 +66,16 @@ public abstract class ObjectBase : BaseEntity
              modelBase = objTrans.AddComponent<SceneModelBase>();
         }
         modelBase.Init(this);
-        objTrans.gameObject.SetActive(true);
+        if (!isInVision)
+        {
+            objTrans.gameObject.SetActive(false);
+        }
+        else
+        {
+            objTrans.gameObject.SetActive(true);  
+        }
+
+
 
         OnPrefabReadyUse(objTrans);
     }
@@ -190,7 +196,7 @@ public abstract class ObjectBase : BaseEntity
     public void InstanceGObj()
     {
         isRecover = false;
-        if (isInVision && !string.IsNullOrEmpty(prefabPath) && isDrawed == false)
+        if ( !string.IsNullOrEmpty(prefabPath) && isDrawed == false)
         {
             if (poolBuffer == null)
             {
