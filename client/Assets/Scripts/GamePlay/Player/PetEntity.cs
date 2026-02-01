@@ -143,6 +143,18 @@ public class PetEntity : ObjectBase, IVictim
 
         return Location;
     }
+    List<Vector3> atkSlot = new List<Vector3>();
+
+    public List<Vector3> GetAtkSlot()
+    {
+        atkSlot.Clear();
+        if (ObjTrans != null)
+        {
+            atkSlot.Add(ObjTrans.position);
+        }
+
+        return atkSlot;
+    }
 
     public Vector3 GetForward()
     {

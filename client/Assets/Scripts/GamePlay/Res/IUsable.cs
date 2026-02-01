@@ -11,6 +11,7 @@ public interface IUser
 public interface IUsable
 {
     public void OnUse(IUser  user);
+    public Vector3 GetPosition();
     public void UnUse(IUser  user);
 }
 

@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -15,6 +16,10 @@ public class LogicPluginBase
         OnUninstall();
     }
 
+    public virtual void ReStartGame(Action callBack = null)
+    {
+        callBack?.Invoke();
+    }
     protected virtual void OnInstall()
     {
     }
@@ -36,6 +41,7 @@ public class PluginManager
         InstallPlugin<SceneResManager>();
         InstallPlugin<BagPlugin>();
         InstallPlugin<GameDayNightManager>();
+        InstallPlugin<TrainManager>();
     }
 
 

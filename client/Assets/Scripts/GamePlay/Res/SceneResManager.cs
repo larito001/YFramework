@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -5,45 +6,56 @@ using UnityEngine;
 public class SceneResManager : LogicPluginBase
 {
     public static SceneResManager Instance;
-    
+
     public SceneResManager()
     {
         Instance = this;
     }
-    
-    List<ResEntity> resList = new List<ResEntity>();
+    public RewardBoxDataSO RewardDataSO;
+    List<IUsable> resList = new List<IUsable>();
 
-    public void Init()
+    public override void ReStartGame(Action callBack = null)
     {
-        var root = GameObject.Find("ResRoot");
-        var tasnforms = root.GetComponentsInChildren<CircleItemMarker>();
+        RewardDataSO = Resources.Load<RewardBoxDataSO>("Config/RewardBoxDataSO");
+        // var root = GameObject.Find("ResRoot");
+        // var tasnforms = root.GetComponentsInChildren<CircleItemMarker>();
+        // foreach (var resEntity in resList)
+        // {
+        //      ResEntity.pool.RecoverItem(resEntity);
+        // }
         resList.Clear();
-        for (var i = 0; i < tasnforms.Length; i++)
-        { 
-            var res =ResEntity.pool.GetItem(tasnforms[i]);
-            resList.Add(res);
-        }
+        ResBoxInfo boxInfo = new ResBoxInfo();
+        boxInfo.id = 101;
+        boxInfo.pos = GameStarter.PlayerOrgPos.position;
+        var box = ResBoxEntity.pool.GetItem(boxInfo);
+        resList.Add(box);
+        // for (var i = 0; i < tasnforms.Length; i++)
+        // { 
+        //     var res =ResEntity.pool.GetItem(tasnforms[i]);
+        //     
+        // }
+        base.ReStartGame(callBack);
     }
 
-    public bool GetNearestRes(Vector3 pos, float range, out ResEntity res)
+
+    public bool GetNearestRes(Vector3 pos, float range, out IUsable res)
     {
         for (var i = 0; i < resList.Count; i++)
         {
-            if (Vector3.Distance(resList[i].ObjTrans.position, pos) < range)
+            if (Vector3.Distance(resList[i].GetPosition(), pos) < range)
             {
                 res = resList[i];
                 return true;
             }
         }
+
         res = null;
         return false;
-
     }
 
-    public void RemoveRes(ResEntity resEntity)
-    {
-        resList.Remove(resEntity);
-        ResEntity.pool.RecoverItem(resEntity);
-    
-    }
+    // public void RemoveRes(ResEntity resEntity)
+    // {
+    //     resList.Remove(resEntity);
+    //     ResEntity.pool.RecoverItem(resEntity);
+    // }
 }

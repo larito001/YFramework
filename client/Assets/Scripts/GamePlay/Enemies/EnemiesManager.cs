@@ -1,8 +1,10 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 using YOTO;
+using Random = UnityEngine.Random;
 
 
 public class EnemiesManager : LogicPluginBase
@@ -16,16 +18,16 @@ public class EnemiesManager : LogicPluginBase
 
     WaitForSeconds wait = new WaitForSeconds(0.05f);
     public IEnumerator generateEnemyIE;
-    private UnityAction initCallback;
+    private Action initCallback;
     private EnemyCamp nightCamp;
-    List<EnemyCamp> enemies = new();
+    List<EnemyCamp> enemiesCamp = new();
     List<(int, Vector3)> enemyBornPoint = new();
     public Dictionary<int, EnemyGroupData> enemyGroupdata = new();
     public Dictionary<int, EnemyData> enemyDatas = new();
 
-
-    public void Init(UnityAction callback)
+    public override void ReStartGame(Action callBack = null)
     {
+  
         enemyGroupdata.Clear();
         var enemyGroupSo = Resources.Load<EnemyGroupSO>("Config/EnemyGroupSO");
 
@@ -46,7 +48,7 @@ public class EnemiesManager : LogicPluginBase
 
         Resources.UnloadAsset(enemyDataSo);
 
-        initCallback = callback;
+        initCallback = callBack;
         enemyBornPoint.Clear();
         GameObject enemyRoot = GameObject.Find("EnemyRoot");
         var poss = enemyRoot.GetComponentsInChildren<Transform>();
@@ -67,11 +69,18 @@ public class EnemiesManager : LogicPluginBase
             generateEnemyIE = null;
         }
 
+        enemiesCamp.Clear();
+        if (nightCamp != null)
+        {
+            nightCamp.ClearAllEnemies();
+            nightCamp = null;
+        }
         nightCamp = new EnemyCamp();
-        enemies.Add(nightCamp);
+        enemiesCamp.Add(nightCamp);
         generateEnemyIE = ReGeneratEnemys();
         YFramework.Instance.StartCoroutine(generateEnemyIE);
     }
+    
 
     public void OnNightGenerate(Vector3 center, int enemyCount)
     {
@@ -102,7 +111,7 @@ public class EnemiesManager : LogicPluginBase
             yield return wait;
             EnemyCamp enemyCamp = new EnemyCamp();
             enemyCamp.GenerateEnemyAt(enemyGroupdata[config.Item1], config.Item2);
-            enemies.Add(enemyCamp);
+            enemiesCamp.Add(enemyCamp);
         }
 
         Timers.inst.Add(2, (o) =>
@@ -114,18 +123,18 @@ public class EnemiesManager : LogicPluginBase
 
     public void RemoveEnemy(EnemyEntity enemy)
     {
-        for (var i = 0; i < enemies.Count; i++)
+        for (var i = 0; i < enemiesCamp.Count; i++)
         {
-            enemies[i].RemoveEnemy(enemy);
+            enemiesCamp[i].RemoveEnemy(enemy);
         }
     }
 
     public bool GetEnemyIsInRange(Vector3 pos, float range, List<EnemyEntity> enemyList)
     {
         enemyList.Clear();
-        for (var i = 0; i < enemies.Count; i++)
+        for (var i = 0; i < enemiesCamp.Count; i++)
         {
-            enemies[i].GetEnemyIsInRange(pos, range, enemyList);
+            enemiesCamp[i].GetEnemyIsInRange(pos, range, enemyList);
         }
 
         if (enemyList.Count > 0)

@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -27,8 +28,9 @@ public class BagPlugin : LogicPluginBase
         return null;
     }
 
-    public void ReStar()
+    public override void ReStartGame(Action callBack = null)
     {
+
         ItemList.Clear();
 
         var itemDataSO = Resources.Load<ItemDataSO>("Config/ItemsData");
@@ -36,11 +38,12 @@ public class BagPlugin : LogicPluginBase
         {
             ItemDatas.Add(new ItemData(itemDataSO.ItemDatas[i]));
         }
-
-       
+        Resources.UnloadAsset(itemDataSO);
         YFramework.eventMgr.TriggerEvent(YOTOEventType.RefreshBagList);
+        base.ReStartGame(callBack);
     }
 
+   
     public void AddItem(int id, int num)
     {
         for (var i = 0; i < ItemList.Count; i++)

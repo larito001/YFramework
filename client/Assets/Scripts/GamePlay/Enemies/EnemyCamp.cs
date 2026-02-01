@@ -32,6 +32,15 @@ public class EnemyCamp
             enemyList.Remove(enemy);
         }
     }
+
+    public void ClearAllEnemies()
+    {
+        foreach (var enemyEntity in enemyList)
+        {
+            EnemyEntity.pool.RecoverItem(enemyEntity);
+        }
+        enemyList.Clear();
+    }
     public bool GetEnemyPos(Vector3 currentPos, out Vector3 pos)
     {
         pos = Vector3.zero;

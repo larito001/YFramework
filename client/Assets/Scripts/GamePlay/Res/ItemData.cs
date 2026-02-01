@@ -33,7 +33,14 @@ public class ItemData
         path = itemData.path;
     }
 }
-
+[System.Serializable]
+public class RewardBoxData
+{
+    public int RewardId;
+    public int MinNumber;
+    public int MaxNumber;
+    public List<Vector2Int> Rewards = new();//id，权重
+}
 [System.Serializable]
 public class TowerData
 {

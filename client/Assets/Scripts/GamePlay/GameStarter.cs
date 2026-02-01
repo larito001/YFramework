@@ -23,6 +23,7 @@ public class GameStarter : MonoBehaviour
 #if !UNITY_EDITOR && (UNITY_IOS || UNITY_ANDROID)
         QualitySettings.vSyncCount = 0;
 #endif
+        FlyTextMgr.Instance.Init();
         YFramework.uIMgr.Show(UIEnum.StartPanel);
 
 

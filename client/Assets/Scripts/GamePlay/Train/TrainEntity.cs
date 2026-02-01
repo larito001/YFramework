@@ -9,9 +9,9 @@ public class TrainEntity : ObjectBase, IVictim
 {
     GatlingEntity gatling;
     public Properties properties;
-    public float acceleration = 10f; // 加速曲线（越大加速越猛）
-    public float deceleration = -15f; // 减速曲线
-    public float maxSpeed = 15f; // 最大速度（正反通用）
+    public float acceleration = 3f; // 加速曲线（越大加速越猛）
+    public float deceleration = -30f; // 减速曲线
+    public float maxSpeed = 5f; // 最大速度（正反通用）
     public SplineFollower follower;
     private float currentSpeed = 0f; // 当前速度
     private SplineComputer spline;
@@ -42,25 +42,22 @@ public class TrainEntity : ObjectBase, IVictim
     {
         return "Agent";
     }
-
+    
     protected override void AfterInstanceGObj()
     {
         follower = ObjTrans.GetComponent<SplineFollower>();
         var spline = GameObject.Find("Spline").GetComponent<SplineComputer>();
-        var wagon = new TrainWagonEntity();
-        wagon.TrainInit();
-        wagon.SetFollowTarget(14, follower);
-        positioners.Add(wagon);
-        // var wagon2 = new TrainWagonEntity();
-        // wagon2.TrainInit();
-        // wagon2.SetFollowTarget(26, follower);
-        //  positioners.Add(wagon2);
+        
+        
+        {
+            var wagon = new TrainWagonEntity();
+            wagon.TrainInit();
+            wagon.SetFollowTarget(14, follower);
+            positioners.Add(wagon);
+        }
+        //最后配置spline
         SetTracer(spline);
-        // gun = new GunEntity();
-        // gun.InitGun(ObjTrans, 0.3f, 0.2f);
         YFramework.eventMgr.TriggerEvent(YOTOEventType.RefreshTrainHP);
-
-
         TowerManager.Instance.GenerateTowerBaseAtTransform(ObjTrans, new Vector3(-2.63f, 4.5f, -0.15f));
         TowerManager.Instance.GenerateTowerBaseAtTransform(ObjTrans, new Vector3(-2.63f, 4.5f, -3.5f));
         TowerManager.Instance.GenerateTowerBaseAtTransform(ObjTrans, new Vector3(2.8f, 4.5f, -3.5f));
@@ -81,27 +78,15 @@ public class TrainEntity : ObjectBase, IVictim
         }
     }
 
-    List<EnemyEntity> enemies = new List<EnemyEntity>();
-
     public override void YOTOFixedUpdate(float deltaTime)
     {
         base.YOTOFixedUpdate(deltaTime);
         if (ObjTrans)
         {
             HandleInput();
-            // enemies.Clear();
-            // if (EnemiesManager.instance.GetEnemyIsInRange(objTrans.position, 20, enemies))
-            // {
-            //     var lockTarget = GetNearestEnemyPos();
-            //     gun.OnShoot(this, lockTarget.GetPosition(), deltaTime);
-            // }
         }
     }
-
-    private IVictim GetNearestEnemyPos()
-    {
-        return enemies.OrderBy(x => Vector3.Distance(x.GetPosition(), ObjTrans.position)).FirstOrDefault();
-    }
+    
 
     void HandleInput()
     {
@@ -122,7 +107,7 @@ public class TrainEntity : ObjectBase, IVictim
         }
 
         var percent = follower.GetPercent();
-        foreach (var keyValuePair in TowerManager.Instance.trackFixDic)
+        foreach (var keyValuePair in TrainManager.Instance.trackFixDic)
         {
             if (percent >= keyValuePair.Key - 0.05)
             {
@@ -181,6 +166,19 @@ public class TrainEntity : ObjectBase, IVictim
     public Vector3 GetPosition()
     {
         return ObjTrans.position;
+    }
+
+    List<Vector3> atkSlot = new List<Vector3>();
+
+    public List<Vector3> GetAtkSlot()
+    {
+        atkSlot.Clear();
+        if (ObjTrans != null)
+        {
+            atkSlot.Add(ObjTrans.position);
+        }
+
+        return atkSlot;
     }
 
     public Vector3 GetForward()

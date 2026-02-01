@@ -2,7 +2,7 @@ using UnityEditor;
 using UnityEngine;
 using System.Collections.Generic;
 
-public class CirclePlacerEditor : EditorWindow
+public class RewardBox : EditorWindow
 {
     private bool isEnabled;
     private GameObject resRoot;
@@ -11,24 +11,22 @@ public class CirclePlacerEditor : EditorWindow
     private const float CircleRadius = 0.5f;
 
     // ===== Item =====
-    private ItemDataSO itemDataSO;
+    private RewardBoxDataSO itemDataSO;
     private int selectedIndex;
     private string[] itemOptions;
 
     private bool showLabel = true;
-    private bool showIcon = true;
-    private int itemCount = 1;
 
-    [MenuItem("Tools/道具摆放")]
+    [MenuItem("Tools/保险摆放")]
     public static void Open()
     {
-        GetWindow<CirclePlacerEditor>("Circle Placer");
+        GetWindow<RewardBox>("RewardBoxTool");
     }
 
     private void OnEnable()
     {
         // 自动尝试加载（可删）
-        itemDataSO = Resources.Load<ItemDataSO>("Config/ItemsData");
+        itemDataSO = Resources.Load<RewardBoxDataSO>("Config/RewardBoxDataSO");
         // 关键 1：自动启用 Scene 绘制
         Enable();
 
@@ -47,11 +45,11 @@ public class CirclePlacerEditor : EditorWindow
     {
         EditorGUILayout.LabelField("Item 配置", EditorStyles.boldLabel);
 
-        
-        ItemDataSO newSO = (ItemDataSO)EditorGUILayout.ObjectField(
-            "Item Data SO",
+
+        RewardBoxDataSO newSO = (RewardBoxDataSO)EditorGUILayout.ObjectField(
+            "RewardBoxDataSO",
             itemDataSO,
-            typeof(ItemDataSO),
+            typeof(RewardBoxDataSO),
             false);
 
         if (newSO != itemDataSO)
@@ -69,9 +67,7 @@ public class CirclePlacerEditor : EditorWindow
         }
 
         selectedIndex = EditorGUILayout.Popup("当前 Item", selectedIndex, itemOptions);
-        itemCount = EditorGUILayout.IntField("数量", itemCount);
         showLabel = EditorGUILayout.Toggle("显示 ItemId", showLabel);
-        showIcon = EditorGUILayout.Toggle("显示 Icon", showIcon);
     }
 
     private void Enable()
@@ -113,18 +109,18 @@ public class CirclePlacerEditor : EditorWindow
             if (marker == null)
                 continue;
 
-            ItemData data = itemDataSO.ItemDatas.Find(i => i.Id == marker.itemId);
+            RewardBoxData data = itemDataSO.rewardDatas.Find(i => i.RewardId == marker.itemId);
             if (data == null)
                 continue;
 
             Vector3 pos = child.position;
 
-            Handles.color = GetColorByItemType(data.ItemType);
+            Handles.color = GetColorByItemType(data.RewardId);
             Handles.DrawSolidDisc(pos, Vector3.up, CircleRadius);
 
             if (showLabel)
             {
-                Handles.Label(pos + Vector3.up * 0.3f, $"Id:{data.Id}+{marker.count}");
+                Handles.Label(pos + Vector3.up * 0.3f, $"Id:{data.RewardId}");
             }
 
             // 右键删除
@@ -138,32 +134,6 @@ public class CirclePlacerEditor : EditorWindow
                 }
             }
         }
-
-        // ===== 再画 GUI（关键修复点）=====
-        if (showIcon)
-        {
-            Handles.BeginGUI();
-
-            foreach (Transform child in resRoot.transform)
-            {
-                CircleItemMarker marker = child.GetComponent<CircleItemMarker>();
-                if (marker == null)
-                    continue;
-
-                ItemData data = itemDataSO.ItemDatas.Find(i => i.Id == marker.itemId);
-                if (data == null || data.Icon == null)
-                    continue;
-
-                Vector3 screenPos =
-                    HandleUtility.WorldToGUIPoint(child.position + Vector3.up * 0.6f);
-
-                Rect rect = new Rect(screenPos.x - 16, screenPos.y - 16, 32, 32);
-                GUI.DrawTexture(rect, data.Icon.texture);
-            }
-
-            Handles.EndGUI();
-        }
-
         if (toRemove != null)
         {
             foreach (var t in toRemove)
@@ -184,13 +154,12 @@ public class CirclePlacerEditor : EditorWindow
 
     private void CreateMarker(Vector3 position)
     {
-        GameObject go = new GameObject($"CircleMark_Item_{itemDataSO.ItemDatas[selectedIndex].Id}");
+        GameObject go = new GameObject($"CircleMark_Item_{itemDataSO.rewardDatas[selectedIndex].RewardId}");
         go.transform.position = position;
         go.transform.SetParent(resRoot.transform);
 
         var marker = go.AddComponent<CircleItemMarker>();
-        marker.itemId = itemDataSO.ItemDatas[selectedIndex].Id;
-        marker.count=itemCount;
+        marker.itemId = itemDataSO.rewardDatas[selectedIndex].RewardId;
         Undo.RegisterCreatedObjectUndo(go, "Create Circle Marker");
         SceneView.RepaintAll();
     }
@@ -203,21 +172,17 @@ public class CirclePlacerEditor : EditorWindow
             return;
         }
 
-        var items = itemDataSO.ItemDatas;
+        var items = itemDataSO.rewardDatas;
         itemOptions = new string[items.Count];
 
         for (int i = 0; i < items.Count; i++)
         {
-            itemOptions[i] = $"Id:{items[i].Id}  Type:{items[i].ItemType}";
+            itemOptions[i] = $"Id:{items[i].RewardId}";
         }
     }
 
-    private Color GetColorByItemType(ItemType type)
+    private Color GetColorByItemType(int type)
     {
-        return type switch
-        {
-            ItemType.Weapon => Color.red,
-            _ => Color.white
-        };
+        return  Color.red;
     }
 }

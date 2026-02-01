@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using YOTO;
 
@@ -17,6 +18,7 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim, IUser
     private IWeapon currentWeapon;
     private IUsable _usableItemInRange;
     public PetEntity pet;
+
     public override void YOTOUpdate(float deltaTime)
     {
         if (ObjTrans == null) return;
@@ -30,7 +32,7 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim, IUser
         }
 
         if (Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.A) || Input.GetKeyDown(KeyCode.S) ||
-            Input.GetKeyDown(KeyCode.D)||Input.GetMouseButton(0))
+            Input.GetKeyDown(KeyCode.D) || Input.GetMouseButton(0))
         {
             if (_usableItemInRange != null)
             {
@@ -79,7 +81,6 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim, IUser
 
     public void SetData(object data)
     {
-
         properties = new Properties();
         properties.HP = 100;
         properties.MaxHP = 100;
@@ -97,6 +98,7 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim, IUser
     }
 
     PlayerRenderer renderer;
+
     protected override void AfterInstanceGObj()
     {
         properties.State = RoleState.Alive;
@@ -118,7 +120,7 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim, IUser
         currentWeapon = axeEntity;
         renderer = ObjTrans.GetComponentInChildren<PlayerRenderer>();
         renderer.UseNife();
-        
+
         pet = new PetEntity();
         pet.Location = ObjTrans.position;
         pet.PetInit();
@@ -130,7 +132,7 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim, IUser
         gunEntity.RecoverObject();
         axeEntity.RecoverObject();
         pet.RecoverObject();
-        pet=null;
+        pet = null;
     }
 
     public void AfterIntoObjectPool()
@@ -158,6 +160,19 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim, IUser
         YFramework.cameraMgr.OnShakeCamera();
     }
 
+    List<Vector3> atkSlot = new List<Vector3>();
+
+    public List<Vector3> GetAtkSlot()
+    {
+        atkSlot.Clear();
+        if (ObjTrans != null)
+        {
+            atkSlot.Add(ObjTrans.position);
+        }
+
+        return atkSlot;
+    }
+
     public Vector3 GetForward()
     {
         if (objTrans != null)
@@ -174,7 +189,6 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim, IUser
 
     public void OnSlowDown(float rate)
     {
-        
     }
 
     public Vector3 GetPosition()
@@ -244,9 +258,8 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim, IUser
         {
             var renderer = ObjTrans.GetComponentInChildren<PlayerRenderer>();
             renderer.SetAtacking(true);
-            currentWeapon.OnShoot(this, hitPoint, dt);  
+            currentWeapon.OnShoot(this, hitPoint, dt);
         }
-      
     }
 
     public void OnMouseUp()
@@ -254,9 +267,7 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IVictim, IUser
         if (ObjTrans != null)
         {
             var renderer = ObjTrans.GetComponentInChildren<PlayerRenderer>();
-            renderer.SetAtacking(false); 
+            renderer.SetAtacking(false);
         }
-        
-
     }
 }

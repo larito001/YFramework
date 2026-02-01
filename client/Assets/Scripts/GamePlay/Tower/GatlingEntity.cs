@@ -15,6 +15,18 @@ public class GatlingEntity : ObjectBase, IVictim
     private float attackCD =4f;
     private bool isCdEnd = false;
     Animation anim;
+    List<Vector3> atkSlot = new List<Vector3>();
+
+    public List<Vector3> GetAtkSlot()
+    {
+        atkSlot.Clear();
+        if (ObjTrans != null)
+        {
+            atkSlot.Add(ObjTrans.position);
+        }
+
+        return atkSlot;
+    }
     public override void YOTOFixedUpdate(float dt)
     {
         if (objTrans == null) return;

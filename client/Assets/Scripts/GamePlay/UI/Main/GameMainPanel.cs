@@ -54,7 +54,7 @@ public class GameMainPanel : UIPageBase
 
     private void RefreshTrainHP()
     {
-        var property = PlayerManager.Instance.train.GetProperties();
+        var property = TrainManager.Instance.GetTrainVictim().GetProperties();
         scrollBar.fillAmount = property.HP / property.MaxHP;
     }
 

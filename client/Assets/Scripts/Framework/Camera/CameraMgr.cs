@@ -80,6 +80,7 @@ public class CameraMgr
     private void OnMouseUp()
     {
         PlayerManager.Instance.OnMouseUp();
+        TrainManager.Instance.OnMouseUp();
     }
     private void OnMouseDown(float dt)
     {
@@ -89,7 +90,8 @@ public class CameraMgr
         if (Physics.Raycast(ray, out hit, 1000f))
         {
             PlayerManager.Instance.OnMouseDown(hit.point,dt);
-
+            
+            TrainManager.Instance.OnMouseDown(hit.point,dt);
         }
     }
     

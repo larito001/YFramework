@@ -75,10 +75,10 @@ public class TrackFixEntity : ObjectBase, IVictim
         properties.MaxHP = 30;
         properties.OnDead = () =>
         {
-            TowerManager.Instance.trackFixDic[fixRate] = true;
+            TrainManager.Instance.trackFixDic[fixRate] = true;
 
             bool isWin = true;
-            foreach (var valueTemp in TowerManager.Instance.trackFixDic.Values)
+            foreach (var valueTemp in TrainManager.Instance.trackFixDic.Values)
             {
                 if (!valueTemp)
                 {
@@ -90,7 +90,7 @@ public class TrackFixEntity : ObjectBase, IVictim
             {
                 YFramework.uIMgr.Show(UIEnum.WinPanel);
             }
-            
+
             RecoverObject();
         };
         hud.UpdateRate(properties.HP / properties.MaxHP);
@@ -110,11 +110,11 @@ public class TrackFixEntity : ObjectBase, IVictim
 
     public void OnHurt(IVictim fireRole, float hurt)
     {
-        if (canFix&&fireRole is PlayerEntity)
+        if (canFix && fireRole is PlayerEntity)
         {
             properties.HP -= 1;
             hud.UpdateRate(properties.HP / properties.MaxHP);
-            if (properties.HP ==1)
+            if (properties.HP == 1)
             {
                 EnemiesManager.instance.OnNightGenerate(ObjTrans.position, 10);
             }
@@ -140,6 +140,19 @@ public class TrackFixEntity : ObjectBase, IVictim
     public Vector3 GetPosition()
     {
         return ObjTrans.position;
+    }
+
+    List<Vector3> atkSlot = new List<Vector3>();
+
+    public List<Vector3> GetAtkSlot()
+    {
+        atkSlot.Clear();
+        if (ObjTrans != null)
+        {
+            atkSlot.Add(ObjTrans.position);
+        }
+
+        return atkSlot;
     }
 
     public Vector3 GetForward()

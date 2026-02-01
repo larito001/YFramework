@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -23,6 +24,12 @@ public class GameDayNightManager : LogicPluginBase
     private float _allTimer; // 一个完整昼夜周期
     private float _currentTimer; // 当前周期计时
     private bool _isDay; // 当前是否为白天
+
+    public override void ReStartGame(Action callBack = null)
+    {
+        ResetDayNight();
+        base.ReStartGame(callBack);
+    }
 
     /// <summary>
     /// 初始化昼夜参数
@@ -95,14 +102,14 @@ public class GameDayNightManager : LogicPluginBase
 
             if (rate >= nextThreshold)
             {
-                EnemiesManager.instance.OnNightGenerate(PlayerManager.Instance.train.ObjTrans.position, 20 * 2);
+                EnemiesManager.instance.OnNightGenerate(TrainManager.Instance.GetTrainPos(), 20 * 2);
                 lastGenerationThreshold = nextThreshold;
 
                 // 如果rate一次性跨越了多个0.2区间，处理这种情况
                 while (rate >= lastGenerationThreshold + NightGeneratePoint)
                 {
                     lastGenerationThreshold += NightGeneratePoint;
-                    EnemiesManager.instance.OnNightGenerate(PlayerManager.Instance.train.ObjTrans.position, 20 * 2);
+                    EnemiesManager.instance.OnNightGenerate(TrainManager.Instance.GetTrainPos(), 20 * 2);
                 }
             }
         }
@@ -127,7 +134,7 @@ public class GameDayNightManager : LogicPluginBase
                 }
                 else
                 {
-                    EnemiesManager.instance.OnNightGenerate(PlayerManager.Instance.train.ObjTrans.position, 10);
+                    EnemiesManager.instance.OnNightGenerate(TrainManager.Instance.GetTrainPos(), 10);
                 }
 
                 lastDayGenerationThreshold = nextThreshold;
@@ -143,7 +150,7 @@ public class GameDayNightManager : LogicPluginBase
                     }
                     else
                     {
-                        EnemiesManager.instance.OnNightGenerate(PlayerManager.Instance.train.ObjTrans.position, 10);
+                        EnemiesManager.instance.OnNightGenerate(TrainManager.Instance.GetTrainPos(), 10);
                     }
                 }
             }

@@ -230,6 +230,18 @@ public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>, IVictim
 
         return Location;
     }
+    List<Vector3> atkSlot = new List<Vector3>();
+
+    public List<Vector3> GetAtkSlot()
+    {
+        atkSlot.Clear();
+        if (ObjTrans != null)
+        {
+            atkSlot.Add(ObjTrans.position);
+        }
+
+        return atkSlot;
+    }
 
     public Vector3 GetForward()
     {
@@ -269,9 +281,9 @@ public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>, IVictim
             }
 
  
-            if (PlayerManager.Instance.CheckTrainIsInRange(objTrans.position, enemyConfig.indexRange))
+            if (TrainManager.Instance.CheckTrainIsInRange(objTrans.position, enemyConfig.indexRange))
             {
-                var victim = PlayerManager.Instance.train;
+                var victim = TrainManager.Instance.GetTrainVictim();
                 OnEnterCallbackStateMachine?.Invoke(victim);
                 return;
             }

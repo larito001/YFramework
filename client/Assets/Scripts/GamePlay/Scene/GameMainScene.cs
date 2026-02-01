@@ -1,4 +1,4 @@
-using System.Collections;
+ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using YOTO;
@@ -16,55 +16,81 @@ public class GameMainScene : GotSceneBase
     }
 
     protected override void OnEnterScene()
-    {
-        Timers.inst.Add(2,(o) =>
+    {  
+        
+        // WarehouseEntity warehouse = new WarehouseEntity();
+        // warehouse.SetEntity();
+        // warehouse.SetInVision(true);
+        // var warehouseObj = GameObject.Find("WareHouse");
+        // warehouse.Location = warehouseObj.transform.position;
+        // warehouse.InstanceGObj();
+        
+        //加载路径
+        GotAStarManager.Instance.LoadPathFinding(() =>
         {
-            TowerManager.Instance.TrackInit();
-
-            WarehouseEntity warehouse = new WarehouseEntity();
-            warehouse.SetEntity();
-            warehouse.SetInVision(true);
-            var warehouseObj = GameObject.Find("WareHouse");
-            warehouse.Location = warehouseObj.transform.position;
-            warehouse.InstanceGObj();
-
-
-            BagPlugin.Instance.ReStar();
-            FlyTextMgr.Instance.Init();
-            SceneResManager.Instance.Init();
-            GotAStarManager.Instance.LoadPathFinding(() =>
+            TrainManager.Instance.ReStartGame(() =>
             {
-                YFramework.uIMgr.Show(UIEnum.GameMainPanel);
-
-
-                YFramework.uIMgr.Hide(UIEnum.StartPanel);
-                PlayerManager.Instance.Init(() =>
+                TowerManager.Instance.ReStartGame(() =>
                 {
-                    EnemiesManager.instance.Init(() =>
+                    PlayerManager.Instance.ReStartGame(() =>
                     {
-                        EnterSceneComplete();
-                        GameDayNightManager.Instance.ResetDayNight();
-                        YFramework.uIMgr.Show(UIEnum.GuidePanel);
+                        EnemiesManager.instance.ReStartGame(() =>
+                        {
+                            //局内背包
+                            BagPlugin.Instance.ReStartGame(() =>
+                            {
+                                 
+                                //资源
+                                SceneResManager.Instance.ReStartGame(() =>
+                                {
+                                    GameDayNightManager.Instance.ReStartGame(() =>
+                                    {
+                                  
+                            
+                                        YFramework.uIMgr.Show(UIEnum.GameMainPanel);
+                                        YFramework.uIMgr.Hide(UIEnum.StartPanel);
+                                        YFramework.uIMgr.Show(UIEnum.GuidePanel);
+                                        EnterSceneComplete();
+                                    });
+                                });
+                         
+                            });
+                  
+          
+                        });
                     });
                 });
-            }, new string[] { "GraphCache" });
-        });
-
+            });
+        }, new string[] { "GraphCache" });
     }
 
+    private bool isInTrain = false;
     public override void Update(float dt)
     {
         base.Update(dt);
         GotAStarManager.Instance.Update();
         GameDayNightManager.Instance.Update(dt);
-        FlyTextMgr.Instance.Update(Time.deltaTime);
+        FlyTextMgr.Instance.Update(dt);
         if (Input.GetKeyDown(KeyCode.F))
         {
-            PlayerManager.Instance.Switch();
-        }
-        else if (Input.GetKeyDown(KeyCode.M))
-        {
-            // EnemiesManager.instance.GenerateAtRange(PlayerManager.Instance.playerEntity.ObjTrans.position);
+           
+            if (isInTrain)
+            {
+                PlayerManager.Instance.OnUsePlayer();
+                TrainManager.Instance.OnUnUseTrain();
+                isInTrain=!isInTrain;
+            }
+            else
+            {
+                if (TrainManager.Instance.CheckTrainIsInRange(PlayerManager.Instance.GetPlayerLocation(), 10))
+                {
+                    TrainManager.Instance.OnUseTrain();
+                    PlayerManager.Instance.OnUnUsePlayer();  
+                    isInTrain=!isInTrain;
+                }
+           
+            }
+
         }
     }
 

@@ -50,7 +50,8 @@ public enum UIEnum
     SelectTowerPanel,
     TowerUpPanel,
     WinPanel,
-    GuidePanel
+    GuidePanel,
+    SearchPanel
 }
 
 public class UIConfig
@@ -70,6 +71,7 @@ public class UIConfig
         new UIInfo(UIEnum.TowerUpPanel, UILayerEnum.PopText, "UI/TowerUpPanel"),
         new UIInfo(UIEnum.WinPanel, UILayerEnum.Normal, "UI/WinPanel"),
         new UIInfo(UIEnum.GuidePanel, UILayerEnum.Normal, "UI/GuidePanel"),
+        new UIInfo(UIEnum.SearchPanel, UILayerEnum.Normal, "UI/bag/SearchPanel"),
     };
 
     #region  对外
