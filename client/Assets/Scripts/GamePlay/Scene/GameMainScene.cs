@@ -15,6 +15,14 @@ public class GameMainScene : GotSceneBase
         get { return "GameMainScene"; }
     }
 
+    protected override void OnLoadingEnd()
+    {
+        base.OnLoadingEnd();
+        YFramework.uIMgr.Show(UIEnum.GameMainPanel);
+        YFramework.uIMgr.Hide(UIEnum.StartPanel);
+        YFramework.uIMgr.Show(UIEnum.GuidePanel);
+    }
+
     protected override void OnEnterScene()
     {  
         
@@ -30,36 +38,35 @@ public class GameMainScene : GotSceneBase
         {
             TrainManager.Instance.ReStartGame(() =>
             {
-                TowerManager.Instance.ReStartGame(() =>
-                {
-                    PlayerManager.Instance.ReStartGame(() =>
-                    {
-                        EnemiesManager.instance.ReStartGame(() =>
-                        {
-                            //局内背包
-                            BagPlugin.Instance.ReStartGame(() =>
-                            {
-                                 
-                                //资源
-                                SceneResManager.Instance.ReStartGame(() =>
-                                {
-                                    GameDayNightManager.Instance.ReStartGame(() =>
-                                    {
-                                  
-                            
-                                        YFramework.uIMgr.Show(UIEnum.GameMainPanel);
-                                        YFramework.uIMgr.Hide(UIEnum.StartPanel);
-                                        YFramework.uIMgr.Show(UIEnum.GuidePanel);
-                                        EnterSceneComplete();
-                                    });
-                                });
-                         
-                            });
-                  
-          
-                        });
-                    });
-                });
+
+                EnterSceneComplete();
+                // TowerManager.Instance.ReStartGame(() =>
+                // {
+                //     PlayerManager.Instance.ReStartGame(() =>
+                //     {
+                //         EnemiesManager.instance.ReStartGame(() =>
+                //         {
+                //             //局内背包
+                //             BagPlugin.Instance.ReStartGame(() =>
+                //             {
+                //                  
+                //                 //资源
+                //                 SceneResManager.Instance.ReStartGame(() =>
+                //                 {
+                //                     GameDayNightManager.Instance.ReStartGame(() =>
+                //                     {
+                //                   
+                //             
+                //                
+                //                     });
+                //                 });
+                //          
+                //             });
+                //         
+                //         
+                //         });
+                //     });
+                // });
             });
         }, new string[] { "GraphCache" });
     }
