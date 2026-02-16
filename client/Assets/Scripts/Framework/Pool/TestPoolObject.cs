@@ -26,10 +26,7 @@ public class TestPoolObject : ObjectBase,PoolItem<Vector3>
         throw new System.NotImplementedException();
     }
 
-    public override void YOTONetUpdate()
-    {
-        throw new System.NotImplementedException();
-    }
+
 
     public override void YOTOFixedUpdate(float deltaTime)
     {

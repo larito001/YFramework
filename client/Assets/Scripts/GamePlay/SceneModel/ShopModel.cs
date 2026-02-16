@@ -22,7 +22,7 @@ public class ShopModel : SceneModelBase
 
   private void OnClickShop()
   {
-    YFramework.uIMgr.Show(UIEnum.ShopPanel);
+    GameLoop.Instance.Ctx.Get<UIMgr>().Show(UIEnum.ShopPanel);
   }
 
   // protected override void OnEnter(Collider other)

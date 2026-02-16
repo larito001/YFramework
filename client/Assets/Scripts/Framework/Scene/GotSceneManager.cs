@@ -20,7 +20,7 @@ public enum LoadSceneMode
     Additive = 1,
 }
 
-public class GotSceneManager
+public class GotSceneManager:IGameService,ITickable,IFixedTickable
 {
     //场景总Gameobject
     public GameObject SceneRoot { get; private set; }
@@ -74,50 +74,8 @@ public class GotSceneManager
 
 
     #region 生命周期
+    
 
-    /// <summary>
-    /// 初始化设置默认场景
-    /// </summary>
-    /// <param name="sceneRoot"></param>
-    public void Init(GameObject sceneRoot)
-    {
-        SceneRoot = sceneRoot;
-        DefaultBackgroundLoadingPriority = Application.backgroundLoadingPriority;
-        DefaultAsyncUploadBufferSize = QualitySettings.asyncUploadBufferSize;
-        DefaultAsyncUploadTimeSlice = QualitySettings.asyncUploadTimeSlice;
-        AddScene<GameMainScene>(sceneRoot);
-        m_loadedScenes = new Stack<GotSceneType>();
-    }
-
-    public void Update(float dt)
-    {
-        try
-        {
-            if (SwitchSceneComplete && CurrentScene != null)
-            {
-                CurrentScene.Update(dt);
-            }
-        }
-        catch (System.Exception e)
-        {
-            Debug.LogErrorFormat("GotSceneManager::Update 异常, {0}\n{1}", e.Message, e.StackTrace);
-        }
-    }
-
-    public void OnFixedUpdate()
-    {
-        try
-        {
-            if (SwitchSceneComplete && CurrentScene != null)
-            {
-                CurrentScene.OnFixedUpdate();
-            }
-        }
-        catch (System.Exception e)
-        {
-            Debug.LogErrorFormat("GotSceneManager::OnFixedUpdate 异常, {0}\n{1}", e.Message, e.StackTrace);
-        }
-    }
 
     /// <summary>
     /// 游戏场景切换, 可以存在多个场景  
@@ -163,7 +121,7 @@ public class GotSceneManager
 
         if (showLoading)
         {
-            YFramework.uIMgr.Show(UIEnum.LoadingPanel);
+            GameLoop.Instance.Ctx.Get<UIMgr>().Show(UIEnum.LoadingPanel);
         }
 
         //第一次切换出主城的时候引起卡顿，目前原因未知，临时延时执行后续操作保证先出Loading界面
@@ -226,7 +184,7 @@ public class GotSceneManager
         if (GC)
         {
             // 资源释放
-            YFramework.Instance.StartCoroutine(YFramework.resMgr.OnChangeScene(callBack));
+            GameLoop.Instance.StartCoroutine(GameLoop.Instance.Ctx.Get<ResMgr>().OnChangeScene(callBack));
         }
         else
         {
@@ -273,7 +231,7 @@ public class GotSceneManager
         }
 
         //停止加载
-        YFramework.uIMgr.Hide(UIEnum.LoadingPanel);
+        GameLoop.Instance.Ctx.Get<UIMgr>().Hide(UIEnum.LoadingPanel);
 
         SwitchSceneComplete = true;
         //场景切换完毕，调用几次GC
@@ -314,4 +272,49 @@ public class GotSceneManager
     }
 
     #endregion
+
+    public void Init(GameContext ctx)
+    {
+        SceneRoot = new GameObject("SceneRoot");
+        DefaultBackgroundLoadingPriority = Application.backgroundLoadingPriority;
+        DefaultAsyncUploadBufferSize = QualitySettings.asyncUploadBufferSize;
+        DefaultAsyncUploadTimeSlice = QualitySettings.asyncUploadTimeSlice;
+        AddScene<GameMainScene>(SceneRoot);
+        m_loadedScenes = new Stack<GotSceneType>();
+    }
+
+    public void Shutdown()
+    {
+       
+    }
+
+    public void Tick(float dt)
+    {
+        try
+        {
+            if (SwitchSceneComplete && CurrentScene != null)
+            {
+                CurrentScene.Update(dt);
+            }
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogErrorFormat("GotSceneManager::Update 异常, {0}\n{1}", e.Message, e.StackTrace);
+        }
+    }
+
+    public void FixedTick(float fdt)
+    {
+        try
+        {
+            if (SwitchSceneComplete && CurrentScene != null)
+            {
+                CurrentScene.OnFixedUpdate();
+            }
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogErrorFormat("GotSceneManager::OnFixedUpdate 异常, {0}\n{1}", e.Message, e.StackTrace);
+        }
+    }
 }

@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Combat;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -50,7 +51,7 @@ public class BaseBulletEntity : ObjectBase
 {
 
 
-    protected List<IVictim> victims = new List<IVictim>();
+    protected List<IDamageable> victims = new List<IDamageable>();
     protected BulletConfig _config;
     protected Vector3 pos;
     protected Vector3 _target;
@@ -60,9 +61,9 @@ public class BaseBulletEntity : ObjectBase
     protected float stayTimer = 0;
     protected bool isLive = false;
     protected int triggerCount = 1;
-    protected IVictim _fireRole;
+    protected IWeapon _fireRole;
    
-    public void Fire(IVictim fireRole, Vector3 pos, Vector3 target)
+    public void Fire(IWeapon fireRole, Vector3 pos, Vector3 target)
     {
         _fireRole = fireRole;
         timer = 0;
@@ -141,12 +142,12 @@ public class BaseBulletEntity : ObjectBase
         {
             if (other.TryGetComponent<SceneModelBase>(out SceneModelBase modelBase))
             {
-                var victim = modelBase.GetObjectBase() as IVictim;
+                var victim = modelBase.GetObjectBase() as IDamageable;
                 if (victim == null) return;
 
                 if (victims.Contains(victim)) return;
-                var otherCamp = victim.GetProperties().Camp;
-                if (otherCamp != _config.camp)
+                var otherCamp = victim.Team;
+                if (otherCamp != _config.Team)
                 {
                     victims.Add(victim);
                 }
@@ -163,7 +164,7 @@ public class BaseBulletEntity : ObjectBase
         {
             if (other.TryGetComponent<SceneModelBase>(out SceneModelBase modelBase))
             {
-                var victim = modelBase.GetObjectBase() as IVictim;
+                var victim = modelBase.GetObjectBase() as IDamageable;
                 if (victim == null) return;
                 if (!victims.Contains(victim)) return;
                 victims.Remove(victim);

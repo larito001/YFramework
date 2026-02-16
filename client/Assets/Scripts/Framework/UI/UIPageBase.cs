@@ -52,7 +52,7 @@ public abstract class UIPageBase : MonoBehaviour
     
     public void CloseSelf()
     {
-        YFramework.uIMgr.Hide(uiType);
+        GameLoop.Instance.Ctx.Get<UIMgr>().Hide(uiType);
     }
 
 }

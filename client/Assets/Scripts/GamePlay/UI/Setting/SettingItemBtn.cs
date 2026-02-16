@@ -25,7 +25,7 @@ public class SettingItemBtn : YOTOScrollViewItem
 
     private void OnClick()
     {
-        YFramework.soundMgr.PlaySFX("Sound/SFX_UI_Click_Designed_Pop_Open_2",0.5f);
+        GameLoop.Instance.Ctx.Get<SoundMgr>().PlaySFX("Sound/SFX_UI_Click_Designed_Pop_Open_2",0.5f);
         panel?.ShowSetting(index);
     }
     public override void OnHidItem()

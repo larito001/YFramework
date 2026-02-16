@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Combat;
 using UnityEngine;
 
 public class AxeEntity :  ObjectBase,IWeapon
@@ -110,5 +111,13 @@ public class AxeEntity :  ObjectBase,IWeapon
 
     protected override void BeforeRecover(bool isDelete)
     {
+    }
+
+    public TeamId Team { get; }
+    public Vector3 Owner { get; }
+    public WeaponConfigSO Config { get; }
+    public bool TryFire(in FireRequest request)
+    {
+        
     }
 }

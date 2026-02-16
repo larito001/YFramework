@@ -47,7 +47,7 @@ public class TrackFixEntity : ObjectBase, IVictim
             param.useIdAndNumber = useIdAndNumber;
             param.confirmAction = ConfirmFix;
 
-            YFramework.uIMgr.Show(UIEnum.TowerUpPanel, param);
+            GameLoop.Instance.Ctx.Get<UIMgr>().Show(UIEnum.TowerUpPanel, param);
         }
     }
 
@@ -88,7 +88,7 @@ public class TrackFixEntity : ObjectBase, IVictim
 
             if (isWin)
             {
-                YFramework.uIMgr.Show(UIEnum.WinPanel);
+                GameLoop.Instance.Ctx.Get<UIMgr>().Show(UIEnum.WinPanel);
             }
 
             RecoverObject();

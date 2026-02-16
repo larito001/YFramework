@@ -31,7 +31,7 @@ public class TowerUpPanel : UIPageBase
         }
         else
         {
-            FlyTextMgr.Instance.AddTextAtScreenCenter("资源不足");
+            GameLoop.Instance.Ctx.Get<FlyTextMgr>().AddTextAtScreenCenter("资源不足");
         }
 
     }

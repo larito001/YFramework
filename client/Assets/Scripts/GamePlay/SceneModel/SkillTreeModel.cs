@@ -21,7 +21,7 @@ public class SkillTreeModel : SceneModelBase
 
     private void OnClickShop()
     {
-    YFramework.uIMgr.Show(UIEnum.SkillTreePanel);
+        GameLoop.Instance.Ctx.Get<UIMgr>().Show(UIEnum.SkillTreePanel);
     }
 
     // protected override void OnEnter(Collider other)

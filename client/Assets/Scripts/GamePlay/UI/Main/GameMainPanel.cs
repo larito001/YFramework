@@ -25,9 +25,9 @@ public class GameMainPanel : UIPageBase
 
     public override void OnShow()
     {
-        YFramework.eventMgr.AddEventListener(YOTOEventType.RefreshBagList,OnRefresh);
-        YFramework.eventMgr.AddEventListener(YOTOEventType.RefreshTrainHP,RefreshTrainHP);
-        YFramework.eventMgr.AddEventListener(YOTOEventType.RefreshTime,OnRefreshTime);
+        GameLoop.Instance.Ctx.Get<EventMgr>().AddEventListener(YOTOEventType.RefreshBagList,OnRefresh);
+        GameLoop.Instance.Ctx.Get<EventMgr>().AddEventListener(YOTOEventType.RefreshTrainHP,RefreshTrainHP);
+        GameLoop.Instance.Ctx.Get<EventMgr>().AddEventListener(YOTOEventType.RefreshTime,OnRefreshTime);
         bagBtn.onClick.AddListener(OnBagBtnClick);
         OnRefresh();
     }
@@ -65,14 +65,14 @@ public class GameMainPanel : UIPageBase
 
     private void OnBagBtnClick()
     {
-        YFramework.uIMgr.Show(UIEnum.BagPanel);
+        GameLoop.Instance.Ctx.Get<UIMgr>().Show(UIEnum.BagPanel);
     }
 
     public override void OnHide()
     {
-        YFramework.eventMgr.RemoveEventListener(YOTOEventType.RefreshBagList,OnRefresh);
-        YFramework.eventMgr.RemoveEventListener(YOTOEventType.RefreshTrainHP,RefreshTrainHP);
-        YFramework.eventMgr.RemoveEventListener(YOTOEventType.RefreshTime,OnRefreshTime);
+        GameLoop.Instance.Ctx.Get<EventMgr>().RemoveEventListener(YOTOEventType.RefreshBagList,OnRefresh);
+        GameLoop.Instance.Ctx.Get<EventMgr>().RemoveEventListener(YOTOEventType.RefreshTrainHP,RefreshTrainHP);
+        GameLoop.Instance.Ctx.Get<EventMgr>().RemoveEventListener(YOTOEventType.RefreshTime,OnRefreshTime);
     }
 
     public override void OnResize()

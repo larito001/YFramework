@@ -25,7 +25,7 @@ public abstract  class BaseEntity
         _entityID=ids++;
         YOTOOnload();
         _isLoaded = true;
-        YFramework.entityMgr._AddEntity(this);
+        GameLoop.Instance.Ctx.Get<EntityMgr>()._AddEntity(this);
     }
 
     protected virtual void YOTOOnload()
@@ -36,11 +36,7 @@ public abstract  class BaseEntity
     {
         
     }
-
-    public virtual void YOTONetUpdate()
-    {
-        
-    }
+    
 
     public virtual void YOTOFixedUpdate(float deltaTime)
     {
@@ -57,7 +53,7 @@ public abstract  class BaseEntity
     {
         YOTOOnHide();
         _isLoaded = false;
-        YFramework.entityMgr._RemoveEntity(this);
+        GameLoop.Instance.Ctx.Get<EntityMgr>()._RemoveEntity(this);
     }
 
 

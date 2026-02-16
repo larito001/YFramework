@@ -1,8 +1,9 @@
 using System.Collections;
 using System.Collections.Generic;
+using Combat;
 using UnityEngine;
 
-public class IceBulletEntity : BaseBulletEntity, PoolItem<BulletConfig>
+public class IceBulletEntity : BaseBulletEntity, PoolItem<BulletConfig>,IProjectile
 {
     public static DataObjPool<IceBulletEntity, BulletConfig> pool =
         new DataObjPool<IceBulletEntity, BulletConfig>("IceBulletEntity", 50);
@@ -59,5 +60,16 @@ public class IceBulletEntity : BaseBulletEntity, PoolItem<BulletConfig>
         particle.Play();
         particle.Rotation = Quaternion.LookRotation(-ObjTrans.forward, ObjTrans.up);
         pool.RecoverItem(this);
+    }
+
+    public bool IsAlive { get; }
+    public void Init(in FireRequest request)
+    {
+        throw new System.NotImplementedException();
+    }
+
+    public void Tick(float dt)
+    {
+        throw new System.NotImplementedException();
     }
 }

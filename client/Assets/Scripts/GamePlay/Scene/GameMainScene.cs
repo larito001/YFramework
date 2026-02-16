@@ -18,9 +18,9 @@ public class GameMainScene : GotSceneBase
     protected override void OnLoadingEnd()
     {
         base.OnLoadingEnd();
-        YFramework.uIMgr.Show(UIEnum.GameMainPanel);
-        YFramework.uIMgr.Hide(UIEnum.StartPanel);
-        YFramework.uIMgr.Show(UIEnum.GuidePanel);
+        GameLoop.Instance.Ctx.Get<UIMgr>().Show(UIEnum.GameMainPanel);
+        GameLoop.Instance.Ctx.Get<UIMgr>().Hide(UIEnum.StartPanel);
+        GameLoop.Instance.Ctx.Get<UIMgr>().Show(UIEnum.GuidePanel);
     }
 
     protected override void OnEnterScene()
@@ -32,43 +32,46 @@ public class GameMainScene : GotSceneBase
         // var warehouseObj = GameObject.Find("WareHouse");
         // warehouse.Location = warehouseObj.transform.position;
         // warehouse.InstanceGObj();
-        
-        //加载路径
-        GotAStarManager.Instance.LoadPathFinding(() =>
+        PlayerManager.Instance.ReStartGame(() =>
         {
-            TrainManager.Instance.ReStartGame(() =>
-            {
-
-                EnterSceneComplete();
-                // TowerManager.Instance.ReStartGame(() =>
-                // {
-                //     PlayerManager.Instance.ReStartGame(() =>
-                //     {
-                //         EnemiesManager.instance.ReStartGame(() =>
-                //         {
-                //             //局内背包
-                //             BagPlugin.Instance.ReStartGame(() =>
-                //             {
-                //                  
-                //                 //资源
-                //                 SceneResManager.Instance.ReStartGame(() =>
-                //                 {
-                //                     GameDayNightManager.Instance.ReStartGame(() =>
-                //                     {
-                //                   
-                //             
-                //                
-                //                     });
-                //                 });
-                //          
-                //             });
-                //         
-                //         
-                //         });
-                //     });
-                // });
-            });
-        }, new string[] { "GraphCache" });
+            EnterSceneComplete();
+        });
+        //加载路径
+        // GotAStarManager.Instance.LoadPathFinding(() =>
+        // {
+        //     TrainManager.Instance.ReStartGame(() =>
+        //     {
+        //
+        //         EnterSceneComplete();
+        //         TowerManager.Instance.ReStartGame(() =>
+        //         {
+        //             PlayerManager.Instance.ReStartGame(() =>
+        //             {
+        //                 EnemiesManager.instance.ReStartGame(() =>
+        //                 {
+        //                     //局内背包
+        //                     BagPlugin.Instance.ReStartGame(() =>
+        //                     {
+        //                          
+        //                         //资源
+        //                         SceneResManager.Instance.ReStartGame(() =>
+        //                         {
+        //                             GameDayNightManager.Instance.ReStartGame(() =>
+        //                             {
+        //                           
+        //                     
+        //                        
+        //                             });
+        //                         });
+        //                  
+        //                     });
+        //                 
+        //                 
+        //                 });
+        //             });
+        //         });x
+        //     });
+        // }, new string[] { "GraphCache" });
     }
 
     private bool isInTrain = false;
@@ -77,7 +80,7 @@ public class GameMainScene : GotSceneBase
         base.Update(dt);
         GotAStarManager.Instance.Update();
         GameDayNightManager.Instance.Update(dt);
-        FlyTextMgr.Instance.Update(dt);
+ 
         if (Input.GetKeyDown(KeyCode.F))
         {
            

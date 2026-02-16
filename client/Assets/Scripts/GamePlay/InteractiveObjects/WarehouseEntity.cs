@@ -19,25 +19,25 @@ public class WarehouseEntity : ObjectBase
     public override void OnColiderEnter(Collider other)
     {
         base.OnColiderEnter(other);
-        if (other.TryGetComponent(out ThirdPlayerMoveCtrl player))
-        {
-            hud.gameObject.SetActive(true);
-        }
+        // if (other.TryGetComponent(out ThirdPlayerMoveCtrl player))
+        // {
+        //     hud.gameObject.SetActive(true);
+        // }
     }
 
     public override void OnObjectClick()
     {
         base.OnObjectClick();
-        YFramework.uIMgr.Show(UIEnum.WarehousePanel);
+GameLoop.Instance.Ctx.Get<UIMgr>().Show(UIEnum.WarehousePanel);
     }
 
     public override void OnColiderExit(Collider other)
     {
         base.OnColiderExit(other); ;
-        if (other.TryGetComponent(out ThirdPlayerMoveCtrl player))
-        {
-            hud.gameObject.SetActive(false);
-        }
+        // if (other.TryGetComponent(out ThirdPlayerMoveCtrl player))
+        // {
+        //     hud.gameObject.SetActive(false);
+        // }
     }
 
     protected override void AfterInstanceGObj()

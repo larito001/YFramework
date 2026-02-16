@@ -29,7 +29,7 @@ public class UILayer
         // 添加Canvas组件
         Canvas canvas = layerRoot.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        canvas.worldCamera = YFramework.cameraMgr.getMainCamera();
+        canvas.worldCamera = GameLoop.Instance.Ctx.Get<CameraMgr>().getMainCamera();
         canvas.overrideSorting = true; // 重要：启用排序覆盖
         canvas.sortingOrder = ((int)layer * 100);
         CanvasScaler scaler = layerRoot.AddComponent<CanvasScaler>();
@@ -93,7 +93,7 @@ public class UILayer
     }
 }
 
-public class UIMgr
+public class UIMgr:IGameService
 {
     // 使用UIEnum作为键，因为它是枚举类型，不会有值相等性的问题
     UIConfig uIConfig = null;
@@ -119,23 +119,6 @@ public class UIMgr
             SetUILayer(obj.transform.GetChild(i).gameObject);
         }
     }
-
-    public void Init()
-    {
-        uIConfig = new UIConfig();
-        uIConfig.Init();
-        UIRoot = new GameObject("UIRoot");
-        UIRoot.layer = LayerMask.NameToLayer("UI");
-        GameObject.DontDestroyOnLoad(UIRoot);
-        foreach (UILayerEnum layer in System.Enum.GetValues(typeof(UILayerEnum)))
-        {
-            UILayer layertemp = new UILayer();
-            layertemp.Init(UIRoot,layer);
-            uiLayers.Add(layer,layertemp);
-        }
-   
-    }
-
     public void Show(UIEnum uiEnum,object param = null)
     {
         Debug.Log($"[UIMgr] Show: uiEnum={uiEnum}");
@@ -187,5 +170,26 @@ public class UIMgr
     public void ResizeScreen()
     {
         
+    }
+
+    public void Init(GameContext ctx)
+    {
+        uIConfig = new UIConfig();
+        uIConfig.Init();
+        UIRoot = new GameObject("UIRoot");
+        UIRoot.layer = LayerMask.NameToLayer("UI");
+        GameObject.DontDestroyOnLoad(UIRoot);
+        foreach (UILayerEnum layer in System.Enum.GetValues(typeof(UILayerEnum)))
+        {
+            UILayer layertemp = new UILayer();
+            layertemp.Init(UIRoot,layer);
+            uiLayers.Add(layer,layertemp);
+        }
+
+    }
+
+    public void Shutdown()
+    {
+        ClearUI();
     }
 }

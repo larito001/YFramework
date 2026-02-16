@@ -21,13 +21,13 @@ public class StartPanel : UIPageBase
 
     private void OnSettingClick()
     {
-        YFramework.uIMgr.Show(UIEnum.SettingPanel);
+        GameLoop.Instance.Ctx.Get<UIMgr>().Show(UIEnum.SettingPanel);
     }
 
     private void OnNewClick()
     {
      
-        YFramework.sceneMgr.SwitchScene(GotSceneType.GamePlay);
+        GameLoop.Instance.Ctx.Get<GotSceneManager>().SwitchScene(GotSceneType.GamePlay);
     }
 
     public override void OnShow()

@@ -8,7 +8,7 @@ using UnityEngine.EventSystems;
 using YOTO;
 
 
-public class CameraMgr
+public class CameraMgr:IGameService,ITickable,IFixedTickable
 {
     private Camera mainCamera;
     private Vector3 touchPosition;
@@ -28,50 +28,8 @@ public class CameraMgr
     }
 
     public bool useVCamera = false;
-    public void Init(bool useVCamera =false)
-    {
-        GameObject cameraObject = GameObject.Find("MainCamera");
-        this.useVCamera=useVCamera;
-        mainCamera = cameraObject.GetComponent<Camera>();
-        cameraShakeProjectile = cameraObject.GetComponent<CameraShakeProjectile>();
-        HudAlwaysFaceToTransform.camera = mainCamera;
-        if (useVCamera)
-        {
-      
-            GameObject.DontDestroyOnLoad(cameraObject);
-     
-            var brain = mainCamera.gameObject.AddComponent<CinemachineBrain>();
-            brain.m_UpdateMethod = CinemachineBrain.UpdateMethod.FixedUpdate;
-            brain.m_DefaultBlend.m_Time = 0.5f;
+  
 
-            getVirtualCamera("MainCameraVirtual");
-        }
-    
-
-        isInit = true;
-    }
-
-    public void Update(float dt)
-    {
-        touchPosition = Input.mousePosition;
-        if (Input.GetMouseButtonDown(0))
-        {
-            Press();
-        }
-    }
-
-    public void FixUpdate(float dt)
-    {
-        if (Input.GetMouseButton(0))
-        {
-            OnMouseDown(dt);
-        }
-
-        if (Input.GetMouseButtonUp(0))
-        {
-            OnMouseUp();
-        }
-    }
 
     public void OnShakeCamera()
     {
@@ -99,7 +57,7 @@ public class CameraMgr
     private void Press()
     {
         Vector3 screenPos = new Vector3(touchPosition.x, touchPosition.y, 0);
-        Ray ray = YFramework.cameraMgr.getMainCamera().ScreenPointToRay(screenPos);
+        Ray ray =        GameLoop.Instance.Ctx.Get<CameraMgr>().getMainCamera().ScreenPointToRay(screenPos);
 
         // 如果鼠标/触摸在 UI 上，直接返回
         if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
@@ -192,4 +150,54 @@ public class CameraMgr
     }
 
     #endregion
+
+    public void Init(GameContext ctx)
+    {
+        GameObject cameraObject = GameObject.Find("MainCamera");
+        this.useVCamera=useVCamera;
+        mainCamera = cameraObject.GetComponent<Camera>();
+        cameraShakeProjectile = cameraObject.GetComponent<CameraShakeProjectile>();
+        HudAlwaysFaceToTransform.camera = mainCamera;
+        if (useVCamera)
+        {
+      
+            GameObject.DontDestroyOnLoad(cameraObject);
+     
+            var brain = mainCamera.gameObject.AddComponent<CinemachineBrain>();
+            brain.m_UpdateMethod = CinemachineBrain.UpdateMethod.FixedUpdate;
+            brain.m_DefaultBlend.m_Time = 0.5f;
+
+            getVirtualCamera("MainCameraVirtual");
+        }
+    
+
+        isInit = true;
+    }
+
+    public void Shutdown()
+    {
+        
+    }
+
+    public void Tick(float dt)
+    {
+        touchPosition = Input.mousePosition;
+        if (Input.GetMouseButtonDown(0))
+        {
+            Press();
+        }
+    }
+
+    public void FixedTick(float fdt)
+    {
+        if (Input.GetMouseButton(0))
+        {
+            OnMouseDown(fdt);
+        }
+
+        if (Input.GetMouseButtonUp(0))
+        {
+            OnMouseUp();
+        }
+    }
 }

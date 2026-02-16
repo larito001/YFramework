@@ -24,11 +24,11 @@ public class SceneResManager : LogicPluginBase
         //      ResEntity.pool.RecoverItem(resEntity);
         // }
         resList.Clear();
-        ResBoxInfo boxInfo = new ResBoxInfo();
-        boxInfo.id = 101;
-        boxInfo.pos = GameStarter.PlayerOrgPos.position;
-        var box = ResBoxEntity.pool.GetItem(boxInfo);
-        resList.Add(box);
+        // ResBoxInfo boxInfo = new ResBoxInfo();
+        // boxInfo.id = 101;
+        // boxInfo.pos = GameStarter.PlayerOrgPos.position;
+        // var box = ResBoxEntity.pool.GetItem(boxInfo);
+        // resList.Add(box);
         // for (var i = 0; i < tasnforms.Length; i++)
         // { 
         //     var res =ResEntity.pool.GetItem(tasnforms[i]);

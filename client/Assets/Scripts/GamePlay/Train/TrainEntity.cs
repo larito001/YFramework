@@ -30,7 +30,7 @@ public class TrainEntity : ObjectBase, IVictim
         {
             //todo:游戏结束
             properties.State = RoleState.Dead;
-            YFramework.uIMgr.Show(UIEnum.FinishPanel);
+            GameLoop.Instance.Ctx.Get<UIMgr>().Show(UIEnum.FinishPanel);
         };
         properties.Camp = Camp.Player;
         SetInVision(true);
@@ -57,7 +57,7 @@ public class TrainEntity : ObjectBase, IVictim
         }
         //最后配置spline
         SetTracer(spline);
-        YFramework.eventMgr.TriggerEvent(YOTOEventType.RefreshTrainHP);
+        GameLoop.Instance.Ctx.Get<EventMgr>().TriggerEvent(YOTOEventType.RefreshTrainHP);
         TowerManager.Instance.GenerateTowerBaseAtTransform(ObjTrans, new Vector3(-2.63f, 4.5f, -0.15f));
         TowerManager.Instance.GenerateTowerBaseAtTransform(ObjTrans, new Vector3(-2.63f, 4.5f, -3.5f));
         TowerManager.Instance.GenerateTowerBaseAtTransform(ObjTrans, new Vector3(2.8f, 4.5f, -3.5f));
@@ -160,7 +160,7 @@ public class TrainEntity : ObjectBase, IVictim
         // FlyTextMgr.Instance.AddText(hurt.ToString(), objTrans.position, FlyTextType.PlayerHurt);
         properties.HP -= hurt;
         fireRole.OnHurtSomeone();
-        YFramework.eventMgr.TriggerEvent(YOTOEventType.RefreshTrainHP);
+        GameLoop.Instance.Ctx.Get<EventMgr>().TriggerEvent(YOTOEventType.RefreshTrainHP);
     }
 
     public Vector3 GetPosition()

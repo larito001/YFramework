@@ -186,7 +186,7 @@ public class GotAStarManager : IGotPathFindingManager
     /// <param name="path"></param>
     public void AddGraph(string path, UnityAction callback)
     {
-        YFramework.resMgr.LoadBytes(path, (textAsset) =>
+        GameLoop.Instance.Ctx.Get<ResMgr>().LoadBytes(path, (textAsset) =>
         {
             AstarPath.active.data.DeserializeGraphsAdditive(textAsset.bytes);
             if (AstarPath.active.data.pointGraph != null)

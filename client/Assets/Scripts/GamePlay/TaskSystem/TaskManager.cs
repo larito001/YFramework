@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using Newtonsoft.Json; // 如果不想使用 Newtonsoft，请使用 Unity JsonUtility（示例中用 JsonUtility）
 
-public class TaskManager 
+public class TaskManager:IGameService
 {
 
     // 所有任务定义（通过资源管理/拖拽到 inspector 或运行时加载）
@@ -21,14 +21,7 @@ public class TaskManager
     public event Action<TaskInstance, string, int, int> OnTaskProgress; // instance, objectiveId, current, required
     public event Action<TaskInstance> OnTaskCompleted;
     public event Action<TaskInstance> OnTaskUpdated;
-
-    public void Init()
-    {
-        //注册任务判断方法
-        RegisterConditionHandler(new SimpleKillCondition());
-        LoadAll();
-    }
-
+    
     public void Unload()
     {
         
@@ -169,4 +162,15 @@ public class TaskManager
     #endregion
 
 
+    public void Init(GameContext ctx)
+    {
+        //注册任务判断方法
+        RegisterConditionHandler(new SimpleKillCondition());
+        LoadAll();
+    }
+
+    public void Shutdown()
+    {
+       
+    }
 }

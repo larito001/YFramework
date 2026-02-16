@@ -125,10 +125,6 @@ public class FlyTextCtrl : ObjectBase, PoolItem<Transform>
     {
     }
 
-    public override void YOTONetUpdate()
-    {
-    }
-
     public override void YOTOFixedUpdate(float deltaTime)
     {
     }

@@ -23,7 +23,7 @@ public class TowerBaseHud : HudAlwaysFaceToTransform
         if (canvas == null)
         {
             canvas = GetComponent<Canvas>();
-            canvas.worldCamera = YFramework.cameraMgr.getMainCamera();
+            canvas.worldCamera =  GameLoop.Instance.Ctx.Get<CameraMgr>().getMainCamera();
         }
 
         gameObject.SetActive(false);
@@ -47,7 +47,7 @@ public class TowerBaseHud : HudAlwaysFaceToTransform
         var data = TowerManager.Instance.GetTowerDataById(tower.towerBaseCtrl.TowerId);
         param.useIdAndNumber = data.FixRes.ToList(); 
         param.confirmAction =OnFixConfirm;
-        YFramework.uIMgr.Show(UIEnum.TowerUpPanel, param);
+    GameLoop.Instance.Ctx.Get<UIMgr>().Show(UIEnum.TowerUpPanel, param);
     }
 
     private void OnFixConfirm()
@@ -73,7 +73,7 @@ public class TowerBaseHud : HudAlwaysFaceToTransform
             var data = TowerManager.Instance.GetTowerDataById(tower.towerBaseCtrl.TowerId);
             param.useIdAndNumber = data.LevelUpRes.ToList(); 
             param.confirmAction =OnUpConfirm;
-            YFramework.uIMgr.Show(UIEnum.TowerUpPanel, param);
+            GameLoop.Instance.Ctx.Get<UIMgr>().Show(UIEnum.TowerUpPanel, param);
         }
     }
 

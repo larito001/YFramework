@@ -65,7 +65,7 @@ public class UIPageHandler
         {
             curState = PageState.Loading;
             Debug.Log($"[UIPageHandler] Loading Dynamic UI: key={key}");
-            YFramework.resMgr.LoadUI(key, OnLoaded);
+            GameLoop.Instance.Ctx.Get<ResMgr>().LoadUI(key, OnLoaded);
         }
         else
         {
@@ -106,7 +106,7 @@ public class UIPageHandler
             Disable();
             uIPageBase.uiType = type;
             uIPageBase.OnLoad();
-            YFramework.uIMgr.OnUILoaded(uIPageBase.gameObject);
+            GameLoop.Instance.Ctx.Get<UIMgr>().OnUILoaded(uIPageBase.gameObject);
             
             Debug.Log($"[UIPageHandler] Before callback: key={key}");
             onLoadComplete?.Invoke();

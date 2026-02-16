@@ -32,7 +32,7 @@ namespace YOTO
         public UnityAction<T, U, V, W> action;
     }
 
-    public class EventMgr
+    public class EventMgr:IGameService
     {
         private Dictionary<YOTOEventType, IEventInfo> eventDictionary = new Dictionary<YOTOEventType, IEventInfo>();
 
@@ -184,5 +184,16 @@ namespace YOTO
         {
             eventDictionary.Clear();
         }
+
+        public void Init(GameContext ctx)
+        {
+            ClearEvents();
+        }
+
+        public void Shutdown()
+        {
+            ClearEvents();
+        }
+        
     }
 }

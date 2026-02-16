@@ -61,12 +61,12 @@ namespace YOTO
 
         public void Save(Action onComplete = null)
         {
-            YFramework.storeMgr.Save(this, onComplete);
+            GameLoop.Instance.Ctx.Get<StoreMgr>().Save(this, onComplete);
         }
 
         public void Load(Action onComplete = null)
         {
-            YFramework.storeMgr.Load(this, onComplete);
+            GameLoop.Instance.Ctx.Get<StoreMgr>().Load(this, onComplete);
         }
     }
 
@@ -172,27 +172,21 @@ namespace YOTO
         }
     }
 
-    public class StoreMgr
+    public class StoreMgr:IGameService, ITickable
     {
         private ISaveStrategy _strategy;
         private IStorageDriver _storage;
 
-        public void Init()
-        {
-            //默认json和文件读写方式存储（后续可以改为联网存储到云端）
-            _strategy = new JsonSaveStrategy();
-            _storage = new FileStorageDriver();
-        }
-
+  
         public void Save<T>(DataContaner<T> dataContaner, Action onComplete = null) where T : class, new()
         {
             string json = _strategy.Serialize(dataContaner.GetData());
-            YFramework.Instance.StartCoroutine(_storage.WriteCoroutine(dataContaner.SaveKey, json, onComplete));
+            GameLoop.Instance.StartCoroutine(_storage.WriteCoroutine(dataContaner.SaveKey, json, onComplete));
         }
 
         public void Load<T>(DataContaner<T> dataContaner, Action onComplete) where T : class, new()
         {
-            YFramework.Instance.StartCoroutine(_storage.ReadCoroutine<T>(dataContaner.SaveKey, _strategy, data =>
+            GameLoop.Instance.StartCoroutine(_storage.ReadCoroutine<T>(dataContaner.SaveKey, _strategy, data =>
             {
                 if (data == null) data = new T();
                 dataContaner.__SetData(data);
@@ -204,6 +198,24 @@ namespace YOTO
         public void Delete(string key)
         {
             _storage.Delete(key);
+        }
+
+        public void Init(GameContext ctx)
+        {
+            //默认json和文件读写方式存储（后续可以改为联网存储到云端）
+            _strategy = new JsonSaveStrategy();
+            _storage = new FileStorageDriver();
+        }
+
+        public void Shutdown()
+        {
+            _strategy = null;
+            _storage = null;
+        }
+
+        public void Tick(float dt)
+        {
+            
         }
     }
 }

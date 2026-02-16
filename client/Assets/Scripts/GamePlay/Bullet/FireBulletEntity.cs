@@ -1,8 +1,9 @@
 using System.Collections;
 using System.Collections.Generic;
+using Combat;
 using UnityEngine;
 
-public class FireBulletEntity : BaseBulletEntity, PoolItem<BulletConfig>
+public class FireBulletEntity : BaseBulletEntity, PoolItem<BulletConfig>,IProjectile
 {
     public static DataObjPool<FireBulletEntity, BulletConfig> pool =
         new DataObjPool<FireBulletEntity, BulletConfig>("FireBulletEntity", 10);
@@ -49,5 +50,16 @@ public class FireBulletEntity : BaseBulletEntity, PoolItem<BulletConfig>
     {
         base.DestoryBullet();
         pool.RecoverItem(this);
+    }
+
+    public bool IsAlive { get; }
+    public void Init(in FireRequest request)
+    {
+        
+    }
+
+    public void Tick(float dt)
+    {
+        throw new System.NotImplementedException();
     }
 }

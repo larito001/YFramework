@@ -37,7 +37,7 @@ namespace YOTO
             currentCallback = callback;
             canceled = false;
 
-            YFramework.Instance.StartCoroutine(LoadResourceAsync(path));
+            GameLoop.Instance.StartCoroutine(LoadResourceAsync(path));
         }
 
         private IEnumerator LoadResourceAsync(string path)

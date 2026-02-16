@@ -103,7 +103,7 @@ public class TowerManager : LogicPluginBase
                 }
                 else
                 {
-                    FlyTextMgr.Instance.AddTextAtScreenCenter("资源不足");
+                    GameLoop.Instance.Ctx.Get<FlyTextMgr>().AddTextAtScreenCenter("资源不足");
                 }
                 
             }
@@ -130,7 +130,7 @@ public class TowerManager : LogicPluginBase
         if (CurrentClickBase == null)
         {
             CurrentClickBase = ctrl;
-            YFramework.uIMgr.Show(UIEnum.SelectTowerPanel); 
+            GameLoop.Instance.Ctx.Get<UIMgr>().Show(UIEnum.SelectTowerPanel); 
         }
    
     }
@@ -139,6 +139,6 @@ public class TowerManager : LogicPluginBase
     {
         CurrentClickBase.GenerateTowerById(id);
         CurrentClickBase = null;
-        YFramework.uIMgr.Hide(UIEnum.SelectTowerPanel);
+        GameLoop.Instance.Ctx.Get<UIMgr>().Hide(UIEnum.SelectTowerPanel);
     }
 }

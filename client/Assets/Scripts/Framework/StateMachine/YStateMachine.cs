@@ -3,9 +3,9 @@ using UnityEngine;
 public interface IYState
 {
     string GetStateName();
-    void EnterState(YStateMachine enemy);
-    void UpdateState(YStateMachine enemy, float dt);
-    void ExitState(YStateMachine enemy);
+    void EnterState(YStateMachine machine,object param);
+    void UpdateState(YStateMachine machine, float dt);
+    void ExitState(YStateMachine machine);
 }
 public class YStateMachine
 {
@@ -14,6 +14,8 @@ public class YStateMachine
     protected IYState currentState;
     protected IYState previousState;
     protected int stateMachineId = 0;
+    private object lastParam;
+    private object currentParam;
     public void ReSet()
     {
         currentState = null;
@@ -26,7 +28,7 @@ public class YStateMachine
     }
     
     // 切换状态
-    public void SwitchState(IYState newState)
+    public void SwitchState(IYState newState,object param)
     {
         if (currentState!=null&&currentState.GetStateName() == newState.GetStateName())
         {
@@ -40,9 +42,11 @@ public class YStateMachine
             currentState.ExitState(this);
             // Debug.Log(stateMachineId+"移除：" + currentState.GetStateName());
         }
-        
+        lastParam=currentParam;
         currentState = newState;
-        currentState.EnterState(this);
+        currentParam=param;
+        currentState.EnterState(this,currentParam);
+ 
          // Debug.Log(stateMachineId + "进入：" + currentState.GetStateName());
         
     }
@@ -52,7 +56,7 @@ public class YStateMachine
     {
         if (previousState != null)
         {
-            SwitchState(previousState);
+            SwitchState(previousState,lastParam);
         }
     }
     

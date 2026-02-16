@@ -1,9 +1,10 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Combat;
 using UnityEngine;
 
-public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IVictim
+public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IWeapon
 {
     public static DataObjPool<TowerEntity, TowerBaseCtrlEntity> pool =
         new DataObjPool<TowerEntity, TowerBaseCtrlEntity>("TowerEntity", 20);
@@ -331,7 +332,7 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IVictim
 
     public void OnFix()
     {
-        FlyTextMgr.Instance.AddText("+" + (properties.MaxHP - properties.HP), objTrans.position, FlyTextType.AddHP);
+        GameLoop.Instance.Ctx.Get<FlyTextMgr>().AddText("+" + (properties.MaxHP - properties.HP), objTrans.position, FlyTextType.AddHP);
         properties.HP = properties.MaxHP;
         rateHud.UpdateRate(properties.HP / properties.MaxHP);
     }
@@ -346,5 +347,13 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IVictim
         particle.Play();
         
         towerBaseCtrl.RemoveTower();
+    }
+
+    public TeamId Team { get; }
+    public Vector3 Owner { get; }
+    public WeaponConfigSO Config { get; }
+    public bool TryFire(in FireRequest request)
+    {
+        throw new System.NotImplementedException();
     }
 }

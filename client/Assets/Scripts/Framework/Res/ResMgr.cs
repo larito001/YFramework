@@ -6,7 +6,7 @@ using Object = UnityEngine.Object;
 
 namespace YOTO
 {
-    public class ResMgr
+    public class ResMgr:IGameService
     {
         private class CachedResource<T> where T : Object
         {
@@ -178,6 +178,19 @@ namespace YOTO
             {
                 callBack();
             }
+        }
+
+        public void Init(GameContext ctx)
+        {
+            
+        }
+
+        public void Shutdown()
+        {
+            GC.Collect(); //GC回收
+            GC.Collect(); //GC回收
+            GC.Collect(); //GC回收
+            GC.Collect(); //GC回收
         }
     }
 }

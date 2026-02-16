@@ -439,7 +439,7 @@ public class GotAStarSeeker : IGotSeeker, PoolItem<object>
         // 如果正在移动，停止之前的移动
         if (currentMoveCoroutine != null)
         {
-            YFramework.Instance.StopCoroutine(currentMoveCoroutine);
+            GameLoop.Instance.StopCoroutine(currentMoveCoroutine);
             currentMoveCoroutine = null;
         }
 
@@ -447,7 +447,7 @@ public class GotAStarSeeker : IGotSeeker, PoolItem<object>
         Vector3 targetPosition = obj.transform.position + dir.normalized * force;
 
         // 开始安全的移动协程
-        currentMoveCoroutine = YFramework.Instance.StartCoroutine(SafeMoveToPosition(targetPosition, callback));
+        currentMoveCoroutine =       GameLoop.Instance.StartCoroutine(SafeMoveToPosition(targetPosition, callback));
     }
 
     private IEnumerator SafeMoveToPosition(Vector3 delta, UnityAction callback)

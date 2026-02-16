@@ -86,10 +86,10 @@ public class TrainManager : LogicPluginBase
     {
         if (train.ObjTrans != null)
         {
-            var orbitCamera = YFramework.cameraMgr.getMainCamera().GetComponent<OrbitCamera>();
-            orbitCamera.Uload();
-            orbitCamera.distance = 50;
-            orbitCamera.Init(train.ObjTrans);
+            // var orbitCamera = YFramework.cameraMgr.getMainCamera().GetComponent<OrbitCamera>();
+            // orbitCamera.Uload();
+            // orbitCamera.distance = 50;
+            // orbitCamera.Init(train.ObjTrans);
             train.canMove = true;
         }
     }

@@ -39,7 +39,7 @@ public class BagPlugin : LogicPluginBase
             ItemDatas.Add(new ItemData(itemDataSO.ItemDatas[i]));
         }
         Resources.UnloadAsset(itemDataSO);
-        YFramework.eventMgr.TriggerEvent(YOTOEventType.RefreshBagList);
+        GameLoop.Instance.Ctx.Get<EventMgr>().TriggerEvent(YOTOEventType.RefreshBagList);
         base.ReStartGame(callBack);
     }
 
@@ -51,13 +51,13 @@ public class BagPlugin : LogicPluginBase
             if (ItemList[i].x == id)
             {
                 ItemList[i] = new Vector2Int(id, ItemList[i].y + num);
-                YFramework.eventMgr.TriggerEvent(YOTOEventType.RefreshBagList);
+                GameLoop.Instance.Ctx.Get<EventMgr>().TriggerEvent(YOTOEventType.RefreshBagList);
                 return;
             }
         }
 
         ItemList.Add(new Vector2Int(id, num));
-        YFramework.eventMgr.TriggerEvent(YOTOEventType.RefreshBagList);
+        GameLoop.Instance.Ctx.Get<EventMgr>().TriggerEvent(YOTOEventType.RefreshBagList);
     }
 
     public int GetItemNum(int id)
@@ -89,7 +89,7 @@ public class BagPlugin : LogicPluginBase
         }
 
         ItemList.Remove(new Vector2Int(id, num));
-        YFramework.eventMgr.TriggerEvent(YOTOEventType.RefreshBagList);
+        GameLoop.Instance.Ctx.Get<EventMgr>().TriggerEvent(YOTOEventType.RefreshBagList);
     }
 
     public int GetListCount => ItemList.Count;

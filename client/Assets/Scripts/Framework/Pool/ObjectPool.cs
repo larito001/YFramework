@@ -201,7 +201,7 @@ namespace HotUpdate.Scripts.Framework.Pool.newPool
                     if (!_isLoading)
                     {
                         _isLoading = true;
-                        YFramework.resMgr.LoadGameObject(_resPath,(templateObj) =>
+                        GameLoop.Instance.Ctx.Get<ResMgr>().LoadGameObject(_resPath,(templateObj) =>
                         {
                             if (templateObj == null)
                             {

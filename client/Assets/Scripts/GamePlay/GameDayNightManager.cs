@@ -36,7 +36,7 @@ public class GameDayNightManager : LogicPluginBase
     /// </summary>
     public void ResetDayNight()
     {
-        if (YFramework.Instance.isTest)
+        if ( GameLoop.Instance.isTest)
         {
             _dayTime = 9f; // 15 分钟白天
         }
@@ -74,7 +74,7 @@ public class GameDayNightManager : LogicPluginBase
         {
             _currentTimer -= _allTimer;
         }
-        YFramework.eventMgr.TriggerEvent(YOTOEventType.RefreshTime);
+        GameLoop.Instance.Ctx.Get<EventMgr>().TriggerEvent(YOTOEventType.RefreshTime);
         
         // 判定当前是否为白天
         _isDay = _currentTimer < _dayTime;
@@ -250,10 +250,10 @@ public class GameDayNightManager : LogicPluginBase
     {
         if (_lightCoroutine != null)
         {
-            YFramework.Instance.StopCoroutine(_lightCoroutine);
+            GameLoop.Instance.StopCoroutine(_lightCoroutine);
         }
 
-        _lightCoroutine = YFramework.Instance.StartCoroutine(
+        _lightCoroutine = GameLoop.Instance.StartCoroutine(
             LightLerpCoroutine(targetColor, targetIntensity)
         );
     }

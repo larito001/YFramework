@@ -16,7 +16,7 @@ public class ResBoxEntity : ObjectBase, PoolItem<ResBoxInfo>, IUsable
     public int boxId;
     public void OnUse(IUser user)
     {
-        YFramework.uIMgr.Show(UIEnum.SearchPanel, rewardList);
+        GameLoop.Instance.Ctx.Get<UIMgr>().Show(UIEnum.SearchPanel, rewardList);
     }
 
     public Vector3 GetPosition()

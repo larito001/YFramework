@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using YOTO;
 
-public class SoundMgr
+public class SoundMgr:IGameService
 {
     private static SoundMgr _instance;
     public static SoundMgr Instance => _instance ??= new SoundMgr();
@@ -13,31 +13,14 @@ public class SoundMgr
 
     private AudioClip _currentBgm;
 
-    /// <summary>
-    /// 初始化声音管理器
-    /// </summary>
-    public void Init()
-    {
-        // 创建 BGM Source
-        _bgmSource = YFramework.Instance.gameObject.AddComponent<AudioSource>();
-        _bgmSource.loop = true;
 
-        // 初始化一个音效池
-        for (int i = 0; i < 5; i++)
-        {
-            var sfx = YFramework.Instance.gameObject.AddComponent<AudioSource>();
-            sfx.playOnAwake = false;
-            _sfxSources.Add(sfx);
-        }
-
-    }
 
     /// <summary>
     /// 播放背景音乐（异步加载并自动播放）
     /// </summary>
     public void PlayBGM(string path, float volume = 1f)
     {
-        YFramework.resMgr.LoadAudio(path, (clip) =>
+        GameLoop.Instance.Ctx.Get<ResMgr>().LoadAudio(path, (clip) =>
         {
             if (clip == null) return;
 
@@ -63,7 +46,7 @@ public class SoundMgr
 
         if (_currentBgm != null)
         {
-            YFramework.resMgr.ReleasePack("Sound/BGM1",_currentBgm);
+            GameLoop.Instance.Ctx.Get<ResMgr>().ReleasePack("Sound/BGM1",_currentBgm);
             _currentBgm = null;
             _bgmSource.clip = null;
         }
@@ -74,7 +57,7 @@ public class SoundMgr
     /// </summary>
     public void PlaySFX(string path, float volume = 1f)
     {
-        YFramework.resMgr.LoadAudio(path, (clip) =>
+        GameLoop.Instance.Ctx.Get<ResMgr>().LoadAudio(path, (clip) =>
         {
             if (clip == null) return;
 
@@ -84,7 +67,7 @@ public class SoundMgr
             src.Play();
 
             // 播放完成后自动释放
-            YFramework.Instance.StartCoroutine(ReleaseWhenDone(src, clip,path));
+       GameLoop.Instance.StartCoroutine(ReleaseWhenDone(src, clip,path));
         });
     }
 
@@ -92,7 +75,7 @@ public class SoundMgr
     {
         yield return new WaitWhile(() => src.isPlaying);
         src.clip = null;
-        YFramework.resMgr.ReleasePack(path,clip);
+        GameLoop.Instance.Ctx.Get<ResMgr>().ReleasePack(path,clip);
     }
 
     /// <summary>
@@ -105,7 +88,7 @@ public class SoundMgr
             if (s.isPlaying) s.Stop();
             if (s.clip != null)
             {
-                YFramework.resMgr.ReleasePack("Sound/BGM1",s.clip);
+                GameLoop.Instance.Ctx.Get<ResMgr>().ReleasePack("Sound/BGM1",s.clip);
                 s.clip = null;
             }
         }
@@ -136,5 +119,25 @@ public class SoundMgr
         newSfx.playOnAwake = false;
         _sfxSources.Add(newSfx);
         return newSfx;
+    }
+
+    public void Init(GameContext ctx)
+    {
+        // 创建 BGM Source
+        _bgmSource =       GameLoop.Instance.gameObject.AddComponent<AudioSource>();
+        _bgmSource.loop = true;
+
+        // 初始化一个音效池
+        for (int i = 0; i < 5; i++)
+        {
+            var sfx = GameLoop.Instance.gameObject.AddComponent<AudioSource>();
+            sfx.playOnAwake = false;
+            _sfxSources.Add(sfx);
+        }
+    }
+
+    public void Shutdown()
+    {
+        StopAllSFX();
     }
 }
