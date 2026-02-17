@@ -32,10 +32,10 @@ public class GameMainScene : GotSceneBase
         // var warehouseObj = GameObject.Find("WareHouse");
         // warehouse.Location = warehouseObj.transform.position;
         // warehouse.InstanceGObj();
-        PlayerManager.Instance.ReStartGame(() =>
-        {
-            EnterSceneComplete();
-        });
+        // PlayerManager.Instance.ReStartGame(() =>
+        // {
+        //     EnterSceneComplete();
+        // });
         //加载路径
         // GotAStarManager.Instance.LoadPathFinding(() =>
         // {
@@ -84,22 +84,22 @@ public class GameMainScene : GotSceneBase
         if (Input.GetKeyDown(KeyCode.F))
         {
            
-            if (isInTrain)
-            {
-                PlayerManager.Instance.OnUsePlayer();
-                TrainManager.Instance.OnUnUseTrain();
-                isInTrain=!isInTrain;
-            }
-            else
-            {
-                if (TrainManager.Instance.CheckTrainIsInRange(PlayerManager.Instance.GetPlayerLocation(), 10))
-                {
-                    TrainManager.Instance.OnUseTrain();
-                    PlayerManager.Instance.OnUnUsePlayer();  
-                    isInTrain=!isInTrain;
-                }
-           
-            }
+            // if (isInTrain)
+            // {
+            //     PlayerManager.Instance.OnUsePlayer();
+            //     TrainManager.Instance.OnUnUseTrain();
+            //     isInTrain=!isInTrain;
+            // }
+            // else
+            // {
+            //     if (TrainManager.Instance.CheckTrainIsInRange(PlayerManager.Instance.GetPlayerLocation(), 10))
+            //     {
+            //         TrainManager.Instance.OnUseTrain();
+            //         PlayerManager.Instance.OnUnUsePlayer();  
+            //         isInTrain=!isInTrain;
+            //     }
+            //
+            // }
 
         }
     }

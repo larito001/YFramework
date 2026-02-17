@@ -49,7 +49,7 @@ public class SelectTowerItem : YOTOScrollViewItem
     private void OnSelectTower()
     {
         
-        TowerManager.Instance.ClickGennerateTower(_towerData.Id);
+        // TowerManager.Instance.ClickGennerateTower(_towerData.Id);
     }
 
     private void ItemRender(YOTOScrollViewItem arg1, int index)

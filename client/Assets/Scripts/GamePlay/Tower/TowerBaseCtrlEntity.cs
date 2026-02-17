@@ -53,7 +53,7 @@ public class TowerBaseCtrlEntity : ObjectBase, PoolItem<object>
         }
 
     
-        TowerManager.Instance.RemoveBaseCtrl(this);
+        // TowerManager.Instance.RemoveBaseCtrl(this);
         RecoverObject();
     }
 
@@ -63,7 +63,7 @@ public class TowerBaseCtrlEntity : ObjectBase, PoolItem<object>
         // OnBaseClick();
         if (_towerEntity == null)
         {
-            TowerManager.Instance.ClickTower(this);
+            // TowerManager.Instance.ClickTower(this);
             // hud.OnShow(); 
         }
 
@@ -78,13 +78,13 @@ public class TowerBaseCtrlEntity : ObjectBase, PoolItem<object>
         SetInVision(true);
         SetPrefabBundlePath("Tower/towerBase");
         InstanceGObj();
-        TowerManager.Instance.AddBaseCtrl(this);
+        // TowerManager.Instance.AddBaseCtrl(this);
     }
 
     public void GenerateTowerById(int id)
     {
         TowerId = id;
-        _towerEntity= TowerManager.Instance.GetTowerById(id,this);
+        // _towerEntity= TowerManager.Instance.GetTowerById(id,this);
         if (_towerEntity != null)
         {
             _towerEntity.Parent = this.objTrans;
@@ -97,16 +97,16 @@ public class TowerBaseCtrlEntity : ObjectBase, PoolItem<object>
     {
         if (_towerEntity != null)
         {
-            foreach (var instanceTowerData in TowerManager.Instance.towerDatas)
-            {
-                if (instanceTowerData.Id == TowerId)
-                {
-                    foreach (var removeBackRe in instanceTowerData.RemoveBackRes)
-                    {
-                        BagPlugin.Instance.AddItem(removeBackRe.x,removeBackRe.y);
-                    } 
-                }
-            }
+            // foreach (var instanceTowerData in TowerManager.Instance.towerDatas)
+            // {
+            //     if (instanceTowerData.Id == TowerId)
+            //     {
+            //         foreach (var removeBackRe in instanceTowerData.RemoveBackRes)
+            //         {
+            //             BagPlugin.Instance.AddItem(removeBackRe.x,removeBackRe.y);
+            //         } 
+            //     }
+            // }
             
             
             TowerId = -1;

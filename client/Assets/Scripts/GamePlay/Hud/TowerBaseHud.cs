@@ -44,8 +44,8 @@ public class TowerBaseHud : HudAlwaysFaceToTransform
 
     private void OnClickFix()
     {  TowerUpParam param = new TowerUpParam();
-        var data = TowerManager.Instance.GetTowerDataById(tower.towerBaseCtrl.TowerId);
-        param.useIdAndNumber = data.FixRes.ToList(); 
+        // var data = TowerManager.Instance.GetTowerDataById(tower.towerBaseCtrl.TowerId);
+        // param.useIdAndNumber = data.FixRes.ToList(); 
         param.confirmAction =OnFixConfirm;
     GameLoop.Instance.Ctx.Get<UIMgr>().Show(UIEnum.TowerUpPanel, param);
     }
@@ -70,8 +70,8 @@ public class TowerBaseHud : HudAlwaysFaceToTransform
         {
             TowerUpParam param = new TowerUpParam();
 
-            var data = TowerManager.Instance.GetTowerDataById(tower.towerBaseCtrl.TowerId);
-            param.useIdAndNumber = data.LevelUpRes.ToList(); 
+            // var data = TowerManager.Instance.GetTowerDataById(tower.towerBaseCtrl.TowerId);
+            // param.useIdAndNumber = data.LevelUpRes.ToList(); 
             param.confirmAction =OnUpConfirm;
             GameLoop.Instance.Ctx.Get<UIMgr>().Show(UIEnum.TowerUpPanel, param);
         }

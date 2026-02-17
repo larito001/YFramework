@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class SceneResManager : LogicPluginBase
+public class SceneResManager : IGameService
 {
     public static SceneResManager Instance;
 
@@ -14,28 +14,7 @@ public class SceneResManager : LogicPluginBase
     public RewardBoxDataSO RewardDataSO;
     List<IUsable> resList = new List<IUsable>();
 
-    public override void ReStartGame(Action callBack = null)
-    {
-        RewardDataSO = Resources.Load<RewardBoxDataSO>("Config/RewardBoxDataSO");
-        // var root = GameObject.Find("ResRoot");
-        // var tasnforms = root.GetComponentsInChildren<CircleItemMarker>();
-        // foreach (var resEntity in resList)
-        // {
-        //      ResEntity.pool.RecoverItem(resEntity);
-        // }
-        resList.Clear();
-        // ResBoxInfo boxInfo = new ResBoxInfo();
-        // boxInfo.id = 101;
-        // boxInfo.pos = GameStarter.PlayerOrgPos.position;
-        // var box = ResBoxEntity.pool.GetItem(boxInfo);
-        // resList.Add(box);
-        // for (var i = 0; i < tasnforms.Length; i++)
-        // { 
-        //     var res =ResEntity.pool.GetItem(tasnforms[i]);
-        //     
-        // }
-        base.ReStartGame(callBack);
-    }
+  
 
 
     public bool GetNearestRes(Vector3 pos, float range, out IUsable res)
@@ -58,4 +37,30 @@ public class SceneResManager : LogicPluginBase
     //     resList.Remove(resEntity);
     //     ResEntity.pool.RecoverItem(resEntity);
     // }
+    public void Init(GameContext ctx)
+    {
+        RewardDataSO = Resources.Load<RewardBoxDataSO>("Config/RewardBoxDataSO");
+        // var root = GameObject.Find("ResRoot");
+        // var tasnforms = root.GetComponentsInChildren<CircleItemMarker>();
+        // foreach (var resEntity in resList)
+        // {
+        //      ResEntity.pool.RecoverItem(resEntity);
+        // }
+        resList.Clear();
+        // ResBoxInfo boxInfo = new ResBoxInfo();
+        // boxInfo.id = 101;
+        // boxInfo.pos = GameStarter.PlayerOrgPos.position;
+        // var box = ResBoxEntity.pool.GetItem(boxInfo);
+        // resList.Add(box);
+        // for (var i = 0; i < tasnforms.Length; i++)
+        // { 
+        //     var res =ResEntity.pool.GetItem(tasnforms[i]);
+        //     
+        // }
+    }
+
+    public void Shutdown()
+    {
+       
+    }
 }

@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using YOTO;
 
-public class GameDayNightManager : LogicPluginBase
+public class GameDayNightManager : IGameService
 {
     public static GameDayNightManager Instance;
 
@@ -24,12 +24,7 @@ public class GameDayNightManager : LogicPluginBase
     private float _allTimer; // 一个完整昼夜周期
     private float _currentTimer; // 当前周期计时
     private bool _isDay; // 当前是否为白天
-
-    public override void ReStartGame(Action callBack = null)
-    {
-        ResetDayNight();
-        base.ReStartGame(callBack);
-    }
+    
 
     /// <summary>
     /// 初始化昼夜参数
@@ -102,14 +97,14 @@ public class GameDayNightManager : LogicPluginBase
 
             if (rate >= nextThreshold)
             {
-                EnemiesManager.instance.OnNightGenerate(TrainManager.Instance.GetTrainPos(), 20 * 2);
+                // EnemiesManager.instance.OnNightGenerate(TrainManager.Instance.GetTrainPos(), 20 * 2);
                 lastGenerationThreshold = nextThreshold;
 
                 // 如果rate一次性跨越了多个0.2区间，处理这种情况
                 while (rate >= lastGenerationThreshold + NightGeneratePoint)
                 {
                     lastGenerationThreshold += NightGeneratePoint;
-                    EnemiesManager.instance.OnNightGenerate(TrainManager.Instance.GetTrainPos(), 20 * 2);
+                    // EnemiesManager.instance.OnNightGenerate(TrainManager.Instance.GetTrainPos(), 20 * 2);
                 }
             }
         }
@@ -128,31 +123,31 @@ public class GameDayNightManager : LogicPluginBase
 
             if (rate >= nextThreshold)
             {
-                if (PlayerManager.Instance.playerEntity != null)
-                {
-                    EnemiesManager.instance.OnNightGenerate(PlayerManager.Instance.playerEntity.ObjTrans.position, 10);
-                }
-                else
-                {
-                    EnemiesManager.instance.OnNightGenerate(TrainManager.Instance.GetTrainPos(), 10);
-                }
-
-                lastDayGenerationThreshold = nextThreshold;
-
-                // 如果rate一次性跨越了多个0.2区间，处理这种情况
-                while (rate >= lastDayGenerationThreshold + DayGeneratePoint)
-                {
-                    lastDayGenerationThreshold += DayGeneratePoint;
-                    if (PlayerManager.Instance.playerEntity != null)
-                    {
-                        EnemiesManager.instance.OnNightGenerate(PlayerManager.Instance.playerEntity.ObjTrans.position,
-                            10);
-                    }
-                    else
-                    {
-                        EnemiesManager.instance.OnNightGenerate(TrainManager.Instance.GetTrainPos(), 10);
-                    }
-                }
+                // if (PlayerManager.Instance.playerEntity != null)
+                // {
+                //     EnemiesManager.instance.OnNightGenerate(PlayerManager.Instance.playerEntity.ObjTrans.position, 10);
+                // }
+                // else
+                // {
+                //     EnemiesManager.instance.OnNightGenerate(TrainManager.Instance.GetTrainPos(), 10);
+                // }
+                //
+                // lastDayGenerationThreshold = nextThreshold;
+                //
+                // // 如果rate一次性跨越了多个0.2区间，处理这种情况
+                // while (rate >= lastDayGenerationThreshold + DayGeneratePoint)
+                // {
+                //     lastDayGenerationThreshold += DayGeneratePoint;
+                //     if (PlayerManager.Instance.playerEntity != null)
+                //     {
+                //         EnemiesManager.instance.OnNightGenerate(PlayerManager.Instance.playerEntity.ObjTrans.position,
+                //             10);
+                //     }
+                //     else
+                //     {
+                //         EnemiesManager.instance.OnNightGenerate(TrainManager.Instance.GetTrainPos(), 10);
+                //     }
+                // }
             }
         }
         else
@@ -294,5 +289,15 @@ public class GameDayNightManager : LogicPluginBase
         {
             return "夜晚倒计时：" + ((int)(_nightTime - (_currentTimer - _dayTime))).ToString()+"s";
         }
+    }
+
+    public void Init(GameContext ctx)
+    {
+        ResetDayNight();
+    }
+
+    public void Shutdown()
+    {
+        
     }
 }

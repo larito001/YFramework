@@ -21,7 +21,14 @@ public static class GameBootstrapper
         ctx.Register(new RunPhaseMachine());
         
         /// --- Gameplay Services ---
-        ctx.Register(new BuildManager());
+        ctx.Register(new BuildManager());//构建模块
+        ctx.Register(new PlayerManager());//玩家模块
+        ctx.Register(new TrainManager());//列车模块
+        ctx.Register(new EnemiesManager());//敌人模块
+        ctx.Register(new TowerManager());//塔防模块（待丢弃，合入构建模块）
+        ctx.Register(new SceneResManager());//场景资源模块
+        ctx.Register(new BagPlugin());//背包模块
+        ctx.Register(new GameDayNightManager());//昼夜模块
         
         // --- Core Services ---
         // ctx.Register<IEventBus>(new EventBus());

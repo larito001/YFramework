@@ -58,10 +58,10 @@ public class TrainEntity : ObjectBase
         //最后配置spline
         SetTracer(spline);
         GameLoop.Instance.Ctx.Get<EventMgr>().TriggerEvent(YOTOEventType.RefreshTrainHP);
-        TowerManager.Instance.GenerateTowerBaseAtTransform(ObjTrans, new Vector3(-2.63f, 4.5f, -0.15f));
-        TowerManager.Instance.GenerateTowerBaseAtTransform(ObjTrans, new Vector3(-2.63f, 4.5f, -3.5f));
-        TowerManager.Instance.GenerateTowerBaseAtTransform(ObjTrans, new Vector3(2.8f, 4.5f, -3.5f));
-        TowerManager.Instance.GenerateTowerBaseAtTransform(ObjTrans, new Vector3(2.8f, 4.5f, -0.15f));
+        // TowerManager.Instance.GenerateTowerBaseAtTransform(ObjTrans, new Vector3(-2.63f, 4.5f, -0.15f));
+        // TowerManager.Instance.GenerateTowerBaseAtTransform(ObjTrans, new Vector3(-2.63f, 4.5f, -3.5f));
+        // TowerManager.Instance.GenerateTowerBaseAtTransform(ObjTrans, new Vector3(2.8f, 4.5f, -3.5f));
+        // TowerManager.Instance.GenerateTowerBaseAtTransform(ObjTrans, new Vector3(2.8f, 4.5f, -0.15f));
 
     }
 
@@ -104,16 +104,16 @@ public class TrainEntity : ObjectBase
         }
 
         var percent = follower.GetPercent();
-        foreach (var keyValuePair in TrainManager.Instance.trackFixDic)
-        {
-            if (percent >= keyValuePair.Key - 0.05)
-            {
-                if (!keyValuePair.Value && currentSpeed > 0)
-                {
-                    targetSpeed = 0;
-                }
-            }
-        }
+        // foreach (var keyValuePair in TrainManager.Instance.trackFixDic)
+        // {
+        //     if (percent >= keyValuePair.Key - 0.05)
+        //     {
+        //         if (!keyValuePair.Value && currentSpeed > 0)
+        //         {
+        //             targetSpeed = 0;
+        //         }
+        //     }
+        // }
 
         // 2. 选择加速或减速速率（必须为正数）
         float rate = (Mathf.Abs(targetSpeed) < 0.01f)

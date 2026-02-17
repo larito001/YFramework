@@ -90,7 +90,7 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IDamageable, IUser,ITh
             //todo:玩家死亡
             axeEntity.OnDie();
             gunEntity.OnDie();
-            PlayerManager.Instance.PlayerDie();
+            // PlayerManager.Instance.PlayerDie();
         };
         properties.Camp = Camp.Player;
         SetInVision(true);

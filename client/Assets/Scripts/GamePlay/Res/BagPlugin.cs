@@ -4,16 +4,12 @@ using System.Collections.Generic;
 using UnityEngine;
 using YOTO;
 
-public class BagPlugin : LogicPluginBase
+public class BagPlugin : IGameService
 {
     private List<Vector2Int> ItemList = new();
     public static BagPlugin Instance;
     private List<ItemData> ItemDatas = new List<ItemData>();
 
-    public override void Init()
-    {
-        Instance = this;
-    }
 
     public ItemData GetItemData(int id)
     {
@@ -27,22 +23,7 @@ public class BagPlugin : LogicPluginBase
 
         return null;
     }
-
-    public override void ReStartGame(Action callBack = null)
-    {
-
-        ItemList.Clear();
-
-        var itemDataSO = Resources.Load<ItemDataSO>("Config/ItemsData");
-        for (var i = 0; i < itemDataSO.ItemDatas.Count; i++)
-        {
-            ItemDatas.Add(new ItemData(itemDataSO.ItemDatas[i]));
-        }
-        Resources.UnloadAsset(itemDataSO);
-        GameLoop.Instance.Ctx.Get<EventMgr>().TriggerEvent(YOTOEventType.RefreshBagList);
-        base.ReStartGame(callBack);
-    }
-
+    
    
     public void AddItem(int id, int num)
     {
@@ -129,5 +110,24 @@ public class BagPlugin : LogicPluginBase
         {
             ItemList.Add(new Vector2Int(ItemDatas[i].Id, 999));
         }
+    }
+
+    public void Init(GameContext ctx)
+    {
+        
+        ItemList.Clear();
+
+        var itemDataSO = Resources.Load<ItemDataSO>("Config/ItemsData");
+        for (var i = 0; i < itemDataSO.ItemDatas.Count; i++)
+        {
+            ItemDatas.Add(new ItemData(itemDataSO.ItemDatas[i]));
+        }
+        Resources.UnloadAsset(itemDataSO);
+        GameLoop.Instance.Ctx.Get<EventMgr>().TriggerEvent(YOTOEventType.RefreshBagList);
+    }
+
+    public void Shutdown()
+    {
+      
     }
 }

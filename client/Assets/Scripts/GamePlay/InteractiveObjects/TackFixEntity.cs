@@ -75,16 +75,16 @@ public class TrackFixEntity : ObjectBase
         properties.MaxHP = 30;
         properties.OnDead = () =>
         {
-            TrainManager.Instance.trackFixDic[fixRate] = true;
+            // TrainManager.Instance.trackFixDic[fixRate] = true;
 
             bool isWin = true;
-            foreach (var valueTemp in TrainManager.Instance.trackFixDic.Values)
-            {
-                if (!valueTemp)
-                {
-                    isWin = false;
-                }
-            }
+            // foreach (var valueTemp in TrainManager.Instance.trackFixDic.Values)
+            // {
+            //     if (!valueTemp)
+            //     {
+            //         isWin = false;
+            //     }
+            // }
 
             if (isWin)
             {

@@ -3,15 +3,11 @@ using System.Collections.Generic;
 using UnityEngine;
 using YOTO;
 
-public class TowerManager : LogicPluginBase
+public class TowerManager : IGameService
 {
-    public static TowerManager Instance;
     public List<TowerData> towerDatas = new List<TowerData>();
 
-    public TowerManager()
-    {
-        Instance = this;
-    }
+
 
     List<TowerBaseCtrlEntity> towersBase = new List<TowerBaseCtrlEntity>();
     
@@ -44,18 +40,7 @@ public class TowerManager : LogicPluginBase
     }
 
 
-    protected override void OnInstall()
-    {
-        base.OnInstall();
-   
-        var so = Resources.Load<TowerDataSO>("Config/TowerData");
-        foreach (var soTowerData in so.TowerDatas)
-        {
-            towerDatas.Add(new TowerData(soTowerData));
-        }
 
-        Resources.UnloadAsset(so);
-    }
     
     public TowerData GetTowerDataById(int id)
     {
@@ -69,10 +54,6 @@ public class TowerManager : LogicPluginBase
         return null;
     }
     
-    protected override void OnUninstall()
-    {
-        base.OnUninstall();
-    }
 
 
     public TowerEntity GetTowerById(int id,TowerBaseCtrlEntity  parent)
@@ -140,5 +121,21 @@ public class TowerManager : LogicPluginBase
         CurrentClickBase.GenerateTowerById(id);
         CurrentClickBase = null;
         GameLoop.Instance.Ctx.Get<UIMgr>().Hide(UIEnum.SelectTowerPanel);
+    }
+
+    public void Init(GameContext ctx)
+    {
+        var so = Resources.Load<TowerDataSO>("Config/TowerData");
+        foreach (var soTowerData in so.TowerDatas)
+        {
+            towerDatas.Add(new TowerData(soTowerData));
+        }
+
+        Resources.UnloadAsset(so);
+    }
+
+    public void Shutdown()
+    {
+       
     }
 }

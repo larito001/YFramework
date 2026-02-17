@@ -265,28 +265,28 @@ public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>,IDamageabl
     {
         if (objTrans != null)
         {
-            if (PlayerManager.Instance.CheckPlayerIsInRange(objTrans.position, enemyConfig.indexRange))
-            {
-                var victim = PlayerManager.Instance.playerEntity;
-                OnEnterCallbackStateMachine?.Invoke(victim);
-                return;
-            }
-
-        
-            //todo:获取索敌对象
-            if (TowerManager.Instance.CheckTowerIsInRange(out TowerEntity tower, this.objTrans.position,
-                    enemyConfig.indexRange))
-            {
-                // OnEnterCallbackStateMachine?.Invoke(tower);
-                return;
-            }
-
- 
-            if (TrainManager.Instance.CheckTrainIsInRange(objTrans.position, enemyConfig.indexRange))
-            {
-                
-                return;
-            }
+            // if (PlayerManager.Instance.CheckPlayerIsInRange(objTrans.position, enemyConfig.indexRange))
+            // {
+            //     var victim = PlayerManager.Instance.playerEntity;
+            //     OnEnterCallbackStateMachine?.Invoke(victim);
+            //     return;
+            // }
+            //
+            //
+            // //todo:获取索敌对象
+            // if (TowerManager.Instance.CheckTowerIsInRange(out TowerEntity tower, this.objTrans.position,
+            //         enemyConfig.indexRange))
+            // {
+            //     // OnEnterCallbackStateMachine?.Invoke(tower);
+            //     return;
+            // }
+            //
+            //
+            // if (TrainManager.Instance.CheckTrainIsInRange(objTrans.position, enemyConfig.indexRange))
+            // {
+            //     
+            //     return;
+            // }
         }
         
     

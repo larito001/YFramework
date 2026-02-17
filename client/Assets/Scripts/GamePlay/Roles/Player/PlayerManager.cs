@@ -5,31 +5,11 @@ using UnityEngine.Events;
 using YOTO;
 
 
-public class PlayerManager : LogicPluginBase
+public class PlayerManager : IGameService
 {
-    public static PlayerManager Instance;
-
-    public PlayerManager()
-    {
-        Instance = this;
-    }
-
-
-
-
     public PlayerEntity playerEntity;
     public bool _isReborn = false;
-    public override void ReStartGame(Action callBack = null)
-    {
-        if (playerEntity != null)
-        {
-            PlayerEntity.pool.RecoverItem(playerEntity);
-            playerEntity = null;
-        }
-        playerEntity = PlayerEntity.pool.GetItem(null);
-        playerEntity.Location = GameLoop.Instance.transform.Find("PlayerPos").position;
-        base.ReStartGame(callBack);
-    }
+  
     
     public bool CheckPlayerIsInRange(Vector3 pos, float range)
     {
@@ -46,7 +26,7 @@ public class PlayerManager : LogicPluginBase
         // orbitCamera.Uload();
         // orbitCamera.distance = 20;
         playerEntity = PlayerEntity.pool.GetItem(null);
-        playerEntity.Location = TrainManager.Instance.GetTrainOutPos();
+        // playerEntity.Location = TrainManager.Instance.GetTrainOutPos();
         // if (train.ObjTrans!=null&&playerEntity != null && playerEntity.ObjTrans != null)
         // {
         //     var dis = (train.ObjTrans.transform.position - playerEntity.ObjTrans.position).magnitude;
@@ -85,14 +65,14 @@ public class PlayerManager : LogicPluginBase
     }
     public void RebornPlayer()
     {
-        TrainManager.Instance.OnUnUseTrain();
+        // TrainManager.Instance.OnUnUseTrain();
         _isReborn = false;
         OnUsePlayer();
     }
 
     public void PlayerDie()
     {
-        TrainManager.Instance.OnUseTrain();
+        // TrainManager.Instance.OnUseTrain();
         PlayerEntity.pool.RecoverItem(playerEntity);
         playerEntity = null;
         _isReborn = true;
@@ -125,5 +105,21 @@ public class PlayerManager : LogicPluginBase
             return playerEntity.ObjTrans.position;
         }
         return Vector3.zero;
+    }
+
+    public void Init(GameContext ctx)
+    {
+        if (playerEntity != null)
+        {
+            PlayerEntity.pool.RecoverItem(playerEntity);
+            playerEntity = null;
+        }
+        playerEntity = PlayerEntity.pool.GetItem(null);
+        playerEntity.Location = GameLoop.Instance.transform.Find("PlayerPos").position;
+    }
+
+    public void Shutdown()
+    {
+      
     }
 }
