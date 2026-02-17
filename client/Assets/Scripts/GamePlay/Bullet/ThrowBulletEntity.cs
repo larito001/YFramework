@@ -44,7 +44,7 @@ public class ThrowBulletEntity : BaseBulletEntity, PoolItem<BulletConfig>,IProje
             objTrans.position = targetPos;
             foreach (var theVictim in victims)
             {
-                theVictim.OnHurt(_fireRole, _config.damage);
+                // theVictim.OnHurt(_fireRole, _config.damage);
             }
 
             DestoryBullet();

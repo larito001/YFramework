@@ -5,9 +5,9 @@ using Dreamteck.Splines;
 using UnityEngine;
 using YOTO;
 
-public class TrainEntity : ObjectBase, IVictim
+public class TrainEntity : ObjectBase
 {
-    GatlingEntity gatling;
+   
     public Properties properties;
     public float acceleration = 3f; // 加速曲线（越大加速越猛）
     public float deceleration = -30f; // 减速曲线
@@ -62,10 +62,7 @@ public class TrainEntity : ObjectBase, IVictim
         TowerManager.Instance.GenerateTowerBaseAtTransform(ObjTrans, new Vector3(-2.63f, 4.5f, -3.5f));
         TowerManager.Instance.GenerateTowerBaseAtTransform(ObjTrans, new Vector3(2.8f, 4.5f, -3.5f));
         TowerManager.Instance.GenerateTowerBaseAtTransform(ObjTrans, new Vector3(2.8f, 4.5f, -0.15f));
-        gatling = new GatlingEntity();
-        gatling.Parent = ObjTrans;
-        gatling.Location =  new Vector3(0f, 5f, 2f);
-        gatling.GatlingInit();
+
     }
 
     public void SetTracer(SplineComputer spline)
@@ -153,15 +150,7 @@ public class TrainEntity : ObjectBase, IVictim
         return properties;
     }
 
-    public void OnHurt(IVictim fireRole, float hurt)
-    {
-        if (properties == null || properties.State == RoleState.Dead || objTrans == null) return;
 
-        // FlyTextMgr.Instance.AddText(hurt.ToString(), objTrans.position, FlyTextType.PlayerHurt);
-        properties.HP -= hurt;
-        fireRole.OnHurtSomeone();
-        GameLoop.Instance.Ctx.Get<EventMgr>().TriggerEvent(YOTOEventType.RefreshTrainHP);
-    }
 
     public Vector3 GetPosition()
     {
@@ -196,18 +185,12 @@ public class TrainEntity : ObjectBase, IVictim
 
     public void OnMouseClick(Vector3 hitPoint, float dt)
     {
-        if (ObjTrans != null)
-        {
-            gatling.OnShoot(this, hitPoint, dt);  
-        }
+    
     }
 
     public void OnMouseUp()
     {
-        if (ObjTrans != null)
-        {
-            gatling.OnEndShoot();  
-        }
+     
 
     }
 }

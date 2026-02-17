@@ -26,7 +26,7 @@ public class EnemyPinState : IYState, PoolItem<object>
         var target = _stateMachine.Enemy.GetTarget();
         if (target != null)
         {
-            if ((target.GetPosition() - _stateMachine.Enemy.GetPosition()).magnitude <= _stateMachine.Enemy.enemyConfig.atkRange+2)
+            // if ((target.GetPosition() - _stateMachine.Enemy.GetPosition()).magnitude <= _stateMachine.Enemy.enemyConfig.atkRange+2)
             {
                 _stateMachine.SwitchState(EnemyAtkState.pool.GetItem(null),null);
             }
@@ -42,14 +42,14 @@ public class EnemyPinState : IYState, PoolItem<object>
     private void PathFind()
     {
         var target = _stateMachine.Enemy.GetTarget();
-        if (target != null && target.GetProperties().State != RoleState.Dead)
-        {
-            _stateMachine.Enemy.seeker.OncePathFinding(target.GetPosition());
-        }
-        else
-        {
-            _stateMachine.SwitchState(EnemyIdelState.pool.GetItem(null),null);
-        }
+        // if (target != null && target.GetProperties().State != RoleState.Dead)
+        // {
+        //     _stateMachine.Enemy.seeker.OncePathFinding(target.GetPosition());
+        // }
+        // else
+        // {
+        //     _stateMachine.SwitchState(EnemyIdelState.pool.GetItem(null),null);
+        // }
     }
 
     public void ExitState(YStateMachine enemy)

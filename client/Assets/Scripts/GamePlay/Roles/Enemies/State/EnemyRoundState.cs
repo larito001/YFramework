@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Combat;
 using UnityEngine;
 
 public class EnemyRoundState : IYState, PoolItem<object>
@@ -28,13 +29,13 @@ public class EnemyRoundState : IYState, PoolItem<object>
 
     }
 
-    private void OnHurtCallback(IVictim target)
+    private void OnHurtCallback(IThreatTarget target)
     {
         _stateMachine.Enemy.SetTarget(target);
         _stateMachine.SwitchState(EnemyPinState.pool.GetItem(null),null);
     }
 
-    private void OnEnterCallback(IVictim target)
+    private void OnEnterCallback(IThreatTarget target)
     {
         _stateMachine.Enemy.SetTarget(target);
         _stateMachine.SwitchState(EnemyPinState.pool.GetItem(null),null);

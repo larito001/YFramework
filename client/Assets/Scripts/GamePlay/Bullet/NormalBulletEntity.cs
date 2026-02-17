@@ -30,7 +30,7 @@ public class NormalBulletEntity : BaseBulletEntity, PoolItem<BulletConfig>,IProj
             stayTimer -= _config.triggerTimer;
             foreach (var theVictim in victims)
             {
-                theVictim.OnHurt(_fireRole, _config.damage);
+                // theVictim.OnHurt(_fireRole, _config.damage);
                 triggerCount--;
                 if (triggerCount <= 0)
                 {

@@ -19,6 +19,10 @@ public static class GameBootstrapper
         ctx.Register(new GotSceneManager());
         ctx.Register(new FlyTextMgr());
         ctx.Register(new RunPhaseMachine());
+        
+        /// --- Gameplay Services ---
+        ctx.Register(new BuildManager());
+        
         // --- Core Services ---
         // ctx.Register<IEventBus>(new EventBus());
         // ctx.Register<ITimeService>(new TimeService());

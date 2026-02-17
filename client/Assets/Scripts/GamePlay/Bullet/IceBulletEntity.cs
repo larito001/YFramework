@@ -30,8 +30,8 @@ public class IceBulletEntity : BaseBulletEntity, PoolItem<BulletConfig>,IProject
             stayTimer -= _config.triggerTimer;
             foreach (var theVictim in victims)
             {
-                theVictim.OnHurt(_fireRole, _config.damage);
-                theVictim.OnSlowDown(0.55f);
+                // theVictim.OnHurt(_fireRole, _config.damage);
+                // theVictim.OnSlowDown(0.55f);
                 triggerCount--;
                 if (triggerCount <= 0)
                 {

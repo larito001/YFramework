@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using YOTO;
 
-public class TrackFixEntity : ObjectBase, IVictim
+public class TrackFixEntity : ObjectBase
 {
     public float Rate = 0f;
     RateHud hud;
@@ -107,35 +107,7 @@ public class TrackFixEntity : ObjectBase, IVictim
     {
         return properties;
     }
-
-    public void OnHurt(IVictim fireRole, float hurt)
-    {
-        if (canFix && fireRole is PlayerEntity)
-        {
-            properties.HP -= 1;
-            hud.UpdateRate(properties.HP / properties.MaxHP);
-            if (properties.HP == 1)
-            {
-                EnemiesManager.instance.OnNightGenerate(ObjTrans.position, 10);
-            }
-            else if (properties.HP == 6)
-            {
-                EnemiesManager.instance.OnNightGenerate(ObjTrans.position, 10);
-            }
-            else if (properties.HP == 12)
-            {
-                EnemiesManager.instance.OnNightGenerate(ObjTrans.position, 10);
-            }
-            else if (properties.HP == 18)
-            {
-                EnemiesManager.instance.OnNightGenerate(ObjTrans.position, 10);
-            }
-            else if (properties.HP == 24)
-            {
-                EnemiesManager.instance.OnNightGenerate(ObjTrans.position, 10);
-            }
-        }
-    }
+    
 
     public Vector3 GetPosition()
     {

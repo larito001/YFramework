@@ -150,16 +150,7 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IDamageable, IUser,ITh
         return properties;
     }
 
-    public void OnHurt(IVictim fireRole, float hurt)
-    {
-        if (properties == null || properties.State == RoleState.Dead || objTrans == null) return;
 
-        GameLoop.Instance.Ctx.Get<FlyTextMgr>().AddText(hurt.ToString(), objTrans.position, FlyTextType.PlayerHurt);
-        properties.HP -= hurt;
-        fireRole.OnHurtSomeone();
-        rateHud.UpdateRate(properties.HP / properties.MaxHP);
-        GameLoop.Instance.Ctx.Get<CameraMgr>().OnShakeCamera();
-    }
 
     List<Vector3> atkSlot = new List<Vector3>();
 
@@ -255,12 +246,7 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IDamageable, IUser,ITh
 
     public void OnMouseClick(Vector3 hitPoint, float dt)
     {
-        if (ObjTrans != null)
-        {
-            // var renderer = ObjTrans.GetComponentInChildren<PlayerRenderer>();
-            // renderer.SetAtacking(true);
-            currentWeapon.OnShoot(this, hitPoint, dt);
-        }
+   
     }
 
     public void OnMouseUp()
@@ -281,7 +267,7 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IDamageable, IUser,ITh
 
     public bool ApplyDamage(in DamageSpec spec, in HitInfo hit, IProjectile instigator)
     {
-        
+        return true;
     }
 
     public bool CanReceiveEffects { get; }
@@ -292,5 +278,6 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IDamageable, IUser,ITh
 
     public bool HasEffect(string effectId)
     {
+        return true;
     }
 }

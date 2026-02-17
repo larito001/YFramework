@@ -13,8 +13,8 @@ public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>,IDamageabl
 
     #region stateMachine
 
-    public UnityAction<IVictim> OnHurtCallbackStateMachine = null;
-    public UnityAction<IVictim> OnEnterCallbackStateMachine = null;
+    public UnityAction<IThreatTarget> OnHurtCallbackStateMachine = null;
+    public UnityAction<IThreatTarget> OnEnterCallbackStateMachine = null;
     public UnityAction OnAtkFinishCallbackStateMachine = null;
     public UnityAction OnPathComplete;
     private EnemyStateMachine stateMachine;
@@ -27,7 +27,7 @@ public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>,IDamageabl
     public IGotSeeker seeker;
     public bool NeedRound = false;
     public Vector3 OrgPos = Vector3.zero;
-    private IVictim _lockTarget = null;
+    private IThreatTarget _lockTarget = null;
 
     #endregion
 
@@ -207,12 +207,12 @@ public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>,IDamageabl
         return _entityID;
     }
 
-    public IVictim GetTarget()
+    public IThreatTarget GetTarget()
     {
         return _lockTarget;
     }
 
-    public void SetTarget(IVictim target)
+    public void SetTarget(IThreatTarget target)
     {
         _lockTarget = target;
     }
@@ -277,15 +277,14 @@ public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>,IDamageabl
             if (TowerManager.Instance.CheckTowerIsInRange(out TowerEntity tower, this.objTrans.position,
                     enemyConfig.indexRange))
             {
-                OnEnterCallbackStateMachine?.Invoke(tower);
+                // OnEnterCallbackStateMachine?.Invoke(tower);
                 return;
             }
 
  
             if (TrainManager.Instance.CheckTrainIsInRange(objTrans.position, enemyConfig.indexRange))
             {
-                var victim = TrainManager.Instance.GetTrainVictim();
-                OnEnterCallbackStateMachine?.Invoke(victim);
+                
                 return;
             }
         }
@@ -295,79 +294,9 @@ public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>,IDamageabl
 
     public void Atk()
     {
-        BaseBulletEntity b = null;
-        if (enemyConfig.enemyType == EnemyType.Far || enemyConfig.enemyType == EnemyType.Summon)
-        {
-            b = NormalBulletEntity.pool.GetItem(new BulletConfig()
-            {
-                name = "Bullet/bullet",
-                moveSpeed = 10,
-                attackType = AttackType.Remote,
-                damage = enemyConfig.atk,
-                TrggerCount = 1,
-                duration = 2,
-                triggerTimer = 0f,
-                removeCallback = OnBulletFinish,
-                camp = Camp.Enemy,
-                canAtkWall = false
-            });
-            b.Fire(this, objTrans.transform.position, _lockTarget.GetPosition());
-        }
-        else if (enemyConfig.enemyType == EnemyType.Boss)
-        {
-            b = NormalBulletEntity.pool.GetItem(new BulletConfig()
-            {
-                name = "Bullet/bulletEnemyBoss",
-                moveSpeed = 0,
-                attackType = AttackType.Remote,
-                damage = enemyConfig.atk,
-                TrggerCount = 1,
-                duration = 2,
-                triggerTimer = 0.8f,
-                camp = Camp.Enemy,
-                removeCallback = OnBulletFinish, 
-                canAtkWall = false
-            });
-            b.Fire(this, _lockTarget.GetPosition(), _lockTarget.GetPosition());
-        }
-        else
-        {
-            b = NormalBulletEntity.pool.GetItem(new BulletConfig()
-            {
-                name = "Bullet/bulletEnemy",
-                moveSpeed = 0,
-                attackType = AttackType.Remote,
-                damage = enemyConfig.atk,
-                TrggerCount = 1,
-                duration = 2,
-                triggerTimer = 0.5f,
-                camp = Camp.Enemy,
-                removeCallback = OnBulletFinish, 
-                canAtkWall = false
-            });
-            b.Fire(this, _lockTarget.GetPosition(), _lockTarget.GetPosition());
-        }
-
-        // pos.y += Random.Range(0.5f, 2);
+        
     }
 
-    public void OnHurt(IVictim fireRole, float hurt)
-    {
-
-
-        if (objTrans==null||properties == null || properties.State == RoleState.Dead) return;
-        var config = new ParticleEntityData();
-        config.path = "HitPar/Hit";
-        config.pos = ObjTrans.position + new Vector3(0, 0.5f, 0);
-        config.scale = 1;
-        var particle = ParticleEntity.pool.GetItem(config);
-        particle.Play(0.3f);
-      GameLoop.Instance.Ctx.Get<FlyTextMgr>().AddText(hurt.ToString(), objTrans.position);
-        properties.HP -= hurt;
-        fireRole.OnHurtSomeone();
-        OnHurtCallbackStateMachine?.Invoke(fireRole);
-      
-    }
 
 
     /// <summary>
@@ -442,7 +371,7 @@ public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>,IDamageabl
 
     public bool ApplyDamage(in DamageSpec spec, in HitInfo hit, IProjectile instigator)
     {
-        
+        return true;
     }
 
     public bool CanReceiveEffects { get; }
@@ -453,6 +382,6 @@ public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>,IDamageabl
 
     public bool HasEffect(string effectId)
     {
-        
+        return true;
     }
 }

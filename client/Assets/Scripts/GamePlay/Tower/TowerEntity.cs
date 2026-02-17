@@ -19,7 +19,7 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IWeapon
 
     public List<EnemyEntity> enemies = new List<EnemyEntity>();
 
-    public IVictim lockTarget = null;
+    // public IVictim lockTarget = null;
     private bool isCdEnd = false;
 
     public override void YOTOFixedUpdate(float dt)
@@ -38,134 +38,131 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IWeapon
         enemies.Clear();
         if (EnemiesManager.instance.GetEnemyIsInRange(objTrans.position, 20, enemies))
         {
-            lockTarget = GetNearestEnemyPos();
+            // lockTarget = GetNearestEnemyPos();
         }
-
-        if (lockTarget != null)
-        {
-            //todo:让ObjTrans，朝向lockTarget，只旋转y轴
-            // 计算水平方向（忽略Y轴高度差）
-            Vector3 direction = lockTarget.GetPosition() - ObjTrans.position;
-            direction.y = 0f;
-
-            // 防止零向量导致异常
-            if (direction.sqrMagnitude < 0.0001f) return;
-
-            // 计算目标旋转
-            Quaternion targetRotation = Quaternion.LookRotation(direction);
-
-            // 直接设置（立即转向）
-            //todo:lerp旋转，
-            ObjTrans.rotation = Quaternion.RotateTowards(
-                ObjTrans.rotation,
-                targetRotation,
-                180 * dt
-            );
-
-            //todo:如果两角相差1度以内则发射
-            if (Vector3.Angle(ObjTrans.forward, direction) < 1)
-            {
-                if (isCdEnd)
-                {
-                    isCdEnd = false;
-                    CDtimer = attackCD;
-
-                    GenerateBullet(lockTarget);
-                    lockTarget = null;
-                }
-            }
-        }
+        //
+        // if (lockTarget != null)
+        // {
+        //     //todo:让ObjTrans，朝向lockTarget，只旋转y轴
+        //     // 计算水平方向（忽略Y轴高度差）
+        //     Vector3 direction = lockTarget.GetPosition() - ObjTrans.position;
+        //     direction.y = 0f;
+        //
+        //     // 防止零向量导致异常
+        //     if (direction.sqrMagnitude < 0.0001f) return;
+        //
+        //     // 计算目标旋转
+        //     Quaternion targetRotation = Quaternion.LookRotation(direction);
+        //
+        //     // 直接设置（立即转向）
+        //     //todo:lerp旋转，
+        //     ObjTrans.rotation = Quaternion.RotateTowards(
+        //         ObjTrans.rotation,
+        //         targetRotation,
+        //         180 * dt
+        //     );
+        //
+        //     //todo:如果两角相差1度以内则发射
+        //     if (Vector3.Angle(ObjTrans.forward, direction) < 1)
+        //     {
+        //         if (isCdEnd)
+        //         {
+        //             isCdEnd = false;
+        //             CDtimer = attackCD;
+        //
+        //             GenerateBullet(lockTarget);
+        //             lockTarget = null;
+        //         }
+        //     }
+        // }
     }
 
-    private void GenerateBullet(IVictim victim)
-    {
-        if (ObjTrans == null) return;
-        var config = new ParticleEntityData();
-
-
-        config.scale = 1;
-        Vector3 startOffset = new Vector3(0, 0, 0);
-        Vector3 pos = victim.GetPosition();
-        BaseBulletEntity b = null;
-
-        if (towerBaseCtrl.TowerId == 1001)
-        {
-            //投石机
-            b = ThrowBulletEntity.pool.GetItem(new BulletConfig()
-            {
-                name = "Bullet/bulletStone",
-                moveSpeed = 9,
-                damage = 30 + 30 * properties.Level * 0.05f,
-                duration = 5,
-                TrggerCount = 5,
-                triggerTimer = 0,
-                attackType = AttackType.Throw,
-                camp = Camp.Player,
-                canAtkWall = false
-            });
-            startOffset.y += 2.1f;
-            startOffset.z += 0.7f;
-            config.path = "Bullet/StoneBulletFire";
-            config.pos = ObjTrans.position + ObjTrans.rotation * startOffset;
-            var particle = ParticleEntity.pool.GetItem(config);
-            particle.Play();
-            particle.Rotation = Quaternion.LookRotation(ObjTrans.rotation * startOffset, ObjTrans.up);
-        }
-        else if (towerBaseCtrl.TowerId == 1002)
-        {
-            //喷火器
-            b = FireBulletEntity.pool.GetItem(new BulletConfig()
-            {
-                name = "Bullet/bulletFire",
-                moveSpeed = 0,
-                attackType = AttackType.Near,
-                damage = 7+7*properties.Level * 0.05f,
-                TrggerCount = 999,
-                duration = 4,
-                triggerTimer = 0.25f,
-                camp = Camp.Player,
-                canAtkWall = false
-            });
-            pos += new Vector3(0, 1.5f, 0);
-        }
-        else if (towerBaseCtrl.TowerId == 1003)
-        {
-            //寒冰蛋
-            b = IceBulletEntity.pool.GetItem(new BulletConfig()
-            {
-                name = "Bullet/bulletIce",
-                moveSpeed = 30,
-                damage = 10+10*properties.Level * 0.05f,
-                duration = 10,
-                TrggerCount = 999,
-                triggerTimer = 0,
-                attackType = AttackType.Remote,
-                camp = Camp.Player, canAtkWall = true
-            });
-            pos += new Vector3(0, 1.5f, 0);
-            startOffset.y += 1.2f;
-            startOffset.z += 1f;
-            config.path = "Bullet/IceBulletFire";
-            config.pos = ObjTrans.position + ObjTrans.rotation * startOffset;
-            var particle = ParticleEntity.pool.GetItem(config);
-            particle.Play();
-            particle.Rotation = Quaternion.LookRotation(ObjTrans.forward, ObjTrans.up);
-        }
-
-        //todo:再加z轴方向
-        anim.Play();
-        b.Fire(this, ObjTrans.position + ObjTrans.rotation * startOffset, pos);
-    }
+    // private void GenerateBullet(IVictim victim)
+    // {
+    //     if (ObjTrans == null) return;
+    //     var config = new ParticleEntityData();
+    //
+    //
+    //     config.scale = 1;
+    //     Vector3 startOffset = new Vector3(0, 0, 0);
+    //     Vector3 pos = victim.GetPosition();
+    //     BaseBulletEntity b = null;
+    //
+    //     if (towerBaseCtrl.TowerId == 1001)
+    //     {
+    //         //投石机
+    //         b = ThrowBulletEntity.pool.GetItem(new BulletConfig()
+    //         {
+    //             name = "Bullet/bulletStone",
+    //             moveSpeed = 9,
+    //             damage = 30 + 30 * properties.Level * 0.05f,
+    //             duration = 5,
+    //             TrggerCount = 5,
+    //             triggerTimer = 0,
+    //             attackType = AttackType.Throw,
+    //             camp = Camp.Player,
+    //             canAtkWall = false
+    //         });
+    //         startOffset.y += 2.1f;
+    //         startOffset.z += 0.7f;
+    //         config.path = "Bullet/StoneBulletFire";
+    //         config.pos = ObjTrans.position + ObjTrans.rotation * startOffset;
+    //         var particle = ParticleEntity.pool.GetItem(config);
+    //         particle.Play();
+    //         particle.Rotation = Quaternion.LookRotation(ObjTrans.rotation * startOffset, ObjTrans.up);
+    //     }
+    //     else if (towerBaseCtrl.TowerId == 1002)
+    //     {
+    //         //喷火器
+    //         b = FireBulletEntity.pool.GetItem(new BulletConfig()
+    //         {
+    //             name = "Bullet/bulletFire",
+    //             moveSpeed = 0,
+    //             attackType = AttackType.Near,
+    //             damage = 7+7*properties.Level * 0.05f,
+    //             TrggerCount = 999,
+    //             duration = 4,
+    //             triggerTimer = 0.25f,
+    //             camp = Camp.Player,
+    //             canAtkWall = false
+    //         });
+    //         pos += new Vector3(0, 1.5f, 0);
+    //     }
+    //     else if (towerBaseCtrl.TowerId == 1003)
+    //     {
+    //         //寒冰蛋
+    //         b = IceBulletEntity.pool.GetItem(new BulletConfig()
+    //         {
+    //             name = "Bullet/bulletIce",
+    //             moveSpeed = 30,
+    //             damage = 10+10*properties.Level * 0.05f,
+    //             duration = 10,
+    //             TrggerCount = 999,
+    //             triggerTimer = 0,
+    //             attackType = AttackType.Remote,
+    //             camp = Camp.Player, canAtkWall = true
+    //         });
+    //         pos += new Vector3(0, 1.5f, 0);
+    //         startOffset.y += 1.2f;
+    //         startOffset.z += 1f;
+    //         config.path = "Bullet/IceBulletFire";
+    //         config.pos = ObjTrans.position + ObjTrans.rotation * startOffset;
+    //         var particle = ParticleEntity.pool.GetItem(config);
+    //         particle.Play();
+    //         particle.Rotation = Quaternion.LookRotation(ObjTrans.forward, ObjTrans.up);
+    //     }
+    //
+    //     //todo:再加z轴方向
+    //     anim.Play();
+    //     b.Fire(this, ObjTrans.position + ObjTrans.rotation * startOffset, pos);
+    // }
 
     public override void OnObjectClick()
     {
         towerHud.OnShow(properties.Level);
     }
 
-    private IVictim GetNearestEnemyPos()
-    {
-        return enemies.OrderBy(x => Vector3.Distance(x.GetPosition(), ObjTrans.position)).FirstOrDefault();
-    }
+
 
     public override string GetModelLayer()
     {
@@ -263,14 +260,7 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IWeapon
         return properties;
     }
 
-    public void OnHurt(IVictim fireRole, float hurt)
-    {
-        if (properties == null || properties.State == RoleState.Dead || objTrans == null) return;
-        // FlyTextMgr.Instance.AddText(hurt.ToString(), objTrans.position, FlyTextType.Quick);
-        properties.HP -= hurt;
-        fireRole.OnHurtSomeone();
-        rateHud.UpdateRate(properties.HP / properties.MaxHP);
-    }
+
 
     public Vector3 GetPosition()
     {

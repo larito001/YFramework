@@ -146,11 +146,11 @@ public class BaseBulletEntity : ObjectBase
                 if (victim == null) return;
 
                 if (victims.Contains(victim)) return;
-                var otherCamp = victim.Team;
-                if (otherCamp != _config.Team)
-                {
-                    victims.Add(victim);
-                }
+                // var otherCamp = victim.Team;
+                // if (otherCamp != _config.Team)
+                // {
+                //     victims.Add(victim);
+                // }
             }
         }
     }

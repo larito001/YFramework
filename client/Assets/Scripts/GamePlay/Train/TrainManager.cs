@@ -115,10 +115,7 @@ public class TrainManager : LogicPluginBase
         return train.ObjTrans.position + train.ObjTrans.right * 10 + new Vector3(0, 1, 0);
     }
 
-    public IVictim GetTrainVictim()
-    {
-        return train;
-    }
+ 
 
     public Vector3 GetTrainPos()
     {

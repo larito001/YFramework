@@ -54,8 +54,7 @@ public class GunEntity : ObjectBase, IWeapon
     {
         // ObjTrans.gameObject.SetActive(false);
     }
-
-    IVictim _fireRole = null;
+    
     Vector3 _hitPoint;
 
     private void GenerateBullet()
@@ -76,20 +75,10 @@ public class GunEntity : ObjectBase, IWeapon
         //todo: 从相机发射射线，打到地面，开火方向是玩家 towards 鼠标点击位置;
         _hitPoint.y = _firePos.position.y+1.5f;
       
-        b.Fire(_fireRole, _firePos.position+new Vector3(0,1.5f,0), _hitPoint);
+    
     }
 
-    public void OnShoot(IVictim fireRole, Vector3 hitPoint, float dt)
-    {
-        if (weaponCD <= 0 && !isBefore)
-        {
-            isBefore = true;
-            _fireRole = fireRole;
-            _hitPoint = hitPoint;
 
-            beforeAtkCD = beforeAtkTimer;
-        }
-    }
 
 
     public void OnStop()
@@ -119,6 +108,6 @@ public class GunEntity : ObjectBase, IWeapon
     public WeaponConfigSO Config { get; }
     public bool TryFire(in FireRequest request)
     {
-        
+        return true;
     }
 }
