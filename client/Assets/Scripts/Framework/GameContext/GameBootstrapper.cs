@@ -18,50 +18,24 @@ public static class GameBootstrapper
         ctx.Register(new TaskManager());
         ctx.Register(new GotSceneManager());
         ctx.Register(new FlyTextMgr());
+        //todo: 加入日夜管理系统里，从这里移除
         ctx.Register(new RunPhaseMachine());
         
         /// --- Gameplay Services ---
-        ctx.Register(new BuildManager());//构建模块
-        ctx.Register(new PlayerManager());//玩家模块
-        ctx.Register(new TrainManager());//列车模块
-        ctx.Register(new EnemiesManager());//敌人模块
-        ctx.Register(new TowerManager());//塔防模块（待丢弃，合入构建模块）
-        ctx.Register(new SceneResManager());//场景资源模块
-        ctx.Register(new BagPlugin());//背包模块
-        ctx.Register(new GameDayNightManager());//昼夜模块
+        ctx.Register(new BuildManager());//构建模块（放置系统） 耦合列车模块
+        ctx.Register(new TowerManager());//塔防模块（todo：合入构建系统） 
         
-        // --- Core Services ---
-        // ctx.Register<IEventBus>(new EventBus());
-        // ctx.Register<ITimeService>(new TimeService());
-        // ctx.Register<IConfigService>(new ConfigService());   // 统一加载 SO/JSON/Addressables
-        // ctx.Register<ISaveService>(new SaveService());
-        // ctx.Register<IPoolService>(new PoolService());
-        // ctx.Register<IAudioService>(new AudioService());
-        //
-        // // --- World / Scene ---
-        // ctx.Register<ISceneService>(new SceneService());
-        //
-        // // --- Gameplay Orchestration ---
-        // ctx.Register(new PhaseStateMachine());               // Build/Combat/Night/Travel
-        // ctx.Register(new PlayerModeStateMachine());          // OnFoot/BuildMode/InTrain/Downed
-        //
-        // // --- Combat (塔和枪共用) ---
-        // ctx.Register(new DamageSystem());
-        // ctx.Register(new StatusEffectSystem());
-        // ctx.Register(new TargetingSystem());
-        // ctx.Register(new ProjectileSystem());
-        //
-        // // --- Build / Economy ---
-        // ctx.Register(new InventorySystem());
-        // ctx.Register(new BuildPlacementSystem());
-        // ctx.Register(new BuildUseCases());                   // TryBuild/Upgrade/Recycle
-        //
-        // // --- AI / Waves ---
-        // ctx.Register(new WaveDirector());
-        // ctx.Register(new EnemySpawnSystem());
-        //
-        // // --- Presentation (可选，推荐做薄) ---
-        // ctx.Register<IHUDPresenter>(new HUDPresenter());
+        //todo:BattleManager：（所有可索敌、可受伤、可吃buff的，提供索敌系统，伤害结算系统，buff系统）
+        ctx.Register(new PlayerManager());//玩家模块（管理玩家数量，目前就一个）耦合战斗系统
+        ctx.Register(new TrainManager());//列车模块（管理列车段数） 耦合战斗系统、构建模块
+        ctx.Register(new EnemiesManager());//敌人模块（刷怪系统） 耦合战斗系统
+     
+        ctx.Register(new SceneResManager());//场景资源模块（资源刷取系统，所有可拾取，可采集，可破坏的，提供背包系统、资源刷取系统、拾取系统、采集系统、破坏系统）
+        ctx.Register(new BagPlugin());//背包模块（todo：合入场景资源管理）
+        
+        ctx.Register(new GameDayNightManager());//昼夜模块（昼夜交替系统、时间管理系统）
+        
+        
 
         return ctx;
     }
