@@ -17,13 +17,13 @@ public class BagPanel : UIPageBase
         closeBtn.onClick.AddListener(CloseSelf);
         bagList.Initialize();
         bagList.SetRenderer(ItemRender);
-        bagList.SetData(BagPlugin.Instance.GetListCount);
+        // bagList.SetData(BagPlugin.Instance.GetListCount);
     }
 
     private void ItemRender(YOTOScrollViewItem obj, int index)
     {
-        var item = obj as CommonItem;
-        item.SetData(BagPlugin.Instance.GetItemByIndex(index));
+        // var item = obj as CommonItem;
+        // item.SetData(BagPlugin.Instance.GetItemByIndex(index));
     }
 
     public override void OnHide()

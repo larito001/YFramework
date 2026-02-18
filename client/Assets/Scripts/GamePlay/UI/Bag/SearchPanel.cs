@@ -24,7 +24,7 @@ public class SearchPanel : UIPageBase
         closeBtn.onClick.AddListener(CloseSelf);
         bagList.Initialize();
         bagList.SetRenderer(ItemRender);
-        bagList.SetData(BagPlugin.Instance.GetListCount);
+        // bagList.SetData(BagPlugin.Instance.GetListCount);
         searchList.Initialize();
         searchList.SetRenderer(SearchRender);
         searchList.SetData(rewardList.Count);
@@ -39,7 +39,7 @@ public class SearchPanel : UIPageBase
     private void ItemRender(YOTOScrollViewItem obj, int index)
     {
         var item = obj as CommonItem;
-        item.SetData(BagPlugin.Instance.GetItemByIndex(index));
+        // item.SetData(BagPlugin.Instance.GetItemByIndex(index));
     }
 
     public override void OnHide()

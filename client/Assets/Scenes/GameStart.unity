@@ -676,21 +676,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4d65195c9199cd3499c1d538905a050d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  isLock: 1
-  lockRotation: {x: 42, y: 141, z: 0}
-  focus: {fileID: 0}
-  distance: 20
-  focusRadius: 1
-  focusCentering: 0.5
-  rotationSpeed: 90
-  minVerticalAngle: -30
-  maxVerticalAngle: 60
-  alignDelay: 999
-  alignSmoothRange: 45
-  obstructionMask:
-    serializedVersion: 2
-    m_Bits: 3639
-  upAlignmentSpeed: 360
 --- !u!114 &1087706066
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -776,10 +761,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 1155706215}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0f39c04845f57b74d89c72f299845b1e, type: 3}
+  m_Script: {fileID: 11500000, guid: 98a0d679f25601e47b1807fc0f965fc9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  playerOrgPos: {fileID: 577973370}
+  autoStart: 1
   isTest: 0
 --- !u!1 &1225825839
 GameObject:

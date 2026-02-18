@@ -114,7 +114,7 @@ public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>,IDamageabl
             //百分之10%概率掉落
             if (Random.Range(0, 10) <0.5f)
             {
-                BagPlugin.Instance.AddItem(20002,1);
+                // BagPlugin.Instance.AddItem(20002,1);
             }
             
            

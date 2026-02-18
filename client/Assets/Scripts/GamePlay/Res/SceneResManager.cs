@@ -14,7 +14,7 @@ public class SceneResManager : IGameService
     public RewardBoxDataSO RewardDataSO;
     List<IUsable> resList = new List<IUsable>();
 
-  
+    BagSystem bagSystem;
 
 
     public bool GetNearestRes(Vector3 pos, float range, out IUsable res)

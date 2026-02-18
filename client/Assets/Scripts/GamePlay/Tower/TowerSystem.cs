@@ -66,19 +66,19 @@ public class TowerSystem
                 bool canBuild = true;
                 foreach (var vector2Int in towerData.UseIdAndNumber)
                 {
-                   var haveNum = BagPlugin.Instance.GetItemNum(vector2Int.x);
-                   if (haveNum < vector2Int.y)
-                   {
-                       canBuild = false;
-                   }
+                   // var haveNum = BagPlugin.Instance.GetItemNum(vector2Int.x);
+                   // if (haveNum < vector2Int.y)
+                   // {
+                   //     canBuild = false;
+                   // }
                 }
 
                 if (canBuild)
                 {
-                    foreach (var vector2Int in towerData.UseIdAndNumber)
-                    {
-                        BagPlugin.Instance.RemoveItem(vector2Int.x,vector2Int.y);
-                    }
+                    // foreach (var vector2Int in towerData.UseIdAndNumber)
+                    // {
+                    //     BagPlugin.Instance.RemoveItem(vector2Int.x,vector2Int.y);
+                    // }
 
                     _towerEntity = TowerEntity.pool.GetItem(parent);
                 }

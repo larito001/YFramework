@@ -54,7 +54,7 @@ namespace NoSLoofah.BuffSystem.Editor
                 UpdateLeftList();
                 GenerateReadme();
                 CreateBuffTagAsset();
-                UpdateBuffMgr();
+                // UpdateBuffMgr();
                 initialized = true;
             }
             catch (Exception e)
@@ -122,18 +122,19 @@ namespace NoSLoofah.BuffSystem.Editor
         //bool keepInput;             //创建后保留输入
         //bool useIndexName;          //使用序号命名
         #region 更新方法
-        private void UpdateBuffMgr()
-        {
-            var l = AssetDatabase.FindAssets("BuffMgr t:Prefab");
-            if (l.Length <= 0) throw new Exception("BuffMgr.prefab丢失,请重新导入BuffSystem");
-            else if (l.Length > 1) Debug.LogError("请保证项目中只有一个BuffMgr.prefab");
-            string assetPath = AssetDatabase.GUIDToAssetPath(l[0]);
-            mgr = PrefabUtility.LoadPrefabContents(assetPath);
-            mgr.GetComponent<BitBuffTagManager>().SetData(tagData);
-            mgr.GetComponent<BuffManager>().SetData(SO);
-            PrefabUtility.SaveAsPrefabAsset(mgr, assetPath);
-            PrefabUtility.UnloadPrefabContents(mgr);
-        }
+        // private void UpdateBuffMgr()
+        // {
+        //     // var l = AssetDatabase.FindAssets("BuffMgr t:Prefab");
+        //     // if (l.Length <= 0) throw new Exception("BuffMgr.prefab丢失,请重新导入BuffSystem");
+        //     // else if (l.Length > 1) Debug.LogError("请保证项目中只有一个BuffMgr.prefab");
+        //     // string assetPath = AssetDatabase.GUIDToAssetPath(l[0]);
+        //     
+        //     // mgr = PrefabUtility.LoadPrefabContents(assetPath);
+        //     // mgr.GetComponent<BitBuffTagManager>().SetData(tagData);
+        //     // mgr.GetComponent<BuffManager>().SetData(SO);
+        //     // PrefabUtility.SaveAsPrefabAsset(mgr, assetPath);
+        //     // PrefabUtility.UnloadPrefabContents(mgr);
+        // }
         private void Initialize()
         {
             assembly = AppDomain.CurrentDomain.GetAssemblies().First(a => a.GetName().Name.Equals(ASSEMBLY_NAME));
@@ -141,7 +142,7 @@ namespace NoSLoofah.BuffSystem.Editor
             UpdateLeftList();
             GenerateReadme();
             CreateBuffTagAsset();
-            UpdateBuffMgr();
+            // UpdateBuffMgr();
         }
         private void GenerateReadme()
         {
@@ -182,7 +183,7 @@ namespace NoSLoofah.BuffSystem.Editor
                 SO = CreateInstance<BuffCollection>();
                 var path = Path.Combine(SO_PATH, defaultSOName);
                 AssetDatabase.CreateAsset(SO, path);
-                UpdateBuffMgr();
+                // UpdateBuffMgr();
             }
             else
             {
@@ -233,7 +234,7 @@ namespace NoSLoofah.BuffSystem.Editor
             b.Initialize();
             AssetDatabase.CreateAsset(b, dir);
             tagData = b;
-            UpdateBuffMgr();
+            // UpdateBuffMgr();
         }
         /// <summary>
         /// 绘制分界线

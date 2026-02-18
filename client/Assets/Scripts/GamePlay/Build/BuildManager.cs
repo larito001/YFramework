@@ -5,6 +5,7 @@ using UnityEngine;
 /// </summary>
 public class BuildManager:IGameService,ITickable
 {
+    TowerSystem towerSystem;
     public Camera cam;
     public LayerMask groundMask;
     public LayerMask blockingMask;

@@ -4,15 +4,12 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 /// <summary>
-/// BuffTag¹ÜÀíÆ÷µÄ³éÏó»ùÀà
-/// Ä¿Ç°Ö»ÓĞÎ»TagµÄÒ»ÖÖÊµÏÖ
+/// BuffTagï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä³ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+/// Ä¿Ç°Ö»ï¿½ï¿½Î»Tagï¿½ï¿½Ò»ï¿½ï¿½Êµï¿½ï¿½
 /// </summary>
-public abstract class BuffTagManager : MonoBehaviour, IBuffTagManager
+public abstract class BuffTagManager :IBuffTagManager
 {
     public abstract bool IsTagRemoveOther(BuffTag tag, BuffTag other);
     public abstract bool IsTagCanAddWhenHaveOther(BuffTag tag, BuffTag other);
-    protected virtual void Start()
-    {
-        BuffManager.GetInstance().RegisterBuffTagManager(this);
-    }
+    
 }

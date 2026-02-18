@@ -13,7 +13,7 @@ public class GameDayNightManager : IGameService
         Instance = this;
         ResetDayNight();
     }
-
+    RunPhaseMachine phaseMachine;
     private Light _mainLight;
     private Coroutine _lightCoroutine;
 

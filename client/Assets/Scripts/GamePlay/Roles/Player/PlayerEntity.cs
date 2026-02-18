@@ -62,13 +62,13 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IDamageable, IUser,ITh
 
         if (Input.GetKeyDown(KeyCode.E))
         {
-            if (BagPlugin.Instance.GetItemNum(20002) > 0)
-            {
-                BagPlugin.Instance.RemoveItem(20002, 1);
-                properties.HP += 25;
-                GameLoop.Instance.Ctx.Get<FlyTextMgr>().AddText("+" + 25, ObjTrans.position, FlyTextType.AddHP);
-                rateHud.UpdateRate(properties.HP / properties.MaxHP);
-            }
+            // if (BagPlugin.Instance.GetItemNum(20002) > 0)
+            // {
+            //     BagPlugin.Instance.RemoveItem(20002, 1);
+            //     properties.HP += 25;
+            //     GameLoop.Instance.Ctx.Get<FlyTextMgr>().AddText("+" + 25, ObjTrans.position, FlyTextType.AddHP);
+            //     rateHud.UpdateRate(properties.HP / properties.MaxHP);
+            // }
         }
     }
 

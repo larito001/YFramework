@@ -4,22 +4,22 @@ using UnityEngine;
 namespace NoSLoofah.BuffSystem
 {
     /// <summary>
-    /// BuffTag管理器的接口，用于判断Tag之间的互斥关系
+    /// BuffTag锟斤拷锟斤拷锟斤拷锟侥接口ｏ拷锟斤拷锟斤拷锟叫讹拷Tag之锟斤拷幕锟斤拷锟斤拷系
     /// </summary>
     public interface IBuffTagManager
     {
         /// <summary>
-        /// 添加带有tag的Buff时，是否会移除Tag为other的已有Buff
+        /// 锟斤拷锟接达拷锟斤拷tag锟斤拷Buff时锟斤拷锟角凤拷锟斤拷瞥锟絋ag为other锟斤拷锟斤拷锟斤拷Buff
         /// </summary>
-        /// <param name="tag">新添加Buff的tag</param>
-        /// <param name="other">已有Buff的Tag</param>
+        /// <param name="tag">锟斤拷锟斤拷锟斤拷Buff锟斤拷tag</param>
+        /// <param name="other">锟斤拷锟斤拷Buff锟斤拷Tag</param>
         /// <returns></returns>
         public bool IsTagRemoveOther(BuffTag tag, BuffTag other);
         /// <summary>
-        /// 添加带有tag的Buff时，是否会被Tag为other的已有Buff抵消
+        /// 锟斤拷锟接达拷锟斤拷tag锟斤拷Buff时锟斤拷锟角凤拷岜籘ag为other锟斤拷锟斤拷锟斤拷Buff锟斤拷锟斤拷
         /// </summary>
-        /// <param name="tag">新添加Buff的tag</param>
-        /// <param name="other">已有Buff的Tag</param>
+        /// <param name="tag">锟斤拷锟斤拷锟斤拷Buff锟斤拷tag</param>
+        /// <param name="other">锟斤拷锟斤拷Buff锟斤拷Tag</param>
         /// <returns></returns>
         public bool IsTagCanAddWhenHaveOther(BuffTag tag, BuffTag other);
     }

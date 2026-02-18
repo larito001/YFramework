@@ -27,11 +27,11 @@ public class SelectTowerItem : YOTOScrollViewItem
         bool canBuild = true;
         foreach (var vector2Int in towerData.UseIdAndNumber)
         {
-            var haveNum = BagPlugin.Instance.GetItemNum(vector2Int.x);
-            if (haveNum < vector2Int.y)
-            {
-                canBuild = false;
-            }
+            // var haveNum = BagPlugin.Instance.GetItemNum(vector2Int.x);
+            // if (haveNum < vector2Int.y)
+            // {
+            //     canBuild = false;
+            // }
         }
 
         if (canBuild)

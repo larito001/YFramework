@@ -45,7 +45,7 @@ namespace NoSLoofah.BuffSystem
                 if (bf.BuffTag != BuffTag.none)
                 {
                     //首先：如果有已有buff能抵消新buff，则直接抵消
-                    if (buffs.Any(b => BuffManager.GetInstance().TagManager.IsTagCanAddWhenHaveOther(bf.BuffTag, b.BuffTag)))
+                    if (buffs.Any(b =>  GameLoop.Instance.Ctx.Get<BuffManager>().TagManager.IsTagCanAddWhenHaveOther(bf.BuffTag, b.BuffTag)))
                     {
                         bf.SetEffective(false);
                         bf.OnBuffDestroy();
@@ -55,7 +55,7 @@ namespace NoSLoofah.BuffSystem
                     {
                         //之后：如果新buff没有被抵消，则新buff抵消已有的buff
                         //Debug.Log("Running:" + bf.BuffTag + ":" + buffs[i].BuffTag);
-                        if (BuffManager.GetInstance().TagManager.IsTagRemoveOther(bf.BuffTag, buffs[i].BuffTag))
+                        if ( GameLoop.Instance.Ctx.Get<BuffManager>().TagManager.IsTagRemoveOther(bf.BuffTag, buffs[i].BuffTag))
                         {
                             RemoveBuff(buffs[i]);
                         }
@@ -114,7 +114,7 @@ namespace NoSLoofah.BuffSystem
         #endregion
         public void AddBuff(int buffId, GameObject caster)
         {
-            var b = BuffManager.GetInstance().GetBuff(buffId);
+            var b =  GameLoop.Instance.Ctx.Get<BuffManager>().GetBuff(buffId);
             AddBuff(b, caster);
         }
 

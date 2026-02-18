@@ -20,7 +20,7 @@ public class GameMainPanel : UIPageBase
     private void ItemRender(YOTOScrollViewItem arg1, int index)
     {
         var item = arg1 as CommonItem; 
-        item.SetData(BagPlugin.Instance.GetItemByIndex(index));
+        // item.SetData(BagPlugin.Instance.GetItemByIndex(index));
     }
 
     public override void OnShow()

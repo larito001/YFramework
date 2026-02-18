@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class RunPhaseMachine : YStateMachine,IGameService,ITickable
+public class RunPhaseMachine : YStateMachine
 {
     public void Init(GameContext ctx)
     {

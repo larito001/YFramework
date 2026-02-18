@@ -9,7 +9,7 @@ namespace NoSLoofah.BuffSystem.Manager
     /// Buff������������ģʽ��
     /// ����ͨ����Ż�ȡBuff����
     /// </summary>
-    public class BuffManager : MonoSingleton<BuffManager>, IBuffManager
+    public class BuffManager : IBuffManager,IGameService
     {
         //public static readonly string SO_PATH = "Assets/NoSLoofah_BuffSystem/BuffSystem/Data/BuffData";    //����Data��·��
         [HideInInspector][SerializeField] private BuffCollection collection;
@@ -20,12 +20,6 @@ namespace NoSLoofah.BuffSystem.Manager
         public void SetData(BuffCollection buffCollection)
         {
             this.collection = buffCollection;
-        }
-
-        protected override void Awake()
-        {
-            base.Awake();
-            if (collection == null) Debug.LogError("BuffCollection���ݶ�ʧ");
         }
         public IBuff GetBuff(int id)
         {
@@ -39,7 +33,19 @@ namespace NoSLoofah.BuffSystem.Manager
 
         public void RegisterBuffTagManager(IBuffTagManager mgr)
         {
-            tagManager = mgr;
+            tagManager=mgr;
         }
+
+        public void Init(GameContext ctx)
+        {
+            if (collection == null) Debug.LogError("BuffCollection为空");
+            RegisterBuffTagManager(new BitBuffTagManager());
+        }
+
+        public void Shutdown()
+        {
+            
+        }
+        
     }
 }

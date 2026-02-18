@@ -24,15 +24,15 @@ public class TowerUpPanel : UIPageBase
     private void OnConfirm()
     {
 
-        if (BagPlugin.Instance.CheckIsEnoughAndUse(_param.useIdAndNumber))
-        {
-            _param.confirmAction?.Invoke();
-            CloseSelf();
-        }
-        else
-        {
-            GameLoop.Instance.Ctx.Get<FlyTextMgr>().AddTextAtScreenCenter("资源不足");
-        }
+        // if (BagPlugin.Instance.CheckIsEnoughAndUse(_param.useIdAndNumber))
+        // {
+        //     _param.confirmAction?.Invoke();
+        //     CloseSelf();
+        // }
+        // else
+        // {
+        //     GameLoop.Instance.Ctx.Get<FlyTextMgr>().AddTextAtScreenCenter("资源不足");
+        // }
 
     }
 

@@ -4,10 +4,9 @@ using System.Collections.Generic;
 using UnityEngine;
 using YOTO;
 
-public class BagPlugin : IGameService
+public class BagSystem
 {
     private List<Vector2Int> ItemList = new();
-    public static BagPlugin Instance;
     private List<ItemData> ItemDatas = new List<ItemData>();
 
 
@@ -125,9 +124,5 @@ public class BagPlugin : IGameService
         Resources.UnloadAsset(itemDataSO);
         GameLoop.Instance.Ctx.Get<EventMgr>().TriggerEvent(YOTOEventType.RefreshBagList);
     }
-
-    public void Shutdown()
-    {
-      
-    }
+    
 }
