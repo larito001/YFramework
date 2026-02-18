@@ -6,12 +6,12 @@ using UnityEngine;
 namespace NoSLoofah.BuffSystem.Manager
 {
     /// <summary>
-    /// Buff¹ÜÀíÆ÷£¬µ¥ÀýÄ£Ê½¡£
-    /// ÓÃÓÚÍ¨¹ýÐòºÅ»ñÈ¡Buff¶ÔÏó
+    /// Buffï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä£Ê½ï¿½ï¿½
+    /// ï¿½ï¿½ï¿½ï¿½Í¨ï¿½ï¿½ï¿½ï¿½Å»ï¿½È¡Buffï¿½ï¿½ï¿½ï¿½
     /// </summary>
     public class BuffManager : MonoSingleton<BuffManager>, IBuffManager
     {
-        //public static readonly string SO_PATH = "Assets/NoSLoofah_BuffSystem/BuffSystem/Data/BuffData";    //±£´æDataµÄÂ·¾¶
+        //public static readonly string SO_PATH = "Assets/NoSLoofah_BuffSystem/BuffSystem/Data/BuffData";    //ï¿½ï¿½ï¿½ï¿½Dataï¿½ï¿½Â·ï¿½ï¿½
         [HideInInspector][SerializeField] private BuffCollection collection;
         private IBuffTagManager tagManager;
         public bool IsWorking => collection != null;
@@ -25,15 +25,15 @@ namespace NoSLoofah.BuffSystem.Manager
         protected override void Awake()
         {
             base.Awake();
-            if (collection == null) Debug.LogError("BuffCollectionÊý¾Ý¶ªÊ§");
+            if (collection == null) Debug.LogError("BuffCollectionï¿½ï¿½ï¿½Ý¶ï¿½Ê§");
         }
         public IBuff GetBuff(int id)
         {
             if (id < 0 || id >= collection.Size)
             {
-                throw new System.Exception("Ê¹ÓÃ·Ç·¨µÄBuff id£º" + id + " (µ±Ç°Buff×ÜÊýÎª" + collection.Size + ")");
+                throw new System.Exception("Ê¹ï¿½Ã·Ç·ï¿½ï¿½ï¿½Buff idï¿½ï¿½" + id + " (ï¿½ï¿½Ç°Buffï¿½ï¿½ï¿½ï¿½Îª" + collection.Size + ")");
             }
-            if (collection.buffList[id] == null) throw new System.Exception("ÒýÓÃµÄBuffÎªnull¡£id£º" + id);
+            if (collection.buffList[id] == null) throw new System.Exception("ï¿½ï¿½ï¿½Ãµï¿½BuffÎªnullï¿½ï¿½idï¿½ï¿½" + id);
             return collection.buffList[id].Clone();
         }
 

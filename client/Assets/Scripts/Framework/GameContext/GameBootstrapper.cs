@@ -23,8 +23,8 @@ public static class GameBootstrapper
         
         /// --- Gameplay Services ---
         ctx.Register(new BuildManager());//构建模块（放置系统） 耦合列车模块
-        ctx.Register(new TowerManager());//塔防模块（todo：合入构建系统） 
-        
+        // ctx.Register(new TowerManager());//塔防模块（todo：合入构建系统） 
+        ctx.Register(new BattleManager());
         //todo:BattleManager：（所有可索敌、可受伤、可吃buff的，提供索敌系统，伤害结算系统，buff系统）
         ctx.Register(new PlayerManager());//玩家模块（管理玩家数量，目前就一个）耦合战斗系统
         ctx.Register(new TrainManager());//列车模块（管理列车段数） 耦合战斗系统、构建模块

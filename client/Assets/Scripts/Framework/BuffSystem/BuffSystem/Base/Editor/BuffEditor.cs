@@ -46,6 +46,7 @@ namespace NoSLoofah.BuffSystem.Editor
 
             try
             {
+                var asmemblyStr = typeof(BuffEditor).Assembly;//
                 // 原Initialize()中的逻辑
                 assembly = AppDomain.CurrentDomain.GetAssemblies()
                     .First(a => a.GetName().Name.Equals(ASSEMBLY_NAME));
@@ -58,7 +59,7 @@ namespace NoSLoofah.BuffSystem.Editor
             }
             catch (Exception e)
             {
-                Debug.LogError("BuffEditor初始化失败: " + e.Message);
+                Debug.LogError("BuffEditor初始化失败: " + e);
             }
         }
 
@@ -99,7 +100,7 @@ namespace NoSLoofah.BuffSystem.Editor
         private int langSelection = 0;
 
         //程序集
-        private const string ASSEMBLY_NAME = "Core";
+        private const string ASSEMBLY_NAME = "Assembly-CSharp";
         private Assembly assembly;
 
         //子类选择

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using YOTO;
 
-public class TowerManager : IGameService
+public class TowerSystem
 {
     public List<TowerData> towerDatas = new List<TowerData>();
 
