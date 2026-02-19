@@ -12,7 +12,7 @@ public  class SceneModelBase : MonoBehaviour
     public void Init(ObjectBase objBase)
     {
         _objBase = objBase;
-        EntityID = _objBase._entityID;
+        // EntityID = _objBase._entityID;
         this.gameObject.layer = LayerMask.NameToLayer(_objBase.GetModelLayer());
         objBase.AfterModelColiderInit();
     }

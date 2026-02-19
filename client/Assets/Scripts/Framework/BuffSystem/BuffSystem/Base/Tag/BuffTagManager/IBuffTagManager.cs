@@ -8,6 +8,7 @@ namespace NoSLoofah.BuffSystem
     /// </summary>
     public interface IBuffTagManager
     {
+        public void Init(BuffTagData data);
         /// <summary>
         /// ���Ӵ���tag��Buffʱ���Ƿ���Ƴ�TagΪother������Buff
         /// </summary>

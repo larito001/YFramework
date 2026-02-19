@@ -3,50 +3,11 @@ using System.Collections.Generic;
 using Combat;
 using UnityEngine;
 
-public class IceBulletEntity : BaseBulletEntity, PoolItem<BulletConfig>,IProjectile
+public class IceBulletEntity : BaseBulletEntity, PoolItem<BulletConfig>,IProjectile,IFixedTickable
 {
     public static DataObjPool<IceBulletEntity, BulletConfig> pool =
         new DataObjPool<IceBulletEntity, BulletConfig>("IceBulletEntity", 50);
-
-    public override void YOTOFixedUpdate(float deltaTime)
-    {
-        if (!isLive) return;
-        timer += deltaTime;
-        if (timer >= _config.duration)
-        {
-            DestoryBullet();
-            return;
-        }
-
-        if (objTrans)
-        {
-            objTrans.position += dir * _config.moveSpeed * deltaTime;
-        }
-
-        stayTimer += deltaTime;
-        //延迟触发
-        if (stayTimer >= _config.triggerTimer && triggerCount > 0)
-        {
-            stayTimer -= _config.triggerTimer;
-            foreach (var theVictim in victims)
-            {
-                // theVictim.OnHurt(_fireRole, _config.damage);
-                // theVictim.OnSlowDown(0.55f);
-                triggerCount--;
-                if (triggerCount <= 0)
-                {
-                    break;
-                }
-            }
-            victims.Clear();
-
-            if (triggerCount <= 0)
-            {
-                DestoryBullet();
-            }
-        }
-    }
-
+    
     public override void DestoryBullet()
     {
         base.DestoryBullet();
@@ -68,8 +29,44 @@ public class IceBulletEntity : BaseBulletEntity, PoolItem<BulletConfig>,IProject
         throw new System.NotImplementedException();
     }
 
-    public void Tick(float dt)
+
+
+    public void FixedTick(float fdt)
     {
-        throw new System.NotImplementedException();
+        if (!isLive) return;
+        timer += fdt;
+        if (timer >= _config.duration)
+        {
+            DestoryBullet();
+            return;
+        }
+
+        if (objTrans)
+        {
+            objTrans.position += dir * _config.moveSpeed * fdt;
+        }
+
+        stayTimer += fdt;
+        //延迟触发
+        if (stayTimer >= _config.triggerTimer && triggerCount > 0)
+        {
+            stayTimer -= _config.triggerTimer;
+            foreach (var theVictim in victims)
+            {
+                // theVictim.OnHurt(_fireRole, _config.damage);
+                // theVictim.OnSlowDown(0.55f);
+                triggerCount--;
+                if (triggerCount <= 0)
+                {
+                    break;
+                }
+            }
+            victims.Clear();
+
+            if (triggerCount <= 0)
+            {
+                DestoryBullet();
+            }
+        }
     }
 }

@@ -27,12 +27,6 @@ public class TrackFixEntity : ObjectBase
         base.OnColiderEnter(other);
     }
 
-    public override void YOTOUpdate(float deltaTime)
-    {
-        if (!isInit) return;
-        base.YOTOUpdate(deltaTime);
-    }
-
     public override void OnObjectClick()
     {
         base.OnObjectClick();

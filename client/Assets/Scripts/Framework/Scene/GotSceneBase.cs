@@ -61,14 +61,6 @@ public abstract class GotSceneBase
         LeaveSceneComplete();
     }
 
-    public virtual void Update(float dt)
-    {
-    }
-
-    public virtual void OnFixedUpdate()
-    {
-    }
-
     #endregion
 
     #region 逻辑
@@ -106,6 +98,7 @@ public abstract class GotSceneBase
 
     public void LoadingEnd()
     {
+        Debug.Log(SceneName+"场景加载完成");
         OnLoadingEnd();
     }
 

@@ -27,27 +27,7 @@ namespace Combat
         float ThreatRadius { get; } // 用于“近似体积”/优先级
     }
 
-    /// <summary>
-    /// buff接收者
-    /// </summary>
-    public interface IEffectReceiver
-    {
-        bool CanReceiveEffects { get; }
-        void AddEffect(IStatusEffect effect);
-        bool HasEffect(string effectId);
-    }
-
-    /// <summary>
-    /// buff基类
-    /// </summary>
-    public interface IStatusEffect
-    {
-        string Id { get; }
-        float Duration { get; } // <=0 表示瞬时
-        void OnApply(EffectContext ctx);
-        void Tick(EffectContext ctx, float dt);
-        void OnRemove(EffectContext ctx);
-    }
+   
 
     /// <summary>
     /// 武器
@@ -68,6 +48,5 @@ namespace Combat
     {
         bool IsAlive { get; }
         void Init(in FireRequest request);
-        void Tick(float dt);
     }
 }

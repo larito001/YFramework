@@ -1,3 +1,4 @@
+using NoSLoofah.BuffSystem;
 using UnityEngine;
 
 /// <summary>
@@ -11,7 +12,8 @@ public sealed class GameLoop : MonoBehaviour
 
     [Header("Boot")] [SerializeField] private bool autoStart = true;
     [Header("测试模式")] public bool isTest = false;
-
+    [Header("buffCollection")] public BuffCollection buffCollection;
+    [Header("BuffTagCollector")] public BuffTagData buffData;
     private void Awake()
     {
         if (Instance != null)
@@ -30,7 +32,7 @@ public sealed class GameLoop : MonoBehaviour
         if (autoStart)
         {
             // 这里可以切入 PhaseFSM 的初始 Phase
-             // Ctx.Get<PhaseStateMachine>().SwitchState();
+             Ctx.Get<GotSceneManager>().SwitchScene(GotSceneType.Login);
         }
     }
 

@@ -6,7 +6,7 @@ using UnityEngine;
 using UnityEngine.Events;
 using YOTO;
 
-public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>,IDamageable,IThreatTarget,IEffectReceiver
+public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>,IDamageable,IThreatTarget,ITickable
 {
     public static DataObjPool<EnemyEntity, (EnemyData, Vector3)> pool =
         new DataObjPool<EnemyEntity, (EnemyData, Vector3)>("EnemyEntity", 200);
@@ -34,11 +34,11 @@ public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>,IDamageabl
 
     #region 生命周期
 
-    public override void YOTOUpdate(float deltaTime)
+    public void Tick(float dt)
     {
         if (stateMachine != null)
         {
-            stateMachine.Update(deltaTime);
+            stateMachine.Update(dt);
             if (stateMachine.GetCurrentStateName() == "EnemyIdel" || stateMachine.GetCurrentStateName() == "EnemyRound")
                 TryExchangeTarget();
         }
@@ -51,7 +51,6 @@ public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>,IDamageabl
             }
         }
     }
-
     public override string GetModelLayer()
     {
         return "Agent";
@@ -201,11 +200,7 @@ public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>,IDamageabl
     {
         return objTrans;
     }
-
-    public int GetId()
-    {
-        return _entityID;
-    }
+    
 
     public IThreatTarget GetTarget()
     {
@@ -373,15 +368,7 @@ public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>,IDamageabl
     {
         return true;
     }
+    
 
-    public bool CanReceiveEffects { get; }
-    public void AddEffect(IStatusEffect effect)
-    {
-        
-    }
-
-    public bool HasEffect(string effectId)
-    {
-        return true;
-    }
+   
 }

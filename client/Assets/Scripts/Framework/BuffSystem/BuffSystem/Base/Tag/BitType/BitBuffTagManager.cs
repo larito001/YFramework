@@ -16,14 +16,11 @@ namespace NoSLoofah.BuffSystem
         //private static string dataPath => "/BuffTagData.asset";
 
         [HideInInspector][SerializeField] private BitBuffTagData tagData;
-        public void SetData(BitBuffTagData data)
+        public override void Init(BuffTagData data)
         {
-            tagData = data;
+            tagData = data as BitBuffTagData;
         }
-        private void Awake()
-        {
-            if (tagData == null) Debug.LogError("Tag数据丢失");
-        }
+
         public override bool IsTagRemoveOther(BuffTag tag, BuffTag other)
         {
             if (tag == 0) return false;

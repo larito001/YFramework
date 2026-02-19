@@ -1,17 +1,43 @@
 using Combat;
 using UnityEngine;
 
-public class ThrowBulletEntity : BaseBulletEntity, PoolItem<BulletConfig>,IProjectile
+public class ThrowBulletEntity : BaseBulletEntity, PoolItem<BulletConfig>,IProjectile,IFixedTickable
 {
     public static DataObjPool<ThrowBulletEntity, BulletConfig> pool =
         new DataObjPool<ThrowBulletEntity, BulletConfig>("ThrowBulletEntity", 50);
 
-    public override void YOTOFixedUpdate(float deltaTime)
+
+    public override void DestoryBullet()
     {
-        if (!isLive) return;
+        base.DestoryBullet();
+        var config = new ParticleEntityData();
+        config.pos = objTrans.position;
+        config.path = "Bullet/StoneBulletDestory";
+        config.scale = 3;
+        var particle = ParticleEntity.pool.GetItem(config);
+        particle.Play();
+        particle.Rotation = Quaternion.LookRotation(-ObjTrans.forward, ObjTrans.up);
+        pool.RecoverItem(this);
+    }
+
+    public bool IsAlive { get; }
+    public void Init(in FireRequest request)
+    {
+        
+    }
+
+    public void Tick(float dt)
+    {
+   
+    }
+
+
+    public void FixedTick(float fdt)
+    {
+          if (!isLive) return;
 
         if (objTrans == null) return;
-        timer += deltaTime;
+        timer += fdt;
         if (timer >= _config.duration)
         {
             DestoryBullet();
@@ -79,30 +105,6 @@ public class ThrowBulletEntity : BaseBulletEntity, PoolItem<BulletConfig>,IProje
             objTrans.forward = currentVelocity.normalized;
         }
 
-        stayTimer += deltaTime;
-    }
-
-    public override void DestoryBullet()
-    {
-        base.DestoryBullet();
-        var config = new ParticleEntityData();
-        config.pos = objTrans.position;
-        config.path = "Bullet/StoneBulletDestory";
-        config.scale = 3;
-        var particle = ParticleEntity.pool.GetItem(config);
-        particle.Play();
-        particle.Rotation = Quaternion.LookRotation(-ObjTrans.forward, ObjTrans.up);
-        pool.RecoverItem(this);
-    }
-
-    public bool IsAlive { get; }
-    public void Init(in FireRequest request)
-    {
-        throw new System.NotImplementedException();
-    }
-
-    public void Tick(float dt)
-    {
-        throw new System.NotImplementedException();
+        stayTimer += fdt;
     }
 }

@@ -4,7 +4,7 @@ using System.Linq;
 using Combat;
 using UnityEngine;
 
-public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IWeapon
+public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IWeapon,IFixedTickable
 {
     public static DataObjPool<TowerEntity, TowerBaseCtrlEntity> pool =
         new DataObjPool<TowerEntity, TowerBaseCtrlEntity>("TowerEntity", 20);
@@ -21,61 +21,7 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IWeapon
 
     // public IVictim lockTarget = null;
     private bool isCdEnd = false;
-
-    public override void YOTOFixedUpdate(float dt)
-    {
-        if (objTrans == null) return;
-
-        if (CDtimer > 0)
-        {
-            CDtimer -= dt;
-        }
-        else
-        {
-            isCdEnd = true;
-        }
-
-        enemies.Clear();
-        if (EnemiesManager.instance.GetEnemyIsInRange(objTrans.position, 20, enemies))
-        {
-            // lockTarget = GetNearestEnemyPos();
-        }
-        //
-        // if (lockTarget != null)
-        // {
-        //     //todo:让ObjTrans，朝向lockTarget，只旋转y轴
-        //     // 计算水平方向（忽略Y轴高度差）
-        //     Vector3 direction = lockTarget.GetPosition() - ObjTrans.position;
-        //     direction.y = 0f;
-        //
-        //     // 防止零向量导致异常
-        //     if (direction.sqrMagnitude < 0.0001f) return;
-        //
-        //     // 计算目标旋转
-        //     Quaternion targetRotation = Quaternion.LookRotation(direction);
-        //
-        //     // 直接设置（立即转向）
-        //     //todo:lerp旋转，
-        //     ObjTrans.rotation = Quaternion.RotateTowards(
-        //         ObjTrans.rotation,
-        //         targetRotation,
-        //         180 * dt
-        //     );
-        //
-        //     //todo:如果两角相差1度以内则发射
-        //     if (Vector3.Angle(ObjTrans.forward, direction) < 1)
-        //     {
-        //         if (isCdEnd)
-        //         {
-        //             isCdEnd = false;
-        //             CDtimer = attackCD;
-        //
-        //             GenerateBullet(lockTarget);
-        //             lockTarget = null;
-        //         }
-        //     }
-        // }
-    }
+    
 
     // private void GenerateBullet(IVictim victim)
     // {
@@ -250,10 +196,7 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IWeapon
         return ObjTrans;
     }
 
-    public int GetId()
-    {
-        return _entityID;
-    }
+ 
 
     public Properties GetProperties()
     {
@@ -344,6 +287,61 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IWeapon
     public WeaponConfigSO Config { get; }
     public bool TryFire(in FireRequest request)
     {
-        throw new System.NotImplementedException();
+        return true;
+    }
+
+    public void FixedTick(float fdt)
+    {
+        if (objTrans == null) return;
+
+        if (CDtimer > 0)
+        {
+            CDtimer -= fdt;
+        }
+        else
+        {
+            isCdEnd = true;
+        }
+
+        enemies.Clear();
+        if (EnemiesManager.instance.GetEnemyIsInRange(objTrans.position, 20, enemies))
+        {
+            // lockTarget = GetNearestEnemyPos();
+        }
+        //
+        // if (lockTarget != null)
+        // {
+        //     //todo:让ObjTrans，朝向lockTarget，只旋转y轴
+        //     // 计算水平方向（忽略Y轴高度差）
+        //     Vector3 direction = lockTarget.GetPosition() - ObjTrans.position;
+        //     direction.y = 0f;
+        //
+        //     // 防止零向量导致异常
+        //     if (direction.sqrMagnitude < 0.0001f) return;
+        //
+        //     // 计算目标旋转
+        //     Quaternion targetRotation = Quaternion.LookRotation(direction);
+        //
+        //     // 直接设置（立即转向）
+        //     //todo:lerp旋转，
+        //     ObjTrans.rotation = Quaternion.RotateTowards(
+        //         ObjTrans.rotation,
+        //         targetRotation,
+        //         180 * dt
+        //     );
+        //
+        //     //todo:如果两角相差1度以内则发射
+        //     if (Vector3.Angle(ObjTrans.forward, direction) < 1)
+        //     {
+        //         if (isCdEnd)
+        //         {
+        //             isCdEnd = false;
+        //             CDtimer = attackCD;
+        //
+        //             GenerateBullet(lockTarget);
+        //             lockTarget = null;
+        //         }
+        //     }
+        // }
     }
 }

@@ -3,15 +3,39 @@ using System.Collections.Generic;
 using Combat;
 using UnityEngine;
 
-public class NormalBulletEntity : BaseBulletEntity, PoolItem<BulletConfig>,IProjectile
+public class NormalBulletEntity : BaseBulletEntity, PoolItem<BulletConfig>,IProjectile,IFixedTickable
 {
     public static DataObjPool<NormalBulletEntity, BulletConfig> pool =
         new DataObjPool<NormalBulletEntity, BulletConfig>("NormalBulletEntity", 50);
 
-    public override void YOTOFixedUpdate(float deltaTime)
+
+
+    public override void DestoryBullet()
+    {
+        base.DestoryBullet();
+
+        //todo: 生成粒子
+        var config = new ParticleEntityData();
+        config.pos = objTrans.position;
+        config.path = "Bullet/NormalBulletDestory";
+        config.scale = 1;
+        var particle = ParticleEntity.pool.GetItem(config);
+        particle.Play();
+        particle.Rotation = Quaternion.LookRotation(-ObjTrans.forward, ObjTrans.up);
+        pool.RecoverItem(this);
+    }
+
+    public bool IsAlive { get; }
+    public void Init(in FireRequest request)
+    {
+        
+    }
+    
+
+    public void FixedTick(float fdt)
     {
         if (!isLive) return;
-        timer += deltaTime;
+        timer +=fdt;
         if (timer >= _config.duration)
         {
             DestoryBullet();
@@ -20,10 +44,10 @@ public class NormalBulletEntity : BaseBulletEntity, PoolItem<BulletConfig>,IProj
 
         if (objTrans)
         {
-            objTrans.position += dir * _config.moveSpeed * deltaTime;
+            objTrans.position += dir * _config.moveSpeed * fdt;
         }
 
-        stayTimer += deltaTime;
+        stayTimer += fdt;
         //延迟触发
         if (stayTimer >= _config.triggerTimer && triggerCount > 0)
         {
@@ -44,31 +68,5 @@ public class NormalBulletEntity : BaseBulletEntity, PoolItem<BulletConfig>,IProj
                 DestoryBullet();
             }
         }
-    }
-
-    public override void DestoryBullet()
-    {
-        base.DestoryBullet();
-
-        //todo: 生成粒子
-        var config = new ParticleEntityData();
-        config.pos = objTrans.position;
-        config.path = "Bullet/NormalBulletDestory";
-        config.scale = 1;
-        var particle = ParticleEntity.pool.GetItem(config);
-        particle.Play();
-        particle.Rotation = Quaternion.LookRotation(-ObjTrans.forward, ObjTrans.up);
-        pool.RecoverItem(this);
-    }
-
-    public bool IsAlive { get; }
-    public void Init(in FireRequest request)
-    {
-        throw new System.NotImplementedException();
-    }
-
-    public void Tick(float dt)
-    {
-        throw new System.NotImplementedException();
     }
 }

@@ -1,28 +1,30 @@
 using System.Collections.Generic;
 using Combat;
+using Unity.VisualScripting;
 using UnityEngine;
 using YOTO;
 
-public class PlayerEntity : ObjectBase, PoolItem<object>, IDamageable, IUser,IThreatTarget,IEffectReceiver
+public class PlayerEntity : ObjectBase, PoolItem<PlayerManager>, IDamageable, IUser,IThreatTarget,ITickable
 {
-    public static DataObjPool<PlayerEntity, object> pool =
-        new DataObjPool<PlayerEntity, object>("PlayerEntity", 4);
+    
+    public PlayerManager PlayerManager { get; private set; }
+    public static DataObjPool<PlayerEntity, PlayerManager> pool =
+        new DataObjPool<PlayerEntity, PlayerManager>("PlayerEntity", 4);
 
     // ThirdPlayerMoveCtrl playerMoveCtrl;
     public Properties properties;
     RateHud rateHud;
-
-    #region 生命周期
-
     AxeEntity axeEntity;
     GunEntity gunEntity;
     private IWeapon currentWeapon;
     private IUsable _usableItemInRange;
+    private BasicBehavior _basicBehavior;
+    #region 生命周期
     // public PetEntity pet;
-
-    public override void YOTOUpdate(float deltaTime)
+    public void Tick(float dt)
     {
         if (ObjTrans == null) return;
+        _basicBehavior.Tick(dt);
         if (Input.GetKeyDown(KeyCode.F))
         {
             if (SceneResManager.Instance.GetNearestRes(ObjTrans.position, 3, out var res))
@@ -71,17 +73,9 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IDamageable, IUser,ITh
             // }
         }
     }
-
-    private void TryFindItemAndGetIt()
+    public void SetData(PlayerManager data)
     {
-        if (SceneResManager.Instance.GetNearestRes(objTrans.position, 10, out var res))
-        {
-        }
-    }
-
-
-    public void SetData(object data)
-    {
+        PlayerManager=data;
         properties = new Properties();
         properties.HP = 100;
         properties.MaxHP = 100;
@@ -103,6 +97,11 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IDamageable, IUser,ITh
     protected override void AfterInstanceGObj()
     {
         properties.State = RoleState.Alive;
+        _basicBehavior = new BasicBehavior(PlayerManager.CameraMgr);
+       
+
+        Animator anim = ObjTrans.GetComponentInChildren<Animator>();
+        _basicBehavior.RigesterAnimator(anim);
         // var orbitCamera = YFramework.cameraMgr.getMainCamera().GetComponent<OrbitCamera>();
         // orbitCamera.Init(ObjTrans);
         // playerMoveCtrl = ObjTrans.GetComponent<ThirdPlayerMoveCtrl>();
@@ -112,13 +111,13 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IDamageable, IUser,ITh
         rateHud.Show();
         rateHud.UpdateRate(properties.HP / properties.MaxHP);
 
-        axeEntity = new AxeEntity();
-        // axeEntity.InitAex(objTrans.GetComponentInChildren<PlayerRenderer>().transform);
-        axeEntity.Location = new Vector3(0.25f, 0.5f, 0);
-        gunEntity = new GunEntity();
-        gunEntity.InitGun(objTrans);
-        gunEntity.Location = new Vector3(0.25f, 0.5f, 0);
-        currentWeapon = axeEntity;
+        // axeEntity = new AxeEntity();
+        // // axeEntity.InitAex(objTrans.GetComponentInChildren<PlayerRenderer>().transform);
+        // axeEntity.Location = new Vector3(0.25f, 0.5f, 0);
+        // gunEntity = new GunEntity();
+        // gunEntity.InitGun(objTrans);
+        // gunEntity.Location = new Vector3(0.25f, 0.5f, 0);
+        // currentWeapon = axeEntity;
         // renderer = ObjTrans.GetComponentInChildren<PlayerRenderer>();
         // renderer.UseNife();
 
@@ -269,15 +268,5 @@ public class PlayerEntity : ObjectBase, PoolItem<object>, IDamageable, IUser,ITh
     {
         return true;
     }
-
-    public bool CanReceiveEffects { get; }
-    public void AddEffect(IStatusEffect effect)
-    {
-        
-    }
-
-    public bool HasEffect(string effectId)
-    {
-        return true;
-    }
+    
 }

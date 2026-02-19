@@ -9,6 +9,6 @@ public class EnemyStateMachine : YStateMachine
     {
         Enemy = enemy;
         ReSet();
-        stateMachineId = enemy._entityID;
+        // stateMachineId = enemy.getID();
     }
 }

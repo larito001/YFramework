@@ -120,18 +120,7 @@ public class FlyTextCtrl : ObjectBase, PoolItem<Transform>
         RecoverObject();
         pool.RecoverItem(this);
     }
-
-    public override void YOTOUpdate(float deltaTime)
-    {
-    }
-
-    public override void YOTOFixedUpdate(float deltaTime)
-    {
-    }
-
-    public override void YOTOOnHide()
-    {
-    }
+    
 
 
     public override string GetModelLayer()

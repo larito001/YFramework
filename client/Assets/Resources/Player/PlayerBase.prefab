@@ -125,6 +125,8 @@ GameObject:
   - component: {fileID: 1486491997132035289}
   - component: {fileID: 2361579507093998945}
   - component: {fileID: 406248252274247814}
+  - component: {fileID: 297569226458348508}
+  - component: {fileID: 3651719439949227675}
   m_Layer: 8
   m_Name: PlayerBase
   m_TagString: Untagged
@@ -198,6 +200,50 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 3.56, y: 1.9, z: 5.1}
   m_Center: {x: 0, y: 1.36, z: 0}
+--- !u!136 &297569226458348508
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8871548487554310274}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.5
+  m_Height: 2.667709
+  m_Direction: 1
+  m_Center: {x: 0, y: 0.7078253, z: 0}
+--- !u!95 &3651719439949227675
+Animator:
+  serializedVersion: 5
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8871548487554310274}
+  m_Enabled: 1
+  m_Avatar: {fileID: 9000000, guid: 60e3152f06c30ab4b97fa503f8639b68, type: 3}
+  m_Controller: {fileID: 9100000, guid: 57112963f504a8e4aab931e036c4d011, type: 2}
+  m_CullingMode: 1
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 1
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
 --- !u!1001 &7924579222620128180
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -368,7 +414,8 @@ PrefabInstance:
       propertyPath: m_Controller
       value: 
       objectReference: {fileID: 9100000, guid: 57112963f504a8e4aab931e036c4d011, type: 2}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 9507050, guid: 38515754d2319ee44a0f3db2b5cdc71f, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects:
     - targetCorrespondingSourceObject: {fileID: 430644, guid: 38515754d2319ee44a0f3db2b5cdc71f, type: 3}

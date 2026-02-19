@@ -20,7 +20,7 @@ public enum LoadSceneMode
     Additive = 1,
 }
 
-public class GotSceneManager:IGameService,ITickable,IFixedTickable
+public class GotSceneManager:IGameService
 {
     //场景总Gameobject
     public GameObject SceneRoot { get; private set; }
@@ -280,6 +280,7 @@ public class GotSceneManager:IGameService,ITickable,IFixedTickable
         DefaultAsyncUploadBufferSize = QualitySettings.asyncUploadBufferSize;
         DefaultAsyncUploadTimeSlice = QualitySettings.asyncUploadTimeSlice;
         AddScene<GameMainScene>(SceneRoot);
+        AddScene<GameStartScene>(SceneRoot);
         m_loadedScenes = new Stack<GotSceneType>();
     }
 
@@ -287,34 +288,5 @@ public class GotSceneManager:IGameService,ITickable,IFixedTickable
     {
        
     }
-
-    public void Tick(float dt)
-    {
-        try
-        {
-            if (SwitchSceneComplete && CurrentScene != null)
-            {
-                CurrentScene.Update(dt);
-            }
-        }
-        catch (System.Exception e)
-        {
-            Debug.LogErrorFormat("GotSceneManager::Update 异常, {0}\n{1}", e.Message, e.StackTrace);
-        }
-    }
-
-    public void FixedTick(float fdt)
-    {
-        try
-        {
-            if (SwitchSceneComplete && CurrentScene != null)
-            {
-                CurrentScene.OnFixedUpdate();
-            }
-        }
-        catch (System.Exception e)
-        {
-            Debug.LogErrorFormat("GotSceneManager::OnFixedUpdate 异常, {0}\n{1}", e.Message, e.StackTrace);
-        }
-    }
+    
 }

@@ -59,18 +59,6 @@ namespace Combat
         public DamageSpec Damage;        // 伤害规格
         public WeaponConfigSO Config;    // 武器配置（用于弹道、散布、速度等）
     }
-    /// <summary>
-    /// buff信息
-    /// </summary>
-    public readonly struct EffectContext
-    {
-        public readonly IDamageable Damageable;
-        public readonly IEffectReceiver Receiver;
-        public EffectContext( IDamageable damageable, IEffectReceiver receiver)
-        {
-            Damageable = damageable;
-            Receiver = receiver;
-        }
-    }
+   
 
 }

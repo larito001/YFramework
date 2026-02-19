@@ -11,3 +11,4 @@ public interface IGameService
 public interface ITickable { void Tick(float dt); }
 public interface IFixedTickable { void FixedTick(float fdt); }
 public interface ILateTickable { void LateTick(float dt); }
+public interface IAnimatorIK { void OnAnimatorIK(int layerIndex); }

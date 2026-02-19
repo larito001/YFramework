@@ -5,7 +5,7 @@ using Dreamteck.Splines;
 using UnityEngine;
 using YOTO;
 
-public class TrainEntity : ObjectBase
+public class TrainEntity : ObjectBase,IFixedTickable
 {
    
     public Properties properties;
@@ -75,15 +75,7 @@ public class TrainEntity : ObjectBase
         }
     }
 
-    public override void YOTOFixedUpdate(float deltaTime)
-    {
-        base.YOTOFixedUpdate(deltaTime);
-        if (ObjTrans)
-        {
-            HandleInput();
-        }
-    }
-    
+
 
     void HandleInput()
     {
@@ -192,5 +184,13 @@ public class TrainEntity : ObjectBase
     {
      
 
+    }
+    
+    public void FixedTick(float fdt)
+    {
+        if (ObjTrans)
+        {
+            HandleInput();
+        }   
     }
 }

@@ -1,7 +1,4 @@
-using NoSLoofah.BuffSystem.Dependence;
-using System;
-using System.IO;
-using UnityEditor;
+
 using UnityEngine;
 namespace NoSLoofah.BuffSystem.Manager
 {
@@ -38,8 +35,11 @@ namespace NoSLoofah.BuffSystem.Manager
 
         public void Init(GameContext ctx)
         {
-            if (collection == null) Debug.LogError("BuffCollection为空");
+        
             RegisterBuffTagManager(new BitBuffTagManager());
+            SetData(GameLoop.Instance.buffCollection);
+            tagManager.Init(GameLoop.Instance.buffData);
+            if (collection == null) Debug.LogError("BuffCollection为空");
         }
 
         public void Shutdown()

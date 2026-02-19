@@ -9,6 +9,8 @@ using UnityEngine;
 /// </summary>
 public abstract class BuffTagManager :IBuffTagManager
 {
+    public abstract void Init(BuffTagData data);
+
     public abstract bool IsTagRemoveOther(BuffTag tag, BuffTag other);
     public abstract bool IsTagCanAddWhenHaveOther(BuffTag tag, BuffTag other);
     

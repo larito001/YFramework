@@ -17,7 +17,7 @@ using Object = UnityEngine.Object;
 /// 回收调用逻辑
 /// 外部回收借口调用 ->RecoverObject ->BeforeRecover ->RecoverHud ->RecoverObjTrans ->AfterRecover
 /// </summary>
-public abstract class ObjectBase : BaseEntity
+public abstract class ObjectBase 
 {
     #region priavte私有
 
@@ -204,7 +204,7 @@ public abstract class ObjectBase : BaseEntity
                 var inactiveTimeMax = GetPoolBufferInactiveTimeMax();
                 var perFrameDisposeCountMax = GetPoolBufferPerFrameDisposeCountMax();
                 var poolSizeMax = GetPoolBufferPoolSizeMax();
-                poolBuffer = ObjectPool.Instance.GetBuffer(prefabPath, loopCheckCdTime, inactiveTimeMax,
+                poolBuffer = GameLoop.Instance.Ctx.Get<ObjectPool>().GetBuffer(prefabPath, loopCheckCdTime, inactiveTimeMax,
                     perFrameDisposeCountMax, poolSizeMax);
             }
 

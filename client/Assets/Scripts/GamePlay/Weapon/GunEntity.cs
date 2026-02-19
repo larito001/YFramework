@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using Combat;
 using UnityEngine;
 
-public class GunEntity : ObjectBase, IWeapon
+public class GunEntity : ObjectBase, IWeapon,IFixedTickable
 {
     private Transform _firePos;
     public void InitGun(Transform firepos, float cd = 0.05f, float beforeCD = 0.02f)
@@ -24,25 +24,7 @@ public class GunEntity : ObjectBase, IWeapon
     private float beforeAtkCD = 0f;
     public bool isBefore = false; //0-cd，1-before-atk，2-after-atk
 
-    public override void YOTOUpdate(float deltaTime)
-    {
-        if (weaponCD >= 0)
-        {
-            weaponCD -= deltaTime;
-            return;
-        }
 
-        if (isBefore)
-        {
-            beforeAtkCD -= deltaTime;
-            if (beforeAtkCD <= 0)
-            {
-                isBefore = false;
-                weaponCD = weaponTimer;
-                GenerateBullet();
-            }
-        }
-    }
 
 
     public void OnUse()
@@ -109,5 +91,25 @@ public class GunEntity : ObjectBase, IWeapon
     public bool TryFire(in FireRequest request)
     {
         return true;
+    }
+
+    public void FixedTick(float fdt)
+    {
+        if (weaponCD >= 0)
+        {
+            weaponCD -= fdt;
+            return;
+        }
+
+        if (isBefore)
+        {
+            beforeAtkCD -= fdt;
+            if (beforeAtkCD <= 0)
+            {
+                isBefore = false;
+                weaponCD = weaponTimer;
+                GenerateBullet();
+            }
+        }
     }
 }

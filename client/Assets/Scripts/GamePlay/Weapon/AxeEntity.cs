@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using Combat;
 using UnityEngine;
 
-public class AxeEntity :  ObjectBase,IWeapon
+public class AxeEntity :  ObjectBase,IWeapon,IFixedTickable
 {
     public void InitAex(Transform parent)
     {
@@ -17,27 +17,6 @@ public class AxeEntity :  ObjectBase,IWeapon
     private float beforeAtkTimer = 0.3f;
     private float beforeAtkCD = 0f;
     public bool isBefore = false;//0-cd，1-before-atk，2-after-atk
-    public override void YOTOUpdate(float deltaTime)
-    {
-        if (weaponCD >= 0)
-        {
-            weaponCD -= deltaTime;
-            return;
-        }
-
-        if (isBefore)
-        {
-            beforeAtkCD-= deltaTime;
-            if (beforeAtkCD <= 0)
-            {
-                isBefore = false;
-                weaponCD = weaponTimer;
-                GenerateBullet();
-            }
-        }
-  
-   
-    }
 
     public void OnUse()
     {
@@ -119,5 +98,25 @@ public class AxeEntity :  ObjectBase,IWeapon
     public bool TryFire(in FireRequest request)
     {
         return true;
+    }
+
+    public void FixedTick(float fdt)
+    {
+        if (weaponCD >= 0)
+        {
+            weaponCD -= fdt;
+            return;
+        }
+
+        if (isBefore)
+        {
+            beforeAtkCD-= fdt;
+            if (beforeAtkCD <= 0)
+            {
+                isBefore = false;
+                weaponCD = weaponTimer;
+                GenerateBullet();
+            }
+        }
     }
 }

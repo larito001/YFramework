@@ -293,7 +293,7 @@ public class GameDayNightManager : IGameService
 
     public void Init(GameContext ctx)
     {
-        ResetDayNight();
+        // ResetDayNight();
     }
 
     public void Shutdown()

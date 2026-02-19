@@ -5,7 +5,7 @@ using YOTO;
 
 namespace HotUpdate.Scripts.Framework.Pool.newPool
 {
-    public class ObjectPool : SingletonMono<ObjectPool>
+    public class ObjectPool : IGameService
     {
         public class PoolBuffer
         {
@@ -22,7 +22,7 @@ namespace HotUpdate.Scripts.Framework.Pool.newPool
                 {
                     if (refTrans != null)
                     {
-                        Destroy(refTrans.gameObject);
+                       GameObject.Destroy(refTrans.gameObject);
                         refTrans = null;
                     }
 
@@ -128,8 +128,8 @@ namespace HotUpdate.Scripts.Framework.Pool.newPool
 
                 if (rootTrans != null)
                 {
-                    RemoveLifeRef();
-                    Destroy(rootTrans.gameObject);
+                       RemoveLifeRef();
+                 GameObject.Destroy(rootTrans.gameObject);
                     rootTrans = null;
                     _resPath = string.Empty;
                 }
@@ -211,7 +211,7 @@ namespace HotUpdate.Scripts.Framework.Pool.newPool
                     
                             if (rootTrans == null)
                             {
-                                Destroy(templateObj);
+                               GameObject.Destroy(templateObj);
                                 return;
                             }
                     
@@ -289,7 +289,7 @@ namespace HotUpdate.Scripts.Framework.Pool.newPool
                 }
                 else
                 {
-                    target = Instantiate(template).transform;
+                    target =  GameObject.Instantiate(template).transform;
                     target.SetParent(rootTrans, false);
                     isNew = true;
                 }
@@ -318,7 +318,7 @@ namespace HotUpdate.Scripts.Framework.Pool.newPool
 
                 if (items.Count >= config.poolSizeMax)
                 {
-                    Destroy(target);
+                    GameObject.Destroy(target);
                     ReduceUsingCount();
                     return;
                 }
@@ -348,21 +348,11 @@ namespace HotUpdate.Scripts.Framework.Pool.newPool
             }
         }
 
+   
         private List<PoolBuffer> buffers;
         private readonly float LOOP_CHECK_TIME = 0.5f;
 
-
-        private void Awake()
-        {
-            buffers = new List<PoolBuffer>();
-        }
-
-        private void Start()
-        {
-            InvokeRepeating("LoopCheck", 0, LOOP_CHECK_TIME);
-        }
-
-        private void LoopCheck()
+        private void LoopCheck(object o)
         {
             if (buffers != null)
             {
@@ -414,7 +404,7 @@ namespace HotUpdate.Scripts.Framework.Pool.newPool
 #endif
 
             //todo:设置场景根节点
-            target.rootTrans.parent = transform;
+            target.rootTrans.parent = GameLoop.Instance.transform;
 
             target.SetupResPath(bufferName);
 
@@ -427,7 +417,7 @@ namespace HotUpdate.Scripts.Framework.Pool.newPool
 
         public void Clear()
         {
-            CancelInvoke("LoopCheck");
+            Timers.inst.Remove(LoopCheck);
             for (int i = buffers.Count - 1; i >= 0; i--)
             {
                 var curBuffer = buffers[i];
@@ -436,6 +426,18 @@ namespace HotUpdate.Scripts.Framework.Pool.newPool
 
             buffers.Clear();
             buffers = null;
+        }
+
+        public void Init(GameContext ctx)
+        {
+            buffers = new List<PoolBuffer>();
+            Timers.inst.Add(0.5f,-1,LoopCheck);
+        }
+        
+
+        public void Shutdown()
+        {
+            Clear();
         }
     }
 }
