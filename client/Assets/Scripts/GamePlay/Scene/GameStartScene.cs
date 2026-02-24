@@ -27,7 +27,6 @@ public class GameStartScene : GotSceneBase
     }
     protected override void OnLeaveScene()
     {
-        GotAStarManager.Instance.UnloadPathFinding();
         LeaveSceneComplete();
     }
 }

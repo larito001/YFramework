@@ -61,33 +61,7 @@ public class TrackFixEntity : ObjectBase
         hud.Reset();
         hud.Show();
         isInit = true;
-        properties = new Properties();
-        properties.Camp = Camp.Enemy;
-        properties.Level = 1;
-        properties.State = RoleState.Alive;
-        properties.HP = 30;
-        properties.MaxHP = 30;
-        properties.OnDead = () =>
-        {
-            // TrainManager.Instance.trackFixDic[fixRate] = true;
 
-            bool isWin = true;
-            // foreach (var valueTemp in TrainManager.Instance.trackFixDic.Values)
-            // {
-            //     if (!valueTemp)
-            //     {
-            //         isWin = false;
-            //     }
-            // }
-
-            if (isWin)
-            {
-                GameLoop.Instance.Ctx.Get<UIMgr>().Show(UIEnum.WinPanel);
-            }
-
-            RecoverObject();
-        };
-        hud.UpdateRate(properties.HP / properties.MaxHP);
     }
 
     protected override void BeforeRecover(bool isDelete)
@@ -95,12 +69,7 @@ public class TrackFixEntity : ObjectBase
         isInit = false;
     }
 
-    Properties properties;
 
-    public Properties GetProperties()
-    {
-        return properties;
-    }
     
 
     public Vector3 GetPosition()

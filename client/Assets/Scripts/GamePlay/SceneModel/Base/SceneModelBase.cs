@@ -52,7 +52,11 @@ public  class SceneModelBase : MonoBehaviour
         _objBase.OnColiderExit(other);
     }
 
-
+    public void OnAnimatorIK(int layerIndex)
+    {
+        if(_objBase!=null)
+        _objBase.OnAnimatorIK(layerIndex);
+    }
 
     public void OnMouseClick()
     {

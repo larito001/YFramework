@@ -10,7 +10,6 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IWeapon,IF
         new DataObjPool<TowerEntity, TowerBaseCtrlEntity>("TowerEntity", 20);
 
     public TowerBaseCtrlEntity towerBaseCtrl;
-    Properties properties;
 
     RateHud rateHud;
     private TowerBaseHud towerHud;
@@ -105,7 +104,7 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IWeapon,IF
 
     public override void OnObjectClick()
     {
-        towerHud.OnShow(properties.Level);
+        towerHud.OnShow(1);
     }
 
 
@@ -124,7 +123,7 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IWeapon,IF
         towerHud = ObjTrans.GetComponentInChildren<TowerBaseHud>(true);
         towerHud.Init(this);
         towerHud.OnHide();
-        rateHud.UpdateRate(properties.HP / properties.MaxHP);
+        // rateHud.UpdateRate(properties.HP / properties.MaxHP);
         anim = ObjTrans.GetComponentInChildren<Animation>();
     }
 
@@ -143,19 +142,7 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IWeapon,IF
     {
         towerBaseCtrl = serverData;
         SetInVision(true);
-        properties = new Properties();
-        properties.HP = 100;
-        properties.MaxHP = 100;
-        properties.OnDead = () =>
-        {
-            //todo:玩家死亡
-            properties.State = RoleState.Dead;
-            towerBaseCtrl.RemoveTower();
-            // PlayerManager.Instance.Switch();
-        };
-        properties.Camp = Camp.Player;
-        properties.State = RoleState.Alive;
-        properties.Level = 1;
+
 
         string path = "Tower/TowerRendererNormal";
         if (towerBaseCtrl.TowerId == 1001)
@@ -198,10 +185,6 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IWeapon,IF
 
  
 
-    public Properties GetProperties()
-    {
-        return properties;
-    }
 
 
 
@@ -248,12 +231,7 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IWeapon,IF
 
     public void OnLevelUp()
     {
-        properties.Level++;
-        var newMaxHp = properties.MaxHP * properties.Level * 0.05f;
-        properties.MaxHP = newMaxHp;
-        properties.HP = newMaxHp;
-        
-        rateHud.UpdateRate(properties.HP / properties.MaxHP);
+       
 
         var config = new ParticleEntityData();
         config.path = "LevelUp/Teleport";
@@ -265,9 +243,9 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IWeapon,IF
 
     public void OnFix()
     {
-        GameLoop.Instance.Ctx.Get<FlyTextMgr>().AddText("+" + (properties.MaxHP - properties.HP), objTrans.position, FlyTextType.AddHP);
-        properties.HP = properties.MaxHP;
-        rateHud.UpdateRate(properties.HP / properties.MaxHP);
+        // GameLoop.Instance.Ctx.Get<FlyTextMgr>().AddText("+" + (properties.MaxHP - properties.HP), objTrans.position, FlyTextType.AddHP);
+        // properties.HP = properties.MaxHP;
+        // rateHud.UpdateRate(properties.HP / properties.MaxHP);
     }
 
     public void RemoveOnBase()

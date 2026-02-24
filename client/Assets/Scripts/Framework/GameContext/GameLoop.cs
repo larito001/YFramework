@@ -1,3 +1,4 @@
+using System;
 using NoSLoofah.BuffSystem;
 using UnityEngine;
 
@@ -32,14 +33,14 @@ public sealed class GameLoop : MonoBehaviour
         if (autoStart)
         {
             // 这里可以切入 PhaseFSM 的初始 Phase
-             Ctx.Get<GotSceneManager>().SwitchScene(GotSceneType.Login);
+             Ctx.Get<GotSceneManager>().SwitchScene(GotSceneType.Login,null,false);
         }
     }
 
     private void Update() => Ctx.Tick(Time.deltaTime);
     private void FixedUpdate() => Ctx.FixedTick(Time.fixedDeltaTime);
     private void LateUpdate() => Ctx.LateTick(Time.deltaTime);
-
+    
     private void OnDestroy()
     {
         if (Instance == this)

@@ -18,7 +18,7 @@ public class EnemyAtkState : IYState, PoolItem<object>
     {
         _stateMachine = enemy as EnemyStateMachine;
         _stateMachine.Enemy.OnAtkFinishCallbackStateMachine += OnAtkCallback;
-        _stateMachine.Enemy.Atk();
+        // _stateMachine.Enemy.Atk();
     }
 
     private void OnAtkCallback()

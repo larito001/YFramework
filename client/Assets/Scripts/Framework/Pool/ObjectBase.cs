@@ -290,6 +290,11 @@ public abstract class ObjectBase
     {
     }
 
+    public virtual void OnAnimatorIK(int layer)
+    {
+        
+    }
+
     /// <summary>
     /// 当前模型的层
     /// </summary>

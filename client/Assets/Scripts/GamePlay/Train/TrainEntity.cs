@@ -7,8 +7,7 @@ using YOTO;
 
 public class TrainEntity : ObjectBase,IFixedTickable
 {
-   
-    public Properties properties;
+    
     public float acceleration = 3f; // 加速曲线（越大加速越猛）
     public float deceleration = -30f; // 减速曲线
     public float maxSpeed = 5f; // 最大速度（正反通用）
@@ -21,18 +20,7 @@ public class TrainEntity : ObjectBase,IFixedTickable
 
     public void TrainInit()
     {
-        properties = new Properties();
-        properties.State = RoleState.Alive;
-        properties.Camp = Camp.Player;
-        properties.HP = 3000;
-        properties.MaxHP = 3000;
-        properties.OnDead = () =>
-        {
-            //todo:游戏结束
-            properties.State = RoleState.Dead;
-            GameLoop.Instance.Ctx.Get<UIMgr>().Show(UIEnum.FinishPanel);
-        };
-        properties.Camp = Camp.Player;
+     
         SetInVision(true);
         SetPrefabBundlePath("Train/Engine");
         InstanceGObj();
@@ -137,10 +125,7 @@ public class TrainEntity : ObjectBase,IFixedTickable
         // gun.RecoverObject();
     }
 
-    public Properties GetProperties()
-    {
-        return properties;
-    }
+  
 
 
 

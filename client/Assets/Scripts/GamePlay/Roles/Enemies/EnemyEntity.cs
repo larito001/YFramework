@@ -11,6 +11,11 @@ public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>,IDamageabl
     public static DataObjPool<EnemyEntity, (EnemyData, Vector3)> pool =
         new DataObjPool<EnemyEntity, (EnemyData, Vector3)>("EnemyEntity", 200);
 
+    public IGotSeeker seeker;
+    public bool NeedRound = false;
+    public Vector3 OrgPos = Vector3.zero;
+    private IThreatTarget _lockTarget = null;
+    
     #region stateMachine
 
     public UnityAction<IThreatTarget> OnHurtCallbackStateMachine = null;
@@ -18,16 +23,6 @@ public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>,IDamageabl
     public UnityAction OnAtkFinishCallbackStateMachine = null;
     public UnityAction OnPathComplete;
     private EnemyStateMachine stateMachine;
-
-    #endregion
-
-    #region 属性
-
-    public Properties properties;
-    public IGotSeeker seeker;
-    public bool NeedRound = false;
-    public Vector3 OrgPos = Vector3.zero;
-    private IThreatTarget _lockTarget = null;
 
     #endregion
 
@@ -92,7 +87,6 @@ public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>,IDamageabl
     public void AfterIntoObjectPool()
     {
         RecoverObject();
-        properties = null;
     }
 
     public EnemyData enemyConfig;
@@ -103,23 +97,6 @@ public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>,IDamageabl
         Location = serverData.Item2;
         SetInVision(true);
         SetPrefabBundlePath("Enemies/Enemy");
-
-        properties = new Properties();
-        properties.HP = enemyConfig.hp;
-        properties.OnDead = () =>
-        {
-            properties.State = RoleState.Dead;
-            EnemiesManager.instance.RemoveEnemy(this);
-            //百分之10%概率掉落
-            if (Random.Range(0, 10) <0.5f)
-            {
-                // BagPlugin.Instance.AddItem(20002,1);
-            }
-            
-           
-        };
-        properties.Camp = Camp.Enemy;
-        properties.State = RoleState.Alive;
         InstanceGObj();
     }
 
@@ -211,21 +188,8 @@ public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>,IDamageabl
     {
         _lockTarget = target;
     }
-
-    public Properties GetProperties()
-    {
-        return properties;
-    }
-
-    public Vector3 GetPosition()
-    {
-        if (objTrans != null)
-        {
-            return objTrans.position;
-        }
-
-        return Location;
-    }
+    
+    
     List<Vector3> atkSlot = new List<Vector3>();
 
     public List<Vector3> GetAtkSlot()
@@ -287,12 +251,7 @@ public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>,IDamageabl
     
     }
 
-    public void Atk()
-    {
-        
-    }
-
-
+    
 
     /// <summary>
     /// 射出的子弹被销毁后调用
@@ -316,6 +275,7 @@ public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>,IDamageabl
     {
     }
     IEnumerator slowDownIE=null;
+
     IEnumerator slowDownFunIE(float rate)
     {
         float timer = 3;
@@ -352,22 +312,61 @@ public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>,IDamageabl
     }
 
     #endregion
+    
+    #region 属性
 
+    private TeamId _team = new TeamId(0);
+    private bool _isTargetable = false;
+    private bool _isAlive = false;
+    private float _maxHP=100;
+    private float _hp=100;
+    private float _atk=10;
+    private float _def=10;
+    private int _level=1;
+    
     public TeamId Team
+    {
+        get { return _team; }
+    }
+    public bool IsTargetable { get { return _isTargetable; } }
+    public bool IsAlive { get{ return _isAlive;} }
+
+    public Vector3 Position
+    {
+        get
+        {
+            if (ObjTrans != null)
+            {
+                return ObjTrans.position;
+            }
+            else
+            {
+                return Location;
+            }
+        }
+    }
+
+    public Vector3 AimPoint
     {
         get;
     }
 
-    public bool IsTargetable { get; }
-    public bool IsAlive { get; }
-    public Vector3 Position { get; }
-    public Vector3 AimPoint { get; }
-    public float ThreatRadius { get; }
+    public float MaxHP
+    {
+        get { return _maxHP; }
+    }
+    public float Hp { get{ return _hp;} }
+    
+    public float Atk { get{ return _atk;} }
+    public float Def { get{ return _def;} }
+    public int Level { get{ return _level;} }
 
     public bool ApplyDamage(in DamageSpec spec, in HitInfo hit, IProjectile instigator)
     {
         return true;
     }
+
+    #endregion
     
 
    

@@ -9,6 +9,7 @@ public class BasicBehavior : ITickable,IAnimatorIK
 {
     private MoveBehavior _moveBehavior;
     private AimBehavior _aimBehavior;
+    private ShootBehaviour _shootBehaviour;
     List<IPlayerBehavior> _behaviors = new List<IPlayerBehavior>();
     List<ITickable> _tickables = new List<ITickable>();
     List<IAnimatorIK> _animatorIks = new List<IAnimatorIK>();
@@ -25,8 +26,10 @@ public class BasicBehavior : ITickable,IAnimatorIK
         MainCamera = cameraMgr.getMainCamera();
         _moveBehavior = new MoveBehavior();
         _aimBehavior = new AimBehavior();
+        _shootBehaviour = new ShootBehaviour();
         _behaviors.Add(_moveBehavior);
         _behaviors.Add(_aimBehavior);
+        _behaviors.Add(_shootBehaviour);
 
         foreach (var playerBehavior in _behaviors)
         {
@@ -39,6 +42,7 @@ public class BasicBehavior : ITickable,IAnimatorIK
             {
                 _animatorIks.Add(playerBehavior as IAnimatorIK);
             }
+         
         }
     }
 
@@ -46,6 +50,13 @@ public class BasicBehavior : ITickable,IAnimatorIK
     {
         Anim = animator;
         Trans = Anim.transform;
+        Anim.SetFloat("Weapon", 2);
+        Anim.SetFloat("H", 0f);
+        Anim.SetTrigger("ChangeWeapon");
+        foreach (var playerBehavior in _behaviors)
+        {
+            playerBehavior.OnInit();
+        }
     }
 
 

@@ -2,15 +2,20 @@ using UnityEngine;
 
 public class MoveBehavior : IPlayerBehavior, ITickable
 {
+    public void OnInit()
+    {
+        
+    }
+
     public BasicBehavior BasicBehavior { get; set; }
 
     private readonly float _deadZone = 0.05f;
-    private readonly float _damp = 1f;
+    private readonly float _damp = 0.2f;
     private readonly float _rotateLerp = 18f;
-
+    
     public void Tick(float dt)
     {
-        if (BasicBehavior == null || BasicBehavior.Anim == null) return;
+         if (BasicBehavior == null || BasicBehavior.Anim == null) return;
 
         var anim = BasicBehavior.Anim;
         var tr = BasicBehavior.Trans;
@@ -75,28 +80,36 @@ public class MoveBehavior : IPlayerBehavior, ITickable
         else
         {
             // ==================================================
-            // 瞄准：H/V 与“相机相对移动方向”一致（不跟角色朝向绑死）
-            // 角色朝向由 AimBehavior 对准鼠标，这里不再旋转角色
-            // ==================================================
-
-            // 1) 相机相对世界移动方向（W=camForward, A= -camRight）
+// 瞄准：H/V 与相机相对移动方向一致（转换到角色局部）
+// 角色朝向由 AimBehavior（或别的系统）控制，这里不旋转角色
+// ==================================================
             Vector3 moveWorld = (camForward * input.y + camRight * input.x);
             moveWorld = Vector3.ProjectOnPlane(moveWorld, Vector3.up);
 
-            // 2) 转到角色局部空间，得到 Animator 需要的 H/V
-            // local.x = 左右, local.z = 前后
+            if (moveWorld.sqrMagnitude < 0.0001f)
+            {
+                anim.SetFloat("H", 0f, _damp, dt);
+                anim.SetFloat("V", 0f, _damp, dt);
+                anim.SetFloat("Speed", 0f, _damp, dt);
+                return;
+            }
+
+// 转到角色局部空间（给 Animator 用）
             Vector3 moveLocal = tr.InverseTransformDirection(moveWorld);
             moveLocal.y = 0f;
 
-            // 归一化后按输入强度缩放，保证 H/V 在 [-1,1] 附近
-            Vector2 hv = new Vector2(moveLocal.x, moveLocal.z);
-            if (hv.sqrMagnitude > 0.0001f) hv = hv.normalized * mag;
-            else hv = Vector2.zero;
+// 不要 normalized * mag，直接取分量更稳定
+            float H = Mathf.Clamp(moveLocal.x, -1f, 1f);
+            float V = Mathf.Clamp(moveLocal.z, -1f, 1f);
 
-            float H = Mathf.Clamp(hv.x, -1f, 1f);
-            float V = Mathf.Clamp(hv.y, -1f, 1f);
+// 小死区（避免过零抖动）
+            if (Mathf.Abs(H) < 0.08f) H = 0f;
+            if (Mathf.Abs(V) < 0.08f) V = 0f;
+
+// Speed 建议仍用输入强度（键盘通常是0/1）
             float Speed = mag;
 
+// 关键：不要乘2
             anim.SetFloat("H", H, _damp, dt);
             anim.SetFloat("V", V, _damp, dt);
             anim.SetFloat("Speed", Speed, _damp, dt);

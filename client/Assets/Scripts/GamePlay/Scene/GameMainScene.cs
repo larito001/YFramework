@@ -20,7 +20,7 @@ public class GameMainScene : GotSceneBase
         base.OnLoadingEnd();
         GameLoop.Instance.Ctx.Get<UIMgr>().Show(UIEnum.GameMainPanel);
         GameLoop.Instance.Ctx.Get<UIMgr>().Hide(UIEnum.StartPanel);
-        GameLoop.Instance.Ctx.Get<UIMgr>().Show(UIEnum.GuidePanel);
+        // GameLoop.Instance.Ctx.Get<UIMgr>().Show(UIEnum.GuidePanel);
     }
 
     protected override void OnEnterScene()
@@ -110,7 +110,7 @@ public class GameMainScene : GotSceneBase
 
     protected override void OnLeaveScene()
     {
-        GotAStarManager.Instance.UnloadPathFinding();
+        // GotAStarManager.Instance.UnloadPathFinding();
         LeaveSceneComplete();
     }
 }
