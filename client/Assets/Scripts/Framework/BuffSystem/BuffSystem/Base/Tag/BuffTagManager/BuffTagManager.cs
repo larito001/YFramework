@@ -1,17 +1,11 @@
 using NoSLoofah.BuffSystem;
-using NoSLoofah.BuffSystem.Manager;
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+
 /// <summary>
-/// BuffTag�������ĳ������
-/// Ŀǰֻ��λTag��һ��ʵ��
+/// Base implementation for buff-tag rule evaluators.
 /// </summary>
-public abstract class BuffTagManager :IBuffTagManager
+public abstract class BuffTagManager : IBuffTagManager
 {
     public abstract void Init(BuffTagData data);
-
     public abstract bool IsTagRemoveOther(BuffTag tag, BuffTag other);
     public abstract bool IsTagCanAddWhenHaveOther(BuffTag tag, BuffTag other);
-    
 }

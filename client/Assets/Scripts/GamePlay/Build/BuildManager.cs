@@ -31,6 +31,8 @@ public class BuildManager:IGameService,ITickable
     public void Init(GameContext ctx)
     {
         _cameraMgr = ctx.Get<CameraMgr>();
+        TowerBaseHud.Configure(ctx.Get<UIMgr>());
+        SceneModelBase.Configure(ctx.Get<UIMgr>());
         ConfigureDependencies(ctx.Get<BuildInventoryService>(), ctx.Get<PrefabTowerFactoryService>());
         TryCreatePlacementSystem();
     }

@@ -1,21 +1,25 @@
-using System.Collections;
+锘縰sing System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+
 namespace NoSLoofah.BuffSystem.Manager
 {
     /// <summary>
-    /// Buff管理器的接口
+    /// Buff绠＄悊鍣ㄧ殑鎺ュ彛
     /// </summary>
     public interface IBuffManager
     {
+        public IBuffTagManager TagManager { get; }
+
         /// <summary>
-        /// 通过序号获得Buff对象
+        /// 閫氳繃搴忓彿鑾峰緱Buff瀵硅薄
         /// </summary>
-        /// <param name="id">Buff的id</param>
-        /// <returns>对应的Buff对象</returns>
+        /// <param name="id">Buff鐨刬d</param>
+        /// <returns>瀵瑰簲鐨凚uff瀵硅薄</returns>
         public IBuff GetBuff(int id);
+
         /// <summary>
-        /// 注册BuffTagManager
+        /// 娉ㄥ唽BuffTagManager
         /// </summary>
         /// <param name="mgr">BuffTagManager</param>
         public void RegisterBuffTagManager(IBuffTagManager mgr);

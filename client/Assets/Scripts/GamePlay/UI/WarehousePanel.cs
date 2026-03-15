@@ -3,6 +3,10 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
+/// <summary>
+/// Placeholder warehouse page shell.
+/// It currently exposes only close behavior and awaits inventory wiring.
+/// </summary>
 public class WarehousePanel : UIPageBase
 {
     public Button closeBtn;

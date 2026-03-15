@@ -3,11 +3,17 @@ using NoSLoofah.BuffSystem.Manager;
 using Unity.VisualScripting;
 using YOTO;
 
+/// <summary>
+/// Composition root for framework and gameplay services.
+/// Framework registrations stay here; gameplay-specific registrations are delegated
+/// through partial methods implemented in the gameplay layer.
+/// </summary>
 public static partial class GameBootstrapper
 {
     public static GameContext BuildContext()
     {
         var ctx = new GameContext();
+        ctx.Register(new GameRuntimeConfig(GameLoop.Instance.isTest, GameLoop.Instance.buffCollection, GameLoop.Instance.buffData));
 
         ctx.Register(new TestService());
 
@@ -37,6 +43,9 @@ public static partial class GameBootstrapper
         }
 
         ctx.Register<ICoroutineRunner>(runner);
+        var aStarManager = new GotAStarManager();
+        GotAStarManager.Configure(ctx.Get<SceneReferenceService>(), ctx.Get<ResMgr>());
+        GotAStarSeeker.Configure(ctx.Get<ICoroutineRunner>(), aStarManager);
         RegisterProjectServices(ctx);
 
         return ctx;

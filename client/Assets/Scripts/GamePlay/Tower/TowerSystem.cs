@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using YOTO;
@@ -7,11 +6,13 @@ public class TowerSystem
 {
     public List<TowerData> towerDatas = new List<TowerData>();
 
+    private readonly List<TowerBaseCtrlEntity> towersBase = new List<TowerBaseCtrlEntity>();
+    private FlyTextMgr flyTextMgr;
+    private UIMgr uiMgr;
 
+    public TowerBaseCtrlEntity CurrentClickBase;
 
-    List<TowerBaseCtrlEntity> towersBase = new List<TowerBaseCtrlEntity>();
-    
-    public bool CheckTowerIsInRange(out TowerEntity tower, Vector3 pos,float range)
+    public bool CheckTowerIsInRange(out TowerEntity tower, Vector3 pos, float range)
     {
         tower = null;
         foreach (var towerBaseCtrlEntity in towersBase)
@@ -27,8 +28,7 @@ public class TowerSystem
             }
         }
 
-        if (tower != null) return true;
-        return false;
+        return tower != null;
     }
 
     public void GenerateTowerBaseAtTransform(Transform parent, Vector3 offset)
@@ -39,9 +39,6 @@ public class TowerSystem
         ctrl.Parent = parent;
     }
 
-
-
-    
     public TowerData GetTowerDataById(int id)
     {
         foreach (var towerData in towerDatas)
@@ -51,50 +48,38 @@ public class TowerSystem
                 return towerData;
             }
         }
+
         return null;
     }
-    
 
-
-    public TowerEntity GetTowerById(int id,TowerBaseCtrlEntity  parent)
+    public TowerEntity GetTowerById(int id, TowerBaseCtrlEntity parent)
     {
-        TowerEntity _towerEntity = null;
+        TowerEntity towerEntity = null;
         foreach (var towerData in towerDatas)
         {
-            if (towerData.Id == id)
+            if (towerData.Id != id)
             {
-                bool canBuild = true;
-                foreach (var vector2Int in towerData.UseIdAndNumber)
-                {
-                   // var haveNum = BagPlugin.Instance.GetItemNum(vector2Int.x);
-                   // if (haveNum < vector2Int.y)
-                   // {
-                   //     canBuild = false;
-                   // }
-                }
+                continue;
+            }
 
-                if (canBuild)
-                {
-                    // foreach (var vector2Int in towerData.UseIdAndNumber)
-                    // {
-                    //     BagPlugin.Instance.RemoveItem(vector2Int.x,vector2Int.y);
-                    // }
+            bool canBuild = true;
+            foreach (var vector2Int in towerData.UseIdAndNumber)
+            {
+            }
 
-                    _towerEntity = TowerEntity.pool.GetItem(parent);
-                }
-                else
-                {
-                    GameLoop.Instance.Ctx.Get<FlyTextMgr>().AddTextAtScreenCenter("资源不足");
-                }
-                
+            if (canBuild)
+            {
+                towerEntity = TowerEntity.pool.GetItem(parent);
+            }
+            else
+            {
+                flyTextMgr.AddTextAtScreenCenter("璧勬簮涓嶈冻");
             }
         }
-       
 
-     
-        return _towerEntity;
+        return towerEntity;
     }
-    
+
     public void AddBaseCtrl(TowerBaseCtrlEntity ctrl)
     {
         towersBase.Add(ctrl);
@@ -105,26 +90,27 @@ public class TowerSystem
         towersBase.Remove(ctrl);
     }
 
-    public TowerBaseCtrlEntity CurrentClickBase;
     public void ClickTower(TowerBaseCtrlEntity ctrl)
     {
         if (CurrentClickBase == null)
         {
             CurrentClickBase = ctrl;
-            GameLoop.Instance.Ctx.Get<UIMgr>().Show(UIEnum.SelectTowerPanel); 
+            uiMgr.Show(UIEnum.SelectTowerPanel);
         }
-   
     }
 
-    public void ClickGennerateTower(int id )
+    public void ClickGennerateTower(int id)
     {
         CurrentClickBase.GenerateTowerById(id);
         CurrentClickBase = null;
-        GameLoop.Instance.Ctx.Get<UIMgr>().Hide(UIEnum.SelectTowerPanel);
+        uiMgr.Hide(UIEnum.SelectTowerPanel);
     }
 
     public void Init(GameContext ctx)
     {
+        flyTextMgr = ctx.Get<FlyTextMgr>();
+        uiMgr = ctx.Get<UIMgr>();
+
         var so = Resources.Load<TowerDataSO>("Config/TowerData");
         foreach (var soTowerData in so.TowerDatas)
         {
@@ -136,6 +122,5 @@ public class TowerSystem
 
     public void Shutdown()
     {
-       
     }
 }

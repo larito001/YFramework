@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -8,29 +6,31 @@ using YOTO;
 public class SettingItemBtn : YOTOScrollViewItem
 {
     public TextMeshProUGUI text;
-    SettingPanel panel;
+    private SettingPanel panel;
     private int index = -1;
-    public void SetBtnData(SettingPanel panel, int index)
+
+    public void SetBtnData(SettingPanel settingPanel, int itemIndex)
     {
-        this.panel= panel;
-        text.text = panel.settingList[index];
-        this.index = index;
+        panel = settingPanel;
+        text.text = panel.settingList[itemIndex];
+        index = itemIndex;
     }
 
     public override void OnRenderItem()
     {
         base.OnRenderItem();
-        this.GetComponent<Button>().onClick.AddListener(OnClick);
+        GetComponent<Button>().onClick.AddListener(OnClick);
+    }
+
+    public override void OnHidItem()
+    {
+        base.OnHidItem();
+        GetComponent<Button>().onClick.RemoveAllListeners();
     }
 
     private void OnClick()
     {
-        GameLoop.Instance.Ctx.Get<SoundMgr>().PlaySFX("Sound/SFX_UI_Click_Designed_Pop_Open_2",0.5f);
+        panel?.Resolve<SoundMgr>().PlaySFX("Sound/SFX_UI_Click_Designed_Pop_Open_2", 0.5f);
         panel?.ShowSetting(index);
-    }
-    public override void OnHidItem()
-    {
-        base.OnHidItem();
-        this.GetComponent<Button>().onClick.RemoveAllListeners();
     }
 }

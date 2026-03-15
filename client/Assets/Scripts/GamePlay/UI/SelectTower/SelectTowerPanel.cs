@@ -17,8 +17,6 @@ public class SelectTowerPanel : UIPageBase
     {
         towerList.Initialize();
         towerList.SetRenderer(ItemRender);
-      
-        // towerList.SetData(TowerManager.Instance.towerDatas.Count);
         closeBtn.onClick.RemoveAllListeners();
         closeBtn.onClick.AddListener(CloseSelf);
         closeBtn2.onClick.RemoveAllListeners();
@@ -27,13 +25,10 @@ public class SelectTowerPanel : UIPageBase
 
     private void ItemRender(YOTOScrollViewItem arg1, int arg2)
     {
-        var item =arg1 as SelectTowerItem;
-        // item.RefreshItem(TowerManager.Instance.towerDatas[arg2]);
     }
 
     public override void OnHide()
     {
-        // TowerManager.Instance.CurrentClickBase = null;
     }
 
     public override void OnResize()

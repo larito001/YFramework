@@ -41,7 +41,6 @@ public class TrackFixEntity : ObjectBase
     //         param.useIdAndNumber = useIdAndNumber;
     //         param.confirmAction = ConfirmFix;
     //
-    //         GameLoop.Instance.Ctx.Get<UIMgr>().Show(UIEnum.TowerUpPanel, param);
     //     }
     // }
 

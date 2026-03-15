@@ -1,29 +1,33 @@
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
-using YOTO;
 
 public class TowerBaseHud : HudAlwaysFaceToTransform
 {
-    Canvas canvas;
-    TowerEntity tower;
+    private static UIMgr sharedUiMgr;
+
+    public static void Configure(UIMgr uiMgr)
+    {
+        sharedUiMgr = uiMgr;
+    }
+
     public Button up;
     public Button fix;
     public Button remove;
     public Button onClose;
-    private bool isInit = false;
+
+    private Canvas canvas;
+    private TowerEntity tower;
+    private bool isInit;
+    private int level = 1;
 
     public void Init(TowerEntity towerEntity)
     {
-
         tower = towerEntity;
 
         if (canvas == null)
         {
             canvas = GetComponent<Canvas>();
-            canvas.worldCamera =  GameLoop.Instance.Ctx.Get<CameraMgr>().getMainCamera();
+            canvas.worldCamera = HudAlwaysFaceToTransform.camera;
         }
 
         gameObject.SetActive(false);
@@ -37,69 +41,61 @@ public class TowerBaseHud : HudAlwaysFaceToTransform
         onClose.onClick.AddListener(OnHide);
     }
 
+    public void OnShow(int currentLevel)
+    {
+        level = currentLevel;
+        isInit = true;
+        ForceLookAt();
+        gameObject.SetActive(true);
+    }
+
+    public void OnHide()
+    {
+        isInit = false;
+        gameObject.SetActive(false);
+    }
+
     private void OnClickRemove()
     {
         tower.RemoveOnBase();
     }
 
     private void OnClickFix()
-    {  TowerUpParam param = new TowerUpParam();
-        // var data = TowerManager.Instance.GetTowerDataById(tower.towerBaseCtrl.TowerId);
-        // param.useIdAndNumber = data.FixRes.ToList(); 
-        param.confirmAction =OnFixConfirm;
-    GameLoop.Instance.Ctx.Get<UIMgr>().Show(UIEnum.TowerUpPanel, param);
-    }
-
-    private void OnFixConfirm()
     {
-        if (this != null)
-        {
-            if (isInit&& tower.ObjTrans!=null)
-            {
-                tower.OnFix();    
-            }
-            OnHide();
-        }
-        
-    
+        TowerUpParam param = new TowerUpParam();
+        param.confirmAction = OnFixConfirm;
+        sharedUiMgr.Show(UIEnum.TowerUpPanel, param);
     }
 
     private void OnClickUp()
     {
-        if (_level <3)
+        if (level >= 3)
         {
-            TowerUpParam param = new TowerUpParam();
-
-            // var data = TowerManager.Instance.GetTowerDataById(tower.towerBaseCtrl.TowerId);
-            // param.useIdAndNumber = data.LevelUpRes.ToList(); 
-            param.confirmAction =OnUpConfirm;
-            GameLoop.Instance.Ctx.Get<UIMgr>().Show(UIEnum.TowerUpPanel, param);
+            return;
         }
+
+        TowerUpParam param = new TowerUpParam();
+        param.confirmAction = OnUpConfirm;
+        sharedUiMgr.Show(UIEnum.TowerUpPanel, param);
     }
 
-    private void OnUpConfirm()
+    private void OnFixConfirm()
     {
-        if (isInit&& tower.ObjTrans!=null)
+        if (this != null && isInit && tower.ObjTrans != null)
         {
-            tower.OnLevelUp();    
+            tower.OnFix();
         }
 
         OnHide();
     }
 
-    private int _level = 1;
-    public void OnShow(int level)
+    private void OnUpConfirm()
     {
-        _level=level;
-        isInit = true;
-        ForceLookAt();
-        gameObject.SetActive(true);
-    }
+        if (isInit && tower.ObjTrans != null)
+        {
+            tower.OnLevelUp();
+        }
 
-
-    public void OnHide()
-    {
-        isInit = false;
-        gameObject.SetActive(false);
+        OnHide();
     }
 }

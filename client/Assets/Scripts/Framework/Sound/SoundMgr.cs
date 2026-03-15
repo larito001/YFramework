@@ -1,32 +1,22 @@
-using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using YOTO;
 
-public class SoundMgr:IGameService
+public class SoundMgr : IGameService
 {
     private AudioSource _bgmSource;
     private readonly List<AudioSource> _sfxSources = new List<AudioSource>();
-
     private AudioClip _currentBgm;
     private ResMgr _resMgr;
+    private ICoroutineRunner _coroutineRunner;
+    private GameObject _audioRoot;
 
-
-
-    /// <summary>
-    /// 播放背景音乐（异步加载并自动播放）
-    /// </summary>
     public void PlayBGM(string path, float volume = 1f)
     {
-        _resMgr.LoadAudio(path, (clip) =>
+        _resMgr.LoadAudio(path, clip =>
         {
             if (clip == null) return;
-
-            // 释放旧的 BGM
-            if (_currentBgm != null)
-            {
-                // YOTOFramework.resMgr.ReleasePack("Sound/BGM1",_currentBgm);
-            }
 
             _currentBgm = clip;
             _bgmSource.clip = clip;
@@ -35,27 +25,21 @@ public class SoundMgr:IGameService
         });
     }
 
-    /// <summary>
-    /// 停止背景音乐并释放
-    /// </summary>
     public void StopBGM()
     {
         _bgmSource?.Stop();
 
         if (_currentBgm != null)
         {
-            _resMgr.ReleasePack("Sound/BGM1",_currentBgm);
+            _resMgr.ReleasePack("Sound/BGM1", _currentBgm);
             _currentBgm = null;
             _bgmSource.clip = null;
         }
     }
 
-    /// <summary>
-    /// 播放音效（异步加载并播放一次，播放完自动释放）
-    /// </summary>
     public void PlaySFX(string path, float volume = 1f)
     {
-        _resMgr.LoadAudio(path, (clip) =>
+        _resMgr.LoadAudio(path, clip =>
         {
             if (clip == null) return;
 
@@ -63,22 +47,17 @@ public class SoundMgr:IGameService
             src.clip = clip;
             src.volume = volume;
             src.Play();
-
-            // 播放完成后自动释放
-       GameLoop.Instance.StartCoroutine(ReleaseWhenDone(src, clip,path));
+            _coroutineRunner.Run(ReleaseWhenDone(src, clip, path));
         });
     }
 
-    private System.Collections.IEnumerator ReleaseWhenDone(AudioSource src, AudioClip clip,string path)
+    private IEnumerator ReleaseWhenDone(AudioSource src, AudioClip clip, string path)
     {
         yield return new WaitWhile(() => src.isPlaying);
         src.clip = null;
-        _resMgr.ReleasePack(path,clip);
+        _resMgr.ReleasePack(path, clip);
     }
 
-    /// <summary>
-    /// 停止所有音效
-    /// </summary>
     public void StopAllSFX()
     {
         foreach (var s in _sfxSources)
@@ -86,7 +65,7 @@ public class SoundMgr:IGameService
             if (s.isPlaying) s.Stop();
             if (s.clip != null)
             {
-                _resMgr.ReleasePack("Sound/BGM1",s.clip);
+                _resMgr.ReleasePack("Sound/BGM1", s.clip);
                 s.clip = null;
             }
         }
@@ -94,8 +73,7 @@ public class SoundMgr:IGameService
 
     public void SetBgmVolume(float volume)
     {
-        if (_bgmSource != null)
-            _bgmSource.volume = volume;
+        if (_bgmSource != null) _bgmSource.volume = volume;
     }
 
     public void SetSfxVolume(float volume)
@@ -112,8 +90,8 @@ public class SoundMgr:IGameService
         {
             if (!s.isPlaying) return s;
         }
-        // 扩展一个
-        var newSfx = _bgmSource.gameObject.AddComponent<AudioSource>();
+
+        var newSfx = _audioRoot.AddComponent<AudioSource>();
         newSfx.playOnAwake = false;
         _sfxSources.Add(newSfx);
         return newSfx;
@@ -122,14 +100,17 @@ public class SoundMgr:IGameService
     public void Init(GameContext ctx)
     {
         _resMgr = ctx.Get<ResMgr>();
-        // 创建 BGM Source
-        _bgmSource =       GameLoop.Instance.gameObject.AddComponent<AudioSource>();
+        _coroutineRunner = ctx.Get<ICoroutineRunner>();
+
+        _audioRoot = new GameObject("SoundRoot");
+        GameObject.DontDestroyOnLoad(_audioRoot);
+
+        _bgmSource = _audioRoot.AddComponent<AudioSource>();
         _bgmSource.loop = true;
 
-        // 初始化一个音效池
         for (int i = 0; i < 5; i++)
         {
-            var sfx = GameLoop.Instance.gameObject.AddComponent<AudioSource>();
+            var sfx = _audioRoot.AddComponent<AudioSource>();
             sfx.playOnAwake = false;
             _sfxSources.Add(sfx);
         }
@@ -137,7 +118,14 @@ public class SoundMgr:IGameService
 
     public void Shutdown()
     {
+        StopBGM();
         StopAllSFX();
         _resMgr = null;
+        _coroutineRunner = null;
+        if (_audioRoot != null)
+        {
+            GameObject.Destroy(_audioRoot);
+            _audioRoot = null;
+        }
     }
 }

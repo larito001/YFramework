@@ -14,15 +14,11 @@ namespace HotUpdate.Scripts.Framework.Pool.newPool
                 public Transform refTrans;
                 public float lastActiveTime;
 
-                public void Init()
-                {
-                }
-
                 public void Reset()
                 {
                     if (refTrans != null)
                     {
-                       GameObject.Destroy(refTrans.gameObject);
+                        GameObject.Destroy(refTrans.gameObject);
                         refTrans = null;
                     }
 
@@ -42,117 +38,50 @@ namespace HotUpdate.Scripts.Framework.Pool.newPool
 
             public string name;
             public Transform rootTrans;
-            private string _resPath;
-
-            // 对象池实例化模板
-            // 注意：这个模板缓存的是第一个加载出来的Prefab，整个池子使用时必须保持Prefab是干净的。
-            private GameObject template;
-
-            // 是否处于loading状态
-            private bool _isLoading;
-            private event Action<GameObject, string, bool> _getItemCompleteCallbacks;
-            private event Action _loadCompleteCallbacks;
-
-            private Queue<BufferItem> items;
-
-            public int BufferSize
-            {
-                get
-                {
-                    if (items == null)
-                    {
-                        return 0;
-                    }
-
-                    return items.Count;
-                }
-            }
-
             public BufferConfig config;
-            private float lastLoopCheckTime = 0;
+
+            private readonly ResMgr resMgr;
+            private string resPath;
+            private GameObject template;
+            private bool isLoading;
+            private event Action<GameObject, string, bool> getItemCompleteCallbacks;
+            private event Action loadCompleteCallbacks;
+            private Queue<BufferItem> items;
+            private float lastLoopCheckTime;
             private uint usingCount;
 
+            public PoolBuffer(ResMgr resourceManager)
+            {
+                resMgr = resourceManager;
+            }
 
+            public int BufferSize => items?.Count ?? 0;
 
             public void Init()
             {
                 items = new Queue<BufferItem>();
                 lastLoopCheckTime = 0;
-                config = new BufferConfig();
-                config.loopCheckCDTime = 5;
-                config.inactiveTimeMax = 5;
-                config.perFrameDisposeCountMax = 10;
-                config.recoverWorldPos = new Vector3(1000, 1000, 1000);
-                config.isNotCheckRecover = false;
-                _isLoading = false;
-            }
-
-            public void SetupResPath(string resPath)
-            {
-                _resPath = resPath;
-            }
-
-            public void SetupIsNotCheckRecover(bool isNotCheckRecover)
-            {
-                config.isNotCheckRecover = isNotCheckRecover;
-            }
-
-            private void AddUsingCount()
-            {
-                usingCount++;
-            }
-
-            private void ReduceUsingCount()
-            {
-                if (usingCount > 0)
-                    usingCount--;
-            }
-
-            public void Reset()
-            {
-                name = string.Empty;
-
-                if (template != null)
+                config = new BufferConfig
                 {
-                    GameObject.Destroy(template);
-                    template = null;
-                }
+                    loopCheckCDTime = 5,
+                    inactiveTimeMax = 5,
+                    perFrameDisposeCountMax = 10,
+                    recoverWorldPos = new Vector3(1000, 1000, 1000),
+                    isNotCheckRecover = false
+                };
+                isLoading = false;
+            }
 
-                if (items != null)
-                {
-                    while (items.Count > 0)
-                    {
-                        var curItem = items.Dequeue();
-                        curItem.Reset();
-                    }
-                }
-
-                if (rootTrans != null)
-                {
-                       RemoveLifeRef();
-                 GameObject.Destroy(rootTrans.gameObject);
-                    rootTrans = null;
-                    _resPath = string.Empty;
-                }
-
-                _getItemCompleteCallbacks = null;
-                _loadCompleteCallbacks = null;
-
-                _isLoading = false;
-                config.isNotCheckRecover = false;
+            public void SetupResPath(string path)
+            {
+                resPath = path;
             }
 
             public bool LoopCheck()
             {
-
-                if (_isLoading)
+                if (isLoading || items == null)
                 {
                     return false;
-                }
-
-                if (items == null)
-                {
-                    return true;
                 }
 
                 if (Time.time - lastLoopCheckTime < config.loopCheckCDTime)
@@ -178,12 +107,12 @@ namespace HotUpdate.Scripts.Framework.Pool.newPool
                     }
                 }
 
-                return (!config.isNotCheckRecover) && items.Count <= 0 && usingCount == 0;
+                return !config.isNotCheckRecover && items.Count <= 0 && usingCount == 0;
             }
 
             public void AsyncLoadAndGetItem(Action<GameObject, string, bool> callback)
             {
-                _getItemCompleteCallbacks += callback;
+                getItemCompleteCallbacks += callback;
                 if (template == null)
                 {
                     AsyncLoadItem(InvokeGetItemCompleteCallbacks);
@@ -194,121 +123,9 @@ namespace HotUpdate.Scripts.Framework.Pool.newPool
                 }
             }
 
-            private void AsyncLoadItem(Action callback = null)
+            public void RemoveGetItemCompleteCallback(Action<GameObject, string, bool> callback)
             {
-                _loadCompleteCallbacks += callback;
-                if (template == null)
-                {
-                    if (!_isLoading)
-                    {
-                        _isLoading = true;
-                        GameLoop.Instance.Ctx.Get<ResMgr>().LoadGameObject(_resPath,(templateObj) =>
-                        {
-                            _isLoading = false;
-                            if (templateObj == null)
-                            {
-                                Debug.LogError("没有找到path = " + _resPath + "的资源....");
-                                return;
-                            }
-                    
-                            if (rootTrans == null)
-                            {
-                               GameObject.Destroy(templateObj);
-                                return;
-                            }
-                    
-                            // templateObj.transform.SetParent(rootTrans, false);
-                            templateObj.SetActive(false);
-                            template = templateObj;
-                         
-                            InvokeLoadCompleteCallbacks();
-                        });
-      
-                    }
-                }
-                else
-                {
-                    InvokeLoadCompleteCallbacks();
-                }
-            }
-
-            private void InvokeGetItemCompleteCallbacks()
-            {
-                if (_getItemCompleteCallbacks == null)
-                {
-                    return;
-                }
-
-                var completeList = _getItemCompleteCallbacks.GetInvocationList();
-                if (completeList.Length > 0)
-                {
-                    for (int i = 0; i < completeList.Length; i++)
-                    {
-                        var complete = completeList[i] as Action<GameObject, string, bool>;
-                        var isNew = GetItem(out var resultObj);
-                        if (resultObj != null)
-                        {
-                            complete?.Invoke(resultObj.gameObject, name, isNew);
-                        }
-                    }
-                }
-
-                _getItemCompleteCallbacks = null;
-            }
-
-            private void InvokeLoadCompleteCallbacks()
-            {
-                if (_loadCompleteCallbacks == null)
-                {
-                    return;
-                }
-
-                var completeList = _loadCompleteCallbacks.GetInvocationList();
-                if (completeList.Length > 0)
-                {
-                    for (int i = 0; i < completeList.Length; i++)
-                    {
-                        var complete = completeList[i] as Action;
-                        complete?.Invoke();
-                    }
-                }
-
-                _loadCompleteCallbacks = null;
-            }
-
-            //同步方法
-            public bool GetItem(out Transform target)
-            {
-
-                bool isNew = false;
-                target = null;
-                if (items.Count > 0)
-                {
-                    var curItem = items.Dequeue();
-                    target = curItem.refTrans;
-                    curItem.refTrans = null;
-                    curItem.Reset();
-                }
-                else
-                {
-                    target =  GameObject.Instantiate(template).transform;
-                    target.SetParent(rootTrans, false);
-                    isNew = true;
-                }
-
-                AddUsingCount();
-                return isNew;
-            }
-
-            //注意在销毁buffer时remove一下
-            public void RemoveGetItemCompleteCallback(Action<GameObject, string, bool> getItemCompleteCallback)
-            {
-                _getItemCompleteCallbacks -= getItemCompleteCallback;
-            }
-
-            public void RemoveLoadCompleteCallback(Action loadCompleteCallback)
-            {
-                _loadCompleteCallbacks -= loadCompleteCallback;
+                getItemCompleteCallbacks -= callback;
             }
 
             public void RecoverItem(GameObject target)
@@ -325,121 +142,255 @@ namespace HotUpdate.Scripts.Framework.Pool.newPool
                     return;
                 }
 
-                target.transform.SetParent(rootTrans);
+                target.transform.SetParent(rootTrans, false);
                 target.transform.position = config.recoverWorldPos;
                 if (template != null)
                 {
                     target.transform.localScale = template.transform.localScale;
                 }
 
-                var bufferItem = new BufferItem();
-                bufferItem.Init();
-                bufferItem.refTrans = target.transform;
-                bufferItem.lastActiveTime = Time.time;
+                var bufferItem = new BufferItem
+                {
+                    refTrans = target.transform,
+                    lastActiveTime = Time.time
+                };
                 items.Enqueue(bufferItem);
                 ReduceUsingCount();
             }
 
-            private void RemoveLifeRef()
+            public void Reset()
             {
-                if (!string.IsNullOrEmpty(_resPath))
+                name = string.Empty;
+
+                if (template != null)
                 {
-                    //todo:释放资源 ResourceFunc.RemoveLifeRef(rootTrans, _resPath, false);
-                    _resPath = null;
+                    GameObject.Destroy(template);
+                    template = null;
+                }
+
+                if (items != null)
+                {
+                    while (items.Count > 0)
+                    {
+                        var curItem = items.Dequeue();
+                        curItem.Reset();
+                    }
+                }
+
+                if (rootTrans != null)
+                {
+                    GameObject.Destroy(rootTrans.gameObject);
+                    rootTrans = null;
+                    resPath = string.Empty;
+                }
+
+                getItemCompleteCallbacks = null;
+                loadCompleteCallbacks = null;
+                isLoading = false;
+                config.isNotCheckRecover = false;
+            }
+
+            private void AsyncLoadItem(Action callback = null)
+            {
+                loadCompleteCallbacks += callback;
+                if (template != null)
+                {
+                    InvokeLoadCompleteCallbacks();
+                    return;
+                }
+
+                if (isLoading)
+                {
+                    return;
+                }
+
+                isLoading = true;
+                resMgr.LoadGameObject(resPath, templateObj =>
+                {
+                    isLoading = false;
+                    if (templateObj == null)
+                    {
+                        Debug.LogError("Missing resource: " + resPath);
+                        return;
+                    }
+
+                    if (rootTrans == null)
+                    {
+                        GameObject.Destroy(templateObj);
+                        return;
+                    }
+
+                    templateObj.SetActive(false);
+                    template = templateObj;
+                    InvokeLoadCompleteCallbacks();
+                });
+            }
+
+            private void InvokeGetItemCompleteCallbacks()
+            {
+                if (getItemCompleteCallbacks == null)
+                {
+                    return;
+                }
+
+                var completeList = getItemCompleteCallbacks.GetInvocationList();
+                for (int i = 0; i < completeList.Length; i++)
+                {
+                    var complete = completeList[i] as Action<GameObject, string, bool>;
+                    var isNew = GetItem(out var resultObj);
+                    if (resultObj != null)
+                    {
+                        complete?.Invoke(resultObj.gameObject, name, isNew);
+                    }
+                }
+
+                getItemCompleteCallbacks = null;
+            }
+
+            private void InvokeLoadCompleteCallbacks()
+            {
+                if (loadCompleteCallbacks == null)
+                {
+                    return;
+                }
+
+                var completeList = loadCompleteCallbacks.GetInvocationList();
+                for (int i = 0; i < completeList.Length; i++)
+                {
+                    (completeList[i] as Action)?.Invoke();
+                }
+
+                loadCompleteCallbacks = null;
+            }
+
+            private bool GetItem(out Transform target)
+            {
+                bool isNew = false;
+                target = null;
+
+                if (items.Count > 0)
+                {
+                    var curItem = items.Dequeue();
+                    target = curItem.refTrans;
+                    curItem.refTrans = null;
+                    curItem.Reset();
+                }
+                else
+                {
+                    target = GameObject.Instantiate(template).transform;
+                    target.SetParent(rootTrans, false);
+                    isNew = true;
+                }
+
+                AddUsingCount();
+                return isNew;
+            }
+
+            private void AddUsingCount()
+            {
+                usingCount++;
+            }
+
+            private void ReduceUsingCount()
+            {
+                if (usingCount > 0)
+                {
+                    usingCount--;
                 }
             }
         }
 
-   
         private List<PoolBuffer> buffers;
-        private readonly float LOOP_CHECK_TIME = 0.5f;
+        private ResMgr resMgr;
+        private Transform poolRoot;
 
         private void LoopCheck(object o)
         {
-            if (buffers != null)
+            if (buffers == null)
             {
-                for (int i = buffers.Count - 1; i >= 0; i--)
-                {
-                    var curBuffer = buffers[i];
-                    var isEmpty = curBuffer.LoopCheck();
-                    if (!isEmpty)
-                    {
-                        continue;
-                    }
+                return;
+            }
 
-                    buffers[i].Reset(); //todo:回收buffer
-                    buffers.RemoveAt(i);
+            for (int i = buffers.Count - 1; i >= 0; i--)
+            {
+                var curBuffer = buffers[i];
+                var isEmpty = curBuffer.LoopCheck();
+                if (!isEmpty)
+                {
+                    continue;
                 }
+
+                buffers[i].Reset();
+                buffers.RemoveAt(i);
             }
         }
-    
+
         public PoolBuffer GetBuffer(string bufferName, float loopCheckCDTime, uint inactiveTimeMax,
             uint perFrameDisposeCountMax, uint poolSizeMax)
         {
-            PoolBuffer target = null;
             for (int i = 0; i < buffers.Count; i++)
             {
-                var curBuffer = buffers[i];
-                if (curBuffer.name == bufferName)
+                if (buffers[i].name == bufferName)
                 {
-                    target = curBuffer;
+                    return buffers[i];
                 }
             }
 
-            if (target != null) return target;
-
-            target = new PoolBuffer();
-            target.Init(); //todo:初始化
+            var target = new PoolBuffer(resMgr);
+            target.Init();
             BufferInitSet(bufferName, target, loopCheckCDTime, inactiveTimeMax, perFrameDisposeCountMax, poolSizeMax);
             buffers.Add(target);
-
             return target;
         }
-    
-        private void BufferInitSet(string bufferName, PoolBuffer target, float loopCheckCDTime, uint inactiveTimeMax,
-            uint perFrameDisposeCountMax, uint poolSizeMax)
-        {
-            target.name = bufferName;
-            target.rootTrans = new GameObject().transform;
-#if UNITY_EDITOR
-            target.rootTrans.name = bufferName;
-#endif
-
-            //todo:设置场景根节点
-            target.rootTrans.parent = GameLoop.Instance.transform;
-
-            target.SetupResPath(bufferName);
-
-            target.config.loopCheckCDTime = loopCheckCDTime;
-            target.config.inactiveTimeMax = inactiveTimeMax;
-            target.config.perFrameDisposeCountMax = perFrameDisposeCountMax;
-            target.config.poolSizeMax = poolSizeMax;
-        }
-
 
         public void Clear()
         {
             Timers.inst.Remove(LoopCheck);
             for (int i = buffers.Count - 1; i >= 0; i--)
             {
-                var curBuffer = buffers[i];
-                buffers[i].Reset();//todo:回收
+                buffers[i].Reset();
             }
 
             buffers.Clear();
             buffers = null;
+
+            if (poolRoot != null)
+            {
+                GameObject.Destroy(poolRoot.gameObject);
+                poolRoot = null;
+            }
         }
 
         public void Init(GameContext ctx)
         {
             buffers = new List<PoolBuffer>();
-            Timers.inst.Add(0.5f,-1,LoopCheck);
+            resMgr = ctx.Get<ResMgr>();
+
+            poolRoot = new GameObject("ObjectPoolRoot").transform;
+            GameObject.DontDestroyOnLoad(poolRoot.gameObject);
+
+            ObjectBase.Configure(this);
+            Timers.inst.Add(0.5f, -1, LoopCheck);
         }
-        
 
         public void Shutdown()
         {
             Clear();
+            ObjectBase.Configure(null);
+            resMgr = null;
+        }
+
+        private void BufferInitSet(string bufferName, PoolBuffer target, float loopCheckCDTime, uint inactiveTimeMax,
+            uint perFrameDisposeCountMax, uint poolSizeMax)
+        {
+            target.name = bufferName;
+            target.rootTrans = new GameObject(bufferName).transform;
+            target.rootTrans.SetParent(poolRoot, false);
+            target.SetupResPath(bufferName);
+            target.config.loopCheckCDTime = loopCheckCDTime;
+            target.config.inactiveTimeMax = inactiveTimeMax;
+            target.config.perFrameDisposeCountMax = perFrameDisposeCountMax;
+            target.config.poolSizeMax = poolSizeMax;
         }
     }
 }

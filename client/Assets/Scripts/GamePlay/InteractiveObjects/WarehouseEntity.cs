@@ -28,7 +28,6 @@ public class WarehouseEntity : ObjectBase
 //     public override void OnObjectClick()
 //     {
 //         base.OnObjectClick();
-// GameLoop.Instance.Ctx.Get<UIMgr>().Show(UIEnum.WarehousePanel);
 //     }
 //
 //     public override void OnColiderExit(Collider other)

@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using UnityEngine;
-using YOTO;
 
 public struct ResBoxInfo
 {
@@ -10,101 +9,91 @@ public struct ResBoxInfo
 
 public class ResBoxEntity : ObjectBase, PoolItem<ResBoxInfo>, IUsable
 {
+    private static UIMgr sharedUiMgr;
+    private static SceneResManager sharedSceneResManager;
+
+    public static void Configure(UIMgr uiMgr, SceneResManager sceneResManager)
+    {
+        sharedUiMgr = uiMgr;
+        sharedSceneResManager = sceneResManager;
+    }
+
     public static DataObjPool<ResBoxEntity, ResBoxInfo> pool =
         new DataObjPool<ResBoxEntity, ResBoxInfo>("ResBoxEntity", 50);
-    List<Vector2Int> rewardList = new List<Vector2Int>();
+
+    private readonly List<Vector2Int> rewardList = new List<Vector2Int>();
     public int boxId;
+
     public void OnUse(IUser user)
     {
-        GameLoop.Instance.Ctx.Get<UIMgr>().Show(UIEnum.SearchPanel, rewardList);
+        sharedUiMgr.Show(UIEnum.SearchPanel, rewardList);
     }
 
     public Vector3 GetPosition()
     {
-        if(ObjTrans!=null)
-        return ObjTrans.position;
-        else
-        {
-            return Location;
-        }
+        return ObjTrans != null ? ObjTrans.position : Location;
     }
 
     public void UnUse(IUser user)
     {
-      
     }
-
 
     protected override void AfterInstanceGObj()
     {
-        
     }
 
     protected override void BeforeRecover(bool isDelete)
     {
-      
     }
 
     public void AfterIntoObjectPool()
     {
- 
     }
 
     public void SetData(ResBoxInfo serverData)
     {
-        boxId=serverData.id;
+        rewardList.Clear();
+        boxId = serverData.id;
         Location = serverData.pos;
         SetInVision(true);
         SetPrefabBundlePath("Res/ResBox");
         InstanceGObj();
-        var data = GameLoop.Instance.Ctx.Get<SceneResManager>().RewardDataSO.rewardDatas;
-        
+
+        var data = sharedSceneResManager.RewardDataSO.rewardDatas;
         foreach (var rewardBoxData in data)
         {
-            if (boxId == rewardBoxData.RewardId)
+            if (boxId != rewardBoxData.RewardId)
             {
-                var number = Random.Range(rewardBoxData.MinNumber, rewardBoxData.MaxNumber);
-    
-                // 1. 将奖励和权重分离到两个列表中
-                List<int> rewardIds = new List<int>();
-                List<int> weights = new List<int>();
-                int totalWeight = 0;
-    
-                foreach (var vector2Int in rewardBoxData.Rewards)
+                continue;
+            }
+
+            var number = Random.Range(rewardBoxData.MinNumber, rewardBoxData.MaxNumber);
+            List<int> rewardIds = new List<int>();
+            List<int> weights = new List<int>();
+            int totalWeight = 0;
+
+            foreach (var vector2Int in rewardBoxData.Rewards)
+            {
+                rewardIds.Add(vector2Int.x);
+                weights.Add(vector2Int.y);
+                totalWeight += vector2Int.y;
+            }
+
+            for (int i = 0; i < number; i++)
+            {
+                int randomValue = Random.Range(0, totalWeight);
+                int currentWeight = 0;
+
+                for (int j = 0; j < weights.Count; j++)
                 {
-                    // x是奖励ID，y是权重
-                    rewardIds.Add(vector2Int.x);
-                    weights.Add(vector2Int.y);
-                    totalWeight += vector2Int.y;
-                }
-    
-                // 2. 根据总权重和数量，随机选择奖励
-                List<Vector2Int> selectedRewards = new List<Vector2Int>();
-    
-                for (int i = 0; i < number; i++)
-                {
-                    // 生成一个随机数
-                    int randomValue = Random.Range(0, totalWeight);
-                    int currentWeight = 0;
-        
-                    // 根据权重随机选择
-                    for (int j = 0; j < weights.Count; j++)
+                    currentWeight += weights[j];
+                    if (randomValue < currentWeight)
                     {
-                        currentWeight += weights[j];
-                        if (randomValue < currentWeight)
-                        {
-                            selectedRewards.Add(new Vector2Int(rewardIds[j],1));
-                            break;
-                        }
+                        rewardList.Add(new Vector2Int(rewardIds[j], 1));
+                        break;
                     }
                 }
-    
-                // 3. 将选中的奖励添加到奖励列表
-                rewardList.AddRange(selectedRewards);
             }
-            
-            // rewardList.Add(); 
         }
- 
     }
 }

@@ -181,7 +181,9 @@ namespace YOTO
 
         public void Init(GameContext ctx)
         {
-            
+            ResLoader<GameObject>.Configure(ctx.Get<ICoroutineRunner>());
+            ResLoader<AudioClip>.Configure(ctx.Get<ICoroutineRunner>());
+            ResLoader<TextAsset>.Configure(ctx.Get<ICoroutineRunner>());
         }
 
         public void Shutdown()

@@ -62,6 +62,7 @@ public class TrainManager : IGameService
 
     public void Init(GameContext ctx)
     {
+        TrainEntity.Configure(ctx.Get<SceneReferenceService>(), ctx.Get<EventMgr>());
     }
 
     public void Shutdown()

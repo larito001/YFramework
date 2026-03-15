@@ -1,8 +1,5 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
-using YOTO;
 
 public class SkillTreeModel : SceneModelBase
 {
@@ -21,26 +18,6 @@ public class SkillTreeModel : SceneModelBase
 
     private void OnClickShop()
     {
-        GameLoop.Instance.Ctx.Get<UIMgr>().Show(UIEnum.SkillTreePanel);
+        UIManager.Show(UIEnum.SkillTreePanel);
     }
-
-    // protected override void OnEnter(Collider other)
-    // {
-    //     base.OnEnter(other);
-    //     if (other.TryGetComponent(out ThirdPlayerMoveCtrl player))
-    //     {
-    //         hud.SetActive(true); 
-    //     }
-    //
-    // }
-    // protected override void OnExit(Collider other)
-    // {
-    //     base.OnExit(other);
-    //     if (other.TryGetComponent(out ThirdPlayerMoveCtrl player))
-    //     {
-    //         hud.SetActive(false); 
-    //         YFramework.uIMgr.Hide(UIEnum.SkillTreePanel);
-    //     }
-    //
-    // }
 }

@@ -9,13 +9,6 @@ using Random = UnityEngine.Random;
 
 public class EnemiesManager : IGameService
 {
-    public static EnemiesManager instance;
-
-    public EnemiesManager()
-    {
-        instance = this;
-    }
-
     WaitForSeconds wait = new WaitForSeconds(0.05f);
     public IEnumerator generateEnemyIE;
     private Action initCallback;
@@ -88,10 +81,18 @@ public class EnemiesManager : IGameService
 
     public void Init(GameContext ctx)
     {
+        EnemyEntity.Configure(ctx.Get<ICoroutineRunner>(), RemoveEnemy);
+        EnemyCamp.Configure(GetEnemyData);
+        TowerEntity.Configure(GetEnemyIsInRange);
     }
 
     public void Shutdown()
     {
        
+    }
+
+    private EnemyData GetEnemyData(int enemyId)
+    {
+        return enemyDatas[enemyId];
     }
 }

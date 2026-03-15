@@ -25,14 +25,6 @@ public class SelectTowerItem : YOTOScrollViewItem
         des.text = towerData.des;
         
         bool canBuild = true;
-        foreach (var vector2Int in towerData.UseIdAndNumber)
-        {
-            // var haveNum = BagPlugin.Instance.GetItemNum(vector2Int.x);
-            // if (haveNum < vector2Int.y)
-            // {
-            //     canBuild = false;
-            // }
-        }
 
         if (canBuild)
         {
@@ -48,8 +40,6 @@ public class SelectTowerItem : YOTOScrollViewItem
 
     private void OnSelectTower()
     {
-        
-        // TowerManager.Instance.ClickGennerateTower(_towerData.Id);
     }
 
     private void ItemRender(YOTOScrollViewItem arg1, int index)

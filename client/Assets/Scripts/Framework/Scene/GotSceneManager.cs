@@ -27,8 +27,14 @@ public class GotSceneManager : IGameService
 
     private readonly Dictionary<GotSceneType, GotSceneBase> scenes = new Dictionary<GotSceneType, GotSceneBase>();
     private readonly List<Type> registeredSceneTypes = new List<Type>();
+
     private Stack<GotSceneType> loadedScenes;
     private LoadSceneMode currentLoadSceneMode = LoadSceneMode.Single;
+    private GameContext context;
+    private UIMgr uiMgr;
+    private ResMgr resMgr;
+    private SceneReferenceService sceneReferenceService;
+    private ICoroutineRunner coroutineRunner;
 
     public void RegisterScene<T>() where T : GotSceneBase, new()
     {
@@ -45,10 +51,7 @@ public class GotSceneManager : IGameService
         }
     }
 
-    public void SwitchScene(
-        GotSceneType sceneType,
-        object args = null,
-        bool showLoading = true,
+    public void SwitchScene(GotSceneType sceneType, object args = null, bool showLoading = true,
         LoadSceneMode loadSceneMode = LoadSceneMode.Single)
     {
         Debug.Assert(loadedScenes.Count <= 1);
@@ -82,11 +85,10 @@ public class GotSceneManager : IGameService
         }
 
         CurrentScene.InitResHandlerObj();
-        Debug.LogFormat("RES: GotSceneManager::SwitchScene(sceneType = {0})", CurrentScene.SceneName);
 
         if (showLoading)
         {
-            GameLoop.Instance.Ctx.Get<UIMgr>().Show(UIEnum.LoadingPanel);
+            uiMgr.Show(UIEnum.LoadingPanel);
         }
 
         if (previousScene == null)
@@ -150,6 +152,12 @@ public class GotSceneManager : IGameService
 
     public void Init(GameContext ctx)
     {
+        context = ctx;
+        uiMgr = ctx.Get<UIMgr>();
+        resMgr = ctx.Get<ResMgr>();
+        sceneReferenceService = ctx.Get<SceneReferenceService>();
+        coroutineRunner = ctx.Get<ICoroutineRunner>();
+
         SceneRoot = new GameObject("SceneRoot");
         DefaultBackgroundLoadingPriority = Application.backgroundLoadingPriority;
         DefaultAsyncUploadBufferSize = QualitySettings.asyncUploadBufferSize;
@@ -180,6 +188,7 @@ public class GotSceneManager : IGameService
         }
 
         scenes[scene.SceneType] = scene;
+        scene.Initialize(context);
 
         var sceneObject = new GameObject(scene.SceneName);
         sceneObject.transform.SetParent(sceneRoot.transform, false);
@@ -199,7 +208,7 @@ public class GotSceneManager : IGameService
 
         if (runGC)
         {
-            GameLoop.Instance.StartCoroutine(GameLoop.Instance.Ctx.Get<ResMgr>().OnChangeScene(callback));
+            coroutineRunner.Run(resMgr.OnChangeScene(callback));
             return;
         }
 
@@ -233,12 +242,9 @@ public class GotSceneManager : IGameService
 
     private void EnterSceneComplete()
     {
-        Debug.Log("EnterSceneComplete..........................");
-        GameLoop.Instance.Ctx.Get<SceneReferenceService>().InvalidateCache();
-
+        sceneReferenceService.InvalidateCache();
         CurrentScene?.LoadingEnd();
-        GameLoop.Instance.Ctx.Get<UIMgr>().Hide(UIEnum.LoadingPanel);
-
+        uiMgr.Hide(UIEnum.LoadingPanel);
         SwitchSceneComplete = true;
         GC.Collect();
         GC.Collect();

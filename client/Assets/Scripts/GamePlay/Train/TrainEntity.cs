@@ -1,151 +1,80 @@
-using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using Dreamteck.Splines;
 using UnityEngine;
 using YOTO;
 
-public class TrainEntity : ObjectBase,IFixedTickable
+public class TrainEntity : ObjectBase, IFixedTickable
 {
-    
-    public float acceleration = 3f; // 加速曲线（越大加速越猛）
-    public float deceleration = -30f; // 减速曲线
-    public float maxSpeed = 5f; // 最大速度（正反通用）
+    private static SceneReferenceService sharedSceneReferenceService;
+    private static EventMgr sharedEventMgr;
+
+    public static void Configure(SceneReferenceService sceneReferenceService, EventMgr eventMgr)
+    {
+        sharedSceneReferenceService = sceneReferenceService;
+        sharedEventMgr = eventMgr;
+    }
+
+    public float acceleration = 3f;
+    public float deceleration = -30f;
+    public float maxSpeed = 5f;
     public SplineFollower follower;
-    private float currentSpeed = 0f; // 当前速度
-    private SplineComputer spline;
-    public bool canMove = false;
+    public bool canMove;
     public List<TrainWagonEntity> positioners = new List<TrainWagonEntity>();
-    // private GunEntity gun;
+
+    private float currentSpeed;
+    private SplineComputer spline;
+    private readonly List<Vector3> atkSlot = new List<Vector3>();
 
     public void TrainInit()
     {
-     
         SetInVision(true);
         SetPrefabBundlePath("Train/Engine");
         InstanceGObj();
     }
 
-    // public override string GetModelLayer()
-    // {
-    //     return "Agent";
-    // }
-    
     protected override void AfterInstanceGObj()
     {
         follower = ObjTrans.GetComponent<SplineFollower>();
-        if (!GameLoop.Instance.Ctx.Get<SceneReferenceService>().TryGetTransform(SceneReferenceKeys.Spline, out var splineTransform))
+        if (!sharedSceneReferenceService.TryGetTransform(SceneReferenceKeys.Spline, out var splineTransform))
         {
             Debug.LogError($"{SceneReferenceKeys.Spline} was not found.");
             return;
         }
 
-        var spline = splineTransform.GetComponent<SplineComputer>();
-        if (spline == null)
+        var targetSpline = splineTransform.GetComponent<SplineComputer>();
+        if (targetSpline == null)
         {
             Debug.LogError($"SplineComputer component was not found on {SceneReferenceKeys.Spline}.");
             return;
         }
-        
-        
-        {
-            var wagon = new TrainWagonEntity();
-            wagon.TrainInit();
-            wagon.SetFollowTarget(14, follower);
-            positioners.Add(wagon);
-        }
-        //最后配置spline
-        SetTracer(spline);
-        GameLoop.Instance.Ctx.Get<EventMgr>().TriggerEvent(YOTOEventType.RefreshTrainHP);
-        // TowerManager.Instance.GenerateTowerBaseAtTransform(ObjTrans, new Vector3(-2.63f, 4.5f, -0.15f));
-        // TowerManager.Instance.GenerateTowerBaseAtTransform(ObjTrans, new Vector3(-2.63f, 4.5f, -3.5f));
-        // TowerManager.Instance.GenerateTowerBaseAtTransform(ObjTrans, new Vector3(2.8f, 4.5f, -3.5f));
-        // TowerManager.Instance.GenerateTowerBaseAtTransform(ObjTrans, new Vector3(2.8f, 4.5f, -0.15f));
 
-    }
+        var wagon = new TrainWagonEntity();
+        wagon.TrainInit();
+        wagon.SetFollowTarget(14, follower);
+        positioners.Add(wagon);
 
-    public void SetTracer(SplineComputer spline)
-    {
-        this.spline = spline;
-        follower.spline = spline;
-        for (var i = 0; i < positioners.Count; i++)
-        {
-            positioners[i].SetTracer(spline);
-        }
-    }
-
-
-
-    void HandleInput()
-    {
-        // 1. 根据输入设定目标速度
-        float targetSpeed = 0f;
-
-        if (canMove && Input.GetKey(KeyCode.W))
-        {
-            targetSpeed = maxSpeed; // 前进
-        }
-        else if (canMove && Input.GetKey(KeyCode.S))
-        {
-            targetSpeed = -maxSpeed; // 后退
-        }
-        else
-        {
-            targetSpeed = 0f; // 刹车
-        }
-
-        var percent = follower.GetPercent();
-        // foreach (var keyValuePair in TrainManager.Instance.trackFixDic)
-        // {
-        //     if (percent >= keyValuePair.Key - 0.05)
-        //     {
-        //         if (!keyValuePair.Value && currentSpeed > 0)
-        //         {
-        //             targetSpeed = 0;
-        //         }
-        //     }
-        // }
-
-        // 2. 选择加速或减速速率（必须为正数）
-        float rate = (Mathf.Abs(targetSpeed) < 0.01f)
-            ? Mathf.Abs(deceleration)
-            : Mathf.Abs(acceleration);
-
-        // 3. 平滑改变当前速度
-        currentSpeed = Mathf.MoveTowards(
-            currentSpeed,
-            targetSpeed,
-            rate * Time.deltaTime
-        );
-
-        // 4. 更新 SplineFollower
-        follower.followSpeed = Mathf.Abs(currentSpeed);
-
-        if (currentSpeed > 0.01f)
-        {
-            follower.direction = Spline.Direction.Forward;
-        }
-        else if (currentSpeed < -0.01f)
-        {
-            follower.direction = Spline.Direction.Backward;
-        }
+        SetTracer(targetSpline);
+        sharedEventMgr.TriggerEvent(YOTOEventType.RefreshTrainHP);
     }
 
     protected override void BeforeRecover(bool isDelete)
     {
-        // gun.RecoverObject();
     }
 
-  
-
-
+    public void SetTracer(SplineComputer targetSpline)
+    {
+        spline = targetSpline;
+        follower.spline = targetSpline;
+        for (var i = 0; i < positioners.Count; i++)
+        {
+            positioners[i].SetTracer(targetSpline);
+        }
+    }
 
     public Vector3 GetPosition()
     {
         return ObjTrans.position;
     }
-
-    List<Vector3> atkSlot = new List<Vector3>();
 
     public List<Vector3> GetAtkSlot()
     {
@@ -173,20 +102,44 @@ public class TrainEntity : ObjectBase,IFixedTickable
 
     public void OnMouseClick(Vector3 hitPoint, float dt)
     {
-    
     }
 
     public void OnMouseUp()
     {
-     
-
     }
-    
+
     public void FixedTick(float fdt)
     {
         if (ObjTrans)
         {
             HandleInput();
-        }   
+        }
+    }
+
+    private void HandleInput()
+    {
+        float targetSpeed = 0f;
+
+        if (canMove && Input.GetKey(KeyCode.W))
+        {
+            targetSpeed = maxSpeed;
+        }
+        else if (canMove && Input.GetKey(KeyCode.S))
+        {
+            targetSpeed = -maxSpeed;
+        }
+
+        float rate = Mathf.Abs(targetSpeed) < 0.01f ? Mathf.Abs(deceleration) : Mathf.Abs(acceleration);
+        currentSpeed = Mathf.MoveTowards(currentSpeed, targetSpeed, rate * Time.deltaTime);
+        follower.followSpeed = Mathf.Abs(currentSpeed);
+
+        if (currentSpeed > 0.01f)
+        {
+            follower.direction = Spline.Direction.Forward;
+        }
+        else if (currentSpeed < -0.01f)
+        {
+            follower.direction = Spline.Direction.Backward;
+        }
     }
 }

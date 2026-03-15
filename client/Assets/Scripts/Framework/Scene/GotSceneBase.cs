@@ -1,18 +1,19 @@
 using System;
 using UnityEngine;
 
-public class TestScene : GotSceneBase
-{
-    public override GotSceneType SceneType { get; }
-    public override string SceneName { get; }
-}
-
+/// <summary>
+/// Base scene flow object used by <see cref="GotSceneManager"/>.
+/// Scene instances own their enter and leave hooks and can resolve services
+/// from the injected <see cref="GameContext"/>.
+/// </summary>
 public abstract class GotSceneBase
 {
     public object SceneArgs { get; set; }
     public GameObject rootObj;
     public Transform rootTrn;
     public GameObject ResHandlerObj;
+
+    protected GameContext Context { get; private set; }
 
     private Action onEnterSceneComplete;
     private Action<bool> onLeaveSceneComplete;
@@ -21,6 +22,16 @@ public abstract class GotSceneBase
     public abstract string SceneName { get; }
 
     public virtual int LoadFileTotal => 1000;
+
+    public void Initialize(GameContext context)
+    {
+        Context = context;
+    }
+
+    protected T GetService<T>() where T : class
+    {
+        return Context.Get<T>();
+    }
 
     protected virtual void OnCreate()
     {

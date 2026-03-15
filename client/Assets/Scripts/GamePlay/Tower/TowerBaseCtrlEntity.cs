@@ -31,9 +31,6 @@ public class TowerBaseCtrlEntity : ObjectBase, PoolItem<object>
 
     protected override void AfterInstanceGObj()
     {
-
-        // hud = objTrans.GetComponentInChildren<TowerBaseHud>();
-        // hud.Init(this);
     }
 
     protected override void BeforeRecover(bool isDelete)
@@ -48,8 +45,6 @@ public class TowerBaseCtrlEntity : ObjectBase, PoolItem<object>
             _towerEntity = null;
         }
 
-    
-        // TowerManager.Instance.RemoveBaseCtrl(this);
         RecoverObject();
     }
     
@@ -63,13 +58,11 @@ public class TowerBaseCtrlEntity : ObjectBase, PoolItem<object>
         SetInVision(true);
         SetPrefabBundlePath("Tower/towerBase");
         InstanceGObj();
-        // TowerManager.Instance.AddBaseCtrl(this);
     }
 
     public void GenerateTowerById(int id)
     {
         TowerId = id;
-        // _towerEntity= TowerManager.Instance.GetTowerById(id,this);
         if (_towerEntity != null)
         {
             _towerEntity.Parent = this.objTrans;
@@ -82,18 +75,6 @@ public class TowerBaseCtrlEntity : ObjectBase, PoolItem<object>
     {
         if (_towerEntity != null)
         {
-            // foreach (var instanceTowerData in TowerManager.Instance.towerDatas)
-            // {
-            //     if (instanceTowerData.Id == TowerId)
-            //     {
-            //         foreach (var removeBackRe in instanceTowerData.RemoveBackRes)
-            //         {
-            //             BagPlugin.Instance.AddItem(removeBackRe.x,removeBackRe.y);
-            //         } 
-            //     }
-            // }
-            
-            
             TowerId = -1;
             TowerEntity.pool.RecoverItem(_towerEntity);
             _towerEntity = null;

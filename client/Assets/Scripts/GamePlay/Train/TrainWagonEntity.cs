@@ -21,11 +21,6 @@ public class TrainWagonEntity : ObjectBase
             positioner.followTarget = _follower;
             positioner.followTargetDistance = _offset;
         }
-        
-        // TowerManager.Instance.GenerateTowerBaseAtTransform(ObjTrans, new Vector3(-2.63f, 3.2f, 1.85f));
-        // TowerManager.Instance.GenerateTowerBaseAtTransform(ObjTrans, new Vector3(-2.63f, 3.2f, -1.5f));
-        // TowerManager.Instance.GenerateTowerBaseAtTransform(ObjTrans, new Vector3(2.8f, 3.2f, -1.5f));
-        // TowerManager.Instance.GenerateTowerBaseAtTransform(ObjTrans, new Vector3(2.8f, 3.2f, 1.85f));
     }
 
     protected override void BeforeRecover(bool isDelete)

@@ -10,21 +10,19 @@ public class GameMainScene : GotSceneBase
     protected override void OnLoadingEnd()
     {
         base.OnLoadingEnd();
-        GameLoop.Instance.Ctx.Get<UIMgr>().Show(UIEnum.GameMainPanel);
-        GameLoop.Instance.Ctx.Get<UIMgr>().Hide(UIEnum.StartPanel);
+        GetService<UIMgr>().Show(UIEnum.GameMainPanel);
+        GetService<UIMgr>().Hide(UIEnum.StartPanel);
     }
 
     protected override void OnEnterScene()
     {
-        var ctx = GameLoop.Instance.Ctx;
-        ctx.Get<PlayerManager>().GeneratePlayer();
+        GetService<PlayerManager>().GeneratePlayer();
         EnterSceneComplete();
     }
 
     protected override void OnLeaveScene()
     {
-        var ctx = GameLoop.Instance.Ctx;
-        ctx.Get<PlayerManager>().ClearPlayer();
+        GetService<PlayerManager>().ClearPlayer();
         LeaveSceneComplete();
     }
 }

@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using Combat;
 using Pathfinding.Examples;
@@ -8,6 +8,15 @@ using YOTO;
 
 public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>,IDamageable,IThreatTarget,ITickable
 {
+    private static ICoroutineRunner coroutineRunner;
+    private static System.Action<EnemyEntity> removeEnemyAction;
+
+    public static void Configure(ICoroutineRunner runner, System.Action<EnemyEntity> removeEnemy)
+    {
+        coroutineRunner = runner;
+        removeEnemyAction = removeEnemy;
+    }
+
     public static DataObjPool<EnemyEntity, (EnemyData, Vector3)> pool =
         new DataObjPool<EnemyEntity, (EnemyData, Vector3)>("EnemyEntity", 200);
 
@@ -27,7 +36,7 @@ public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>,IDamageabl
     #endregion
 
 
-    #region 生命周期
+    #region Lifecycle
 
     public void Tick(float dt)
     {
@@ -42,7 +51,7 @@ public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>,IDamageabl
         {
             if (objTrans.position.y < -100)
             {
-                EnemiesManager.instance.RemoveEnemy(this);
+                removeEnemyAction?.Invoke(this);
             }
         }
     }
@@ -99,10 +108,8 @@ public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>,IDamageabl
 
     void ChangeAllChildrenColor(Transform parent)
     {
-        // 遍历当前父对象下的所有子对象
         foreach (Transform child in parent)
         {
-            // 获取子对象的MeshRenderer组件
             MeshRenderer renderer = child.GetComponent<MeshRenderer>();
             if (renderer != null)
             {
@@ -124,12 +131,10 @@ public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>,IDamageabl
                 }
                 else if (enemyConfig.enemyType == EnemyType.Boss)
                 {
-                    // 设置材质颜色为红色
                     renderer.material.color = Color.red;
                 }
             }
 
-            // 递归处理子对象的子对象（孙对象）
             if (child.childCount > 0)
             {
                 ChangeAllChildrenColor(child);
@@ -212,46 +217,21 @@ public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>,IDamageabl
 
     #endregion
 
-    #region 状态转换
+    #region Combat Hooks
 
     /// <summary>
-    /// 尝试索敌
+    /// Attempts to refresh the current combat target.
     /// </summary>
     public void TryExchangeTarget()
     {
-        if (objTrans != null)
+        if (objTrans == null)
         {
-            // if (PlayerManager.Instance.CheckPlayerIsInRange(objTrans.position, enemyConfig.indexRange))
-            // {
-            //     var victim = PlayerManager.Instance.playerEntity;
-            //     OnEnterCallbackStateMachine?.Invoke(victim);
-            //     return;
-            // }
-            //
-            //
-            // //todo:获取索敌对象
-            // if (TowerManager.Instance.CheckTowerIsInRange(out TowerEntity tower, this.objTrans.position,
-            //         enemyConfig.indexRange))
-            // {
-            //     // OnEnterCallbackStateMachine?.Invoke(tower);
-            //     return;
-            // }
-            //
-            //
-            // if (TrainManager.Instance.CheckTrainIsInRange(objTrans.position, enemyConfig.indexRange))
-            // {
-            //     
-            //     return;
-            // }
+            return;
         }
-        
-    
     }
 
-    
-
     /// <summary>
-    /// 射出的子弹被销毁后调用
+    /// 灏勫嚭鐨勫瓙寮硅閿€姣佸悗璋冪敤
     /// </summary>
     public void OnBulletFinish()
     {
@@ -260,18 +240,17 @@ public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>,IDamageabl
 
     private void OnPathCompleteCallback()
     {
-        //如果距离到达
         OnPathComplete?.Invoke();
     }
 
 
     /// <summary>
-    /// 子弹打到对方
+    /// Called when this entity successfully damages another target.
     /// </summary>
     public void OnHurtSomeone()
     {
     }
-    IEnumerator slowDownIE=null;
+    private Coroutine slowDownCoroutine;
 
     IEnumerator slowDownFunIE(float rate)
     {
@@ -293,24 +272,25 @@ public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>,IDamageabl
                 {
                     seeker.SetSpeed(enemyConfig.moveSpeed);
                 }
+                slowDownCoroutine = null;
                 break;
             }
         }
     }
     public void OnSlowDown(float rate)
     {
-        if (slowDownIE != null)
+        if (slowDownCoroutine != null)
         {
-            GameLoop.Instance.StopCoroutine(slowDownIE);
-            slowDownIE = null;
+            coroutineRunner.Stop(slowDownCoroutine);
+            slowDownCoroutine = null;
         }
-        slowDownIE = slowDownFunIE(rate);
-        GameLoop.Instance.StartCoroutine(slowDownIE);
+
+        slowDownCoroutine = coroutineRunner.Run(slowDownFunIE(rate));
     }
 
     #endregion
     
-    #region 属性
+    #region Damageable State
 
     private TeamId _team = new TeamId(0);
     private bool _isTargetable = false;
@@ -368,3 +348,4 @@ public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>,IDamageabl
 
    
 }
+

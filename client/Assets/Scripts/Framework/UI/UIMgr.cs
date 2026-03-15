@@ -14,22 +14,33 @@ public enum UILayerEnum
 
 public class UILayer
 {
-    public Dictionary<UIEnum, UIPageHandler> handlers = new Dictionary<UIEnum, UIPageHandler>();
-    GameObject uiRoot;
+    public readonly Dictionary<UIEnum, UIPageHandler> handlers = new Dictionary<UIEnum, UIPageHandler>();
     public GameObject layerRoot;
-    private UILayerEnum layer;
 
-    public void Init(GameObject root, UILayerEnum layerEnum)
+    private readonly UIMgr uiMgr;
+    private readonly ResMgr resMgr;
+    private readonly GameContext context;
+    private readonly Camera mainCamera;
+    private readonly UILayerEnum layer;
+
+    public UILayer(UIMgr manager, ResMgr resourceManager, GameContext gameContext, UILayerEnum layerEnum, Camera camera)
     {
+        uiMgr = manager;
+        resMgr = resourceManager;
+        context = gameContext;
+        mainCamera = camera;
         layer = layerEnum;
-        uiRoot = root;
+    }
+
+    public void Init(GameObject root)
+    {
         layerRoot = new GameObject(layer.ToString());
         layerRoot.layer = LayerMask.NameToLayer("UI");
         layerRoot.transform.SetParent(root.transform, false);
 
         Canvas canvas = layerRoot.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        canvas.worldCamera = GameLoop.Instance.Ctx.Get<CameraMgr>().getMainCamera();
+        canvas.worldCamera = mainCamera;
         canvas.overrideSorting = true;
         canvas.sortingOrder = (int)layer * 100;
 
@@ -44,15 +55,15 @@ public class UILayer
 
     public void Show(UIInfo info, object param)
     {
-        if (!handlers.TryGetValue(info.uiEnum, out UIPageHandler newHandler) || newHandler == null)
+        if (!handlers.TryGetValue(info.uiEnum, out UIPageHandler handler) || handler == null)
         {
-            newHandler = new UIPageHandler();
-            handlers[info.uiEnum] = newHandler;
+            handler = new UIPageHandler(uiMgr, resMgr, context);
+            handlers[info.uiEnum] = handler;
         }
 
-        newHandler.Init(info.key, info.uiEnum, param);
-        newHandler.SetLoadCallback(() => { });
-        newHandler.Load(this);
+        handler.Init(info.key, info.uiEnum, param);
+        handler.SetLoadCallback(() => { });
+        handler.Load(this);
     }
 
     public void Hide(UIEnum uiEnum)
@@ -85,13 +96,18 @@ public class UILayer
 
 public class UIMgr : IGameService
 {
-    UIConfig uIConfig;
-    public GameObject UIRoot;
+    private readonly UIConfig uiConfig;
     private readonly Dictionary<UILayerEnum, UILayer> uiLayers = new Dictionary<UILayerEnum, UILayer>();
+
+    private GameContext context;
+    private ResMgr resMgr;
+    private CameraMgr cameraMgr;
+
+    public GameObject UIRoot { get; private set; }
 
     public UIMgr(UIConfig config = null)
     {
-        uIConfig = config ?? new UIConfig();
+        uiConfig = config ?? new UIConfig();
     }
 
     public UILayer GetLayer(UILayerEnum layerEnum)
@@ -104,27 +120,18 @@ public class UIMgr : IGameService
         return null;
     }
 
-    private void SetUILayer(GameObject obj)
-    {
-        obj.layer = LayerMask.NameToLayer("UI");
-        for (int i = 0; i < obj.transform.childCount; i++)
-        {
-            SetUILayer(obj.transform.GetChild(i).gameObject);
-        }
-    }
-
     public void Show(UIEnum uiEnum, object param = null)
     {
         Debug.Log($"[UIMgr] Show: uiEnum={uiEnum}");
-        if (!uIConfig.uiConfigDic.TryGetValue(uiEnum, out UIInfo point))
+        if (!uiConfig.uiConfigDic.TryGetValue(uiEnum, out UIInfo point))
         {
             Debug.LogWarning($"[UIMgr] Show skipped because '{uiEnum}' is not configured.");
             return;
         }
 
-        if (uiLayers.ContainsKey(point.layer))
+        if (uiLayers.TryGetValue(point.layer, out var layer))
         {
-            uiLayers[point.layer].Show(point, param);
+            layer.Show(point, param);
         }
     }
 
@@ -132,51 +139,67 @@ public class UIMgr : IGameService
     {
         if (uiObject != null)
         {
-            SetUILayer(uiObject);
+            SetUILayerRecursively(uiObject);
         }
     }
 
     public void Hide(UIEnum uiEnum)
     {
         Debug.Log($"[UIMgr] Hide: uiEnum={uiEnum}");
-        if (uIConfig.uiConfigDic.TryGetValue(uiEnum, out UIInfo point))
+        if (uiConfig.uiConfigDic.TryGetValue(uiEnum, out UIInfo point) &&
+            uiLayers.TryGetValue(point.layer, out var layer))
         {
-            if (uiLayers.TryGetValue(point.layer, out UILayer type))
-            {
-                type?.Hide(uiEnum);
-            }
+            layer.Hide(uiEnum);
         }
     }
 
     public void ClearUI()
     {
         Debug.Log("[UIMgr] Clearing all UIs");
-        foreach (var typeBase in uiLayers.Values)
+        foreach (var layer in uiLayers.Values)
         {
-            typeBase?.Clear();
+            layer?.Clear();
         }
     }
 
     public void ResizeScreen()
     {
+        foreach (var layer in uiLayers.Values)
+        {
+            layer.Resize();
+        }
     }
 
     public void Init(GameContext ctx)
     {
-        uIConfig.Init();
+        context = ctx;
+        resMgr = ctx.Get<ResMgr>();
+        cameraMgr = ctx.Get<CameraMgr>();
+        uiConfig.Init();
+
         UIRoot = new GameObject("UIRoot");
         UIRoot.layer = LayerMask.NameToLayer("UI");
         GameObject.DontDestroyOnLoad(UIRoot);
-        foreach (UILayerEnum layer in System.Enum.GetValues(typeof(UILayerEnum)))
+
+        foreach (UILayerEnum layerEnum in System.Enum.GetValues(typeof(UILayerEnum)))
         {
-            UILayer layertemp = new UILayer();
-            layertemp.Init(UIRoot, layer);
-            uiLayers.Add(layer, layertemp);
+            var layer = new UILayer(this, resMgr, context, layerEnum, cameraMgr.getMainCamera());
+            layer.Init(UIRoot);
+            uiLayers.Add(layerEnum, layer);
         }
     }
 
     public void Shutdown()
     {
         ClearUI();
+    }
+
+    private void SetUILayerRecursively(GameObject obj)
+    {
+        obj.layer = LayerMask.NameToLayer("UI");
+        for (int i = 0; i < obj.transform.childCount; i++)
+        {
+            SetUILayerRecursively(obj.transform.GetChild(i).gameObject);
+        }
     }
 }

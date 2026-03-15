@@ -1,51 +1,59 @@
+﻿using UnityEngine;
 
-using UnityEngine;
 namespace NoSLoofah.BuffSystem.Manager
 {
-    /// <summary>
-    /// Buff������������ģʽ��
-    /// ����ͨ����Ż�ȡBuff����
-    /// </summary>
-    public class BuffManager : IBuffManager,IGameService
+    public class BuffManager : IBuffManager, IGameService
     {
-        //public static readonly string SO_PATH = "Assets/NoSLoofah_BuffSystem/BuffSystem/Data/BuffData";    //����Data��·��
-        [HideInInspector][SerializeField] private BuffCollection collection;
+        [HideInInspector]
+        [SerializeField] private BuffCollection collection;
         private IBuffTagManager tagManager;
-        public bool IsWorking => collection != null;
 
+        public bool IsWorking => collection != null;
         public IBuffTagManager TagManager => tagManager;
+
         public void SetData(BuffCollection buffCollection)
         {
-            this.collection = buffCollection;
+            collection = buffCollection;
         }
+
         public IBuff GetBuff(int id)
         {
             if (id < 0 || id >= collection.Size)
             {
-                throw new System.Exception("ʹ�÷Ƿ���Buff id��" + id + " (��ǰBuff����Ϊ" + collection.Size + ")");
+                throw new System.Exception("Invalid Buff id " + id + " current size " + collection.Size);
             }
-            if (collection.buffList[id] == null) throw new System.Exception("���õ�BuffΪnull��id��" + id);
+
+            if (collection.buffList[id] == null)
+            {
+                throw new System.Exception("Buff is null id " + id);
+            }
+
             return collection.buffList[id].Clone();
         }
 
         public void RegisterBuffTagManager(IBuffTagManager mgr)
         {
-            tagManager=mgr;
+            tagManager = mgr;
         }
 
         public void Init(GameContext ctx)
         {
-        
             RegisterBuffTagManager(new BitBuffTagManager());
-            SetData(GameLoop.Instance.buffCollection);
-            tagManager.Init(GameLoop.Instance.buffData);
-            if (collection == null) Debug.LogError("BuffCollection为空");
+            BuffHandler.Configure(this);
+
+            var runtimeConfig = ctx.Get<GameRuntimeConfig>();
+            SetData(runtimeConfig.BuffCollection);
+            tagManager.Init(runtimeConfig.BuffData);
+
+            if (collection == null)
+            {
+                Debug.LogError("BuffCollection is null");
+            }
         }
 
         public void Shutdown()
         {
-            
+            BuffHandler.Configure(null);
         }
-        
     }
 }

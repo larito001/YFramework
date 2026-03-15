@@ -1,27 +1,24 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
+
 namespace NoSLoofah.BuffSystem
 {
     /// <summary>
-    /// BuffTag�������Ľӿڣ������ж�Tag֮��Ļ����ϵ
+    /// Resolves relationship rules between buff tags.
     /// </summary>
     public interface IBuffTagManager
     {
-        public void Init(BuffTagData data);
+        void Init(BuffTagData data);
+
         /// <summary>
-        /// ���Ӵ���tag��Buffʱ���Ƿ���Ƴ�TagΪother������Buff
+        /// Returns true when applying <paramref name="tag"/> should remove
+        /// an existing buff with <paramref name="other"/>.
         /// </summary>
-        /// <param name="tag">������Buff��tag</param>
-        /// <param name="other">����Buff��Tag</param>
-        /// <returns></returns>
-        public bool IsTagRemoveOther(BuffTag tag, BuffTag other);
+        bool IsTagRemoveOther(BuffTag tag, BuffTag other);
+
         /// <summary>
-        /// ���Ӵ���tag��Buffʱ���Ƿ�ᱻTagΪother������Buff����
+        /// Returns true when applying <paramref name="tag"/> is blocked by
+        /// an existing buff with <paramref name="other"/>.
         /// </summary>
-        /// <param name="tag">������Buff��tag</param>
-        /// <param name="other">����Buff��Tag</param>
-        /// <returns></returns>
-        public bool IsTagCanAddWhenHaveOther(BuffTag tag, BuffTag other);
+        bool IsTagCanAddWhenHaveOther(BuffTag tag, BuffTag other);
     }
 }

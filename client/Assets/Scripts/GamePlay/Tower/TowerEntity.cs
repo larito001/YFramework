@@ -6,6 +6,13 @@ using UnityEngine;
 
 public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IWeapon,IFixedTickable
 {
+    private static System.Func<Vector3, float, List<EnemyEntity>, bool> enemyRangeQuery;
+
+    public static void Configure(System.Func<Vector3, float, List<EnemyEntity>, bool> getEnemyIsInRange)
+    {
+        enemyRangeQuery = getEnemyIsInRange;
+    }
+
     public static DataObjPool<TowerEntity, TowerBaseCtrlEntity> pool =
         new DataObjPool<TowerEntity, TowerBaseCtrlEntity>("TowerEntity", 20);
 
@@ -232,7 +239,6 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IWeapon,IF
 
     public void OnFix()
     {
-        // GameLoop.Instance.Ctx.Get<FlyTextMgr>().AddText("+" + (properties.MaxHP - properties.HP), objTrans.position, FlyTextType.AddHP);
         // properties.HP = properties.MaxHP;
         // rateHud.UpdateRate(properties.HP / properties.MaxHP);
     }
@@ -271,7 +277,7 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IWeapon,IF
         }
 
         enemies.Clear();
-        if (EnemiesManager.instance.GetEnemyIsInRange(objTrans.position, 20, enemies))
+        if (enemyRangeQuery != null && enemyRangeQuery(objTrans.position, 20, enemies))
         {
             // lockTarget = GetNearestEnemyPos();
         }

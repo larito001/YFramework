@@ -16,9 +16,6 @@ public class CommonItem : YOTOScrollViewItem
     public void SetData(Vector2Int item)
     {
         itemCount.text = item.y.ToString();
-        // var itemdata = BagPlugin.Instance.GetItemData(item.x);
-        // itemName.text = itemdata.Name;
-        // itemIcon.sprite = itemdata.Icon;
     }
 
     // public void SetTowerData(TowerData data, TowerBaseCtrlEntity ctrl)

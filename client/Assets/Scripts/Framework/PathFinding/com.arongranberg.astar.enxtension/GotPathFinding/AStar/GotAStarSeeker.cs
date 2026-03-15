@@ -11,6 +11,15 @@ using YOTO;
 [HelpURL("https://arongranberg.com/astar/documentation/stable/changelog.html")]
 public class GotAStarSeeker : IGotSeeker, PoolItem<object>
 {
+    private static ICoroutineRunner coroutineRunner;
+    private static GotAStarManager pathFindingManager;
+
+    public static void Configure(ICoroutineRunner runner, GotAStarManager manager)
+    {
+        coroutineRunner = runner;
+        pathFindingManager = manager;
+    }
+
     public static DataObjPool<GotAStarSeeker, object> pool =
         new DataObjPool<GotAStarSeeker, object>("GotAStarSeeker", 50);
 
@@ -294,7 +303,7 @@ public class GotAStarSeeker : IGotSeeker, PoolItem<object>
         }
 
         SetEnable(config.isEnable);
-        GotAStarManager.Instance.AddAISearch(this);
+        pathFindingManager.AddAISearch(this);
         isInit = true;
     }
 
@@ -391,7 +400,7 @@ public class GotAStarSeeker : IGotSeeker, PoolItem<object>
         isInit = false;
         obj = null;
         pool.RecoverItem(this);
-        GotAStarManager.Instance.RemoveAISearch(this);
+        pathFindingManager.RemoveAISearch(this);
     }
 
     #endregion
@@ -439,7 +448,7 @@ public class GotAStarSeeker : IGotSeeker, PoolItem<object>
         // 如果正在移动，停止之前的移动
         if (currentMoveCoroutine != null)
         {
-            GameLoop.Instance.StopCoroutine(currentMoveCoroutine);
+            coroutineRunner.Stop(currentMoveCoroutine);
             currentMoveCoroutine = null;
         }
 
@@ -447,7 +456,7 @@ public class GotAStarSeeker : IGotSeeker, PoolItem<object>
         Vector3 targetPosition = obj.transform.position + dir.normalized * force;
 
         // 开始安全的移动协程
-        currentMoveCoroutine =       GameLoop.Instance.StartCoroutine(SafeMoveToPosition(targetPosition, callback));
+        currentMoveCoroutine = coroutineRunner.Run(SafeMoveToPosition(targetPosition, callback));
     }
 
     private IEnumerator SafeMoveToPosition(Vector3 delta, UnityAction callback)

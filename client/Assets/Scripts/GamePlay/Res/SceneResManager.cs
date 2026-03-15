@@ -27,6 +27,7 @@ public class SceneResManager : IGameService
     {
         RewardDataSO = Resources.Load<RewardBoxDataSO>("Config/RewardBoxDataSO");
         resList.Clear();
+        ResBoxEntity.Configure(ctx.Get<UIMgr>(), this);
     }
 
     public void Shutdown()

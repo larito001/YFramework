@@ -1,18 +1,23 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
-
 
 public class SceneModelBase : MonoBehaviour
 {
+    private static UIMgr sharedUiMgr;
+
+    public static void Configure(UIMgr uiMgr)
+    {
+        sharedUiMgr = uiMgr;
+    }
+
     protected ObjectBase _objectBase;
     private I2DColliderHandler _2dCollider;
     private I2DTriggerHandler _2dTrigger;
     private I3DColliderHandler _3dCollider;
     private I3DTriggerHandler _3dTrigger;
     private IClickable _clickable;
-    
+
+    protected UIMgr UIManager => sharedUiMgr;
+
     public bool TryGetEntity<T>(out T handler) where T : class
     {
         handler = _objectBase as T;
@@ -22,30 +27,11 @@ public class SceneModelBase : MonoBehaviour
     public void Init(ObjectBase objBase)
     {
         _objectBase = objBase;
-        if (_objectBase is I2DColliderHandler)
-        {
-            _2dCollider = _objectBase as I2DColliderHandler;
-        }
-
-        if (_objectBase is I2DTriggerHandler)
-        {
-            _2dTrigger = _objectBase as I2DTriggerHandler;
-        }
-
-        if (_objectBase is I3DColliderHandler)
-        {
-            _3dCollider = _objectBase as I3DColliderHandler;
-        }
-
-        if (_objectBase is I3DTriggerHandler)
-        {
-            _3dTrigger = _objectBase as I3DTriggerHandler;
-        }
-        
-        if (_objectBase is IClickable)
-        {
-            _clickable = _objectBase as IClickable;
-        }
+        _2dCollider = _objectBase as I2DColliderHandler;
+        _2dTrigger = _objectBase as I2DTriggerHandler;
+        _3dCollider = _objectBase as I3DColliderHandler;
+        _3dTrigger = _objectBase as I3DTriggerHandler;
+        _clickable = _objectBase as IClickable;
     }
 
     public void BeforeRemove()
@@ -56,8 +42,6 @@ public class SceneModelBase : MonoBehaviour
         _3dTrigger = null;
         _objectBase = null;
     }
-
-    #region 2D碰撞
 
     private void OnCollisionEnter2D(Collision2D other)
     {
@@ -79,10 +63,6 @@ public class SceneModelBase : MonoBehaviour
         _2dTrigger?.On2DTriggerExit(other);
     }
 
-    #endregion
-
-    #region 3D碰撞
-
     private void OnCollisionEnter(Collision other)
     {
         _3dCollider?.On3DColliderEnter(other);
@@ -103,11 +83,8 @@ public class SceneModelBase : MonoBehaviour
         _3dTrigger?.On3DTriggerExit(other);
     }
 
-    #endregion
-
     public void OnMouseClick()
     {
         _clickable?.OnClick();
     }
-    
 }

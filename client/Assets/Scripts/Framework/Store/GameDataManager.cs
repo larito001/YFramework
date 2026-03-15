@@ -6,7 +6,13 @@ using YOTO;
 
 public class GameDataManager 
 {
+    private readonly StoreMgr storeMgr;
     Dictionary<string ,IDataContainerBase> m_DataContainers = new Dictionary<string,IDataContainerBase>();
+
+    public GameDataManager(StoreMgr storeMgr)
+    {
+        this.storeMgr = storeMgr;
+    }
 
     public void Init()
     {
@@ -33,7 +39,8 @@ public class GameDataManager
     public void InitData<T>() where T : IDataContainerBase, new() 
     {
         var instance = new T();
-   
+
+        instance.BindStore(storeMgr);
         m_DataContainers.Add(instance.SaveKey,instance);
         instance.Load();
         

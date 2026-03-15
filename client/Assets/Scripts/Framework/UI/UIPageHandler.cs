@@ -12,6 +12,10 @@ public enum PageState
 
 public class UIPageHandler
 {
+    private readonly UIMgr uiMgr;
+    private readonly ResMgr resMgr;
+    private readonly GameContext context;
+
     private UIPageBase page;
     private UILayer layer;
     private string resourceKey;
@@ -21,6 +25,13 @@ public class UIPageHandler
     private bool shouldStayHidden;
 
     public PageState CurrentState { get; private set; } = PageState.Unloaded;
+
+    public UIPageHandler(UIMgr manager, ResMgr resourceManager, GameContext gameContext)
+    {
+        uiMgr = manager;
+        resMgr = resourceManager;
+        context = gameContext;
+    }
 
     public void Init(string key, UIEnum type, object showParam)
     {
@@ -59,7 +70,7 @@ public class UIPageHandler
         }
 
         CurrentState = PageState.Loading;
-        GameLoop.Instance.Ctx.Get<ResMgr>().LoadUI(resourceKey, OnLoaded);
+        resMgr.LoadUI(resourceKey, OnLoaded);
     }
 
     public void OnHide()
@@ -108,10 +119,11 @@ public class UIPageHandler
                 return;
             }
 
+            page.Initialize(context, uiMgr);
             page.uiType = uiType;
             page.Exit();
             page.OnLoad();
-            GameLoop.Instance.Ctx.Get<UIMgr>().OnUILoaded(page.gameObject);
+            uiMgr.OnUILoaded(page.gameObject);
 
             onLoadComplete?.Invoke();
             onLoadComplete = null;

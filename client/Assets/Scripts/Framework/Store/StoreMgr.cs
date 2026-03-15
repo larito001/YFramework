@@ -1,16 +1,14 @@
 using System;
 using System.Collections;
-using UnityEngine;
 using System.IO;
-using System.Collections.Generic;
 using System.Text;
-using System.Threading.Tasks;
+using UnityEngine;
 
 namespace YOTO
 {
-    #region 示例
+    #region Example
 
-    [System.Serializable]
+    [Serializable]
     public class TestPlayerData
     {
         public string playerName;
@@ -19,13 +17,6 @@ namespace YOTO
 
     public class TestPlayerDataContaner : DataContaner<TestPlayerData>
     {
-        public static TestPlayerDataContaner Instance;
-
-        public TestPlayerDataContaner()
-        {
-            Instance = this;
-        }
-
         private TestPlayerData _data = new();
         public override string SaveKey => "player_save";
 
@@ -37,58 +28,50 @@ namespace YOTO
     {
         void Start()
         {
-            var save = new TestPlayerDataContaner();
-            save.GetData().coins = 999;
-            save.GetData().playerName = "YOTO";
-            save.Save(() =>
-            {
-                save.Load(() => { Debug.Log($"读取成功：{save.GetData().playerName} - {save.GetData().coins}"); });
-            });
+            Debug.Log("Bind a StoreMgr to the data container before calling Save/Load.");
         }
     }
 
     #endregion
 
-    /// <summary>
-    /// 数据类的操作接口
-    /// </summary>
-    /// <typeparam name="T"></typeparam>
     public abstract class DataContaner<T> : IDataContainerBase where T : class, new()
     {
+        private StoreMgr storeMgr;
+
         public abstract string SaveKey { get; }
         public abstract T GetData();
         public abstract void __SetData(T data);
 
+        public void BindStore(StoreMgr store)
+        {
+            storeMgr = store;
+        }
+
         public void Save(Action onComplete = null)
         {
-            GameLoop.Instance.Ctx.Get<StoreMgr>().Save(this, onComplete);
+            storeMgr?.Save(this, onComplete);
         }
 
         public void Load(Action onComplete = null)
         {
-            GameLoop.Instance.Ctx.Get<StoreMgr>().Load(this, onComplete);
+            storeMgr?.Load(this, onComplete);
         }
     }
 
     public interface IDataContainerBase
     {
         string SaveKey { get; }
+        void BindStore(StoreMgr store);
         void Save(Action onComplete = null);
-        void Load(Action onComplete = null); // 可以拓展为带 callback 的泛型接口，但这里简化处理
+        void Load(Action onComplete = null);
     }
 
-    /// <summary>
-    /// 保存策略，默认使用json
-    /// </summary>
     public interface ISaveStrategy
     {
         string Serialize<T>(T data);
         T Deserialize<T>(string json);
     }
 
-    /// <summary>
-    /// 驱动策略，默认使用文件
-    /// </summary>
     public interface IStorageDriver
     {
         IEnumerator WriteCoroutine(string key, string content, Action onComplete = null);
@@ -96,21 +79,16 @@ namespace YOTO
         void Delete(string key);
     }
 
-    /// <summary>
-    /// 默认驱动
-    /// </summary>
     public class FileStorageDriver : IStorageDriver
     {
         private string GetPath(string key)
         {
-            Debug.Log(Application.persistentDataPath);
             return Path.Combine(Application.persistentDataPath, $"{key}.json");
         }
 
         public IEnumerator WriteCoroutine(string key, string content, Action onComplete = null)
         {
             string path = GetPath(key);
-
             yield return null;
 
             try
@@ -127,7 +105,6 @@ namespace YOTO
         public IEnumerator ReadCoroutine<T>(string key, ISaveStrategy strategy, Action<T> onComplete) where T : class
         {
             string path = GetPath(key);
-
             yield return null;
 
             if (!File.Exists(path))
@@ -152,13 +129,13 @@ namespace YOTO
         public void Delete(string key)
         {
             string path = GetPath(key);
-            if (File.Exists(path)) File.Delete(path);
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
         }
     }
 
-    /// <summary>
-    /// 默认策略
-    /// </summary>
     public class JsonSaveStrategy : ISaveStrategy
     {
         public string Serialize<T>(T data)
@@ -172,25 +149,24 @@ namespace YOTO
         }
     }
 
-    public class StoreMgr:IGameService, ITickable
+    public class StoreMgr : IGameService, ITickable
     {
         private ISaveStrategy _strategy;
         private IStorageDriver _storage;
+        private ICoroutineRunner _coroutineRunner;
 
-  
         public void Save<T>(DataContaner<T> dataContaner, Action onComplete = null) where T : class, new()
         {
             string json = _strategy.Serialize(dataContaner.GetData());
-            GameLoop.Instance.StartCoroutine(_storage.WriteCoroutine(dataContaner.SaveKey, json, onComplete));
+            _coroutineRunner.Run(_storage.WriteCoroutine(dataContaner.SaveKey, json, onComplete));
         }
 
         public void Load<T>(DataContaner<T> dataContaner, Action onComplete) where T : class, new()
         {
-            GameLoop.Instance.StartCoroutine(_storage.ReadCoroutine<T>(dataContaner.SaveKey, _strategy, data =>
+            _coroutineRunner.Run(_storage.ReadCoroutine<T>(dataContaner.SaveKey, _strategy, data =>
             {
                 if (data == null) data = new T();
                 dataContaner.__SetData(data);
-                Debug.Log("数据加载完成:"+dataContaner.SaveKey+":"+data);
                 onComplete?.Invoke();
             }));
         }
@@ -202,20 +178,20 @@ namespace YOTO
 
         public void Init(GameContext ctx)
         {
-            //默认json和文件读写方式存储（后续可以改为联网存储到云端）
             _strategy = new JsonSaveStrategy();
             _storage = new FileStorageDriver();
+            _coroutineRunner = ctx.Get<ICoroutineRunner>();
         }
 
         public void Shutdown()
         {
             _strategy = null;
             _storage = null;
+            _coroutineRunner = null;
         }
 
         public void Tick(float dt)
         {
-            
         }
     }
 }

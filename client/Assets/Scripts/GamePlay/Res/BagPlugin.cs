@@ -1,52 +1,51 @@
-using System;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using YOTO;
 
 public class BagSystem
 {
-    private List<Vector2Int> ItemList = new();
-    private List<ItemData> ItemDatas = new List<ItemData>();
+    private readonly List<Vector2Int> itemList = new();
+    private readonly List<ItemData> itemDatas = new List<ItemData>();
+    private EventMgr eventMgr;
 
+    public int GetListCount => itemList.Count;
 
     public ItemData GetItemData(int id)
     {
-        for (var i = 0; i < ItemDatas.Count; i++)
+        for (var i = 0; i < itemDatas.Count; i++)
         {
-            if (ItemDatas[i].Id == id)
+            if (itemDatas[i].Id == id)
             {
-                return ItemDatas[i];
+                return itemDatas[i];
             }
         }
 
         return null;
     }
-    
-   
+
     public void AddItem(int id, int num)
     {
-        for (var i = 0; i < ItemList.Count; i++)
+        for (var i = 0; i < itemList.Count; i++)
         {
-            if (ItemList[i].x == id)
+            if (itemList[i].x == id)
             {
-                ItemList[i] = new Vector2Int(id, ItemList[i].y + num);
-                GameLoop.Instance.Ctx.Get<EventMgr>().TriggerEvent(YOTOEventType.RefreshBagList);
+                itemList[i] = new Vector2Int(id, itemList[i].y + num);
+                eventMgr.TriggerEvent(YOTOEventType.RefreshBagList);
                 return;
             }
         }
 
-        ItemList.Add(new Vector2Int(id, num));
-        GameLoop.Instance.Ctx.Get<EventMgr>().TriggerEvent(YOTOEventType.RefreshBagList);
+        itemList.Add(new Vector2Int(id, num));
+        eventMgr.TriggerEvent(YOTOEventType.RefreshBagList);
     }
 
     public int GetItemNum(int id)
     {
-        for (var i = 0; i < ItemList.Count; i++)
+        for (var i = 0; i < itemList.Count; i++)
         {
-            if (ItemList[i].x == id)
+            if (itemList[i].x == id)
             {
-                return ItemList[i].y;
+                return itemList[i].y;
             }
         }
 
@@ -55,74 +54,69 @@ public class BagSystem
 
     public void RemoveItem(int id, int num)
     {
-        for (var i = 0; i < ItemList.Count; i++)
+        for (var i = 0; i < itemList.Count; i++)
         {
-            if (ItemList[i].x == id)
+            if (itemList[i].x == id)
             {
-                var lastNum = ItemList[i].y;
-                ItemList[i] = new Vector2Int(id, lastNum - num);
-                if (ItemList[i].y <= 0)
+                var lastNum = itemList[i].y;
+                itemList[i] = new Vector2Int(id, lastNum - num);
+                if (itemList[i].y <= 0)
                 {
-                    ItemList.RemoveAt(i);
+                    itemList.RemoveAt(i);
                 }
             }
         }
 
-        ItemList.Remove(new Vector2Int(id, num));
-        GameLoop.Instance.Ctx.Get<EventMgr>().TriggerEvent(YOTOEventType.RefreshBagList);
+        itemList.Remove(new Vector2Int(id, num));
+        eventMgr.TriggerEvent(YOTOEventType.RefreshBagList);
     }
-
-    public int GetListCount => ItemList.Count;
 
     public Vector2Int GetItemByIndex(int index)
     {
-        return ItemList[index];
+        return itemList[index];
     }
 
-    public bool CheckIsEnoughAndUse(List<Vector2Int> itemList)
+    public bool CheckIsEnoughAndUse(List<Vector2Int> consumeList)
     {
-        for (var i = 0; i < itemList.Count; i++)
+        for (var i = 0; i < consumeList.Count; i++)
         {
-            var item = itemList[i];
+            var item = consumeList[i];
             var itemData = GetItemData(item.x);
-            if (itemData == null)
-            {
-                return false;
-            }
-
-            if (item.y > GetItemNum(item.x))
+            if (itemData == null || item.y > GetItemNum(item.x))
             {
                 return false;
             }
         }
-        for (var i = 0; i < itemList.Count; i++)
+
+        for (var i = 0; i < consumeList.Count; i++)
         {
-            var item = itemList[i];
+            var item = consumeList[i];
             RemoveItem(item.x, item.y);
         }
+
         return true;
     }
 
     public void GMGetAllItem()
     {
-        for (var i = 0; i < ItemDatas.Count; i++)
+        for (var i = 0; i < itemDatas.Count; i++)
         {
-            ItemList.Add(new Vector2Int(ItemDatas[i].Id, 999));
+            itemList.Add(new Vector2Int(itemDatas[i].Id, 999));
         }
     }
 
     public void Init(GameContext ctx)
     {
-        
-        ItemList.Clear();
+        eventMgr = ctx.Get<EventMgr>();
+        itemList.Clear();
 
         var itemDataSO = Resources.Load<ItemDataSO>("Config/ItemsData");
         for (var i = 0; i < itemDataSO.ItemDatas.Count; i++)
         {
-            ItemDatas.Add(new ItemData(itemDataSO.ItemDatas[i]));
+            itemDatas.Add(new ItemData(itemDataSO.ItemDatas[i]));
         }
+
         Resources.UnloadAsset(itemDataSO);
-        GameLoop.Instance.Ctx.Get<EventMgr>().TriggerEvent(YOTOEventType.RefreshBagList);
+        eventMgr.TriggerEvent(YOTOEventType.RefreshBagList);
     }
-    
 }

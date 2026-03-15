@@ -3,6 +3,10 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
+/// <summary>
+/// Placeholder skill-tree page shell.
+/// It remains registered so prefab wiring stays stable while the feature is implemented.
+/// </summary>
 public class SkillTreePanel : UIPageBase
 {
     public Button closeBtn;

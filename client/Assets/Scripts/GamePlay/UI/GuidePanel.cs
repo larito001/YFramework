@@ -3,6 +3,10 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
+/// <summary>
+/// Lightweight guide page shell.
+/// Extend this page with tutorial state and content when guidance is implemented.
+/// </summary>
 public class GuidePanel : UIPageBase
 {   
     public Button btnClose;

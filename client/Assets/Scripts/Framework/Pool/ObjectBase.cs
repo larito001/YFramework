@@ -7,6 +7,8 @@ using Object = UnityEngine.Object;
 /// </summary>
 public abstract class ObjectBase
 {
+    private static ObjectPool sharedObjectPool;
+
     private string prefabPath;
     private bool isVisible;
     private bool isInstantiated;
@@ -122,6 +124,11 @@ public abstract class ObjectBase
     protected abstract void AfterInstanceGObj();
     protected abstract void BeforeRecover(bool isDelete);
 
+    public static void Configure(ObjectPool objectPool)
+    {
+        sharedObjectPool = objectPool;
+    }
+
     private void EnsurePoolBuffer()
     {
         if (poolBuffer != null)
@@ -129,7 +136,7 @@ public abstract class ObjectBase
             return;
         }
 
-        poolBuffer = GameLoop.Instance.Ctx.Get<ObjectPool>().GetBuffer(
+        poolBuffer = sharedObjectPool.GetBuffer(
             prefabPath,
             GetPoolBufferLoopCheckCdTime(),
             GetPoolBufferInactiveTimeMax(),

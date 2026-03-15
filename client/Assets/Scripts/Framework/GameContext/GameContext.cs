@@ -1,9 +1,10 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+
 /// <summary>
-/// 纯逻辑存储所有Server和Tick
-/// 提供开启和关闭
+/// Lightweight runtime service container.
+/// Owns service registration, initialization order, and frame dispatch.
 /// </summary>
 public sealed class GameContext
 {
@@ -28,6 +29,7 @@ public sealed class GameContext
             service = (T)obj;
             return true;
         }
+
         service = null;
         return false;
     }
@@ -46,7 +48,11 @@ public sealed class GameContext
         if (instance is ILateTickable l) _lateTickables.Add(l);
     }
 
-    /// <summary>Init: 仅创建依赖、加载配置、事件订阅。不要生成关卡实体。</summary>
+    /// <summary>
+    /// Initializes all registered services.
+    /// Keep this stage focused on dependency setup and subscriptions.
+    /// Avoid spawning scene content here.
+    /// </summary>
     public void InitAll()
     {
         for (int i = 0; i < _initOrder.Count; i++)
@@ -55,7 +61,7 @@ public sealed class GameContext
 
     public void ShutdownAll()
     {
-        // 逆序释放更安全
+        // Release in reverse init order to reduce dependency hazards.
         for (int i = _initOrder.Count - 1; i >= 0; i--)
             _initOrder[i].Shutdown();
     }

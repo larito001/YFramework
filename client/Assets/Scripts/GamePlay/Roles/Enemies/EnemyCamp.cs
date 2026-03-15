@@ -4,13 +4,19 @@ using UnityEngine;
 
 public class EnemyCamp
 {
+    private static System.Func<int, EnemyData> enemyDataProvider;
     List<EnemyEntity> enemyList = new List<EnemyEntity>();
+
+    public static void Configure(System.Func<int, EnemyData> getEnemyData)
+    {
+        enemyDataProvider = getEnemyData;
+    }
 
     public void GenerateEnemyAt(EnemyGroupData groupData,Vector3 pos,bool isNight=false)
     {
         foreach (var idAndNumber in groupData.enemyIdAndNumber)
         {
-            var enemyData = new EnemyData(EnemiesManager.instance.enemyDatas[idAndNumber.x]) ;
+            var enemyData = new EnemyData(enemyDataProvider(idAndNumber.x));
             if (isNight)
             {
                 enemyData.indexRange *= 5;  

@@ -1,164 +1,83 @@
-using System;
-using System.Linq;
+﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using NoSLoofah.BuffSystem.Manager;
+
 namespace NoSLoofah.BuffSystem
 {
-    /// <summary>
-    /// Buff处理器类，需要挂载在接受Buff的游戏对象上
-    /// </summary>
     public class BuffHandler : MonoBehaviour, IBuffHandler
     {
-        private List<Buff> buffs = new List<Buff>();
+        private static IBuffManager sharedBuffManager;
+
+        private readonly List<Buff> buffs = new List<Buff>();
         private Action onAddBuff;
         private Action onRemoveBuff;
+        private bool updated;
+        private Action forOnBuffDestroy;
+        private Action forOnBuffStart;
 
+        public static void Configure(IBuffManager buffManager)
+        {
+            sharedBuffManager = buffManager;
+        }
 
         public List<Buff> GetBuffs => new List<Buff>(buffs);
         public void RegisterOnAddBuff(Action act) { onAddBuff += act; }
         public void RemoveOnAddBuff(Action act) { onRemoveBuff -= act; }
         public void RegisterOnRemoveBuff(Action act) { onRemoveBuff += act; }
         public void RemoveOnRemoveBuff(Action act) { onRemoveBuff -= act; }
-        #region 私有方法
-        private void AddBuff(IBuff buff, GameObject caster)
-        {
-            if (!updated) Update();
-            Buff bf = (Buff)buff;
-            if (bf.IsEmpty())
-            {
-                Debug.LogError("尝试加入空Buff");
-                return;
-            }
-            //无论是否可以添加都执行初始化和BuffAwake
-            bf.Initialize(this, caster);
-            bf.OnBuffAwake();
 
-            //确定能添加Buff时
-            onAddBuff?.Invoke();
-            //检查是否已有同样的Buff
-            Buff previous = buffs.Find(p => p.Equals(bf));
-            //没有则直接添加
-            if (previous == null)
-            {
-                //结算Tag效果
-                if (bf.BuffTag != BuffTag.none)
-                {
-                    //首先：如果有已有buff能抵消新buff，则直接抵消
-                    if (buffs.Any(b =>  GameLoop.Instance.Ctx.Get<BuffManager>().TagManager.IsTagCanAddWhenHaveOther(bf.BuffTag, b.BuffTag)))
-                    {
-                        bf.SetEffective(false);
-                        bf.OnBuffDestroy();
-                        return;
-                    }
-                    for (int i = buffs.Count - 1; i >= 0; i--)
-                    {
-                        //之后：如果新buff没有被抵消，则新buff抵消已有的buff
-                        //Debug.Log("Running:" + bf.BuffTag + ":" + buffs[i].BuffTag);
-                        if ( GameLoop.Instance.Ctx.Get<BuffManager>().TagManager.IsTagRemoveOther(bf.BuffTag, buffs[i].BuffTag))
-                        {
-                            RemoveBuff(buffs[i]);
-                        }
-                    }
-                }
-                buffs.Add(bf);
-                forOnBuffStart += bf.OnBuffStart;
-                return;
-            }
-            //有则根据重复添加的类型处理。
-            //一个Buff对象的Start不会重复执行
-            //只有mutilCount类型会同时存在多个同id Buff
-            switch (previous.MutilAddType)
-            {
-                case BuffMutilAddType.resetTime:
-                    previous.ResetTimer();
-                    //forOnBuffStart += previous.OnBuffStart;
-                    break;
-                case BuffMutilAddType.multipleLayer:
-                    previous.ModifyLayer(1);
-                    //forOnBuffStart += previous.OnBuffStart;
-                    break;
-                case BuffMutilAddType.multipleLayerAndResetTime:
-                    previous.ResetTimer();
-                    previous.ModifyLayer(1);
-                    //forOnBuffStart += previous.OnBuffStart;
-                    break;
-                case BuffMutilAddType.multipleCount:
-                    buffs.Add(bf);
-                    forOnBuffStart += bf.OnBuffStart;
-                    break;
-                default:
-                    break;
-            }
-        }
-        /// <summary>
-        /// 移除一个Buff，移除后执行OnBuffRemove
-        /// </summary>
-        /// <param name="buff">要移除的Buff</param>
-        private void RemoveBuff(IBuff buff)
-        {
-            Buff bf = (Buff)buff;
-            bf.SetEffective(false);
-        }
-        /// <summary>
-        /// 移除一个Buff，移除后不执行OnBuffRemove
-        /// </summary>
-        /// <param name="buff">要移除的Buff</param>
-        private void InteruptBuff(IBuff buff)
-        {
-            Buff bf = (Buff)buff;
-            bf.SetEffective(false);
-            buffs.Remove(bf);
-            forOnBuffDestroy += ((Buff)buff).OnBuffDestroy;
-        }
-        #endregion
         public void AddBuff(int buffId, GameObject caster)
         {
-            var b =  GameLoop.Instance.Ctx.Get<BuffManager>().GetBuff(buffId);
-            AddBuff(b, caster);
+            var buff = sharedBuffManager.GetBuff(buffId);
+            AddBuff(buff, caster);
         }
 
         public void RemoveBuff(int buffId, bool removeAll = true)
         {
-            var b = buffs.FirstOrDefault(b => b.ID == buffId);
-            if (b == null)
+            var buff = buffs.FirstOrDefault(b => b.ID == buffId);
+            if (buff == null)
             {
-                Debug.Log("尝试从" + this.name + "移除没有添加的Buff。 id:" + buffId);
                 return;
             }
-            else if (b.MutilAddType == BuffMutilAddType.multipleCount && removeAll)
+
+            if (buff.MutilAddType == BuffMutilAddType.multipleCount && removeAll)
             {
-                var bs = buffs.Where(b => b.ID == buffId);
-                foreach (var bf in bs)
+                var targets = buffs.Where(b => b.ID == buffId).ToList();
+                foreach (var target in targets)
                 {
-                    RemoveBuff(bf);
+                    RemoveBuff(target);
                 }
+
+                return;
             }
-            else RemoveBuff(b);
+
+            RemoveBuff(buff);
         }
 
         public void InterruptBuff(int buffId, bool removeAll = true)
         {
-            var b = buffs.FirstOrDefault(b => b.ID == buffId);
-            if (b == null)
+            var buff = buffs.FirstOrDefault(b => b.ID == buffId);
+            if (buff == null)
             {
-                Debug.Log("尝试从" + this.name + "打断没有添加的Buff。 id:" + buffId);
                 return;
             }
-            else if (b.MutilAddType == BuffMutilAddType.multipleCount && removeAll)
+
+            if (buff.MutilAddType == BuffMutilAddType.multipleCount && removeAll)
             {
-                var bs = buffs.Where(b => b.ID == buffId);
-                foreach (var bf in bs)
+                var targets = buffs.Where(b => b.ID == buffId).ToList();
+                foreach (var target in targets)
                 {
-                    InteruptBuff(bf);
+                    InterruptBuff(target);
                 }
+
+                return;
             }
-            else InteruptBuff(b);
+
+            InterruptBuff(buff);
         }
 
-        private bool updated = false;
-        private Action forOnBuffDestroy;    //用于在下一帧执行onBuffDestory
-        private Action forOnBuffStart;
         private void Update()
         {
             if (updated) return;
@@ -168,25 +87,100 @@ namespace NoSLoofah.BuffSystem
             forOnBuffDestroy = null;
             forOnBuffStart = null;
         }
+
         private void LateUpdate()
         {
             updated = false;
-            Buff bf;
             bool buffRemoved = false;
             for (int i = buffs.Count - 1; i >= 0; i--)
             {
-                bf = buffs[i];
-                //Debug.Log(bf);
-                bf.OnBuffUpdate();
-                if (!bf.IsEffective)
+                var buff = buffs[i];
+                buff.OnBuffUpdate();
+                if (!buff.IsEffective)
                 {
-                    bf.OnBuffRemove();
+                    buff.OnBuffRemove();
                     buffRemoved = true;
-                    buffs.Remove(bf);
-                    forOnBuffDestroy += bf.OnBuffDestroy;
+                    buffs.Remove(buff);
+                    forOnBuffDestroy += buff.OnBuffDestroy;
                 }
             }
-            if (buffRemoved) onRemoveBuff?.Invoke();
+
+            if (buffRemoved)
+            {
+                onRemoveBuff?.Invoke();
+            }
+        }
+
+        private void AddBuff(IBuff buff, GameObject caster)
+        {
+            if (!updated) Update();
+            Buff newBuff = (Buff)buff;
+            if (newBuff.IsEmpty())
+            {
+                Debug.LogError("Try add empty Buff");
+                return;
+            }
+
+            newBuff.Initialize(this, caster);
+            newBuff.OnBuffAwake();
+            onAddBuff?.Invoke();
+
+            Buff previous = buffs.Find(p => p.Equals(newBuff));
+            if (previous == null)
+            {
+                if (newBuff.BuffTag != BuffTag.none)
+                {
+                    if (buffs.Any(b => sharedBuffManager.TagManager.IsTagCanAddWhenHaveOther(newBuff.BuffTag, b.BuffTag)))
+                    {
+                        newBuff.SetEffective(false);
+                        newBuff.OnBuffDestroy();
+                        return;
+                    }
+
+                    for (int i = buffs.Count - 1; i >= 0; i--)
+                    {
+                        if (sharedBuffManager.TagManager.IsTagRemoveOther(newBuff.BuffTag, buffs[i].BuffTag))
+                        {
+                            RemoveBuff(buffs[i]);
+                        }
+                    }
+                }
+
+                buffs.Add(newBuff);
+                forOnBuffStart += newBuff.OnBuffStart;
+                return;
+            }
+
+            switch (previous.MutilAddType)
+            {
+                case BuffMutilAddType.resetTime:
+                    previous.ResetTimer();
+                    break;
+                case BuffMutilAddType.multipleLayer:
+                    previous.ModifyLayer(1);
+                    break;
+                case BuffMutilAddType.multipleLayerAndResetTime:
+                    previous.ResetTimer();
+                    previous.ModifyLayer(1);
+                    break;
+                case BuffMutilAddType.multipleCount:
+                    buffs.Add(newBuff);
+                    forOnBuffStart += newBuff.OnBuffStart;
+                    break;
+            }
+        }
+
+        private void RemoveBuff(IBuff buff)
+        {
+            ((Buff)buff).SetEffective(false);
+        }
+
+        private void InterruptBuff(IBuff buff)
+        {
+            Buff target = (Buff)buff;
+            target.SetEffective(false);
+            buffs.Remove(target);
+            forOnBuffDestroy += target.OnBuffDestroy;
         }
     }
 }
