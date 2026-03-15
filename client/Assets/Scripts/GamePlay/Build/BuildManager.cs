@@ -22,22 +22,38 @@ public class BuildManager:IGameService,ITickable
     public IInventoryService inventory;
     public ITowerFactory towerFactory;
     private ITowerRegistry _registry = new TowerRegistry();
+    private CameraMgr _cameraMgr;
+    private bool _missingDependencyLogged;
 
     private float _yaw;
     
     
     public void Init(GameContext ctx)
     {
-        _placement = new BuildPlacementSystem(inventory, towerFactory, _registry);
+        _cameraMgr = ctx.Get<CameraMgr>();
+        ConfigureDependencies(ctx.Get<BuildInventoryService>(), ctx.Get<PrefabTowerFactoryService>());
+        TryCreatePlacementSystem();
     }
 
     public void Shutdown()
     {
         _placement = null;
+        _missingDependencyLogged = false;
     }
 
     public void Tick(float dt)
     {
+        if (cam == null)
+        {
+            cam = _cameraMgr.getMainCamera();
+        }
+
+        if (_placement == null)
+        {
+            TryCreatePlacementSystem();
+            return;
+        }
+
         if (currentTower == null) return;
         
 
@@ -70,5 +86,29 @@ public class BuildManager:IGameService,ITickable
             Debug.Log($"Build: ok={r.ok} reason={r.reason} id={r.instanceId}");
         }
         
+    }
+
+    public void ConfigureDependencies(IInventoryService inventoryService, ITowerFactory factory)
+    {
+        inventory = inventoryService;
+        towerFactory = factory;
+        TryCreatePlacementSystem();
+    }
+
+    private void TryCreatePlacementSystem()
+    {
+        if (inventory == null || towerFactory == null)
+        {
+            if (!_missingDependencyLogged)
+            {
+                Debug.LogWarning("BuildManager is missing IInventoryService or ITowerFactory. Call ConfigureDependencies before building.");
+                _missingDependencyLogged = true;
+            }
+
+            return;
+        }
+
+        _placement = new BuildPlacementSystem(inventory, towerFactory, _registry);
+        _missingDependencyLogged = false;
     }
 }

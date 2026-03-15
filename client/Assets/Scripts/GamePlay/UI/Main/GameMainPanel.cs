@@ -28,15 +28,19 @@ public class GameMainPanel : UIPageBase
         GameLoop.Instance.Ctx.Get<EventMgr>().AddEventListener(YOTOEventType.RefreshBagList,OnRefresh);
         GameLoop.Instance.Ctx.Get<EventMgr>().AddEventListener(YOTOEventType.RefreshTrainHP,RefreshTrainHP);
         GameLoop.Instance.Ctx.Get<EventMgr>().AddEventListener(YOTOEventType.RefreshTime,OnRefreshTime);
+        bagBtn.onClick.RemoveListener(OnBagBtnClick);
         bagBtn.onClick.AddListener(OnBagBtnClick);
+        OnRefreshTime();
         OnRefresh();
     }
 
     private void OnRefreshTime()
     {
-        if (time.text != GameDayNightManager.Instance.GetTime())
+        var dayNightManager = GameLoop.Instance.Ctx.Get<GameDayNightManager>();
+        var nextTimeText = dayNightManager.GetTime();
+        if (time.text != nextTimeText)
         {
-            if (GameDayNightManager.Instance.IsDay())
+            if (dayNightManager.IsDay())
             {
                 dayIcon.SetActive(true);
                 nightIcon.SetActive(false);
@@ -47,7 +51,7 @@ public class GameMainPanel : UIPageBase
                 nightIcon.SetActive(true);
             }
         
-            time.text = GameDayNightManager.Instance.GetTime();
+            time.text = nextTimeText;
         }
     
     }
@@ -73,6 +77,7 @@ public class GameMainPanel : UIPageBase
         GameLoop.Instance.Ctx.Get<EventMgr>().RemoveEventListener(YOTOEventType.RefreshBagList,OnRefresh);
         GameLoop.Instance.Ctx.Get<EventMgr>().RemoveEventListener(YOTOEventType.RefreshTrainHP,RefreshTrainHP);
         GameLoop.Instance.Ctx.Get<EventMgr>().RemoveEventListener(YOTOEventType.RefreshTime,OnRefreshTime);
+        bagBtn.onClick.RemoveListener(OnBagBtnClick);
     }
 
     public override void OnResize()

@@ -5,13 +5,11 @@ using YOTO;
 
 public class SoundMgr:IGameService
 {
-    private static SoundMgr _instance;
-    public static SoundMgr Instance => _instance ??= new SoundMgr();
-
     private AudioSource _bgmSource;
     private readonly List<AudioSource> _sfxSources = new List<AudioSource>();
 
     private AudioClip _currentBgm;
+    private ResMgr _resMgr;
 
 
 
@@ -20,7 +18,7 @@ public class SoundMgr:IGameService
     /// </summary>
     public void PlayBGM(string path, float volume = 1f)
     {
-        GameLoop.Instance.Ctx.Get<ResMgr>().LoadAudio(path, (clip) =>
+        _resMgr.LoadAudio(path, (clip) =>
         {
             if (clip == null) return;
 
@@ -46,7 +44,7 @@ public class SoundMgr:IGameService
 
         if (_currentBgm != null)
         {
-            GameLoop.Instance.Ctx.Get<ResMgr>().ReleasePack("Sound/BGM1",_currentBgm);
+            _resMgr.ReleasePack("Sound/BGM1",_currentBgm);
             _currentBgm = null;
             _bgmSource.clip = null;
         }
@@ -57,7 +55,7 @@ public class SoundMgr:IGameService
     /// </summary>
     public void PlaySFX(string path, float volume = 1f)
     {
-        GameLoop.Instance.Ctx.Get<ResMgr>().LoadAudio(path, (clip) =>
+        _resMgr.LoadAudio(path, (clip) =>
         {
             if (clip == null) return;
 
@@ -75,7 +73,7 @@ public class SoundMgr:IGameService
     {
         yield return new WaitWhile(() => src.isPlaying);
         src.clip = null;
-        GameLoop.Instance.Ctx.Get<ResMgr>().ReleasePack(path,clip);
+        _resMgr.ReleasePack(path,clip);
     }
 
     /// <summary>
@@ -88,7 +86,7 @@ public class SoundMgr:IGameService
             if (s.isPlaying) s.Stop();
             if (s.clip != null)
             {
-                GameLoop.Instance.Ctx.Get<ResMgr>().ReleasePack("Sound/BGM1",s.clip);
+                _resMgr.ReleasePack("Sound/BGM1",s.clip);
                 s.clip = null;
             }
         }
@@ -123,6 +121,7 @@ public class SoundMgr:IGameService
 
     public void Init(GameContext ctx)
     {
+        _resMgr = ctx.Get<ResMgr>();
         // 创建 BGM Source
         _bgmSource =       GameLoop.Instance.gameObject.AddComponent<AudioSource>();
         _bgmSource.loop = true;
@@ -139,5 +138,6 @@ public class SoundMgr:IGameService
     public void Shutdown()
     {
         StopAllSFX();
+        _resMgr = null;
     }
 }

@@ -64,11 +64,15 @@ public class GotAStarManager : IGotPathFindingManager
         graphCount=graphList.Length;
         PathFindingFactory.Init(PathFindingType.AStar);
         _loadCompeleteCallBack = loadCompeleteCallBack;
-        astarPathObj= GameObject.Find("A*");
+        if (GameLoop.Instance.Ctx.Get<SceneReferenceService>().TryGetTransform(SceneReferenceKeys.AStarRoot, out var astarTransform))
+        {
+            astarPathObj = astarTransform.gameObject;
+        }
+
         AstarPath astarPath = null;
         if(astarPathObj==null)
         {
-            astarPathObj = new GameObject("A*");
+            astarPathObj = new GameObject(SceneReferenceKeys.AStarRoot);
             astarPath = astarPathObj.AddComponent<AstarPath>();
             
         }

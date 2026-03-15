@@ -30,18 +30,14 @@ public class EnemiesManager : IGameService
 
     public void OnNightGenerate(Vector3 center, int enemyCount)
     {
-        //todo: 围绕center生成敌人
-        // 参数配置
-        float minRadius = 50f; // 最小半径
-        float maxRadius = 55f; // 最大半径
+        float minRadius = 50f;
+        float maxRadius = 55f;
 
         for (int i = 0; i < enemyCount; i++)
         {
-            // 随机角度和半径
             float angle = Random.Range(0f, 360f);
             float radius = Random.Range(minRadius, maxRadius);
 
-            // 计算位置
             float x = center.x + Mathf.Cos(angle * Mathf.Deg2Rad) * radius;
             float z = center.z + Mathf.Sin(angle * Mathf.Deg2Rad) * radius;
             Vector3 pos = new Vector3(x, center.y + 10, z);
@@ -51,7 +47,6 @@ public class EnemiesManager : IGameService
 
     IEnumerator ReGeneratEnemys()
     {
-        //生成敌人
         foreach (var config in enemyBornPoint)
         {
             yield return wait;
@@ -93,56 +88,6 @@ public class EnemiesManager : IGameService
 
     public void Init(GameContext ctx)
     {
-        // enemyGroupdata.Clear();
-        // var enemyGroupSo = Resources.Load<EnemyGroupSO>("Config/EnemyGroupSO");
-        //
-        // foreach (var enemyGroupData in enemyGroupSo.EnemyGroupDatas)
-        // {
-        //     enemyGroupdata.Add(enemyGroupData.id, new EnemyGroupData(enemyGroupData));
-        // }
-        //
-        // //卸载SO
-        // Resources.UnloadAsset(enemyGroupSo);
-        //
-        // var enemyDataSo = Resources.Load<EnemyDataSO>("Config/EnemyDataSO");
-        // enemyDatas.Clear();
-        // foreach (var enemyData in enemyDataSo.EnemyDatas)
-        // {
-        //     enemyDatas.Add(enemyData.id, new EnemyData(enemyData));
-        // }
-        //
-        // Resources.UnloadAsset(enemyDataSo);
-        //
-        // enemyBornPoint.Clear();
-        // GameObject enemyRoot = GameObject.Find("EnemyRoot");
-        // var poss = enemyRoot.GetComponentsInChildren<Transform>();
-        // foreach (var child in poss)
-        // {
-        //     if (int.TryParse(child.name, out int id))
-        //     {
-        //         if (id <= 0) continue;
-        //         var data = enemyGroupdata[id];
-        //         data.locationTemp = child.position;
-        //         enemyBornPoint.Add((id, child.position));
-        //     }
-        // }
-        //
-        // if (generateEnemyIE != null)
-        // {
-        //     GameLoop.Instance.StopCoroutine(generateEnemyIE);
-        //     generateEnemyIE = null;
-        // }
-        //
-        // enemiesCamp.Clear();
-        // if (nightCamp != null)
-        // {
-        //     nightCamp.ClearAllEnemies();
-        //     nightCamp = null;
-        // }
-        // nightCamp = new EnemyCamp();
-        // enemiesCamp.Add(nightCamp);
-        // generateEnemyIE = ReGeneratEnemys();
-        // GameLoop.Instance.StartCoroutine(generateEnemyIE);
     }
 
     public void Shutdown()

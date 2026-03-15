@@ -1,7 +1,4 @@
-using System.Collections;
 using System.Collections.Generic;
-using UnityEngine;
-
 
 public class UIInfo
 {
@@ -18,65 +15,37 @@ public class UIInfo
 
     public override bool Equals(object obj)
     {
-        if (!(obj is UIInfo)) return false;
-        UIInfo other = (UIInfo)obj;
-        return layer == other.layer &&
-               key == other.key &&
-               layer == other.layer;
+        if (!(obj is UIInfo other)) return false;
+        return uiEnum == other.uiEnum &&
+               layer == other.layer &&
+               key == other.key;
     }
 
     public override int GetHashCode()
     {
         int hash = 17;
+        hash = hash * 23 + uiEnum.GetHashCode();
         hash = hash * 23 + layer.GetHashCode();
         hash = hash * 23 + (key != null ? key.GetHashCode() : 0);
-        hash = hash * 23 + layer.GetHashCode();
         return hash;
     }
 }
 
-public enum UIEnum
-{
-    None = 0,
-    LoadingPanel,
-    StartPanel,
-    GameMainPanel,
-    FinishPanel,
-    SettingPanel,
-    ShopPanel,
-    WarehousePanel,
-    SkillTreePanel,
-    BagPanel,
-    SelectTowerPanel,
-    TowerUpPanel,
-    WinPanel,
-    GuidePanel,
-    SearchPanel
-}
-
 public class UIConfig
 {
-    private List<UIInfo> uiList = new List<UIInfo>()
-    {
-        new UIInfo(UIEnum.StartPanel, UILayerEnum.Normal, "UI/StartPanel"),
-        new UIInfo(UIEnum.GameMainPanel, UILayerEnum.Normal, "UI/GameMainPanel"),
-        new UIInfo(UIEnum.LoadingPanel, UILayerEnum.RayCast, "UI/LoadingPanel"),
-        new UIInfo(UIEnum.FinishPanel, UILayerEnum.Normal, "UI/FinishPanel"),
-        new UIInfo(UIEnum.SettingPanel, UILayerEnum.Normal, "UI/Setting/SettingPanel"),
-        new UIInfo(UIEnum.ShopPanel, UILayerEnum.Normal, "UI/Shop/ShopPanel"),
-        new UIInfo(UIEnum.WarehousePanel, UILayerEnum.Normal, "UI/bag/WarehousePanel"),
-        new UIInfo(UIEnum.SkillTreePanel, UILayerEnum.Normal, "UI/SkillTree/SkillTreePanel"),
-        new UIInfo(UIEnum.BagPanel, UILayerEnum.Normal, "UI/bag/BagPanel"),
-        new UIInfo(UIEnum.SelectTowerPanel, UILayerEnum.PopText, "UI/SelectTower/SelectTowerPanel"),
-        new UIInfo(UIEnum.TowerUpPanel, UILayerEnum.PopText, "UI/TowerUpPanel"),
-        new UIInfo(UIEnum.WinPanel, UILayerEnum.Normal, "UI/WinPanel"),
-        new UIInfo(UIEnum.GuidePanel, UILayerEnum.Normal, "UI/GuidePanel"),
-        new UIInfo(UIEnum.SearchPanel, UILayerEnum.Normal, "UI/bag/SearchPanel"),
-    };
-
-    #region  对外
+    private readonly List<UIInfo> uiList = new List<UIInfo>();
 
     public readonly Dictionary<UIEnum, UIInfo> uiConfigDic = new Dictionary<UIEnum, UIInfo>();
+
+    public void Register(UIInfo info)
+    {
+        if (info == null)
+        {
+            return;
+        }
+
+        uiList.Add(info);
+    }
 
     public void Init()
     {
@@ -84,10 +53,7 @@ public class UIConfig
         for (var i = 0; i < uiList.Count; i++)
         {
             var config = uiList[i];
-            uiConfigDic.Add(config.uiEnum, config);
+            uiConfigDic[config.uiEnum] = config;
         }
     }
-
-    #endregion
- 
 }

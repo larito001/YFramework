@@ -23,6 +23,7 @@ public class ParticleEntity : ObjectBase, PoolItem<ParticleEntityData>
     private float tmepRate = 1;
     public void AfterIntoObjectPool()
     {
+        Timers.inst.Remove(DelayRemove);
         loaded = false;
         needPlay = false;
         SetInVision(false);
@@ -41,6 +42,7 @@ public class ParticleEntity : ObjectBase, PoolItem<ParticleEntityData>
 
     private void PlayParticle(float rate)
     {
+        Timers.inst.Remove(DelayRemove);
         //获取obj及其子节点的所有粒子，然后播放
         var list = ObjTrans.GetComponentsInChildren<ParticleSystem>();
         foreach (var item in list)
@@ -87,5 +89,6 @@ public class ParticleEntity : ObjectBase, PoolItem<ParticleEntityData>
 
     protected override void BeforeRecover(bool isDelete)
     {
+        Timers.inst.Remove(DelayRemove);
     }
 }

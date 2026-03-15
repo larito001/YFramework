@@ -34,7 +34,18 @@ public class TrainEntity : ObjectBase,IFixedTickable
     protected override void AfterInstanceGObj()
     {
         follower = ObjTrans.GetComponent<SplineFollower>();
-        var spline = GameObject.Find("Spline").GetComponent<SplineComputer>();
+        if (!GameLoop.Instance.Ctx.Get<SceneReferenceService>().TryGetTransform(SceneReferenceKeys.Spline, out var splineTransform))
+        {
+            Debug.LogError($"{SceneReferenceKeys.Spline} was not found.");
+            return;
+        }
+
+        var spline = splineTransform.GetComponent<SplineComputer>();
+        if (spline == null)
+        {
+            Debug.LogError($"SplineComputer component was not found on {SceneReferenceKeys.Spline}.");
+            return;
+        }
         
         
         {

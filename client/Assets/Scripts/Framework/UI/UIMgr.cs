@@ -14,59 +14,50 @@ public enum UILayerEnum
 
 public class UILayer
 {
-    
     public Dictionary<UIEnum, UIPageHandler> handlers = new Dictionary<UIEnum, UIPageHandler>();
     GameObject uiRoot;
     public GameObject layerRoot;
     private UILayerEnum layer;
-    public void Init(GameObject root,UILayerEnum layerEnum)
+
+    public void Init(GameObject root, UILayerEnum layerEnum)
     {
         layer = layerEnum;
         uiRoot = root;
         layerRoot = new GameObject(layer.ToString());
         layerRoot.layer = LayerMask.NameToLayer("UI");
         layerRoot.transform.SetParent(root.transform, false);
-        // 添加Canvas组件
+
         Canvas canvas = layerRoot.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         canvas.worldCamera = GameLoop.Instance.Ctx.Get<CameraMgr>().getMainCamera();
-        canvas.overrideSorting = true; // 重要：启用排序覆盖
-        canvas.sortingOrder = ((int)layer * 100);
+        canvas.overrideSorting = true;
+        canvas.sortingOrder = (int)layer * 100;
+
         CanvasScaler scaler = layerRoot.AddComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         scaler.referenceResolution = new Vector2(1920, 1080);
         scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
         scaler.matchWidthOrHeight = 0;
-        // 添加其他必要组件
+
         layerRoot.AddComponent<GraphicRaycaster>();
     }
-    public void Show(UIInfo info,object param)
-    {
-        UIPageHandler newHandler;
-         if (!handlers.TryGetValue(info.uiEnum, out newHandler) || newHandler == null)
-         {
-             // Debug.LogError($"[UILayer] Show: Failed to get handler for {info.uiEnum}");
-             newHandler = new UIPageHandler();
-          
-             handlers.Add(info.uiEnum,newHandler);
-         }
-         newHandler.Init(info.key,info.uiEnum,param);
-         // 设置加载完成的回调
-         newHandler.SetLoadCallback(() =>
-         {
-         });
-         // 开始加载新UI
-         newHandler.Load(this);
-    }
 
-    public void Hide(UIEnum uIEnum)
+    public void Show(UIInfo info, object param)
     {
-        if (!handlers.ContainsKey(uIEnum))
+        if (!handlers.TryGetValue(info.uiEnum, out UIPageHandler newHandler) || newHandler == null)
         {
-            return;
+            newHandler = new UIPageHandler();
+            handlers[info.uiEnum] = newHandler;
         }
 
-        if (handlers.TryGetValue(uIEnum, out UIPageHandler handler))
+        newHandler.Init(info.key, info.uiEnum, param);
+        newHandler.SetLoadCallback(() => { });
+        newHandler.Load(this);
+    }
+
+    public void Hide(UIEnum uiEnum)
+    {
+        if (handlers.TryGetValue(uiEnum, out UIPageHandler handler))
         {
             handler.OnHide();
         }
@@ -76,11 +67,10 @@ public class UILayer
     {
         foreach (var uiPageHandler in handlers)
         {
-            if (uiPageHandler.Key!=UIEnum.LoadingPanel)
+            if (uiPageHandler.Key != UIEnum.LoadingPanel)
             {
                 uiPageHandler.Value.OnHide();
             }
-
         }
     }
 
@@ -93,14 +83,16 @@ public class UILayer
     }
 }
 
-public class UIMgr:IGameService
+public class UIMgr : IGameService
 {
-    // 使用UIEnum作为键，因为它是枚举类型，不会有值相等性的问题
-    UIConfig uIConfig = null;
+    UIConfig uIConfig;
     public GameObject UIRoot;
+    private readonly Dictionary<UILayerEnum, UILayer> uiLayers = new Dictionary<UILayerEnum, UILayer>();
 
-    // 用于存储不同层级的Canvas引用
-    private Dictionary<UILayerEnum, UILayer> uiLayers = new Dictionary<UILayerEnum, UILayer>();
+    public UIMgr(UIConfig config = null)
+    {
+        uIConfig = config ?? new UIConfig();
+    }
 
     public UILayer GetLayer(UILayerEnum layerEnum)
     {
@@ -111,6 +103,7 @@ public class UIMgr:IGameService
 
         return null;
     }
+
     private void SetUILayer(GameObject obj)
     {
         obj.layer = LayerMask.NameToLayer("UI");
@@ -119,18 +112,20 @@ public class UIMgr:IGameService
             SetUILayer(obj.transform.GetChild(i).gameObject);
         }
     }
-    public void Show(UIEnum uiEnum,object param = null)
+
+    public void Show(UIEnum uiEnum, object param = null)
     {
         Debug.Log($"[UIMgr] Show: uiEnum={uiEnum}");
-        UIInfo point = uIConfig.uiConfigDic[uiEnum];
+        if (!uIConfig.uiConfigDic.TryGetValue(uiEnum, out UIInfo point))
+        {
+            Debug.LogWarning($"[UIMgr] Show skipped because '{uiEnum}' is not configured.");
+            return;
+        }
 
         if (uiLayers.ContainsKey(point.layer))
         {
-            uiLayers[point.layer].Show(point,param);
+            uiLayers[point.layer].Show(point, param);
         }
-        
-        
-        
     }
 
     public void OnUILoaded(GameObject uiObject)
@@ -156,25 +151,18 @@ public class UIMgr:IGameService
     public void ClearUI()
     {
         Debug.Log("[UIMgr] Clearing all UIs");
-
-        // 遍历所有UI类型，调用它们的Clear方法
         foreach (var typeBase in uiLayers.Values)
         {
-            if (typeBase != null)
-            {
-                typeBase.Clear();
-            }
+            typeBase?.Clear();
         }
     }
 
     public void ResizeScreen()
     {
-        
     }
 
     public void Init(GameContext ctx)
     {
-        uIConfig = new UIConfig();
         uIConfig.Init();
         UIRoot = new GameObject("UIRoot");
         UIRoot.layer = LayerMask.NameToLayer("UI");
@@ -182,10 +170,9 @@ public class UIMgr:IGameService
         foreach (UILayerEnum layer in System.Enum.GetValues(typeof(UILayerEnum)))
         {
             UILayer layertemp = new UILayer();
-            layertemp.Init(UIRoot,layer);
-            uiLayers.Add(layer,layertemp);
+            layertemp.Init(UIRoot, layer);
+            uiLayers.Add(layer, layertemp);
         }
-
     }
 
     public void Shutdown()

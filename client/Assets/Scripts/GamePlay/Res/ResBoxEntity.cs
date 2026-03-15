@@ -57,7 +57,7 @@ public class ResBoxEntity : ObjectBase, PoolItem<ResBoxInfo>, IUsable
         SetInVision(true);
         SetPrefabBundlePath("Res/ResBox");
         InstanceGObj();
-        var data = SceneResManager.Instance.RewardDataSO.rewardDatas;
+        var data = GameLoop.Instance.Ctx.Get<SceneResManager>().RewardDataSO.rewardDatas;
         
         foreach (var rewardBoxData in data)
         {

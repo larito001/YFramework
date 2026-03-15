@@ -11,6 +11,7 @@ using YOTO;
 public class CameraMgr:IGameService,ITickable,IFixedTickable
 {
     private Camera mainCamera;
+    private SceneReferenceService _sceneReferenceService;
     private Vector3 touchPosition;
     private bool isInit = false;
     
@@ -57,7 +58,7 @@ public class CameraMgr:IGameService,ITickable,IFixedTickable
     private void Press()
     {
         Vector3 screenPos = new Vector3(touchPosition.x, touchPosition.y, 0);
-        Ray ray =        GameLoop.Instance.Ctx.Get<CameraMgr>().getMainCamera().ScreenPointToRay(screenPos);
+        Ray ray = mainCamera.ScreenPointToRay(screenPos);
 
         // 如果鼠标/触摸在 UI 上，直接返回
         if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
@@ -107,10 +108,14 @@ public class CameraMgr:IGameService,ITickable,IFixedTickable
         return cameraMapFreeLook[name];
     }
 
-    public static CinemachineVirtualCamera CreateCinemachineCamera(string name, Vector3 position)
+    private CinemachineVirtualCamera CreateCinemachineCamera(string name, Vector3 position)
     {
-        GameObject cameraObject;
-        cameraObject = GameObject.Find(name);
+        GameObject cameraObject = null;
+        if (_sceneReferenceService.TryGetTransform(name, out var cameraTransform))
+        {
+            cameraObject = cameraTransform.gameObject;
+        }
+
         CinemachineVirtualCamera vcam;
         if (!cameraObject)
         {
@@ -128,10 +133,14 @@ public class CameraMgr:IGameService,ITickable,IFixedTickable
         return vcam;
     }
 
-    public static CinemachineFreeLook CreateCinemachineCameraFreeLook(string name, Vector3 position)
+    private CinemachineFreeLook CreateCinemachineCameraFreeLook(string name, Vector3 position)
     {
-        GameObject cameraObject;
-        cameraObject = GameObject.Find(name);
+        GameObject cameraObject = null;
+        if (_sceneReferenceService.TryGetTransform(name, out var cameraTransform))
+        {
+            cameraObject = cameraTransform.gameObject;
+        }
+
         CinemachineFreeLook vcam;
         if (!cameraObject)
         {
@@ -153,7 +162,19 @@ public class CameraMgr:IGameService,ITickable,IFixedTickable
 
     public void Init(GameContext ctx)
     {
-        GameObject cameraObject = GameObject.Find("MainCamera");
+        _sceneReferenceService = ctx.Get<SceneReferenceService>();
+        GameObject cameraObject = null;
+        if (_sceneReferenceService.TryGetTransform(SceneReferenceKeys.MainCamera, out var cameraTransform))
+        {
+            cameraObject = cameraTransform.gameObject;
+        }
+
+        if (cameraObject == null)
+        {
+            Debug.LogError($"{SceneReferenceKeys.MainCamera} was not found.");
+            return;
+        }
+
         this.useVCamera=useVCamera;
         mainCamera = cameraObject.GetComponent<Camera>();
         cameraShakeProjectile = cameraObject.GetComponent<CameraShakeProjectile>();
@@ -167,7 +188,7 @@ public class CameraMgr:IGameService,ITickable,IFixedTickable
             brain.m_UpdateMethod = CinemachineBrain.UpdateMethod.FixedUpdate;
             brain.m_DefaultBlend.m_Time = 0.5f;
 
-            getVirtualCamera("MainCameraVirtual");
+            getVirtualCamera(SceneReferenceKeys.MainCameraVirtual);
         }
     
 
@@ -176,7 +197,7 @@ public class CameraMgr:IGameService,ITickable,IFixedTickable
 
     public void Shutdown()
     {
-        
+        _sceneReferenceService = null;
     }
 
     public void Tick(float dt)

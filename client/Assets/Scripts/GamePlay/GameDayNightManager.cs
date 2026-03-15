@@ -4,18 +4,14 @@ using System.Collections.Generic;
 using UnityEngine;
 using YOTO;
 
-public class GameDayNightManager : IGameService
+public class GameDayNightManager : IGameService, ITickable
 {
-    public static GameDayNightManager Instance;
-
-    public GameDayNightManager()
-    {
-        Instance = this;
-        ResetDayNight();
-    }
+    public static GameDayNightManager Instance { get; private set; }
     RunPhaseMachine phaseMachine;
     private Light _mainLight;
     private Coroutine _lightCoroutine;
+    private GameContext _ctx;
+    private SceneReferenceService _sceneReferenceService;
 
 
     private float _transitionDuration = 1f; //切换 时间
@@ -69,7 +65,7 @@ public class GameDayNightManager : IGameService
         {
             _currentTimer -= _allTimer;
         }
-        GameLoop.Instance.Ctx.Get<EventMgr>().TriggerEvent(YOTOEventType.RefreshTime);
+        _ctx.Get<EventMgr>().TriggerEvent(YOTOEventType.RefreshTime);
         
         // 判定当前是否为白天
         _isDay = _currentTimer < _dayTime;
@@ -200,13 +196,9 @@ public class GameDayNightManager : IGameService
 
     private void CacheLight()
     {
-        if (_mainLight == null)
+        if (_mainLight == null && _sceneReferenceService != null)
         {
-            var lightObj = GameObject.Find("MainLight");
-            if (lightObj)
-            {
-                _mainLight = lightObj.GetComponent<Light>();
-            }
+            _sceneReferenceService.TryGetLight(SceneReferenceKeys.MainLight, out _mainLight);
         }
     }
 
@@ -293,11 +285,23 @@ public class GameDayNightManager : IGameService
 
     public void Init(GameContext ctx)
     {
-        // ResetDayNight();
+        Instance = this;
+        _ctx = ctx;
+        _sceneReferenceService = ctx.Get<SceneReferenceService>();
+        ResetDayNight();
     }
 
     public void Shutdown()
     {
-        
+        if (_lightCoroutine != null)
+        {
+            GameLoop.Instance.StopCoroutine(_lightCoroutine);
+            _lightCoroutine = null;
+        }
+    }
+
+    public void Tick(float dt)
+    {
+        Update(dt);
     }
 }

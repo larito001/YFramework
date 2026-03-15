@@ -5,31 +5,39 @@ using UnityEngine.Events;
 
 namespace YOTO
 {
-    public interface IEventInfo { }
+    public interface IEventInfo
+    {
+        bool IsEmpty();
+    }
 
     public class EventInfo : IEventInfo
     {
         public UnityAction action;
+        public bool IsEmpty() => action == null;
     }
 
     public class EventInfo<T> : IEventInfo
     {
         public UnityAction<T> action;
+        public bool IsEmpty() => action == null;
     }
 
     public class EventInfo<T, U> : IEventInfo
     {
         public UnityAction<T, U> action;
+        public bool IsEmpty() => action == null;
     }
 
     public class EventInfo<T, U, V> : IEventInfo
     {
         public UnityAction<T, U, V> action;
+        public bool IsEmpty() => action == null;
     }
 
     public class EventInfo<T, U, V, W> : IEventInfo
     {
         public UnityAction<T, U, V, W> action;
+        public bool IsEmpty() => action == null;
     }
 
     public class EventMgr:IGameService
@@ -60,28 +68,12 @@ namespace YOTO
                 if (existingEventInfo is TEventInfo eventInfo)
                 {
                     removeAction(eventInfo);
-                    if (IsEventInfoEmpty(eventInfo))
+                    if (eventInfo.IsEmpty())
                     {
                         eventDictionary.Remove(type);
                     }
                 }
             }
-        }
-
-        private bool IsEventInfoEmpty(IEventInfo eventInfo)
-        {
-            if (eventInfo is EventInfo ei)
-                return ei.action == null;
-            if (eventInfo is EventInfo<object> ei1)
-                return ei1.action == null;
-            if (eventInfo is EventInfo<object, object> ei2)
-                return ei2.action == null;
-            if (eventInfo is EventInfo<object, object, object> ei3)
-                return ei3.action == null;
-            if (eventInfo is EventInfo<object, object, object, object> ei4)
-                return ei4.action == null;
-
-            return false;
         }
 
         public void AddEventListener(YOTOEventType type, UnityAction action)

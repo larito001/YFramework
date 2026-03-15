@@ -29,11 +29,9 @@ public sealed class GameLoop : MonoBehaviour
         Application.targetFrameRate = 60;
         Ctx = GameBootstrapper.BuildContext(); // 组装所有系统
         Ctx.InitAll();
-
         if (autoStart)
         {
-            GameLoop.Instance.Ctx.Get<UIMgr>().Show(UIEnum.StartPanel);
-       
+            GameBootstrapper.RunStartup(Ctx);
         }
     }
 

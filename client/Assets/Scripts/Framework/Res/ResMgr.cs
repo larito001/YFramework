@@ -43,8 +43,7 @@ namespace YOTO
             if (prefabCache.TryGetValue(path, out var cached))
             {
                 cached.refCount++;
-                GameObject go = Object.Instantiate(cached.asset);
-                callBack(go);
+                callBack(cached.asset);
                 return;
             }
 
