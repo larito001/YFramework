@@ -78,10 +78,10 @@ public class AxeEntity :  ObjectBase,IWeapon,IFixedTickable
     {
         
     }
-    public override string GetModelLayer()
-    {
-       return  "Default";
-    }
+    // public override string GetModelLayer()
+    // {
+    //    return  "Default";
+    // }
 
     protected override void AfterInstanceGObj()
     {

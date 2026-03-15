@@ -26,10 +26,10 @@ public class TrainEntity : ObjectBase,IFixedTickable
         InstanceGObj();
     }
 
-    public override string GetModelLayer()
-    {
-        return "Agent";
-    }
+    // public override string GetModelLayer()
+    // {
+    //     return "Agent";
+    // }
     
     protected override void AfterInstanceGObj()
     {

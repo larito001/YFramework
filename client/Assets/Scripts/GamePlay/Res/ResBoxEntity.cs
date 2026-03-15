@@ -34,10 +34,6 @@ public class ResBoxEntity : ObjectBase, PoolItem<ResBoxInfo>, IUsable
       
     }
 
-    public override string GetModelLayer()
-    {
-        return "Agent";
-    }
 
     protected override void AfterInstanceGObj()
     {

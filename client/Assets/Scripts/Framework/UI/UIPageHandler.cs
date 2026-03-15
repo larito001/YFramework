@@ -121,6 +121,7 @@ public class UIPageHandler
             }
             else
             {
+                OnHide();
                 Debug.Log($"[UIPageHandler] UI was marked as hidden during loading, keeping it hidden: key={key}");
             }
             Debug.Log($"[UIPageHandler] OnLoaded Complete: key={key}");
@@ -155,7 +156,7 @@ public class UIPageHandler
         if (curState!=PageState.Hide)
         {
             shouldBeHidden = true; // 设置隐藏标记
-            if (uIPageBase != null&&curState==PageState.Show)
+            if (uIPageBase != null)
             {
                 Disable();
                 uIPageBase.OnHide();

@@ -96,7 +96,7 @@ public abstract class ObjectBase
          
             if (objTrans != null)
             {
-                modelBase.Remove();
+                modelBase.BeforeRemove();
                 modelBase = null;
                 poolBuffer.RecoverItem(objTrans.gameObject);
             }
@@ -109,7 +109,7 @@ public abstract class ObjectBase
         {
             if (objTrans != null)
             {
-                modelBase.Remove();
+                modelBase.BeforeRemove();
                 modelBase = null;
                 Object.Destroy(objTrans.gameObject);
                 objTrans = null;
@@ -264,45 +264,7 @@ public abstract class ObjectBase
     {
         return 30;
     }
-
-    //*******************************************************SceneModelBase*****************************************************************
-    public virtual void OnColiderEnter(Collider other)
-    {
-    }
-
-    public virtual void OnColiderStay(Collider other)
-    {
-    }
-
-    public virtual void OnColiderExit(Collider other)
-    {
-    }
-
-    public virtual void OnObjectClick()
-    {
-    }
-
-    public virtual void AfterModelColiderInit()
-    {
-    }
-
-    public virtual void BeforeModelColiderRemove()
-    {
-    }
-
-    public virtual void OnAnimatorIK(int layer)
-    {
-        
-    }
-
-    /// <summary>
-    /// 当前模型的层
-    /// </summary>
-    /// <returns></returns>
-    public abstract string GetModelLayer();
     
-
-    //*******************************************************SceneModelBase*****************************************************************
     /// <summary>
     /// 实例化GObj之后调用
     /// </summary>

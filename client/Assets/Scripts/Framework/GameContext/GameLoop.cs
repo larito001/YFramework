@@ -32,8 +32,8 @@ public sealed class GameLoop : MonoBehaviour
 
         if (autoStart)
         {
-            // 这里可以切入 PhaseFSM 的初始 Phase
-             Ctx.Get<GotSceneManager>().SwitchScene(GotSceneType.Login,null,false);
+            GameLoop.Instance.Ctx.Get<UIMgr>().Show(UIEnum.StartPanel);
+       
         }
     }
 

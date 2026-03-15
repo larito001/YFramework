@@ -7,7 +7,7 @@ public class GameStartScene : GotSceneBase
 {
     public override GotSceneType SceneType
     {
-        get { return GotSceneType.Login; }
+        get { return GotSceneType.Home; }
     }
 
     public override string SceneName
@@ -18,7 +18,7 @@ public class GameStartScene : GotSceneBase
     protected override void OnLoadingEnd()
     {
         base.OnLoadingEnd();
-        GameLoop.Instance.Ctx.Get<UIMgr>().Show(UIEnum.StartPanel);
+        GameLoop.Instance.Ctx.Get<UIMgr>().Hide(UIEnum.StartPanel);
     }
 
     protected override void OnEnterScene()

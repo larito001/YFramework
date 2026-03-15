@@ -114,6 +114,7 @@ namespace HotUpdate.Scripts.Framework.Pool.newPool
 
                 if (template != null)
                 {
+                    GameObject.Destroy(template);
                     template = null;
                 }
 
@@ -203,6 +204,7 @@ namespace HotUpdate.Scripts.Framework.Pool.newPool
                         _isLoading = true;
                         GameLoop.Instance.Ctx.Get<ResMgr>().LoadGameObject(_resPath,(templateObj) =>
                         {
+                            _isLoading = false;
                             if (templateObj == null)
                             {
                                 Debug.LogError("没有找到path = " + _resPath + "的资源....");
@@ -218,7 +220,7 @@ namespace HotUpdate.Scripts.Framework.Pool.newPool
                             // templateObj.transform.SetParent(rootTrans, false);
                             templateObj.SetActive(false);
                             template = templateObj;
-                            _isLoading = false;
+                         
                             InvokeLoadCompleteCallbacks();
                         });
       

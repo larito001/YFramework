@@ -27,7 +27,7 @@ public class StartPanel : UIPageBase
     private void OnNewClick()
     {
      
-        GameLoop.Instance.Ctx.Get<GotSceneManager>().SwitchScene(GotSceneType.GamePlay);
+        GameLoop.Instance.Ctx.Get<GotSceneManager>().SwitchScene(GotSceneType.Home);
     }
 
     public override void OnShow()

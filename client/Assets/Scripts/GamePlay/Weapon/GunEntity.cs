@@ -71,11 +71,11 @@ public class GunEntity : ObjectBase, IWeapon,IFixedTickable
     public void OnDie()
     {
     }
-
-    public override string GetModelLayer()
-    {
-        return "Default";
-    }
+    //
+    // public override string GetModelLayer()
+    // {
+    //     return "Default";
+    // }
 
     protected override void AfterInstanceGObj()
     {

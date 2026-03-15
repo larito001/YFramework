@@ -17,43 +17,43 @@ public class TrackFixEntity : ObjectBase
         SetPrefabBundlePath("InteractiveObjects/TrackFixPos");
     }
 
-    public override string GetModelLayer()
-    {
-        return "Agent";
-    }
-
-    public override void OnColiderEnter(Collider other)
-    {
-        base.OnColiderEnter(other);
-    }
-
-    public override void OnObjectClick()
-    {
-        base.OnObjectClick();
-        if (!canFix)
-        {
-            TowerUpParam param = new TowerUpParam();
-
-            List<Vector2Int> useIdAndNumber = new List<Vector2Int>();
-            useIdAndNumber.Add(new Vector2Int(40001, 5));
-            useIdAndNumber.Add(new Vector2Int(40002, 5));
-            useIdAndNumber.Add(new Vector2Int(40003, 5));
-            param.useIdAndNumber = useIdAndNumber;
-            param.confirmAction = ConfirmFix;
-
-            GameLoop.Instance.Ctx.Get<UIMgr>().Show(UIEnum.TowerUpPanel, param);
-        }
-    }
+    // public override string GetModelLayer()
+    // {
+    //     return "Agent";
+    // }
+    //
+    // public override void OnColiderEnter(Collider other)
+    // {
+    //     base.OnColiderEnter(other);
+    // }
+    //
+    // public override void OnObjectClick()
+    // {
+    //     base.OnObjectClick();
+    //     if (!canFix)
+    //     {
+    //         TowerUpParam param = new TowerUpParam();
+    //
+    //         List<Vector2Int> useIdAndNumber = new List<Vector2Int>();
+    //         useIdAndNumber.Add(new Vector2Int(40001, 5));
+    //         useIdAndNumber.Add(new Vector2Int(40002, 5));
+    //         useIdAndNumber.Add(new Vector2Int(40003, 5));
+    //         param.useIdAndNumber = useIdAndNumber;
+    //         param.confirmAction = ConfirmFix;
+    //
+    //         GameLoop.Instance.Ctx.Get<UIMgr>().Show(UIEnum.TowerUpPanel, param);
+    //     }
+    // }
 
     private void ConfirmFix()
     {
         canFix = true;
     }
 
-    public override void OnColiderExit(Collider other)
-    {
-        base.OnColiderExit(other);
-    }
+    // public override void OnColiderExit(Collider other)
+    // {
+    //     base.OnColiderExit(other);
+    // }
 
     protected override void AfterInstanceGObj()
     {

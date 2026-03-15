@@ -6,8 +6,8 @@ using YOTO;
 
 public enum GotSceneType
 {
-    Login, // 登陆场景(空场景)
-    GamePlay, // 内城
+    Home, // 登陆场景(空场景)
+    GamePlay, //野外
     None,
 }
 
@@ -230,8 +230,8 @@ public class GotSceneManager:IGameService
             CurrentScene.LoadingEnd();
         }
 
-        //停止加载
         GameLoop.Instance.Ctx.Get<UIMgr>().Hide(UIEnum.LoadingPanel);
+      
 
         SwitchSceneComplete = true;
         //场景切换完毕，调用几次GC

@@ -27,11 +27,7 @@ public class TowerBaseCtrlEntity : ObjectBase, PoolItem<object>
     {
         _isEditing = isEditing;
     }
-
-    public override string GetModelLayer()
-    {
-        return "Agent";
-    }
+    
 
     protected override void AfterInstanceGObj()
     {
@@ -56,18 +52,7 @@ public class TowerBaseCtrlEntity : ObjectBase, PoolItem<object>
         // TowerManager.Instance.RemoveBaseCtrl(this);
         RecoverObject();
     }
-
-    public override void OnObjectClick()
-    {
-        base.OnObjectClick();
-        // OnBaseClick();
-        if (_towerEntity == null)
-        {
-            // TowerManager.Instance.ClickTower(this);
-            // hud.OnShow(); 
-        }
-
-    }
+    
     
     public TowerEntity GetTower()
     {

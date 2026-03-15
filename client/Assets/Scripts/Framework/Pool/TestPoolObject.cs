@@ -16,12 +16,7 @@ public class TestPoolObject : ObjectBase,PoolItem<Vector3>
         SetPrefabBundlePath("Assets/PolygonApocalypse/Prefabs/Characters/SM_Chr_Teen_Male_01.prefab");
     }
 
- 
 
-    public override string GetModelLayer()
-    {
-        return "Defult";
-    }
 
     protected override void AfterInstanceGObj()
     {

@@ -102,17 +102,6 @@ public class TowerEntity : ObjectBase, PoolItem<TowerBaseCtrlEntity>, IWeapon,IF
     //     b.Fire(this, ObjTrans.position + ObjTrans.rotation * startOffset, pos);
     // }
 
-    public override void OnObjectClick()
-    {
-        towerHud.OnShow(1);
-    }
-
-
-
-    public override string GetModelLayer()
-    {
-        return "Agent";
-    }
 
     Animation anim;
 

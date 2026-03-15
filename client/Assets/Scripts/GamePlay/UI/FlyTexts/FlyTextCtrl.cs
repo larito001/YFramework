@@ -122,11 +122,11 @@ public class FlyTextCtrl : ObjectBase, PoolItem<Transform>
     }
     
 
-
-    public override string GetModelLayer()
-    {
-        return "UI";
-    }
+    //
+    // public override string GetModelLayer()
+    // {
+    //     return "UI";
+    // }
 
     protected override void AfterInstanceGObj()
     {

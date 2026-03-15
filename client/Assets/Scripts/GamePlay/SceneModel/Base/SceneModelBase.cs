@@ -4,65 +4,110 @@ using System.Collections.Generic;
 using UnityEngine;
 
 
-public  class SceneModelBase : MonoBehaviour
+public class SceneModelBase : MonoBehaviour
 {
-    protected ObjectBase _objBase;
-    public int EntityID;
+    protected ObjectBase _objectBase;
+    private I2DColliderHandler _2dCollider;
+    private I2DTriggerHandler _2dTrigger;
+    private I3DColliderHandler _3dCollider;
+    private I3DTriggerHandler _3dTrigger;
+    private IClickable _clickable;
     
+    public bool TryGetEntity<T>(out T handler) where T : class
+    {
+        handler = _objectBase as T;
+        return handler != null;
+    }
+
     public void Init(ObjectBase objBase)
     {
-        _objBase = objBase;
-        // EntityID = _objBase._entityID;
-        this.gameObject.layer = LayerMask.NameToLayer(_objBase.GetModelLayer());
-        objBase.AfterModelColiderInit();
+        _objectBase = objBase;
+        if (_objectBase is I2DColliderHandler)
+        {
+            _2dCollider = _objectBase as I2DColliderHandler;
+        }
+
+        if (_objectBase is I2DTriggerHandler)
+        {
+            _2dTrigger = _objectBase as I2DTriggerHandler;
+        }
+
+        if (_objectBase is I3DColliderHandler)
+        {
+            _3dCollider = _objectBase as I3DColliderHandler;
+        }
+
+        if (_objectBase is I3DTriggerHandler)
+        {
+            _3dTrigger = _objectBase as I3DTriggerHandler;
+        }
+        
+        if (_objectBase is IClickable)
+        {
+            _clickable = _objectBase as IClickable;
+        }
     }
 
-    public ObjectBase GetObjectBase()
+    public void BeforeRemove()
     {
-        return _objBase;
+        _2dCollider = null;
+        _2dTrigger = null;
+        _3dCollider = null;
+        _3dTrigger = null;
+        _objectBase = null;
     }
 
-    public void Remove()
+    #region 2D碰撞
+
+    private void OnCollisionEnter2D(Collision2D other)
     {
-        if (_objBase != null)
-        _objBase.BeforeModelColiderRemove();
-        _objBase = null;
-        EntityID = -1;
+        _2dCollider?.On2DColliderEnter(other);
     }
 
+    private void OnCollisionExit2D(Collision2D other)
+    {
+        _2dCollider?.On2DColliderExit(other);
+    }
 
-    #region 外部触发
+    private void OnTriggerEnter2D(Collider2D other)
+    {
+        _2dTrigger?.On2DTriggerEnter(other);
+    }
 
-    
+    private void OnTriggerExit2D(Collider2D other)
+    {
+        _2dTrigger?.On2DTriggerExit(other);
+    }
+
+    #endregion
+
+    #region 3D碰撞
+
+    private void OnCollisionEnter(Collision other)
+    {
+        _3dCollider?.On3DColliderEnter(other);
+    }
+
+    private void OnCollisionExit(Collision other)
+    {
+        _3dCollider?.On3DColliderExit(other);
+    }
+
     private void OnTriggerEnter(Collider other)
     {
-        if (_objBase != null)
-        _objBase.OnColiderEnter(other);
-    }
-
-    private void OnTriggerStay(Collider other)
-    {
-        if (_objBase != null)
-        _objBase.OnColiderStay(other);
+        _3dTrigger?.On3DTriggerEnter(other);
     }
 
     private void OnTriggerExit(Collider other)
     {
-        if(_objBase!=null)
-        _objBase.OnColiderExit(other);
-    }
-
-    public void OnAnimatorIK(int layerIndex)
-    {
-        if(_objBase!=null)
-        _objBase.OnAnimatorIK(layerIndex);
-    }
-
-    public void OnMouseClick()
-    {
-        if (_objBase != null)
-        _objBase.OnObjectClick();
+        _3dTrigger?.On3DTriggerExit(other);
     }
 
     #endregion
+
+    public void OnMouseClick()
+    {
+        _clickable?.OnClick();
+    }
+    
 }

@@ -7,7 +7,9 @@ public struct ParticleEntityData
 {
     public string path;
     public Vector3 pos;
+
     public float scale;
+
 }
 
 public class ParticleEntity : ObjectBase, PoolItem<ParticleEntityData>
@@ -36,7 +38,7 @@ public class ParticleEntity : ObjectBase, PoolItem<ParticleEntityData>
         SetPrefabBundlePath(data.path);
         InstanceGObj();
     }
-    
+
     private void PlayParticle(float rate)
     {
         //获取obj及其子节点的所有粒子，然后播放
@@ -46,7 +48,7 @@ public class ParticleEntity : ObjectBase, PoolItem<ParticleEntityData>
             item.Clear();
             item.Play();
         }
-        Timers.inst.Add(1,DelayRemove);
+        Timers.inst.Add(1, DelayRemove);
     }
 
     private void DelayRemove(object obj)
@@ -54,7 +56,7 @@ public class ParticleEntity : ObjectBase, PoolItem<ParticleEntityData>
         pool.RecoverItem(this);
     }
 
-    public void Play(float rate =1f)
+    public void Play(float rate = 1f)
     {
         if (loaded)
         {
@@ -66,20 +68,20 @@ public class ParticleEntity : ObjectBase, PoolItem<ParticleEntityData>
             needPlay = true;
         }
     }
-
-    public override string GetModelLayer()
-    {
-        return "Default";
-    }
+    //
+    // public override string GetModelLayer()
+    // {
+    //     return "Default";
+    // }
 
     protected override void AfterInstanceGObj()
     {
         loaded = true;
         if (needPlay)
         {
-            Play(tmepRate);    
+            Play(tmepRate);
         }
-        ObjTrans.localScale= new Vector3(_data.scale, _data.scale, _data.scale);
+        ObjTrans.localScale = new Vector3(_data.scale, _data.scale, _data.scale);
 
     }
 

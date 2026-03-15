@@ -46,10 +46,7 @@ public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>,IDamageabl
             }
         }
     }
-    public override string GetModelLayer()
-    {
-        return "Agent";
-    }
+
 
     protected override void AfterInstanceGObj()
     {

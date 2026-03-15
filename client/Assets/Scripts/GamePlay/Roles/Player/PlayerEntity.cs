@@ -17,13 +17,7 @@ public class PlayerEntity : ObjectBase, PoolItem<PlayerManager>, IDamageable, IU
     private IWeapon currentWeapon;
     private BasicBehavior _basicBehavior;
     #region 生命周期
-
-    public override void OnAnimatorIK(int layer)
-    {
-        base.OnAnimatorIK(layer);
-        if (ObjTrans == null) return;
-        _basicBehavior.OnAnimatorIK(layer);
-    }
+    
     
     public void Tick(float dt)
     {
@@ -80,24 +74,7 @@ public class PlayerEntity : ObjectBase, PoolItem<PlayerManager>, IDamageable, IU
     }
 
     #endregion
-    #region 触发
 
-    public override string GetModelLayer()
-    {
-        return "Agent";
-    }
-
-    public override void OnColiderEnter(Collider other)
-    {
-      
-    }
-
-    public override void OnColiderExit(Collider other)
-    {
-     
-    }
-
-    #endregion
     #region 属性
 
     private TeamId _team = new TeamId(0);

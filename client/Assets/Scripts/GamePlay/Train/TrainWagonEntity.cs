@@ -7,10 +7,10 @@ public class TrainWagonEntity : ObjectBase
 {
     SplinePositioner positioner;
     private SplineComputer temp;
-    public override string GetModelLayer()
-    {
-        return "Default";
-    }
+    // public override string GetModelLayer()
+    // {
+    //     return "Default";
+    // }
 
     protected override void AfterInstanceGObj()
     {

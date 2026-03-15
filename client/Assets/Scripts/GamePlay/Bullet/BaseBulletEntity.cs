@@ -108,10 +108,7 @@ public class BaseBulletEntity : ObjectBase
     }
 
 
-    public override string GetModelLayer()
-    {
-        return "BulletTrigger";
-    }
+  
 
     protected override void AfterInstanceGObj()
     {
@@ -127,53 +124,53 @@ public class BaseBulletEntity : ObjectBase
         _config.removeCallback?.Invoke();
     }
 
-    public override void OnColiderEnter(Collider other)
-    {
-        base.OnColiderEnter(other);
-        if (!isLive) return;
-        
-        if (_config.canAtkWall&&other.gameObject.layer == LayerMask.NameToLayer("Terrain"))
-        {
-            DestoryBullet();
-            return;
-        }
-        
-        if (triggerCount > 0)
-        {
-            if (other.TryGetComponent<SceneModelBase>(out SceneModelBase modelBase))
-            {
-                var victim = modelBase.GetObjectBase() as IDamageable;
-                if (victim == null) return;
+    // public override void OnColiderEnter(Collider other)
+    // {
+    //     base.OnColiderEnter(other);
+    //     if (!isLive) return;
+    //     
+    //     if (_config.canAtkWall&&other.gameObject.layer == LayerMask.NameToLayer("Terrain"))
+    //     {
+    //         DestoryBullet();
+    //         return;
+    //     }
+    //     
+    //     if (triggerCount > 0)
+    //     {
+    //         if (other.TryGetComponent<SceneModelBase>(out SceneModelBase modelBase))
+    //         {
+    //             var victim = modelBase.GetObjectBase() as IDamageable;
+    //             if (victim == null) return;
+    //
+    //             if (victims.Contains(victim)) return;
+    //             // var otherCamp = victim.Team;
+    //             // if (otherCamp != _config.Team)
+    //             // {
+    //             //     victims.Add(victim);
+    //             // }
+    //         }
+    //     }
+    // }
 
-                if (victims.Contains(victim)) return;
-                // var otherCamp = victim.Team;
-                // if (otherCamp != _config.Team)
-                // {
-                //     victims.Add(victim);
-                // }
-            }
-        }
-    }
-
-    public override void OnColiderExit(Collider other)
-    {
-        
-        base.OnColiderExit(other);
-        if (!isLive) return;
-        if (triggerCount > 0)
-        {
-            if (other.TryGetComponent<SceneModelBase>(out SceneModelBase modelBase))
-            {
-                var victim = modelBase.GetObjectBase() as IDamageable;
-                if (victim == null) return;
-                if (!victims.Contains(victim)) return;
-                victims.Remove(victim);
-            }
-        }
-        
-        
-        
-    }
+    // public override void OnColiderExit(Collider other)
+    // {
+    //     
+    //     base.OnColiderExit(other);
+    //     if (!isLive) return;
+    //     if (triggerCount > 0)
+    //     {
+    //         if (other.TryGetComponent<SceneModelBase>(out SceneModelBase modelBase))
+    //         {
+    //             var victim = modelBase.GetObjectBase() as IDamageable;
+    //             if (victim == null) return;
+    //             if (!victims.Contains(victim)) return;
+    //             victims.Remove(victim);
+    //         }
+    //     }
+    //     
+    //     
+    //     
+    // }
 
     public virtual void DestoryBullet()
     {
