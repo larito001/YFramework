@@ -5,14 +5,8 @@ public static partial class GameBootstrapper
     static partial void RegisterProjectServices(GameContext ctx)
     {
         ctx.Register(new PlayerManager());
-        ctx.Register(new BattleManager());
-        ctx.Register(new TrainManager());
         ctx.Register(new EnemiesManager());
-        ctx.Register(new BuildInventoryService());
-        ctx.Register(new PrefabTowerFactoryService());
-        ctx.Register(new BuildManager());
         ctx.Register(new SceneResManager());
-        ctx.Register(new GameDayNightManager());
     }
 
     static partial void ConfigureProjectScenes(GotSceneManager sceneManager)
@@ -23,6 +17,7 @@ public static partial class GameBootstrapper
 
     static partial void ConfigureProjectUi(UIConfig uiConfig)
     {
+        uiConfig.RegisterLoading(new UIInfo(UIEnum.LoadingPanel, UILayerEnum.RayCast, "UI/LoadingPanel", 0f));
         uiConfig.Register(new UIInfo(UIEnum.StartPanel, UILayerEnum.Normal, "UI/StartPanel"));
         uiConfig.Register(new UIInfo(UIEnum.GameMainPanel, UILayerEnum.Normal, "UI/GameMainPanel"));
         uiConfig.Register(new UIInfo(UIEnum.FinishPanel, UILayerEnum.Normal, "UI/FinishPanel"));

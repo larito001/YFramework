@@ -88,7 +88,7 @@ public class GotSceneManager : IGameService
 
         if (showLoading)
         {
-            uiMgr.Show(UIEnum.LoadingPanel);
+            uiMgr.ShowLoading();
         }
 
         if (previousScene == null)
@@ -243,8 +243,9 @@ public class GotSceneManager : IGameService
     private void EnterSceneComplete()
     {
         sceneReferenceService.InvalidateCache();
+        uiMgr.InjectSceneModels();
         CurrentScene?.LoadingEnd();
-        uiMgr.Hide(UIEnum.LoadingPanel);
+        uiMgr.HideLoading();
         SwitchSceneComplete = true;
         GC.Collect();
     }

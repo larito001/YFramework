@@ -168,8 +168,7 @@ public class CameraMgr : IGameService, ITickable, IFixedTickable
 
         mainCamera = cameraObject.GetComponent<Camera>();
         cameraShakeProjectile = cameraObject.GetComponent<CameraShakeProjectile>();
-        HudAlwaysFaceToTransform.camera = mainCamera;
-
+    
         if (useVCamera)
         {
             GameObject.DontDestroyOnLoad(cameraObject);

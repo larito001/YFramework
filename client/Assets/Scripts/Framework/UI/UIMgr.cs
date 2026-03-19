@@ -61,7 +61,7 @@ public class UILayer
             handlers[info.uiEnum] = handler;
         }
 
-        handler.Init(info.key, info.uiEnum, param);
+        handler.Init(info.key, info.uiEnum, param, info.closeDestroyDelay);
         handler.SetLoadCallback(() => { });
         handler.Load(this);
     }
@@ -78,16 +78,13 @@ public class UILayer
     {
         foreach (var uiPageHandler in handlers)
         {
-            if (uiPageHandler.Key != UIEnum.LoadingPanel)
+            if (destroy)
             {
-                if (destroy)
-                {
-                    uiPageHandler.Value.Destroy();
-                }
-                else
-                {
-                    uiPageHandler.Value.OnHide();
-                }
+                uiPageHandler.Value.Destroy();
+            }
+            else
+            {
+                uiPageHandler.Value.OnHide();
             }
         }
     }
@@ -160,6 +157,26 @@ public class UIMgr : IGameService
         }
     }
 
+    public void ShowLoading(object param = null)
+    {
+        if (uiConfig.LoadingInfo == null)
+        {
+            return;
+        }
+
+        Show(uiConfig.LoadingInfo.uiEnum, param);
+    }
+
+    public void HideLoading()
+    {
+        if (uiConfig.LoadingInfo == null)
+        {
+            return;
+        }
+
+        Hide(uiConfig.LoadingInfo.uiEnum);
+    }
+
     public void ClearUI()
     {
         Debug.Log("[UIMgr] Clearing all UIs");
@@ -194,6 +211,8 @@ public class UIMgr : IGameService
             layer.Init(UIRoot);
             uiLayers.Add(layerEnum, layer);
         }
+
+        InjectSceneModels();
     }
 
     public void Shutdown()
@@ -210,6 +229,15 @@ public class UIMgr : IGameService
         }
 
         uiLayers.Clear();
+    }
+
+    public void InjectSceneModels()
+    {
+        var models = Object.FindObjectsOfType<SceneModelBase>(true);
+        for (int i = 0; i < models.Length; i++)
+        {
+            models[i].Inject(this);
+        }
     }
 
     private void SetUILayerRecursively(GameObject obj)

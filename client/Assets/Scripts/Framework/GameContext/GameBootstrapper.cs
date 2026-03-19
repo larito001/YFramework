@@ -59,7 +59,6 @@ public static partial class GameBootstrapper
     private static UIConfig BuildUiConfig()
     {
         var uiConfig = new UIConfig();
-        uiConfig.Register(new UIInfo(UIEnum.LoadingPanel, UILayerEnum.RayCast, "UI/LoadingPanel"));
         ConfigureProjectUi(uiConfig);
         return uiConfig;
     }

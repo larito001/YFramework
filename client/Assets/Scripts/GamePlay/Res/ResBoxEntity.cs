@@ -9,24 +9,25 @@ public struct ResBoxInfo
 
 public class ResBoxEntity : ObjectBase, PoolItem<ResBoxInfo>, IUsable
 {
-    private static UIMgr sharedUiMgr;
-    private static SceneResManager sharedSceneResManager;
-
-    public static void Configure(UIMgr uiMgr, SceneResManager sceneResManager)
-    {
-        sharedUiMgr = uiMgr;
-        sharedSceneResManager = sceneResManager;
-    }
-
     public static DataObjPool<ResBoxEntity, ResBoxInfo> pool =
         new DataObjPool<ResBoxEntity, ResBoxInfo>("ResBoxEntity", 50);
 
     private readonly List<Vector2Int> rewardList = new List<Vector2Int>();
+    private UIMgr uiMgr;
+    private SceneResManager sceneResManager;
+    private ResBoxInfo? pendingInfo;
     public int boxId;
+
+    public void ConfigureRuntime(UIMgr manager, SceneResManager managerOwner)
+    {
+        uiMgr = manager;
+        sceneResManager = managerOwner;
+        TryBuildRewards();
+    }
 
     public void OnUse(IUser user)
     {
-        sharedUiMgr.Show(UIEnum.SearchPanel, rewardList);
+        uiMgr?.Show(UIEnum.SearchPanel, rewardList);
     }
 
     public Vector3 GetPosition()
@@ -52,14 +53,25 @@ public class ResBoxEntity : ObjectBase, PoolItem<ResBoxInfo>, IUsable
 
     public void SetData(ResBoxInfo serverData)
     {
-        rewardList.Clear();
+        pendingInfo = serverData;
         boxId = serverData.id;
         Location = serverData.pos;
         SetInVision(true);
         SetPrefabBundlePath("Res/ResBox");
         InstanceGObj();
+        TryBuildRewards();
+    }
 
-        var data = sharedSceneResManager.RewardDataSO.rewardDatas;
+    private void TryBuildRewards()
+    {
+        if (!pendingInfo.HasValue || sceneResManager?.RewardDataSO == null)
+        {
+            return;
+        }
+
+        rewardList.Clear();
+        boxId = pendingInfo.Value.id;
+        var data = sceneResManager.RewardDataSO.rewardDatas;
         foreach (var rewardBoxData in data)
         {
             if (boxId != rewardBoxData.RewardId)
@@ -95,5 +107,7 @@ public class ResBoxEntity : ObjectBase, PoolItem<ResBoxInfo>, IUsable
                 }
             }
         }
+
+        pendingInfo = null;
     }
 }

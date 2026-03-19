@@ -11,9 +11,6 @@ public class PlayerEntity : ObjectBase, PoolItem<PlayerManager>, IDamageable, IU
     public static DataObjPool<PlayerEntity, PlayerManager> pool =
         new DataObjPool<PlayerEntity, PlayerManager>("PlayerEntity", 4);
     
-    RateHud rateHud;
-    AxeEntity axeEntity;
-    GunEntity gunEntity;
     private IWeapon currentWeapon;
     private BasicBehavior _basicBehavior;
     #region 生命周期
@@ -41,16 +38,11 @@ public class PlayerEntity : ObjectBase, PoolItem<PlayerManager>, IDamageable, IU
 
         Animator anim = ObjTrans.GetComponentInChildren<Animator>();
         _basicBehavior.RigesterAnimator(anim);
-        rateHud = ObjTrans.GetComponentInChildren<RateHud>();
-        rateHud.Reset();
-        rateHud.Show();
-        rateHud.UpdateRate(Hp/MaxHP);
+ 
     }
 
     protected override void BeforeRecover(bool isDelete)
     {
-        gunEntity.RecoverObject();
-        axeEntity.RecoverObject();
     }
 
     public void AfterIntoObjectPool()

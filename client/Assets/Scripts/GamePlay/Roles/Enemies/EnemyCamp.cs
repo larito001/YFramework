@@ -4,16 +4,23 @@ using UnityEngine;
 
 public class EnemyCamp
 {
-    private static System.Func<int, EnemyData> enemyDataProvider;
+    private readonly System.Func<int, EnemyData> enemyDataProvider;
+    private readonly System.Action<EnemyEntity> configureEnemy;
     List<EnemyEntity> enemyList = new List<EnemyEntity>();
 
-    public static void Configure(System.Func<int, EnemyData> getEnemyData)
+    public EnemyCamp(System.Func<int, EnemyData> getEnemyData, System.Action<EnemyEntity> configureEnemyEntity)
     {
         enemyDataProvider = getEnemyData;
+        configureEnemy = configureEnemyEntity;
     }
 
     public void GenerateEnemyAt(EnemyGroupData groupData,Vector3 pos,bool isNight=false)
     {
+        if (groupData == null)
+        {
+            return;
+        }
+
         foreach (var idAndNumber in groupData.enemyIdAndNumber)
         {
             var enemyData = new EnemyData(enemyDataProvider(idAndNumber.x));
@@ -25,6 +32,7 @@ public class EnemyCamp
             for (int i = 0; i < idAndNumber.y; i++)
             {
                 var enemy = EnemyEntity.pool.GetItem((enemyData, pos));
+                configureEnemy?.Invoke(enemy);
                 enemyList.Add(enemy);
             }
         }

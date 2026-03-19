@@ -8,17 +8,11 @@ using YOTO;
 
 public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>,IDamageable,IThreatTarget,ITickable
 {
-    private static ICoroutineRunner coroutineRunner;
-    private static System.Action<EnemyEntity> removeEnemyAction;
-
-    public static void Configure(ICoroutineRunner runner, System.Action<EnemyEntity> removeEnemy)
-    {
-        coroutineRunner = runner;
-        removeEnemyAction = removeEnemy;
-    }
-
     public static DataObjPool<EnemyEntity, (EnemyData, Vector3)> pool =
         new DataObjPool<EnemyEntity, (EnemyData, Vector3)>("EnemyEntity", 200);
+
+    private ICoroutineRunner coroutineRunner;
+    private System.Action<EnemyEntity> removeEnemyAction;
 
     public IGotSeeker seeker;
     public bool NeedRound = false;
@@ -93,6 +87,12 @@ public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>,IDamageabl
     public void AfterIntoObjectPool()
     {
         RecoverObject();
+    }
+
+    public void ConfigureRuntime(ICoroutineRunner runner, System.Action<EnemyEntity> removeEnemy)
+    {
+        coroutineRunner = runner;
+        removeEnemyAction = removeEnemy;
     }
 
     public EnemyData enemyConfig;

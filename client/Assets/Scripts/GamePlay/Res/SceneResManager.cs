@@ -4,9 +4,9 @@ using UnityEngine;
 public class SceneResManager : IGameService
 {
     public RewardBoxDataSO RewardDataSO;
-    List<IUsable> resList = new List<IUsable>();
+    private readonly List<IUsable> resList = new List<IUsable>();
 
-    BagSystem bagSystem;
+    private UIMgr uiMgr;
 
     public bool GetNearestRes(Vector3 pos, float range, out IUsable res)
     {
@@ -27,13 +27,20 @@ public class SceneResManager : IGameService
     {
         RewardDataSO = Resources.Load<RewardBoxDataSO>("Config/RewardBoxDataSO");
         resList.Clear();
-        ResBoxEntity.Configure(ctx.Get<UIMgr>(), this);
+        uiMgr = ctx.Get<UIMgr>();
     }
 
     public void Shutdown()
     {
-        ResBoxEntity.Configure(null, null);
+        uiMgr = null;
         RewardDataSO = null;
         resList.Clear();
+    }
+
+    public ResBoxEntity CreateResBox(ResBoxInfo info)
+    {
+        var entity = ResBoxEntity.pool.GetItem(info);
+        entity.ConfigureRuntime(uiMgr, this);
+        return entity;
     }
 }

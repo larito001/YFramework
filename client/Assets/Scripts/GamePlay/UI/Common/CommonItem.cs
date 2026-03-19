@@ -11,7 +11,6 @@ public class CommonItem : YOTOScrollViewItem
     public TextMeshProUGUI itemName;
     public Image itemIcon;
     private int towerId;
-    TowerBaseCtrlEntity towerBase;
 
     public void SetData(Vector2Int item)
     {

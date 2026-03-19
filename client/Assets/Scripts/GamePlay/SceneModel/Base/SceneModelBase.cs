@@ -2,21 +2,15 @@ using UnityEngine;
 
 public class SceneModelBase : MonoBehaviour
 {
-    private static UIMgr sharedUiMgr;
-
-    public static void Configure(UIMgr uiMgr)
-    {
-        sharedUiMgr = uiMgr;
-    }
-
     protected ObjectBase _objectBase;
     private I2DColliderHandler _2dCollider;
     private I2DTriggerHandler _2dTrigger;
     private I3DColliderHandler _3dCollider;
     private I3DTriggerHandler _3dTrigger;
     private IClickable _clickable;
+    private UIMgr uiMgr;
 
-    protected UIMgr UIManager => sharedUiMgr;
+    protected UIMgr UIManager => uiMgr;
 
     public bool TryGetEntity<T>(out T handler) where T : class
     {
@@ -32,6 +26,11 @@ public class SceneModelBase : MonoBehaviour
         _3dCollider = _objectBase as I3DColliderHandler;
         _3dTrigger = _objectBase as I3DTriggerHandler;
         _clickable = _objectBase as IClickable;
+    }
+
+    public void Inject(UIMgr manager)
+    {
+        uiMgr = manager;
     }
 
     public void BeforeRemove()

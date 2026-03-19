@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using UnityEngine;
 using YOTO;
 
@@ -19,10 +20,13 @@ public class UIPageHandler
     private UIPageBase page;
     private UILayer layer;
     private string resourceKey;
+    private float closeDestroyDelay;
     private Action onLoadComplete;
     private UIEnum uiType;
     private object param;
     private bool shouldStayHidden;
+    private readonly ICoroutineRunner coroutineRunner;
+    private Coroutine pendingDestroyCoroutine;
 
     public PageState CurrentState { get; private set; } = PageState.Unloaded;
 
@@ -31,14 +35,17 @@ public class UIPageHandler
         uiMgr = manager;
         resMgr = resourceManager;
         context = gameContext;
+        coroutineRunner = gameContext.Get<ICoroutineRunner>();
     }
 
-    public void Init(string key, UIEnum type, object showParam)
+    public void Init(string key, UIEnum type, object showParam, float autoDestroyDelay)
     {
         resourceKey = key;
         uiType = type;
         param = showParam;
+        closeDestroyDelay = autoDestroyDelay;
         shouldStayHidden = false;
+        CancelPendingDestroy();
     }
 
     public void OnResize()
@@ -57,6 +64,7 @@ public class UIPageHandler
 
         if (HasInstantiatedPage())
         {
+            CancelPendingDestroy();
             page.transform.SetParent(layer.layerRoot.transform, false);
             onLoadComplete?.Invoke();
             onLoadComplete = null;
@@ -78,16 +86,19 @@ public class UIPageHandler
         shouldStayHidden = true;
         if (!HasInstantiatedPage() || CurrentState == PageState.Hidden)
         {
+            ScheduleDestroyIfNeeded();
             return;
         }
 
         page.Exit();
         page.OnHide();
         CurrentState = PageState.Hidden;
+        ScheduleDestroyIfNeeded();
     }
 
     public void Destroy()
     {
+        CancelPendingDestroy();
         shouldStayHidden = true;
         if (!HasInstantiatedPage())
         {
@@ -147,6 +158,7 @@ public class UIPageHandler
             if (shouldStayHidden)
             {
                 CurrentState = PageState.Hidden;
+                ScheduleDestroyIfNeeded();
                 return;
             }
 
@@ -171,11 +183,45 @@ public class UIPageHandler
         page.BeforeShow(param);
         page.OnShow();
         shouldStayHidden = false;
+        CancelPendingDestroy();
         CurrentState = PageState.Shown;
     }
 
     private bool HasInstantiatedPage()
     {
         return page != null && page.gameObject != null;
+    }
+
+    private void ScheduleDestroyIfNeeded()
+    {
+        CancelPendingDestroy();
+        if (closeDestroyDelay <= 0f || CurrentState != PageState.Hidden)
+        {
+            return;
+        }
+
+        pendingDestroyCoroutine = coroutineRunner.Run(DestroyAfterDelay());
+    }
+
+    private void CancelPendingDestroy()
+    {
+        if (pendingDestroyCoroutine == null)
+        {
+            return;
+        }
+
+        coroutineRunner.Stop(pendingDestroyCoroutine);
+        pendingDestroyCoroutine = null;
+    }
+
+    private IEnumerator DestroyAfterDelay()
+    {
+        yield return new WaitForSeconds(closeDestroyDelay);
+        pendingDestroyCoroutine = null;
+
+        if (CurrentState == PageState.Hidden && shouldStayHidden)
+        {
+            Destroy();
+        }
     }
 }
