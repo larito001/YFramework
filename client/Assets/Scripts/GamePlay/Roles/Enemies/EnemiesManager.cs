@@ -18,6 +18,7 @@ public class EnemiesManager : IGameService
     public Dictionary<int, EnemyGroupData> enemyGroupdata = new();
     public Dictionary<int, EnemyData> enemyDatas = new();
     private ICoroutineRunner coroutineRunner;
+    private GotAStarManager aStarManager;
 
  
     
@@ -101,6 +102,7 @@ public class EnemiesManager : IGameService
     public void Init(GameContext ctx)
     {
         coroutineRunner = ctx.Get<ICoroutineRunner>();
+        aStarManager = ctx.Get<GotAStarManager>();
         nightCamp = CreateCamp();
     }
 
@@ -115,6 +117,7 @@ public class EnemiesManager : IGameService
         nightCamp?.ClearAllEnemies();
         nightCamp = null;
         coroutineRunner = null;
+        aStarManager = null;
     }
 
     private EnemyData GetEnemyData(int enemyId)
@@ -134,6 +137,6 @@ public class EnemiesManager : IGameService
 
     private void ConfigureEnemy(EnemyEntity enemy)
     {
-        enemy.ConfigureRuntime(coroutineRunner, RemoveEnemy);
+        enemy.ConfigureRuntime(coroutineRunner, RemoveEnemy, aStarManager);
     }
 }

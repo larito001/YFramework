@@ -41,14 +41,7 @@ public class GameMainPanel : UIPageBase
 
     private void OnRefreshTime()
     {
-        var dayNightManager = GetService<GameDayNightManager>();
-        var nextTimeText = dayNightManager.GetTime();
-        if (time.text != nextTimeText)
-        {
-            dayIcon.SetActive(dayNightManager.IsDay());
-            nightIcon.SetActive(!dayNightManager.IsDay());
-            time.text = nextTimeText;
-        }
+
     }
 
     private void RefreshTrainHP()

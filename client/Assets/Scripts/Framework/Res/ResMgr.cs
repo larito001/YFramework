@@ -17,16 +17,7 @@ namespace YOTO
         private readonly Dictionary<string, CachedResource<GameObject>> prefabCache = new();
         private readonly Dictionary<string, CachedResource<AudioClip>> audioCache = new();
         private readonly Dictionary<string, CachedResource<TextAsset>> textCache = new();
-
-        private ResLoader<T> CreateLoader<T>() where T : Object
-        {
-            return ResLoader<T>.pool.GetItem(Vector3.zero);
-        }
-
-        private void RecycleLoader<T>(ResLoader<T> loader) where T : Object
-        {
-            ResLoader<T>.pool.RecoverItem(loader);
-        }
+        private ICoroutineRunner runner;
 
         public void Init()
         {
@@ -46,19 +37,16 @@ namespace YOTO
                 return;
             }
 
-            var loader = CreateLoader<GameObject>();
-            loader.LoadAsync(path, loadedAsset =>
+            LoadAsyncResource<GameObject>(path, loadedAsset =>
             {
                 if (loadedAsset == null)
                 {
                     callback(null);
-                    RecycleLoader(loader);
                     return;
                 }
 
                 prefabCache[path] = new CachedResource<GameObject> { asset = loadedAsset, refCount = 1 };
                 callback(loadedAsset);
-                RecycleLoader(loader);
             });
         }
 
@@ -71,19 +59,16 @@ namespace YOTO
                 return;
             }
 
-            var loader = CreateLoader<AudioClip>();
-            loader.LoadAsync(path, loadedAsset =>
+            LoadAsyncResource<AudioClip>(path, loadedAsset =>
             {
                 if (loadedAsset == null)
                 {
                     callback(null);
-                    RecycleLoader(loader);
                     return;
                 }
 
                 audioCache[path] = new CachedResource<AudioClip> { asset = loadedAsset, refCount = 1 };
                 callback(loadedAsset);
-                RecycleLoader(loader);
             });
         }
 
@@ -96,19 +81,16 @@ namespace YOTO
                 return;
             }
 
-            var loader = CreateLoader<TextAsset>();
-            loader.LoadAsync(path, loadedAsset =>
+            LoadAsyncResource<TextAsset>(path, loadedAsset =>
             {
                 if (loadedAsset == null)
                 {
                     callback(null);
-                    RecycleLoader(loader);
                     return;
                 }
 
                 textCache[path] = new CachedResource<TextAsset> { asset = loadedAsset, refCount = 1 };
                 callback(loadedAsset);
-                RecycleLoader(loader);
             });
         }
 
@@ -158,9 +140,7 @@ namespace YOTO
 
         public void Init(GameContext ctx)
         {
-            ResLoader<GameObject>.Configure(ctx.Get<ICoroutineRunner>());
-            ResLoader<AudioClip>.Configure(ctx.Get<ICoroutineRunner>());
-            ResLoader<TextAsset>.Configure(ctx.Get<ICoroutineRunner>());
+            runner = ctx.Get<ICoroutineRunner>();
         }
 
         public void Shutdown()
@@ -168,7 +148,34 @@ namespace YOTO
             prefabCache.Clear();
             audioCache.Clear();
             textCache.Clear();
+            runner = null;
             GC.Collect();
+        }
+
+        private void LoadAsyncResource<T>(string path, Action<T> callback) where T : Object
+        {
+            if (string.IsNullOrEmpty(path))
+            {
+                Debug.LogError("Resource path is null or empty.");
+                callback(null);
+                return;
+            }
+
+            if (runner == null)
+            {
+                Debug.LogError("ResMgr runner is not configured.");
+                callback(null);
+                return;
+            }
+
+            runner.Run(LoadResourceCoroutine(path, callback));
+        }
+
+        private IEnumerator LoadResourceCoroutine<T>(string path, Action<T> callback) where T : Object
+        {
+            var request = Resources.LoadAsync<T>(path);
+            yield return request;
+            callback(request.asset as T);
         }
 
         private void ReleasePrefabReference(string path)

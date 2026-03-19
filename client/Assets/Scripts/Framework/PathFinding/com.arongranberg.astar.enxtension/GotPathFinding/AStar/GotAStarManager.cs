@@ -11,16 +11,16 @@ public class GotAStarManager : IGotPathFindingManager
     public const string keyPointPath = "Assets/Script/Editor/PathFinding/linePoints";
     public const string basePath = "Config/Astar/";
 
-    private static SceneReferenceService sceneReferenceService;
-    private static ResMgr resMgr;
+    private readonly SceneReferenceService sceneReferenceService;
+    private readonly ResMgr resMgr;
 
-    public static void Configure(SceneReferenceService referenceService, ResMgr resourceManager)
+    public GotAStarManager(SceneReferenceService referenceService, ResMgr resourceManager)
     {
         sceneReferenceService = referenceService;
         resMgr = resourceManager;
     }
 
-    public static void Unload()
+    public void Unload()
     {
     }
 
@@ -35,7 +35,6 @@ public class GotAStarManager : IGotPathFindingManager
     public void LoadPathFinding(UnityAction callback, string[] graphList)
     {
         graphCount = graphList.Length;
-        PathFindingFactory.Init(PathFindingType.AStar);
         loadCompeleteCallBack = callback;
 
         if (sceneReferenceService.TryGetTransform(SceneReferenceKeys.AStarRoot, out var astarTransform))
@@ -88,8 +87,24 @@ public class GotAStarManager : IGotPathFindingManager
     {
         ClearGraph();
         aiDic.Clear();
-        PathFindingFactory.Uload();
         GameObject.Destroy(astarPathObj);
+    }
+
+    public GotAStarSeeker CreateSeeker(ICoroutineRunner runner)
+    {
+        var seeker = GotAStarSeeker.pool.GetItem(null);
+        seeker.ConfigureRuntime(runner, this);
+        return seeker;
+    }
+
+    public GotAStartObstacle CreateObstacle()
+    {
+        return GotAStartObstacle.pool.GetItem(null);
+    }
+
+    public GotAStarLinker CreateLinker()
+    {
+        return GotAStarLinker.pool.GetItem(null);
     }
 
     public void SetGraph(string path, UnityAction callback)

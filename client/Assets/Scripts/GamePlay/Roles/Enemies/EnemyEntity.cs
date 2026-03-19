@@ -13,6 +13,7 @@ public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>,IDamageabl
 
     private ICoroutineRunner coroutineRunner;
     private System.Action<EnemyEntity> removeEnemyAction;
+    private GotAStarManager pathFindingManager;
 
     public IGotSeeker seeker;
     public bool NeedRound = false;
@@ -54,7 +55,12 @@ public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>,IDamageabl
     protected override void AfterInstanceGObj()
     {
         OnPathComplete = null;
-        seeker = PathFindingFactory.GetSeeker();
+        seeker = pathFindingManager?.CreateSeeker(coroutineRunner);
+        if (seeker == null)
+        {
+            Debug.LogError("Pathfinding seeker is not available.");
+            return;
+        }
         var config = new AStarHighSeekerConfig(objTrans.gameObject);
         config.UseObstacleAvoidance = true;
         config.modifierType = ModifierType.FunnelModifier;
@@ -89,10 +95,11 @@ public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>,IDamageabl
         RecoverObject();
     }
 
-    public void ConfigureRuntime(ICoroutineRunner runner, System.Action<EnemyEntity> removeEnemy)
+    public void ConfigureRuntime(ICoroutineRunner runner, System.Action<EnemyEntity> removeEnemy, GotAStarManager manager)
     {
         coroutineRunner = runner;
         removeEnemyAction = removeEnemy;
+        pathFindingManager = manager;
     }
 
     public EnemyData enemyConfig;

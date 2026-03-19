@@ -1,5 +1,4 @@
 using HotUpdate.Scripts.Framework.Pool.newPool;
-using NoSLoofah.BuffSystem.Manager;
 using Unity.VisualScripting;
 using YOTO;
 
@@ -13,8 +12,6 @@ public static partial class GameBootstrapper
     public static GameContext BuildContext()
     {
         var ctx = new GameContext();
-        ctx.Register(new GameRuntimeConfig(GameLoop.Instance.isTest, GameLoop.Instance.buffCollection, GameLoop.Instance.buffData));
-
         ctx.Register(new TestService());
 
         // Framework services only. Project-specific services are injected via partial methods.
@@ -34,8 +31,6 @@ public static partial class GameBootstrapper
         ctx.Register(sceneManager);
 
         ctx.Register(new FlyTextMgr());
-        ctx.Register(new BuffManager());
-
         var runner = GameLoop.Instance.GetComponent<CoroutineRunner>();
         if (runner == null)
         {
@@ -43,9 +38,8 @@ public static partial class GameBootstrapper
         }
 
         ctx.Register<ICoroutineRunner>(runner);
-        var aStarManager = new GotAStarManager();
-        GotAStarManager.Configure(ctx.Get<SceneReferenceService>(), ctx.Get<ResMgr>());
-        GotAStarSeeker.Configure(ctx.Get<ICoroutineRunner>(), aStarManager);
+        var aStarManager = new GotAStarManager(ctx.Get<SceneReferenceService>(), ctx.Get<ResMgr>());
+        ctx.Register(aStarManager);
         RegisterProjectServices(ctx);
 
         return ctx;

@@ -11,15 +11,6 @@ using YOTO;
 [HelpURL("https://arongranberg.com/astar/documentation/stable/changelog.html")]
 public class GotAStarSeeker : IGotSeeker, PoolItem<object>
 {
-    private static ICoroutineRunner coroutineRunner;
-    private static GotAStarManager pathFindingManager;
-
-    public static void Configure(ICoroutineRunner runner, GotAStarManager manager)
-    {
-        coroutineRunner = runner;
-        pathFindingManager = manager;
-    }
-
     public static DataObjPool<GotAStarSeeker, object> pool =
         new DataObjPool<GotAStarSeeker, object>("GotAStarSeeker", 50);
 
@@ -35,6 +26,8 @@ public class GotAStarSeeker : IGotSeeker, PoolItem<object>
     private List<Vector3> pathBuffer = new List<Vector3>();
     private GraphMaskTraversalProvider _graphMaskTraversalProvider = null;
     private RVOController _rvoController = null;
+    private ICoroutineRunner coroutineRunner;
+    private GotAStarManager pathFindingManager;
 
 
     //尽量不要频繁调用
@@ -260,6 +253,12 @@ public class GotAStarSeeker : IGotSeeker, PoolItem<object>
     public void SetData(object serverData)
     {
         isInPool = false;
+    }
+
+    public void ConfigureRuntime(ICoroutineRunner runner, GotAStarManager manager)
+    {
+        coroutineRunner = runner;
+        pathFindingManager = manager;
     }
 
     public void Init(PathFindingSeekerConfig config = null)
