@@ -109,14 +109,21 @@ public class BagSystem
     {
         eventMgr = ctx.Get<EventMgr>();
         itemList.Clear();
+        itemDatas.Clear();
 
-        var itemDataSO = Resources.Load<ItemDataSO>("Config/ItemsData");
+        using var itemDataHandle = ctx.Get<ResMgr>().LoadHandle<ItemDataSO>("Config/ItemsData");
+        var itemDataSO = itemDataHandle?.Asset;
+        if (itemDataSO == null)
+        {
+            Debug.LogError("[BagSystem] Failed to load item config: Config/ItemsData");
+            return;
+        }
+
         for (var i = 0; i < itemDataSO.ItemDatas.Count; i++)
         {
             itemDatas.Add(new ItemData(itemDataSO.ItemDatas[i]));
         }
 
-        Resources.UnloadAsset(itemDataSO);
         eventMgr.TriggerEvent(YOTOEventType.RefreshBagList);
     }
 }

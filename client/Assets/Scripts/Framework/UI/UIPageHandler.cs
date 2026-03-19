@@ -18,6 +18,7 @@ public class UIPageHandler
     private readonly GameContext context;
 
     private UIPageBase page;
+    private ResourceHandle<GameObject> prefabHandle;
     private UILayer layer;
     private string resourceKey;
     private float closeDestroyDelay;
@@ -81,7 +82,7 @@ public class UIPageHandler
         }
 
         CurrentState = PageState.Loading;
-        resMgr.LoadUI(resourceKey, OnLoaded);
+        resMgr.LoadHandleAsync<GameObject>(resourceKey, OnLoaded);
     }
 
     public void OnHide()
@@ -105,6 +106,7 @@ public class UIPageHandler
         shouldStayHidden = true;
         if (!HasInstantiatedPage())
         {
+            ReleasePrefabHandle();
             return;
         }
 
@@ -113,15 +115,19 @@ public class UIPageHandler
         var pageObject = page.gameObject;
         page = null;
         CurrentState = PageState.Unloaded;
-        resMgr.ReleasePack(resourceKey, pageObject);
+        UnityEngine.Object.Destroy(pageObject);
+        ReleasePrefabHandle();
     }
 
-    private void OnLoaded(GameObject prefab)
+    private void OnLoaded(ResourceHandle<GameObject> handle)
     {
+        prefabHandle = handle;
+        var prefab = handle?.Asset;
         if (prefab == null)
         {
             Debug.LogError($"[UIPageHandler] Failed to load UI prefab: key={resourceKey}");
             CurrentState = PageState.Unloaded;
+            ReleasePrefabHandle();
             return;
         }
 
@@ -133,7 +139,8 @@ public class UIPageHandler
             {
                 Debug.LogError($"[UIPageHandler] UI prefab does not contain UIPageBase: key={resourceKey}");
                 CurrentState = PageState.Unloaded;
-                resMgr.ReleasePack(resourceKey, pageObject);
+                UnityEngine.Object.Destroy(pageObject);
+                ReleasePrefabHandle();
                 return;
             }
 
@@ -141,7 +148,8 @@ public class UIPageHandler
             {
                 Debug.LogError($"[UIPageHandler] UI prefab page type mismatch: key={resourceKey}, expected={expectedPageType.Name}, actual={pageComponent.GetType().Name}");
                 CurrentState = PageState.Unloaded;
-                resMgr.ReleasePack(resourceKey, pageObject);
+                UnityEngine.Object.Destroy(pageObject);
+                ReleasePrefabHandle();
                 return;
             }
 
@@ -153,7 +161,8 @@ public class UIPageHandler
                 var invalidPageObject = page.gameObject;
                 page = null;
                 CurrentState = PageState.Unloaded;
-                resMgr.ReleasePack(resourceKey, invalidPageObject);
+                UnityEngine.Object.Destroy(invalidPageObject);
+                ReleasePrefabHandle();
                 return;
             }
 
@@ -179,6 +188,13 @@ public class UIPageHandler
         {
             CurrentState = PageState.Unloaded;
             Debug.LogError($"[UIPageHandler] Exception while creating UI '{resourceKey}': {e}");
+            if (page != null && page.gameObject != null)
+            {
+                UnityEngine.Object.Destroy(page.gameObject);
+                page = null;
+            }
+
+            ReleasePrefabHandle();
         }
     }
 
@@ -234,5 +250,11 @@ public class UIPageHandler
         {
             Destroy();
         }
+    }
+
+    private void ReleasePrefabHandle()
+    {
+        prefabHandle?.Release();
+        prefabHandle = null;
     }
 }

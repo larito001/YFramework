@@ -43,6 +43,7 @@ namespace HotUpdate.Scripts.Framework.Pool.newPool
             private readonly ResMgr resMgr;
             private string resPath;
             private GameObject template;
+            private ResourceHandle<GameObject> templateHandle;
             private bool isLoading;
             private event Action<GameObject, string, bool> getItemCompleteCallbacks;
             private event Action loadCompleteCallbacks;
@@ -162,11 +163,9 @@ namespace HotUpdate.Scripts.Framework.Pool.newPool
             {
                 name = string.Empty;
 
-                if (template != null)
-                {
-                    GameObject.Destroy(template);
-                    template = null;
-                }
+                template = null;
+                templateHandle?.Release();
+                templateHandle = null;
 
                 if (items != null)
                 {
@@ -205,9 +204,11 @@ namespace HotUpdate.Scripts.Framework.Pool.newPool
                 }
 
                 isLoading = true;
-                resMgr.LoadGameObject(resPath, templateObj =>
+                resMgr.LoadHandleAsync<GameObject>(resPath, handle =>
                 {
                     isLoading = false;
+                    templateHandle = handle;
+                    var templateObj = handle?.Asset;
                     if (templateObj == null)
                     {
                         Debug.LogError("Missing resource: " + resPath);
@@ -216,11 +217,11 @@ namespace HotUpdate.Scripts.Framework.Pool.newPool
 
                     if (rootTrans == null)
                     {
-                        GameObject.Destroy(templateObj);
+                        templateHandle?.Release();
+                        templateHandle = null;
                         return;
                     }
 
-                    templateObj.SetActive(false);
                     template = templateObj;
                     InvokeLoadCompleteCallbacks();
                 });

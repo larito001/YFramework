@@ -115,15 +115,29 @@ public class GotAStarManager : IGotPathFindingManager
 
     public void AddGraph(string path, UnityAction callback)
     {
-        resMgr.LoadBytes(path, textAsset =>
+        resMgr.LoadHandleAsync<TextAsset>(path, handle =>
         {
-            AstarPath.active.data.DeserializeGraphsAdditive(textAsset.bytes);
-            if (AstarPath.active.data.pointGraph != null)
+            var textAsset = handle?.Asset;
+            if (textAsset == null)
             {
-                AstarPath.active.data.pointGraph.maxDistance = 10;
+                callback?.Invoke();
+                return;
             }
 
-            callback?.Invoke();
+            try
+            {
+                AstarPath.active.data.DeserializeGraphsAdditive(textAsset.bytes);
+                if (AstarPath.active.data.pointGraph != null)
+                {
+                    AstarPath.active.data.pointGraph.maxDistance = 10;
+                }
+
+                callback?.Invoke();
+            }
+            finally
+            {
+                handle.Release();
+            }
         });
     }
 
