@@ -28,7 +28,7 @@ public class FlyTextMgr : IGameService, ITickable
     private readonly Queue<FlyTextData> flyTextQueue = new Queue<FlyTextData>();
     private int generateNumPerFrame = 200;
     private Camera cam;
-    private UIMgr uiMgr;
+    private IUIService uiMgr;
 
     public void Init(int perFrame = 1)
     {
@@ -67,7 +67,13 @@ public class FlyTextMgr : IGameService, ITickable
     {
         for (int index = 0; flyTextQueue.Count > 0 && index < generateNumPerFrame; index++)
         {
-            FlyTextCtrl textBatcher = FlyTextCtrl.pool.GetItem(uiMgr.GetLayer(UILayerEnum.PopText).layerRoot.transform);
+            var layerRoot = uiMgr?.GetLayerRoot(UILayerEnum.PopText);
+            if (layerRoot == null)
+            {
+                return;
+            }
+
+            FlyTextCtrl textBatcher = FlyTextCtrl.pool.GetItem(layerRoot);
             textBatcher.InstanceGObj();
             textBatcher.Fly(flyTextQueue.Dequeue());
         }

@@ -33,6 +33,8 @@ public abstract class GotSceneBase
         return Context.Get<T>();
     }
 
+    protected IUIService UI => GetService<UIMgr>();
+
     protected virtual void OnCreate()
     {
     }

@@ -54,6 +54,6 @@ public class GameMainPanel : UIPageBase
 
     private void OnBagBtnClick()
     {
-        UIManager.Show(UIEnum.BagPanel);
+        Show<BagPanel>();
     }
 }

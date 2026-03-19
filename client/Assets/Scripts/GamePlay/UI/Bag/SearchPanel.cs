@@ -3,20 +3,18 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class SearchPanel : UIPageBase
+public class SearchPanel : UIPageBase<List<Vector2Int>>
 {
     public YOTOScrollView bagList;
     public Button closeBtn;
     public YOTOScrollView searchList;
+
     public override void OnLoad()
     {
     }
 
-    private List<Vector2Int> rewardList;
-    public override void BeforeShow(object param)
+    protected override void OnBeforeShow(List<Vector2Int> param)
     {
-        rewardList = (List<Vector2Int>)param;
-        base.BeforeShow(param);
     }
 
     public override void OnShow()
@@ -26,13 +24,13 @@ public class SearchPanel : UIPageBase
         bagList.SetRenderer(ItemRender);
         searchList.Initialize();
         searchList.SetRenderer(SearchRender);
-        searchList.SetData(rewardList.Count);
+        searchList.SetData(PageParam.Count);
     }
 
     private void SearchRender(YOTOScrollViewItem obj, int index)
     {
         var item = obj as CommonItem;
-        item.SetData(rewardList[index]);
+        item.SetData(PageParam[index]);
     }
 
     private void ItemRender(YOTOScrollViewItem obj, int index)

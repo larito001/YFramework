@@ -13,12 +13,12 @@ public class ResBoxEntity : ObjectBase, PoolItem<ResBoxInfo>, IUsable
         new DataObjPool<ResBoxEntity, ResBoxInfo>("ResBoxEntity", 50);
 
     private readonly List<Vector2Int> rewardList = new List<Vector2Int>();
-    private UIMgr uiMgr;
+    private IUIService uiMgr;
     private SceneResManager sceneResManager;
     private ResBoxInfo? pendingInfo;
     public int boxId;
 
-    public void ConfigureRuntime(UIMgr manager, SceneResManager managerOwner)
+    public void ConfigureRuntime(IUIService manager, SceneResManager managerOwner)
     {
         uiMgr = manager;
         sceneResManager = managerOwner;
@@ -27,7 +27,7 @@ public class ResBoxEntity : ObjectBase, PoolItem<ResBoxInfo>, IUsable
 
     public void OnUse(IUser user)
     {
-        uiMgr?.Show(UIEnum.SearchPanel, rewardList);
+        uiMgr?.Show<SearchPanel>(rewardList);
     }
 
     public Vector3 GetPosition()

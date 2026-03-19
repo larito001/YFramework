@@ -18,7 +18,7 @@ public class GameStartScene : GotSceneBase
     protected override void OnLoadingEnd()
     {
         base.OnLoadingEnd();
-        GetService<UIMgr>().Hide(UIEnum.StartPanel);
+        UI.Hide<StartPanel>();
     }
 
     protected override void OnEnterScene()

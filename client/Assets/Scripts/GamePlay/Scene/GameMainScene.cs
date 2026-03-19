@@ -10,8 +10,8 @@ public class GameMainScene : GotSceneBase
     protected override void OnLoadingEnd()
     {
         base.OnLoadingEnd();
-        GetService<UIMgr>().Show(UIEnum.GameMainPanel);
-        GetService<UIMgr>().Hide(UIEnum.StartPanel);
+        UI.Show<GameMainPanel>();
+        UI.Hide<StartPanel>();
     }
 
     protected override void OnEnterScene()

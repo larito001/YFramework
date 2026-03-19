@@ -6,7 +6,7 @@ public class SceneResManager : IGameService
     public RewardBoxDataSO RewardDataSO;
     private readonly List<IUsable> resList = new List<IUsable>();
 
-    private UIMgr uiMgr;
+    private IUIService uiMgr;
 
     public bool GetNearestRes(Vector3 pos, float range, out IUsable res)
     {

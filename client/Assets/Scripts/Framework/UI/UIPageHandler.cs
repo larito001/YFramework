@@ -21,6 +21,7 @@ public class UIPageHandler
     private UILayer layer;
     private string resourceKey;
     private float closeDestroyDelay;
+    private Type expectedPageType;
     private Action onLoadComplete;
     private UIEnum uiType;
     private object param;
@@ -29,6 +30,7 @@ public class UIPageHandler
     private Coroutine pendingDestroyCoroutine;
 
     public PageState CurrentState { get; private set; } = PageState.Unloaded;
+    public UIPageBase Page => page;
 
     public UIPageHandler(UIMgr manager, ResMgr resourceManager, GameContext gameContext)
     {
@@ -38,12 +40,13 @@ public class UIPageHandler
         coroutineRunner = gameContext.Get<ICoroutineRunner>();
     }
 
-    public void Init(string key, UIEnum type, object showParam, float autoDestroyDelay)
+    public void Init(string key, UIEnum type, object showParam, float autoDestroyDelay, Type pageType)
     {
         resourceKey = key;
         uiType = type;
         param = showParam;
         closeDestroyDelay = autoDestroyDelay;
+        expectedPageType = pageType;
         shouldStayHidden = false;
         CancelPendingDestroy();
     }
@@ -129,6 +132,14 @@ public class UIPageHandler
             if (pageComponent == null)
             {
                 Debug.LogError($"[UIPageHandler] UI prefab does not contain UIPageBase: key={resourceKey}");
+                CurrentState = PageState.Unloaded;
+                resMgr.ReleasePack(resourceKey, pageObject);
+                return;
+            }
+
+            if (expectedPageType != null && !expectedPageType.IsInstanceOfType(pageComponent))
+            {
+                Debug.LogError($"[UIPageHandler] UI prefab page type mismatch: key={resourceKey}, expected={expectedPageType.Name}, actual={pageComponent.GetType().Name}");
                 CurrentState = PageState.Unloaded;
                 resMgr.ReleasePack(resourceKey, pageObject);
                 return;

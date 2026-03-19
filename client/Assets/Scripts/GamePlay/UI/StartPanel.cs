@@ -21,7 +21,7 @@ public class StartPanel : UIPageBase
 
     private void OnSettingClick()
     {
-        UIManager.Show(UIEnum.SettingPanel);
+        Show<SettingPanel>();
     }
 
     private void OnNewClick()

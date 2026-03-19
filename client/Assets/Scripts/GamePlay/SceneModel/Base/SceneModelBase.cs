@@ -8,9 +8,9 @@ public class SceneModelBase : MonoBehaviour
     private I3DColliderHandler _3dCollider;
     private I3DTriggerHandler _3dTrigger;
     private IClickable _clickable;
-    private UIMgr uiMgr;
+    private IUIService uiMgr;
 
-    protected UIMgr UIManager => uiMgr;
+    protected IUIService UIManager => uiMgr;
 
     public bool TryGetEntity<T>(out T handler) where T : class
     {
@@ -28,7 +28,7 @@ public class SceneModelBase : MonoBehaviour
         _clickable = _objectBase as IClickable;
     }
 
-    public void Inject(UIMgr manager)
+    public void Inject(IUIService manager)
     {
         uiMgr = manager;
     }

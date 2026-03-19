@@ -61,7 +61,7 @@ public class UILayer
             handlers[info.uiEnum] = handler;
         }
 
-        handler.Init(info.key, info.uiEnum, param, info.closeDestroyDelay);
+        handler.Init(info.key, info.uiEnum, param, info.closeDestroyDelay, info.pageType);
         handler.SetLoadCallback(() => { });
         handler.Load(this);
     }
@@ -96,9 +96,21 @@ public class UILayer
             uiLayer.Value.OnResize();
         }
     }
+
+    public bool TryGetPage<TPage>(UIEnum uiEnum, out TPage page) where TPage : UIPageBase
+    {
+        if (handlers.TryGetValue(uiEnum, out var handler) && handler.Page is TPage typedPage)
+        {
+            page = typedPage;
+            return true;
+        }
+
+        page = null;
+        return false;
+    }
 }
 
-public class UIMgr : IGameService
+public class UIMgr : IGameService, IUIService
 {
     private readonly UIConfig uiConfig;
     private readonly Dictionary<UILayerEnum, UILayer> uiLayers = new Dictionary<UILayerEnum, UILayer>();
@@ -127,7 +139,7 @@ public class UIMgr : IGameService
     public void Show(UIEnum uiEnum, object param = null)
     {
         Debug.Log($"[UIMgr] Show: uiEnum={uiEnum}");
-        if (!uiConfig.uiConfigDic.TryGetValue(uiEnum, out UIInfo point))
+        if (!uiConfig.TryGet(uiEnum, out UIInfo point))
         {
             Debug.LogWarning($"[UIMgr] Show skipped because '{uiEnum}' is not configured.");
             return;
@@ -137,6 +149,17 @@ public class UIMgr : IGameService
         {
             layer.Show(point, param);
         }
+    }
+
+    public void Show<TPage>(object param = null) where TPage : UIPageBase
+    {
+        if (!uiConfig.TryGet<TPage>(out var info))
+        {
+            Debug.LogWarning($"[UIMgr] Show skipped because page '{typeof(TPage).Name}' is not configured.");
+            return;
+        }
+
+        Show(info.uiEnum, param);
     }
 
     public void OnUILoaded(GameObject uiObject)
@@ -150,11 +173,22 @@ public class UIMgr : IGameService
     public void Hide(UIEnum uiEnum)
     {
         Debug.Log($"[UIMgr] Hide: uiEnum={uiEnum}");
-        if (uiConfig.uiConfigDic.TryGetValue(uiEnum, out UIInfo point) &&
+        if (uiConfig.TryGet(uiEnum, out UIInfo point) &&
             uiLayers.TryGetValue(point.layer, out var layer))
         {
             layer.Hide(uiEnum);
         }
+    }
+
+    public void Hide<TPage>() where TPage : UIPageBase
+    {
+        if (!uiConfig.TryGet<TPage>(out var info))
+        {
+            Debug.LogWarning($"[UIMgr] Hide skipped because page '{typeof(TPage).Name}' is not configured.");
+            return;
+        }
+
+        Hide(info.uiEnum);
     }
 
     public void ShowLoading(object param = null)
@@ -192,6 +226,34 @@ public class UIMgr : IGameService
         {
             layer.Resize();
         }
+    }
+
+    public bool IsShown(UIEnum uiEnum)
+    {
+        if (!uiConfig.TryGet(uiEnum, out var info) ||
+            !uiLayers.TryGetValue(info.layer, out var layer) ||
+            !layer.handlers.TryGetValue(uiEnum, out var handler))
+        {
+            return false;
+        }
+
+        return handler.CurrentState == PageState.Shown;
+    }
+
+    public bool TryGetPage<TPage>(out TPage page) where TPage : UIPageBase
+    {
+        page = null;
+        if (!uiConfig.TryGet<TPage>(out var info))
+        {
+            return false;
+        }
+
+        return uiLayers.TryGetValue(info.layer, out var layer) && layer.TryGetPage(info.uiEnum, out page);
+    }
+
+    public Transform GetLayerRoot(UILayerEnum layerEnum)
+    {
+        return GetLayer(layerEnum)?.layerRoot?.transform;
     }
 
     public void Init(GameContext ctx)
