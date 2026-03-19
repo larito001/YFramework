@@ -74,13 +74,20 @@ public class UILayer
         }
     }
 
-    public void Clear()
+    public void Clear(bool destroy)
     {
         foreach (var uiPageHandler in handlers)
         {
             if (uiPageHandler.Key != UIEnum.LoadingPanel)
             {
-                uiPageHandler.Value.OnHide();
+                if (destroy)
+                {
+                    uiPageHandler.Value.Destroy();
+                }
+                else
+                {
+                    uiPageHandler.Value.OnHide();
+                }
             }
         }
     }
@@ -158,7 +165,7 @@ public class UIMgr : IGameService
         Debug.Log("[UIMgr] Clearing all UIs");
         foreach (var layer in uiLayers.Values)
         {
-            layer?.Clear();
+            layer?.Clear(false);
         }
     }
 
@@ -191,7 +198,18 @@ public class UIMgr : IGameService
 
     public void Shutdown()
     {
-        ClearUI();
+        foreach (var layer in uiLayers.Values)
+        {
+            layer?.Clear(true);
+        }
+
+        if (UIRoot != null)
+        {
+            Object.Destroy(UIRoot);
+            UIRoot = null;
+        }
+
+        uiLayers.Clear();
     }
 
     private void SetUILayerRecursively(GameObject obj)

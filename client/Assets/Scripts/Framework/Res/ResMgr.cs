@@ -6,7 +6,7 @@ using Object = UnityEngine.Object;
 
 namespace YOTO
 {
-    public class ResMgr:IGameService
+    public class ResMgr : IGameService
     {
         private class CachedResource<T> where T : Object
         {
@@ -14,11 +14,10 @@ namespace YOTO
             public int refCount;
         }
 
-        private Dictionary<string, CachedResource<GameObject>> prefabCache = new();
-        private Dictionary<string, CachedResource<AudioClip>> audioCache = new();
-        private Dictionary<string, CachedResource<TextAsset>> textCache = new();
+        private readonly Dictionary<string, CachedResource<GameObject>> prefabCache = new();
+        private readonly Dictionary<string, CachedResource<AudioClip>> audioCache = new();
+        private readonly Dictionary<string, CachedResource<TextAsset>> textCache = new();
 
-        // 创建 ResLoader
         private ResLoader<T> CreateLoader<T>() where T : Object
         {
             return ResLoader<T>.pool.GetItem(Vector3.zero);
@@ -29,154 +28,132 @@ namespace YOTO
             ResLoader<T>.pool.RecoverItem(loader);
         }
 
-        public void Init() { }
-
-        // 加载UI或Prefab
-        public void LoadUI(string key, Action<GameObject> callBack)
+        public void Init()
         {
-            LoadGameObject(key, callBack);
         }
 
-        public void LoadGameObject(string path, Action<GameObject> callBack)
+        public void LoadUI(string key, Action<GameObject> callback)
         {
-            // 检查缓存
+            LoadGameObject(key, callback);
+        }
+
+        public void LoadGameObject(string path, Action<GameObject> callback)
+        {
             if (prefabCache.TryGetValue(path, out var cached))
             {
                 cached.refCount++;
-                callBack(cached.asset);
+                callback(cached.asset);
                 return;
             }
 
-            ResLoader<GameObject> loader = CreateLoader<GameObject>();
-            loader.LoadAsync(path, (t) =>
+            var loader = CreateLoader<GameObject>();
+            loader.LoadAsync(path, loadedAsset =>
             {
-                if (t == null)
+                if (loadedAsset == null)
                 {
-                    callBack(null);
+                    callback(null);
                     RecycleLoader(loader);
                     return;
                 }
 
-                // 缓存Prefab
-                prefabCache[path] = new CachedResource<GameObject> { asset = t, refCount = 1 };
-                
-                callBack(t);
-
+                prefabCache[path] = new CachedResource<GameObject> { asset = loadedAsset, refCount = 1 };
+                callback(loadedAsset);
                 RecycleLoader(loader);
             });
         }
 
-        // 加载音频
-        public void LoadAudio(string path, Action<AudioClip> callBack)
+        public void LoadAudio(string path, Action<AudioClip> callback)
         {
             if (audioCache.TryGetValue(path, out var cached))
             {
                 cached.refCount++;
-                callBack(cached.asset);
+                callback(cached.asset);
                 return;
             }
 
-            ResLoader<AudioClip> loader = CreateLoader<AudioClip>();
-            loader.LoadAsync(path, (t) =>
+            var loader = CreateLoader<AudioClip>();
+            loader.LoadAsync(path, loadedAsset =>
             {
-                if (t == null)
+                if (loadedAsset == null)
                 {
-                    callBack(null);
+                    callback(null);
                     RecycleLoader(loader);
                     return;
                 }
 
-                audioCache[path] = new CachedResource<AudioClip> { asset = t, refCount = 1 };
-                callBack(t);
-
+                audioCache[path] = new CachedResource<AudioClip> { asset = loadedAsset, refCount = 1 };
+                callback(loadedAsset);
                 RecycleLoader(loader);
             });
         }
-        public void LoadBytes(string path, Action<TextAsset> callBack)
+
+        public void LoadBytes(string path, Action<TextAsset> callback)
         {
             if (textCache.TryGetValue(path, out var cached))
             {
                 cached.refCount++;
-                callBack(cached.asset);
+                callback(cached.asset);
                 return;
             }
 
-            ResLoader<TextAsset> loader = CreateLoader<TextAsset>();
-            loader.LoadAsync(path, (t) =>
+            var loader = CreateLoader<TextAsset>();
+            loader.LoadAsync(path, loadedAsset =>
             {
-                if (t == null)
+                if (loadedAsset == null)
                 {
-                    callBack(null);
+                    callback(null);
                     RecycleLoader(loader);
                     return;
                 }
 
-                textCache[path] = new CachedResource<TextAsset> { asset = t, refCount = 1 };
-                callBack(t);
-
+                textCache[path] = new CachedResource<TextAsset> { asset = loadedAsset, refCount = 1 };
+                callback(loadedAsset);
                 RecycleLoader(loader);
             });
         }
-        // 释放Prefab或Audio
+
         public void ReleasePack(string path, Object obj = null)
         {
             if (obj is GameObject)
             {
-                if (prefabCache.TryGetValue(path, out var cached))
-                {
-                    cached.refCount--;
-                    if (cached.refCount <= 0)
-                    {
-                        prefabCache.Remove(path);
-                        Resources.UnloadUnusedAssets(); 
- 
-                    }
-                }
-
-                // 回收实例化对象
+                ReleasePrefabReference(path);
                 Object.Destroy(obj);
+                return;
             }
-            else if (obj is AudioClip)
+
+            if (obj == null)
             {
-                if (audioCache.TryGetValue(path, out var cached))
+                ReleasePrefabReference(path);
+                return;
+            }
+
+            if (obj is AudioClip && audioCache.TryGetValue(path, out var cachedAudio))
+            {
+                cachedAudio.refCount--;
+                if (cachedAudio.refCount <= 0)
                 {
-                    cached.refCount--;
-                    if (cached.refCount <= 0)
-                    {
-                        Resources.UnloadAsset(cached.asset);
-                        audioCache.Remove(path);
-                    }
+                    Resources.UnloadAsset(cachedAudio.asset);
+                    audioCache.Remove(path);
                 }
             }
         }
 
-        public  IEnumerator OnChangeScene(Action callBack =null)
+        public IEnumerator OnChangeScene(Action callback = null)
         {
-            int time = 0;
-            while (time < 5)
+            for (int i = 0; i < 2; i++)
             {
-                time++;
                 yield return null;
             }
 
-            AsyncOperation unloadAsset = Resources.UnloadUnusedAssets();
+            var unloadAsset = Resources.UnloadUnusedAssets();
             while (!unloadAsset.isDone)
             {
                 yield return null;
             }
 
-            GC.Collect(); //GC回收
+            GC.Collect();
             yield return null;
-            GC.Collect(); //GC回收
-            yield return null;
-            GC.Collect(); //GC回收
-            yield return null;
-            GC.Collect(); //GC回收
-            yield return null;
-            if (callBack != null)
-            {
-                callBack();
-            }
+            callback?.Invoke();
         }
 
         public void Init(GameContext ctx)
@@ -188,10 +165,25 @@ namespace YOTO
 
         public void Shutdown()
         {
-            GC.Collect(); //GC回收
-            GC.Collect(); //GC回收
-            GC.Collect(); //GC回收
-            GC.Collect(); //GC回收
+            prefabCache.Clear();
+            audioCache.Clear();
+            textCache.Clear();
+            GC.Collect();
+        }
+
+        private void ReleasePrefabReference(string path)
+        {
+            if (!prefabCache.TryGetValue(path, out var cachedPrefab))
+            {
+                return;
+            }
+
+            cachedPrefab.refCount--;
+            if (cachedPrefab.refCount <= 0)
+            {
+                prefabCache.Remove(path);
+                Resources.UnloadUnusedAssets();
+            }
         }
     }
 }

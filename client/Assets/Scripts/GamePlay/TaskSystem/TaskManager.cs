@@ -40,7 +40,7 @@ public class TaskManager : IGameService
         var newInst = new TaskInstance(taskId);
         foreach (var o in def.objectives)
         {
-            newInst.objectiveProgress[o.id] = 0;
+            newInst.EnsureObjective(o.id);
         }
 
         instances[taskId] = newInst;
@@ -107,6 +107,7 @@ public class TaskManager : IGameService
         var sd = new SaveData();
         foreach (var kv in instances)
         {
+            kv.Value.OnBeforeSave();
             sd.instances.Add(kv.Value);
         }
 
@@ -129,6 +130,7 @@ public class TaskManager : IGameService
             instances.Clear();
             foreach (var inst in sd.instances)
             {
+                inst.OnAfterLoad();
                 instances[inst.taskId] = inst;
             }
         }
@@ -146,6 +148,8 @@ public class TaskManager : IGameService
 
     public void Shutdown()
     {
+        SaveAll();
+        conditionHandlers.Clear();
     }
 
     private void CheckComplete(TaskInstance inst, TaskDefinition def)

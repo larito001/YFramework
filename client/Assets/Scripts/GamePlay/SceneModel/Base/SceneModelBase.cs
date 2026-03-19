@@ -40,6 +40,7 @@ public class SceneModelBase : MonoBehaviour
         _2dTrigger = null;
         _3dCollider = null;
         _3dTrigger = null;
+        _clickable = null;
         _objectBase = null;
     }
 

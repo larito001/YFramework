@@ -41,6 +41,8 @@ public class BuildManager:IGameService,ITickable
     {
         _placement = null;
         _missingDependencyLogged = false;
+        TowerBaseHud.Configure(null);
+        SceneModelBase.Configure(null);
     }
 
     public void Tick(float dt)

@@ -88,7 +88,18 @@ public class UIPageHandler
 
     public void Destroy()
     {
-        OnHide();
+        shouldStayHidden = true;
+        if (!HasInstantiatedPage())
+        {
+            return;
+        }
+
+        page.Exit();
+        page.OnHide();
+        var pageObject = page.gameObject;
+        page = null;
+        CurrentState = PageState.Unloaded;
+        resMgr.ReleasePack(resourceKey, pageObject);
     }
 
     private void OnLoaded(GameObject prefab)
@@ -102,11 +113,13 @@ public class UIPageHandler
 
         try
         {
-            var pageComponent = UnityEngine.Object.Instantiate(prefab, layer.layerRoot.transform).GetComponent<UIPageBase>();
+            var pageObject = UnityEngine.Object.Instantiate(prefab, layer.layerRoot.transform);
+            var pageComponent = pageObject.GetComponent<UIPageBase>();
             if (pageComponent == null)
             {
                 Debug.LogError($"[UIPageHandler] UI prefab does not contain UIPageBase: key={resourceKey}");
                 CurrentState = PageState.Unloaded;
+                resMgr.ReleasePack(resourceKey, pageObject);
                 return;
             }
 
@@ -115,7 +128,10 @@ public class UIPageHandler
             if (page.canvasGroup == null)
             {
                 Debug.LogError($"[UIPageHandler] UI prefab does not contain CanvasGroup: key={resourceKey}");
+                var invalidPageObject = page.gameObject;
+                page = null;
                 CurrentState = PageState.Unloaded;
+                resMgr.ReleasePack(resourceKey, invalidPageObject);
                 return;
             }
 

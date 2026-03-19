@@ -247,7 +247,5 @@ public class GotSceneManager : IGameService
         uiMgr.Hide(UIEnum.LoadingPanel);
         SwitchSceneComplete = true;
         GC.Collect();
-        GC.Collect();
-        GC.Collect();
     }
 }

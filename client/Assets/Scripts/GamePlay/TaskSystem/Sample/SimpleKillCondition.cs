@@ -20,13 +20,14 @@ public class SimpleKillCondition : ITaskCondition
 
         int cur = instance.GetProgress(objectiveId);
 
-        if (param.Length > 0)
+        if (param != null && param.Length > 0)
         {
             int next = Mathf.Clamp(cur + (int)param[0], 0, obj.requiredAmount);
             if (next == cur) return false;
             instance.SetProgress(objectiveId, next);
+            return true;
         }
 
-        return true;
+        return false;
     }
 }

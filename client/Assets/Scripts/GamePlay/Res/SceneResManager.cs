@@ -32,5 +32,8 @@ public class SceneResManager : IGameService
 
     public void Shutdown()
     {
+        ResBoxEntity.Configure(null, null);
+        RewardDataSO = null;
+        resList.Clear();
     }
 }

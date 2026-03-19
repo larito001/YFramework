@@ -59,6 +59,16 @@ public class TrainEntity : ObjectBase, IFixedTickable
 
     protected override void BeforeRecover(bool isDelete)
     {
+        for (int i = 0; i < positioners.Count; i++)
+        {
+            positioners[i]?.RecoverObject(isDelete);
+        }
+
+        positioners.Clear();
+        follower = null;
+        spline = null;
+        currentSpeed = 0f;
+        canMove = false;
     }
 
     public void SetTracer(SplineComputer targetSpline)

@@ -67,5 +67,6 @@ public class TrainManager : IGameService
 
     public void Shutdown()
     {
+        TrainEntity.Configure(null, null);
     }
 }
