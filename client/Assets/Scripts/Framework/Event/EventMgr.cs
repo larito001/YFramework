@@ -1,191 +1,227 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Events;
 
 namespace YOTO
 {
-    public interface IEventInfo
+    public class EventMgr : IGameService
     {
-        bool IsEmpty();
-    }
-
-    public class EventInfo : IEventInfo
-    {
-        public UnityAction action;
-        public bool IsEmpty() => action == null;
-    }
-
-    public class EventInfo<T> : IEventInfo
-    {
-        public UnityAction<T> action;
-        public bool IsEmpty() => action == null;
-    }
-
-    public class EventInfo<T, U> : IEventInfo
-    {
-        public UnityAction<T, U> action;
-        public bool IsEmpty() => action == null;
-    }
-
-    public class EventInfo<T, U, V> : IEventInfo
-    {
-        public UnityAction<T, U, V> action;
-        public bool IsEmpty() => action == null;
-    }
-
-    public class EventInfo<T, U, V, W> : IEventInfo
-    {
-        public UnityAction<T, U, V, W> action;
-        public bool IsEmpty() => action == null;
-    }
-
-    public class EventMgr:IGameService
-    {
-        private Dictionary<YOTOEventType, IEventInfo> eventDictionary = new Dictionary<YOTOEventType, IEventInfo>();
-
-        private void AddListenerInternal<TEventInfo>(YOTOEventType type, Action<TEventInfo> addAction) where TEventInfo : IEventInfo, new()
+        private interface IEventSlot
         {
-            if (eventDictionary.TryGetValue(type, out IEventInfo existingEventInfo))
+            bool IsEmpty { get; }
+            Type CallbackType { get; }
+            bool Contains(Delegate callback);
+            void Add(Delegate callback);
+            void Remove(Delegate callback);
+        }
+
+        private sealed class EventSlot<TDelegate> : IEventSlot where TDelegate : Delegate
+        {
+            private TDelegate callbacks;
+
+            public bool IsEmpty => callbacks == null;
+            public Type CallbackType => typeof(TDelegate);
+
+            public bool Contains(Delegate callback)
             {
-                if (existingEventInfo is TEventInfo eventInfo)
+                if (callback is not TDelegate typedCallback || callbacks == null)
                 {
-                    addAction(eventInfo);
+                    return false;
                 }
+
+                return Array.IndexOf(callbacks.GetInvocationList(), typedCallback) >= 0;
             }
-            else
+
+            public void Add(Delegate callback)
             {
-                var newEventInfo = new TEventInfo();
-                addAction(newEventInfo);
-                eventDictionary[type] = newEventInfo;
+                callbacks = (TDelegate)Delegate.Combine(callbacks, (TDelegate)callback);
             }
-        }
 
-        private void RemoveListenerInternal<TEventInfo>(YOTOEventType type, Action<TEventInfo> removeAction) where TEventInfo : class, IEventInfo
-        {
-            if (eventDictionary.TryGetValue(type, out IEventInfo existingEventInfo))
+            public void Remove(Delegate callback)
             {
-                if (existingEventInfo is TEventInfo eventInfo)
-                {
-                    removeAction(eventInfo);
-                    if (eventInfo.IsEmpty())
-                    {
-                        eventDictionary.Remove(type);
-                    }
-                }
+                callbacks = (TDelegate)Delegate.Remove(callbacks, (TDelegate)callback);
             }
-        }
 
-        public void AddEventListener(YOTOEventType type, UnityAction action)
-        {
-            AddListenerInternal<EventInfo>(type, ei => ei.action += action);
-        }
-
-        public void RemoveEventListener(YOTOEventType type, UnityAction action)
-        {
-            RemoveListenerInternal<EventInfo>(type, ei => ei.action -= action);
-        }
-
-        public void AddEventListener<T>(YOTOEventType type, UnityAction<T> action)
-        {
-            AddListenerInternal<EventInfo<T>>(type, ei => ei.action += action);
-        }
-
-        public void RemoveEventListener<T>(YOTOEventType type, UnityAction<T> action)
-        {
-            RemoveListenerInternal<EventInfo<T>>(type, ei => ei.action -= action);
-        }
-
-        public void AddEventListener<T, U>(YOTOEventType type, UnityAction<T, U> action)
-        {
-            AddListenerInternal<EventInfo<T, U>>(type, ei => ei.action += action);
-        }
-
-        public void RemoveEventListener<T, U>(YOTOEventType type, UnityAction<T, U> action)
-        {
-            RemoveListenerInternal<EventInfo<T, U>>(type, ei => ei.action -= action);
-        }
-
-        public void AddEventListener<T, U, V>(YOTOEventType type, UnityAction<T, U, V> action)
-        {
-            AddListenerInternal<EventInfo<T, U, V>>(type, ei => ei.action += action);
-        }
-
-        public void RemoveEventListener<T, U, V>(YOTOEventType type, UnityAction<T, U, V> action)
-        {
-            RemoveListenerInternal<EventInfo<T, U, V>>(type, ei => ei.action -= action);
-        }
-
-        public void AddEventListener<T, U, V, W>(YOTOEventType type, UnityAction<T, U, V, W> action)
-        {
-            AddListenerInternal<EventInfo<T, U, V, W>>(type, ei => ei.action += action);
-        }
-
-        public void RemoveEventListener<T, U, V, W>(YOTOEventType type, UnityAction<T, U, V, W> action)
-        {
-            RemoveListenerInternal<EventInfo<T, U, V, W>>(type, ei => ei.action -= action);
-        }
-
-        public void TriggerEvent(YOTOEventType type)
-        {
-            // 先触发普通事件
-            if (eventDictionary.TryGetValue(type, out IEventInfo eventInfo))
+            public TDelegate GetCallbacks()
             {
-                (eventInfo as EventInfo)?.action?.Invoke();
-            }
-
-   
-        }
-
-        public void TriggerEvent<T>(YOTOEventType type, T value)
-        {
-            if (eventDictionary.TryGetValue(type, out IEventInfo eventInfo))
-            {
-                (eventInfo as EventInfo<T>)?.action?.Invoke(value);
-            }
-
-        }
-
-        public void TriggerEvent<T, U>(YOTOEventType type, T value1, U value2)
-        {
-            if (eventDictionary.TryGetValue(type, out IEventInfo eventInfo))
-            {
-                (eventInfo as EventInfo<T, U>)?.action?.Invoke(value1, value2);
-            }
-   
-        }
-
-        public void TriggerEvent<T, U, V>(YOTOEventType type, T value1, U value2, V value3)
-        {
-            if (eventDictionary.TryGetValue(type, out IEventInfo eventInfo))
-            {
-                (eventInfo as EventInfo<T, U, V>)?.action?.Invoke(value1, value2, value3);
-            }
-
-        }
-
-        public void TriggerEvent<T, U, V, W>(YOTOEventType type, T value1, U value2, V value3, W value4)
-        {
-            if (eventDictionary.TryGetValue(type, out IEventInfo eventInfo))
-            {
-                (eventInfo as EventInfo<T, U, V, W>)?.action?.Invoke(value1, value2, value3, value4);
+                return callbacks;
             }
         }
 
-        public void ClearEvents()
+        private readonly Dictionary<YOTOEventType, IEventSlot> events = new();
+
+        public void Add(YOTOEventType type, Action callback)
         {
-            eventDictionary.Clear();
+            Add(type, callback);
+        }
+
+        public void Add<T>(YOTOEventType type, Action<T> callback)
+        {
+            Add(type, callback);
+        }
+
+        public void Add<T1, T2>(YOTOEventType type, Action<T1, T2> callback)
+        {
+            Add(type, callback);
+        }
+
+        public void Add<T1, T2, T3>(YOTOEventType type, Action<T1, T2, T3> callback)
+        {
+            Add(type, callback);
+        }
+
+        public void Add<T1, T2, T3, T4>(YOTOEventType type, Action<T1, T2, T3, T4> callback)
+        {
+            Add(type, callback);
+        }
+
+        public void Remove(YOTOEventType type, Action callback)
+        {
+            Remove(type, callback);
+        }
+
+        public void Remove<T>(YOTOEventType type, Action<T> callback)
+        {
+            Remove(type, callback);
+        }
+
+        public void Remove<T1, T2>(YOTOEventType type, Action<T1, T2> callback)
+        {
+            Remove(type, callback);
+        }
+
+        public void Remove<T1, T2, T3>(YOTOEventType type, Action<T1, T2, T3> callback)
+        {
+            Remove(type, callback);
+        }
+
+        public void Remove<T1, T2, T3, T4>(YOTOEventType type, Action<T1, T2, T3, T4> callback)
+        {
+            Remove(type, callback);
+        }
+
+        public void Trigger(YOTOEventType type)
+        {
+            var slot = GetSlot<EventSlot<Action>>(type, shouldLogError: true);
+            slot?.GetCallbacks()?.Invoke();
+        }
+
+        public void Trigger<T>(YOTOEventType type, T arg)
+        {
+            var slot = GetSlot<EventSlot<Action<T>>>(type, shouldLogError: true);
+            slot?.GetCallbacks()?.Invoke(arg);
+        }
+
+        public void Trigger<T1, T2>(YOTOEventType type, T1 arg1, T2 arg2)
+        {
+            var slot = GetSlot<EventSlot<Action<T1, T2>>>(type, shouldLogError: true);
+            slot?.GetCallbacks()?.Invoke(arg1, arg2);
+        }
+
+        public void Trigger<T1, T2, T3>(YOTOEventType type, T1 arg1, T2 arg2, T3 arg3)
+        {
+            var slot = GetSlot<EventSlot<Action<T1, T2, T3>>>(type, shouldLogError: true);
+            slot?.GetCallbacks()?.Invoke(arg1, arg2, arg3);
+        }
+
+        public void Trigger<T1, T2, T3, T4>(YOTOEventType type, T1 arg1, T2 arg2, T3 arg3, T4 arg4)
+        {
+            var slot = GetSlot<EventSlot<Action<T1, T2, T3, T4>>>(type, shouldLogError: true);
+            slot?.GetCallbacks()?.Invoke(arg1, arg2, arg3, arg4);
+        }
+
+        public void Clear()
+        {
+            events.Clear();
         }
 
         public void Init(GameContext ctx)
         {
-            ClearEvents();
+            Clear();
         }
 
         public void Shutdown()
         {
-            ClearEvents();
+            Clear();
         }
-        
+
+        private void Add<TDelegate>(YOTOEventType type, TDelegate callback) where TDelegate : Delegate
+        {
+            if (callback == null)
+            {
+                return;
+            }
+
+            var slot = GetOrCreateSlot<EventSlot<TDelegate>>(type);
+            if (slot == null)
+            {
+                return;
+            }
+
+            if (slot.Contains(callback))
+            {
+                return;
+            }
+
+            slot.Add(callback);
+        }
+
+        private void Remove<TDelegate>(YOTOEventType type, TDelegate callback) where TDelegate : Delegate
+        {
+            if (callback == null)
+            {
+                return;
+            }
+
+            var slot = GetSlot<EventSlot<TDelegate>>(type, shouldLogError: false);
+            if (slot == null)
+            {
+                return;
+            }
+
+            slot.Remove(callback);
+            if (slot.IsEmpty)
+            {
+                events.Remove(type);
+            }
+        }
+
+        private TSlot GetOrCreateSlot<TSlot>(YOTOEventType type) where TSlot : class, IEventSlot, new()
+        {
+            if (events.TryGetValue(type, out var existingSlot))
+            {
+                if (existingSlot is TSlot typedSlot)
+                {
+                    return typedSlot;
+                }
+
+                Debug.LogError($"[EventMgr] Event {type} expected callback type {typeof(TSlot).Name}, but actual type is {existingSlot.CallbackType.Name}.");
+                return null;
+            }
+
+            var newSlot = new TSlot();
+            events[type] = newSlot;
+            return newSlot;
+        }
+
+        private TSlot GetSlot<TSlot>(YOTOEventType type, bool shouldLogError) where TSlot : class, IEventSlot
+        {
+            if (!events.TryGetValue(type, out var slot))
+            {
+                return null;
+            }
+
+            if (slot is TSlot typedSlot)
+            {
+                return typedSlot;
+            }
+
+            if (shouldLogError)
+            {
+                Debug.LogError($"[EventMgr] Event {type} callback type mismatch. Actual type is {slot.CallbackType.Name}.");
+            }
+
+            return null;
+        }
     }
 }

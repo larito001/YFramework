@@ -18,9 +18,10 @@ public class GameMainPanel : UIPageBase
 
     public override void OnShow()
     {
-        GetService<EventMgr>().AddEventListener(YOTOEventType.RefreshBagList, OnRefresh);
-        GetService<EventMgr>().AddEventListener(YOTOEventType.RefreshTrainHP, RefreshTrainHP);
-        GetService<EventMgr>().AddEventListener(YOTOEventType.RefreshTime, OnRefreshTime);
+        var eventMgr = GetService<EventMgr>();
+        eventMgr.Add(YOTOEventType.RefreshBagList, OnRefresh);
+        eventMgr.Add(YOTOEventType.RefreshTrainHP, RefreshTrainHP);
+        eventMgr.Add(YOTOEventType.RefreshTime, OnRefreshTime);
         bagBtn.onClick.RemoveListener(OnBagBtnClick);
         bagBtn.onClick.AddListener(OnBagBtnClick);
         OnRefreshTime();
@@ -29,9 +30,10 @@ public class GameMainPanel : UIPageBase
 
     public override void OnHide()
     {
-        GetService<EventMgr>().RemoveEventListener(YOTOEventType.RefreshBagList, OnRefresh);
-        GetService<EventMgr>().RemoveEventListener(YOTOEventType.RefreshTrainHP, RefreshTrainHP);
-        GetService<EventMgr>().RemoveEventListener(YOTOEventType.RefreshTime, OnRefreshTime);
+        var eventMgr = GetService<EventMgr>();
+        eventMgr.Remove(YOTOEventType.RefreshBagList, OnRefresh);
+        eventMgr.Remove(YOTOEventType.RefreshTrainHP, RefreshTrainHP);
+        eventMgr.Remove(YOTOEventType.RefreshTime, OnRefreshTime);
         bagBtn.onClick.RemoveListener(OnBagBtnClick);
     }
 

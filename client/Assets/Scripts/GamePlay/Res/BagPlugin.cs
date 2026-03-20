@@ -30,13 +30,13 @@ public class BagSystem
             if (itemList[i].x == id)
             {
                 itemList[i] = new Vector2Int(id, itemList[i].y + num);
-                eventMgr.TriggerEvent(YOTOEventType.RefreshBagList);
+                eventMgr.Trigger(YOTOEventType.RefreshBagList);
                 return;
             }
         }
 
         itemList.Add(new Vector2Int(id, num));
-        eventMgr.TriggerEvent(YOTOEventType.RefreshBagList);
+        eventMgr.Trigger(YOTOEventType.RefreshBagList);
     }
 
     public int GetItemNum(int id)
@@ -68,7 +68,7 @@ public class BagSystem
         }
 
         itemList.Remove(new Vector2Int(id, num));
-        eventMgr.TriggerEvent(YOTOEventType.RefreshBagList);
+        eventMgr.Trigger(YOTOEventType.RefreshBagList);
     }
 
     public Vector2Int GetItemByIndex(int index)
@@ -124,6 +124,6 @@ public class BagSystem
             itemDatas.Add(new ItemData(itemDataSO.ItemDatas[i]));
         }
 
-        eventMgr.TriggerEvent(YOTOEventType.RefreshBagList);
+        eventMgr.Trigger(YOTOEventType.RefreshBagList);
     }
 }

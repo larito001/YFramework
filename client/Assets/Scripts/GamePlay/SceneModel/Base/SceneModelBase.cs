@@ -109,7 +109,7 @@ public class SceneModelBase : MonoBehaviour
         _draggable?.OnMouseDown();
     }
 
-    public void OnMouseDrag(Vector3 worldPosition)
+    public void OnMouseDraging(Vector3 worldPosition)
     {
         _draggable?.OnMouseDrag(worldPosition);
     }

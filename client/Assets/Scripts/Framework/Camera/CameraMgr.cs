@@ -132,7 +132,7 @@ public class CameraMgr : IGameService, ITickable
         }
 
         isDragging = true;
-        activeSceneModel.OnMouseDrag(hit.point);
+        activeSceneModel.OnMouseDraging(hit.point);
     }
 
     private void EndPointerInteraction(Vector3 pointerPosition)
