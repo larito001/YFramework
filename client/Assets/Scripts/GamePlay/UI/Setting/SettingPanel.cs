@@ -17,8 +17,11 @@ public class SettingPanel : UIPageBase
     };
     public override void OnLoad()
     {
-   
         scrollView.Initialize();
+        for (int i = 0; i < settingCtrlList.Count; i++)
+        {
+            settingCtrlList[i]?.Initialize(this);
+        }
     }
 
     private void GoBack()
