@@ -11,7 +11,7 @@ using YOTO;
 public class CameraMgr : IGameService, ITickable
 {
     private const float SceneClickDistance = 1000f;
-    private const float DragStartThresholdPixels = 10f;
+    private const float DragStartThresholdPixels = 1f;
 
     private readonly Dictionary<string, CinemachineVirtualCamera> virtualCameras =
         new Dictionary<string, CinemachineVirtualCamera>(2);
@@ -20,10 +20,10 @@ public class CameraMgr : IGameService, ITickable
         new Dictionary<string, CinemachineFreeLook>(2);
 
     private SceneReferenceService sceneReferenceService;
+    private SceneModelBase hoveredSceneModel;
     private SceneModelBase activeSceneModel;
-    private Vector3 pressScreenPosition;
-    private Plane dragPlane;
     private bool isDragging;
+    private Vector3 pressScreenPosition;
 
     public Camera MainCamera { get; private set; }
     public CameraShakeProjectile CameraShakeProjectile { get; private set; }
@@ -64,6 +64,7 @@ public class CameraMgr : IGameService, ITickable
 
     public void Shutdown()
     {
+        ClearHoveredSceneModel();
         MainCamera = null;
         CameraShakeProjectile = null;
         sceneReferenceService = null;
@@ -73,6 +74,8 @@ public class CameraMgr : IGameService, ITickable
 
     public void Tick(float dt)
     {
+        UpdateHover(Input.mousePosition);
+
         if (Input.GetMouseButtonDown(0))
         {
             BeginPointerInteraction(Input.mousePosition);
@@ -102,15 +105,17 @@ public class CameraMgr : IGameService, ITickable
         }
 
         activeSceneModel = sceneModel;
-        pressScreenPosition = pointerPosition;
-        dragPlane = new Plane(Vector3.up, hit.point);
         isDragging = false;
-        activeSceneModel.OnMouseDown();
+        pressScreenPosition = pointerPosition;
+        if (activeSceneModel.IsDraggable())
+        {
+            activeSceneModel.OnMouseDown();
+        }
     }
 
     private void UpdatePointerInteraction(Vector3 pointerPosition)
     {
-        if (MainCamera == null || activeSceneModel == null)
+        if (MainCamera == null || activeSceneModel == null || !activeSceneModel.IsDraggable())
         {
             return;
         }
@@ -120,13 +125,14 @@ public class CameraMgr : IGameService, ITickable
             return;
         }
 
-        if (!TryGetDragWorldPoint(pointerPosition, out var worldPoint))
+        if (!TryRaycastSceneModel(pointerPosition, out var sceneModel, out var hit) ||
+            sceneModel != activeSceneModel)
         {
             return;
         }
 
         isDragging = true;
-        activeSceneModel.OnMouseDrag(worldPoint);
+        activeSceneModel.OnMouseDrag(hit.point);
     }
 
     private void EndPointerInteraction(Vector3 pointerPosition)
@@ -139,19 +145,48 @@ public class CameraMgr : IGameService, ITickable
         var releasedSceneModel = activeSceneModel;
         bool wasDragging = isDragging;
 
-        if (wasDragging && TryGetDragWorldPoint(pointerPosition, out var worldPoint))
+        if (releasedSceneModel.IsDraggable())
         {
-            releasedSceneModel.OnMouseDrag(worldPoint);
+            releasedSceneModel.OnMouseUp();
         }
 
-        releasedSceneModel.OnMouseUp();
         if (!wasDragging)
         {
-            releasedSceneModel.OnMouseClick();
+            if (releasedSceneModel.IsClickable())
+            {
+                releasedSceneModel.OnMouseClick();
+            }
         }
 
         activeSceneModel = null;
         isDragging = false;
+    }
+
+    private void UpdateHover(Vector3 pointerPosition)
+    {
+        if (MainCamera == null || IsPointerOverUi())
+        {
+            ClearHoveredSceneModel();
+            return;
+        }
+
+        if (!TryRaycastSceneModel(pointerPosition, out var sceneModel, out _))
+        {
+            ClearHoveredSceneModel();
+            return;
+        }
+
+        if (sceneModel == hoveredSceneModel)
+        {
+            return;
+        }
+
+        ClearHoveredSceneModel();
+        hoveredSceneModel = sceneModel;
+        if (hoveredSceneModel.IsHoverable())
+        {
+            hoveredSceneModel.OnHover();
+        }
     }
 
     private bool TryRaycastSceneModel(Vector3 pointerPosition, out SceneModelBase sceneModel, out RaycastHit hit)
@@ -165,19 +200,6 @@ public class CameraMgr : IGameService, ITickable
 
         sceneModel = hit.collider.GetComponentInParent<SceneModelBase>();
         return sceneModel != null;
-    }
-
-    private bool TryGetDragWorldPoint(Vector3 screenPosition, out Vector3 worldPoint)
-    {
-        worldPoint = default;
-        Ray ray = MainCamera.ScreenPointToRay(screenPosition);
-        if (!dragPlane.Raycast(ray, out var enter))
-        {
-            return false;
-        }
-
-        worldPoint = ray.GetPoint(enter);
-        return true;
     }
 
     private bool TryResolveMainCamera(out Camera camera)
@@ -265,5 +287,20 @@ public class CameraMgr : IGameService, ITickable
     {
         return (pointerPosition - pressScreenPosition).sqrMagnitude >=
                DragStartThresholdPixels * DragStartThresholdPixels;
+    }
+
+    private void ClearHoveredSceneModel()
+    {
+        if (hoveredSceneModel == null)
+        {
+            return;
+        }
+
+        if (hoveredSceneModel.IsHoverable())
+        {
+            hoveredSceneModel.OnHoverExit();
+        }
+
+        hoveredSceneModel = null;
     }
 }

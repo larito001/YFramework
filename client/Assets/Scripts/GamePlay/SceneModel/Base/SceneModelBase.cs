@@ -8,6 +8,8 @@ public class SceneModelBase : MonoBehaviour
     private I3DColliderHandler _3dCollider;
     private I3DTriggerHandler _3dTrigger;
     private IClickable _clickable;
+    private IHoverable _hoverable;
+    private IDraggable _draggable;
     private IUIService uiMgr;
 
     protected IUIService UIManager => uiMgr;
@@ -26,6 +28,8 @@ public class SceneModelBase : MonoBehaviour
         _3dCollider = _objectBase as I3DColliderHandler;
         _3dTrigger = _objectBase as I3DTriggerHandler;
         _clickable = _objectBase as IClickable;
+        _hoverable = _objectBase as IHoverable;
+        _draggable = _objectBase as IDraggable;
     }
 
     public void Inject(IUIService manager)
@@ -40,6 +44,8 @@ public class SceneModelBase : MonoBehaviour
         _3dCollider = null;
         _3dTrigger = null;
         _clickable = null;
+        _hoverable = null;
+        _draggable = null;
         _objectBase = null;
     }
 
@@ -88,18 +94,43 @@ public class SceneModelBase : MonoBehaviour
         _clickable?.OnClick();
     }
 
+    public void OnHover()
+    {
+        _hoverable?.OnHover();
+    }
+
+    public void OnHoverExit()
+    {
+        _hoverable?.OnHoverExit();
+    }
+
     public void OnMouseDown()
     {
-        _clickable?.OnMouseDown();
+        _draggable?.OnMouseDown();
     }
 
     public void OnMouseDrag(Vector3 worldPosition)
     {
-        _clickable?.OnMouseDrag(worldPosition);
+        _draggable?.OnMouseDrag(worldPosition);
     }
 
     public void OnMouseUp()
     {
-        _clickable?.OnMouseUp();
+        _draggable?.OnMouseUp();
+    }
+
+    public bool IsClickable()
+    {
+        return _clickable != null;
+    }
+
+    public bool IsHoverable()
+    {
+        return _hoverable != null;
+    }
+
+    public bool IsDraggable()
+    {
+        return _draggable != null;
     }
 }

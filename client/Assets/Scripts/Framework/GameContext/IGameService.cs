@@ -57,6 +57,16 @@ public interface I3DTriggerHandler
 public interface IClickable
 {
     void OnClick();
+}
+
+public interface IHoverable
+{
+    void OnHover();
+    void OnHoverExit();
+}
+
+public interface IDraggable
+{
     void OnMouseDown();
     void OnMouseDrag(Vector3 worldPosition);
     void OnMouseUp();
