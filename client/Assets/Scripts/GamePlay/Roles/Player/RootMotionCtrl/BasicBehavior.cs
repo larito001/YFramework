@@ -23,7 +23,7 @@ public class BasicBehavior : ITickable,IAnimatorIK
 
     public BasicBehavior(CameraMgr cameraMgr)
     {
-        MainCamera = cameraMgr.getMainCamera();
+        MainCamera = cameraMgr.MainCamera;
         _moveBehavior = new MoveBehavior();
         _aimBehavior = new AimBehavior();
         _shootBehaviour = new ShootBehaviour();

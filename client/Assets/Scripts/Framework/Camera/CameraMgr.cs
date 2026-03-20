@@ -5,206 +5,170 @@ using UnityEngine.EventSystems;
 using YOTO;
 
 /// <summary>
-/// Camera service responsible for scene camera lookup, virtual camera creation,
-/// and lightweight click routing for scene models.
+/// Centralized camera service for main camera lookup, scene click routing, and
+/// runtime Cinemachine camera access.
 /// </summary>
-public class CameraMgr : IGameService, ITickable, IFixedTickable
+public class CameraMgr : IGameService, ITickable
 {
-    private Camera mainCamera;
-    private SceneReferenceService sceneReferenceService;
-    private Vector3 touchPosition;
+    private const float SceneClickDistance = 1000f;
 
-    // Optional shake component hosted on the main camera.
-    public CameraShakeProjectile cameraShakeProjectile;
-
-    private readonly Dictionary<string, CinemachineVirtualCamera> cameraMap =
+    private readonly Dictionary<string, CinemachineVirtualCamera> virtualCameras =
         new Dictionary<string, CinemachineVirtualCamera>(2);
 
-    private readonly Dictionary<string, CinemachineFreeLook> cameraMapFreeLook =
+    private readonly Dictionary<string, CinemachineFreeLook> freeLookCameras =
         new Dictionary<string, CinemachineFreeLook>(2);
 
-    public bool useVCamera = false;
+    private SceneReferenceService sceneReferenceService;
 
-    public Camera getMainCamera()
+    public Camera MainCamera { get; private set; }
+    public CameraShakeProjectile CameraShakeProjectile { get; private set; }
+    public bool UseVirtualCamera { get; set; }
+
+    public void ShakeCamera()
     {
-        return mainCamera;
+        CameraShakeProjectile?.ShakeCamera();
     }
 
-    public void OnShakeCamera()
+    public CinemachineVirtualCamera GetVirtualCamera(string name)
     {
-        cameraShakeProjectile?.ShakeCamera();
+        return GetOrCreateCachedCamera(name, virtualCameras);
     }
 
-    private void OnMouseUp()
+    public CinemachineFreeLook GetVirtualCameraFreeLook(string name)
     {
+        return GetOrCreateCachedCamera(name, freeLookCameras);
     }
-
-    private void OnMouseDown(float dt)
-    {
-        if (mainCamera == null)
-        {
-            return;
-        }
-
-        Vector3 screenPos = new Vector3(touchPosition.x, touchPosition.y, 0);
-        mainCamera.ScreenPointToRay(screenPos);
-    }
-
-    private void Press()
-    {
-        if (mainCamera == null)
-        {
-            return;
-        }
-
-        Vector3 screenPos = new Vector3(touchPosition.x, touchPosition.y, 0);
-        Ray ray = mainCamera.ScreenPointToRay(screenPos);
-
-        // Ignore world clicks while the pointer is over UI.
-        if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
-        {
-            return;
-        }
-
-        int ignoreLayerMask = ~(1 << LayerMask.NameToLayer("BulletTrigger"));
-        if (Physics.Raycast(ray, out var hit, 1000f, ignoreLayerMask))
-        {
-            GameObject obj = hit.collider.gameObject;
-            if (obj.TryGetComponent(out SceneModelBase sceneModelBase))
-            {
-                // Scene models own their own click behavior.
-                Debug.Log("Clicked ModelTrigger: " + obj.name);
-                sceneModelBase.OnMouseClick();
-            }
-        }
-    }
-
-    #region Camera Lookup
-
-    public CinemachineVirtualCamera getVirtualCamera(string name)
-    {
-        if (!cameraMap.ContainsKey(name))
-        {
-            cameraMap[name] = CreateCinemachineCamera(name, Vector3.zero);
-        }
-
-        return cameraMap[name];
-    }
-
-    public CinemachineFreeLook getVirtualCameraFreeLook(string name)
-    {
-        if (!cameraMapFreeLook.ContainsKey(name))
-        {
-            cameraMapFreeLook[name] = CreateCinemachineCameraFreeLook(name, Vector3.zero);
-        }
-
-        return cameraMapFreeLook[name];
-    }
-
-    private CinemachineVirtualCamera CreateCinemachineCamera(string name, Vector3 position)
-    {
-        GameObject cameraObject = null;
-        if (sceneReferenceService.TryGetTransform(name, out var cameraTransform))
-        {
-            cameraObject = cameraTransform.gameObject;
-        }
-
-        CinemachineVirtualCamera vcam;
-        if (cameraObject == null)
-        {
-            Debug.Log("Virtual camera not found, creating one at runtime: " + name);
-            cameraObject = new GameObject(name);
-            vcam = cameraObject.AddComponent<CinemachineVirtualCamera>();
-        }
-        else
-        {
-            vcam = cameraObject.GetComponent<CinemachineVirtualCamera>();
-        }
-
-        cameraObject.transform.position = position;
-        return vcam;
-    }
-
-    private CinemachineFreeLook CreateCinemachineCameraFreeLook(string name, Vector3 position)
-    {
-        GameObject cameraObject = null;
-        if (sceneReferenceService.TryGetTransform(name, out var cameraTransform))
-        {
-            cameraObject = cameraTransform.gameObject;
-        }
-
-        CinemachineFreeLook vcam;
-        if (cameraObject == null)
-        {
-            Debug.Log("FreeLook camera not found, creating one at runtime: " + name);
-            cameraObject = new GameObject(name);
-            vcam = cameraObject.AddComponent<CinemachineFreeLook>();
-        }
-        else
-        {
-            vcam = cameraObject.GetComponent<CinemachineFreeLook>();
-        }
-
-        cameraObject.transform.position = position;
-        return vcam;
-    }
-
-    #endregion
 
     public void Init(GameContext ctx)
     {
         sceneReferenceService = ctx.Get<SceneReferenceService>();
-        GameObject cameraObject = null;
-        if (sceneReferenceService.TryGetTransform(SceneReferenceKeys.MainCamera, out var cameraTransform))
+        if (!TryResolveMainCamera(out var mainCamera))
         {
-            cameraObject = cameraTransform.gameObject;
-        }
-
-        if (cameraObject == null)
-        {
-            Debug.LogError($"{SceneReferenceKeys.MainCamera} was not found.");
+            Debug.LogError($"{SceneReferenceKeys.MainCamera} was not found or does not have a Camera component.");
             return;
         }
 
-        mainCamera = cameraObject.GetComponent<Camera>();
-        cameraShakeProjectile = cameraObject.GetComponent<CameraShakeProjectile>();
-    
-        if (useVCamera)
+        MainCamera = mainCamera;
+        CameraShakeProjectile = MainCamera.GetComponent<CameraShakeProjectile>();
+
+        if (UseVirtualCamera)
         {
-            GameObject.DontDestroyOnLoad(cameraObject);
-
-            var brain = mainCamera.gameObject.AddComponent<CinemachineBrain>();
-            brain.m_UpdateMethod = CinemachineBrain.UpdateMethod.FixedUpdate;
-            brain.m_DefaultBlend.m_Time = 0.5f;
-
-            getVirtualCamera(SceneReferenceKeys.MainCameraVirtual);
+            EnableVirtualCameraPipeline();
         }
     }
 
     public void Shutdown()
     {
+        MainCamera = null;
+        CameraShakeProjectile = null;
         sceneReferenceService = null;
+        virtualCameras.Clear();
+        freeLookCameras.Clear();
     }
 
     public void Tick(float dt)
     {
-        touchPosition = Input.mousePosition;
         if (Input.GetMouseButtonDown(0))
         {
-            Press();
+            RouteSceneClick(Input.mousePosition);
         }
     }
 
-    public void FixedTick(float fdt)
+    private void RouteSceneClick(Vector3 pointerPosition)
     {
-        if (Input.GetMouseButton(0))
+        if (MainCamera == null || IsPointerOverUi())
         {
-            OnMouseDown(fdt);
+            return;
         }
 
-        if (Input.GetMouseButtonUp(0))
+        Ray ray = MainCamera.ScreenPointToRay(pointerPosition);
+        if (!Physics.Raycast(ray, out RaycastHit hit, SceneClickDistance, BuildSceneClickLayerMask()))
         {
-            OnMouseUp();
+            return;
         }
+
+        var sceneModel = hit.collider.GetComponentInParent<SceneModelBase>();
+        sceneModel?.OnMouseClick();
+    }
+
+    private bool TryResolveMainCamera(out Camera camera)
+    {
+        camera = null;
+        if (sceneReferenceService == null ||
+            !sceneReferenceService.TryGetTransform(SceneReferenceKeys.MainCamera, out var cameraTransform))
+        {
+            return false;
+        }
+
+        camera = cameraTransform.GetComponent<Camera>();
+        return camera != null;
+    }
+
+    private void EnableVirtualCameraPipeline()
+    {
+        GameObject.DontDestroyOnLoad(MainCamera.gameObject);
+
+        var brain = MainCamera.GetComponent<CinemachineBrain>();
+        if (brain == null)
+        {
+            brain = MainCamera.gameObject.AddComponent<CinemachineBrain>();
+        }
+
+        brain.m_UpdateMethod = CinemachineBrain.UpdateMethod.FixedUpdate;
+        brain.m_DefaultBlend.m_Time = 0.5f;
+
+        GetVirtualCamera(SceneReferenceKeys.MainCameraVirtual);
+    }
+
+    private TCamera GetOrCreateCachedCamera<TCamera>(string name, Dictionary<string, TCamera> cache)
+        where TCamera : Component
+    {
+        if (cache.TryGetValue(name, out var camera) && camera != null)
+        {
+            return camera;
+        }
+
+        camera = GetOrCreateSceneComponent<TCamera>(name);
+        cache[name] = camera;
+        return camera;
+    }
+
+    private TComponent GetOrCreateSceneComponent<TComponent>(string name) where TComponent : Component
+    {
+        GameObject targetObject = null;
+        if (sceneReferenceService != null && sceneReferenceService.TryGetTransform(name, out var targetTransform))
+        {
+            targetObject = targetTransform.gameObject;
+        }
+
+        if (targetObject == null)
+        {
+            Debug.LogWarning($"Scene camera '{name}' was not found. Creating it at runtime.");
+            targetObject = new GameObject(name);
+        }
+
+        var component = targetObject.GetComponent<TComponent>();
+        if (component == null)
+        {
+            component = targetObject.AddComponent<TComponent>();
+        }
+
+        return component;
+    }
+
+    private static bool IsPointerOverUi()
+    {
+        return EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
+    }
+
+    private static int BuildSceneClickLayerMask()
+    {
+        int bulletTriggerLayer = LayerMask.NameToLayer("BulletTrigger");
+        if (bulletTriggerLayer < 0)
+        {
+            return Physics.DefaultRaycastLayers;
+        }
+
+        return ~(1 << bulletTriggerLayer);
     }
 }

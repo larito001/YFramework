@@ -269,7 +269,7 @@ public class UIMgr : IGameService, IUIService
 
         foreach (UILayerEnum layerEnum in System.Enum.GetValues(typeof(UILayerEnum)))
         {
-            var layer = new UILayer(this, resMgr, context, layerEnum, cameraMgr.getMainCamera());
+            var layer = new UILayer(this, resMgr, context, layerEnum, cameraMgr.MainCamera);
             layer.Init(UIRoot);
             uiLayers.Add(layerEnum, layer);
         }
