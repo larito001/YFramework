@@ -26,12 +26,11 @@ public class CameraMgr : IGameService, ITickable
     private Vector3 pressScreenPosition;
 
     public Camera MainCamera { get; private set; }
-    public CameraShakeProjectile CameraShakeProjectile { get; private set; }
     public bool UseVirtualCamera { get; set; }
 
     public void ShakeCamera()
     {
-        CameraShakeProjectile?.ShakeCamera();
+        
     }
 
     public CinemachineVirtualCamera GetVirtualCamera(string name)
@@ -54,7 +53,6 @@ public class CameraMgr : IGameService, ITickable
         }
 
         MainCamera = mainCamera;
-        CameraShakeProjectile = MainCamera.GetComponent<CameraShakeProjectile>();
 
         if (UseVirtualCamera)
         {
@@ -66,7 +64,6 @@ public class CameraMgr : IGameService, ITickable
     {
         ClearHoveredSceneModel();
         MainCamera = null;
-        CameraShakeProjectile = null;
         sceneReferenceService = null;
         virtualCameras.Clear();
         freeLookCameras.Clear();
