@@ -87,4 +87,19 @@ public class SceneModelBase : MonoBehaviour
     {
         _clickable?.OnClick();
     }
+
+    public void OnMouseDown()
+    {
+        _clickable?.OnMouseDown();
+    }
+
+    public void OnMouseDrag(Vector3 worldPosition)
+    {
+        _clickable?.OnMouseDrag(worldPosition);
+    }
+
+    public void OnMouseUp()
+    {
+        _clickable?.OnMouseUp();
+    }
 }

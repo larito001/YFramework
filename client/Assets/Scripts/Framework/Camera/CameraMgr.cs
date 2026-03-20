@@ -11,6 +11,7 @@ using YOTO;
 public class CameraMgr : IGameService, ITickable
 {
     private const float SceneClickDistance = 1000f;
+    private const float DragStartThresholdPixels = 10f;
 
     private readonly Dictionary<string, CinemachineVirtualCamera> virtualCameras =
         new Dictionary<string, CinemachineVirtualCamera>(2);
@@ -19,6 +20,10 @@ public class CameraMgr : IGameService, ITickable
         new Dictionary<string, CinemachineFreeLook>(2);
 
     private SceneReferenceService sceneReferenceService;
+    private SceneModelBase activeSceneModel;
+    private Vector3 pressScreenPosition;
+    private Plane dragPlane;
+    private bool isDragging;
 
     public Camera MainCamera { get; private set; }
     public CameraShakeProjectile CameraShakeProjectile { get; private set; }
@@ -70,25 +75,109 @@ public class CameraMgr : IGameService, ITickable
     {
         if (Input.GetMouseButtonDown(0))
         {
-            RouteSceneClick(Input.mousePosition);
+            BeginPointerInteraction(Input.mousePosition);
+        }
+
+        if (Input.GetMouseButton(0))
+        {
+            UpdatePointerInteraction(Input.mousePosition);
+        }
+
+        if (Input.GetMouseButtonUp(0))
+        {
+            EndPointerInteraction(Input.mousePosition);
         }
     }
 
-    private void RouteSceneClick(Vector3 pointerPosition)
+    private void BeginPointerInteraction(Vector3 pointerPosition)
     {
         if (MainCamera == null || IsPointerOverUi())
         {
             return;
         }
 
-        Ray ray = MainCamera.ScreenPointToRay(pointerPosition);
-        if (!Physics.Raycast(ray, out RaycastHit hit, SceneClickDistance, BuildSceneClickLayerMask()))
+        if (!TryRaycastSceneModel(pointerPosition, out var sceneModel, out var hit))
         {
             return;
         }
 
-        var sceneModel = hit.collider.GetComponentInParent<SceneModelBase>();
-        sceneModel?.OnMouseClick();
+        activeSceneModel = sceneModel;
+        pressScreenPosition = pointerPosition;
+        dragPlane = new Plane(Vector3.up, hit.point);
+        isDragging = false;
+        activeSceneModel.OnMouseDown();
+    }
+
+    private void UpdatePointerInteraction(Vector3 pointerPosition)
+    {
+        if (MainCamera == null || activeSceneModel == null)
+        {
+            return;
+        }
+
+        if (!isDragging && !HasExceededDragThreshold(pointerPosition))
+        {
+            return;
+        }
+
+        if (!TryGetDragWorldPoint(pointerPosition, out var worldPoint))
+        {
+            return;
+        }
+
+        isDragging = true;
+        activeSceneModel.OnMouseDrag(worldPoint);
+    }
+
+    private void EndPointerInteraction(Vector3 pointerPosition)
+    {
+        if (activeSceneModel == null)
+        {
+            return;
+        }
+
+        var releasedSceneModel = activeSceneModel;
+        bool wasDragging = isDragging;
+
+        if (wasDragging && TryGetDragWorldPoint(pointerPosition, out var worldPoint))
+        {
+            releasedSceneModel.OnMouseDrag(worldPoint);
+        }
+
+        releasedSceneModel.OnMouseUp();
+        if (!wasDragging)
+        {
+            releasedSceneModel.OnMouseClick();
+        }
+
+        activeSceneModel = null;
+        isDragging = false;
+    }
+
+    private bool TryRaycastSceneModel(Vector3 pointerPosition, out SceneModelBase sceneModel, out RaycastHit hit)
+    {
+        sceneModel = null;
+        Ray ray = MainCamera.ScreenPointToRay(pointerPosition);
+        if (!Physics.Raycast(ray, out hit, SceneClickDistance, BuildSceneClickLayerMask()))
+        {
+            return false;
+        }
+
+        sceneModel = hit.collider.GetComponentInParent<SceneModelBase>();
+        return sceneModel != null;
+    }
+
+    private bool TryGetDragWorldPoint(Vector3 screenPosition, out Vector3 worldPoint)
+    {
+        worldPoint = default;
+        Ray ray = MainCamera.ScreenPointToRay(screenPosition);
+        if (!dragPlane.Raycast(ray, out var enter))
+        {
+            return false;
+        }
+
+        worldPoint = ray.GetPoint(enter);
+        return true;
     }
 
     private bool TryResolveMainCamera(out Camera camera)
@@ -170,5 +259,11 @@ public class CameraMgr : IGameService, ITickable
         }
 
         return ~(1 << bulletTriggerLayer);
+    }
+
+    private bool HasExceededDragThreshold(Vector3 pointerPosition)
+    {
+        return (pointerPosition - pressScreenPosition).sqrMagnitude >=
+               DragStartThresholdPixels * DragStartThresholdPixels;
     }
 }

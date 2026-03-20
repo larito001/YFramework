@@ -58,5 +58,6 @@ public interface IClickable
 {
     void OnClick();
     void OnMouseDown();
+    void OnMouseDrag(Vector3 worldPosition);
     void OnMouseUp();
 }
