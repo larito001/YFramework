@@ -30,7 +30,7 @@ public class SettingItemBtn : YOTOScrollViewItem
 
     private void OnClick()
     {
-        panel?.Resolve<SoundMgr>().PlaySFX("Sound/SFX_UI_Click_Designed_Pop_Open_2", 0.5f);
+        panel?.Resolve<SoundMgr>().PlayUISFX("Sound/SFX_UI_Click_Designed_Pop_Open_2", 0.5f);
         panel?.ShowSetting(index);
     }
 }
