@@ -177,6 +177,26 @@ public class GotSceneManager : IGameService
 
     public void Shutdown()
     {
+        if (CurrentScene != null)
+        {
+            CurrentScene.DestroyResHandlerObj();
+            CurrentScene = null;
+        }
+
+        scenes.Clear();
+        loadedScenes?.Clear();
+        registeredSceneTypes.Clear();
+
+        if (SceneRoot != null)
+        {
+            UnityEngine.Object.Destroy(SceneRoot);
+            SceneRoot = null;
+        }
+
+        uiMgr = null;
+        resMgr = null;
+        sceneReferenceService = null;
+        coroutineRunner = null;
     }
 
     private void AddSceneInstance(GotSceneBase scene, GameObject sceneRoot)

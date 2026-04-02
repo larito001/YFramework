@@ -19,7 +19,7 @@ using UnityEngine;
 
         public void Init(GameContext ctx)
         {
-            
+            ResetScreen();
         }
 
         public void Shutdown()

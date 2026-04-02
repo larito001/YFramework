@@ -52,52 +52,52 @@ namespace YOTO
 
         public void Add(YOTOEventType type, Action callback)
         {
-            Add(type, callback);
+            AddInternal(type, callback);
         }
 
         public void Add<T>(YOTOEventType type, Action<T> callback)
         {
-            Add(type, callback);
+            AddInternal(type, callback);
         }
 
         public void Add<T1, T2>(YOTOEventType type, Action<T1, T2> callback)
         {
-            Add(type, callback);
+            AddInternal(type, callback);
         }
 
         public void Add<T1, T2, T3>(YOTOEventType type, Action<T1, T2, T3> callback)
         {
-            Add(type, callback);
+            AddInternal(type, callback);
         }
 
         public void Add<T1, T2, T3, T4>(YOTOEventType type, Action<T1, T2, T3, T4> callback)
         {
-            Add(type, callback);
+            AddInternal(type, callback);
         }
 
         public void Remove(YOTOEventType type, Action callback)
         {
-            Remove(type, callback);
+            RemoveInternal(type, callback);
         }
 
         public void Remove<T>(YOTOEventType type, Action<T> callback)
         {
-            Remove(type, callback);
+            RemoveInternal(type, callback);
         }
 
         public void Remove<T1, T2>(YOTOEventType type, Action<T1, T2> callback)
         {
-            Remove(type, callback);
+            RemoveInternal(type, callback);
         }
 
         public void Remove<T1, T2, T3>(YOTOEventType type, Action<T1, T2, T3> callback)
         {
-            Remove(type, callback);
+            RemoveInternal(type, callback);
         }
 
         public void Remove<T1, T2, T3, T4>(YOTOEventType type, Action<T1, T2, T3, T4> callback)
         {
-            Remove(type, callback);
+            RemoveInternal(type, callback);
         }
 
         public void Trigger(YOTOEventType type)
@@ -145,7 +145,7 @@ namespace YOTO
             Clear();
         }
 
-        private void Add<TDelegate>(YOTOEventType type, TDelegate callback) where TDelegate : Delegate
+        private void AddInternal<TDelegate>(YOTOEventType type, TDelegate callback) where TDelegate : Delegate
         {
             if (callback == null)
             {
@@ -166,7 +166,7 @@ namespace YOTO
             slot.Add(callback);
         }
 
-        private void Remove<TDelegate>(YOTOEventType type, TDelegate callback) where TDelegate : Delegate
+        private void RemoveInternal<TDelegate>(YOTOEventType type, TDelegate callback) where TDelegate : Delegate
         {
             if (callback == null)
             {

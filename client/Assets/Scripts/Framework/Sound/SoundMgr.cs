@@ -5,6 +5,8 @@ using YOTO;
 
 public class SoundMgr : IGameService
 {
+    private const int MaxSfxEmitters = 16;
+
     private sealed class SoundEmitter
     {
         public AudioSource source;
@@ -416,6 +418,21 @@ public class SoundMgr : IGameService
             {
                 return sfxEmitters[i];
             }
+        }
+
+        if (sfxEmitters.Count >= MaxSfxEmitters)
+        {
+            var oldest = sfxEmitters[0];
+            for (int i = 1; i < sfxEmitters.Count; i++)
+            {
+                if (sfxEmitters[i].version < oldest.version)
+                {
+                    oldest = sfxEmitters[i];
+                }
+            }
+
+            ReleaseEmitter(oldest, true);
+            return oldest;
         }
 
         var emitter = CreateEmitter($"SfxSource_{sfxEmitters.Count + 1}");

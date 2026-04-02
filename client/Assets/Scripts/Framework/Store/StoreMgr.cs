@@ -149,7 +149,7 @@ namespace YOTO
         }
     }
 
-    public class StoreMgr : IGameService, ITickable
+    public class StoreMgr : IGameService
     {
         private ISaveStrategy _strategy;
         private IStorageDriver _storage;
@@ -190,8 +190,5 @@ namespace YOTO
             _coroutineRunner = null;
         }
 
-        public void Tick(float dt)
-        {
-        }
     }
 }
