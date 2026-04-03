@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 
-namespace Com.Youzu.Got.Config
+namespace YFramework.Config
 {
     public class CQuest
     {
@@ -103,7 +103,7 @@ namespace Com.Youzu.Got.Config
         }
     }
 
-    public partial class GotConfigManager
+    public partial class ConfigManager
     {
         private QuestConfig m_questConfig;
         public QuestConfig questConfig

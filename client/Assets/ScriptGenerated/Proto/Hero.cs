@@ -9,7 +9,7 @@ using pb = global::Google.Protobuf;
 using pbc = global::Google.Protobuf.Collections;
 using pbr = global::Google.Protobuf.Reflection;
 using scg = global::System.Collections.Generic;
-namespace Com.Youzu.Got.Config {
+namespace YFramework.Config {
 
   /// <summary>Holder for reflection information generated from hero.proto</summary>
   public static partial class HeroReflection {
@@ -24,20 +24,20 @@ namespace Com.Youzu.Got.Config {
     static HeroReflection() {
       byte[] descriptorData = global::System.Convert.FromBase64String(
           string.Concat(
-            "CgpoZXJvLnByb3RvEhRjb20ueW91enUuZ290LmNvbmZpZxoUQ29uZmlnQmFz",
-            "ZVR5cGUucHJvdG8i6AEKBEhlcm8SEQoJaGVyb19uYW1lGAEgASgJEg8KB2hl",
-            "cm9faWQYAiABKA0SCgoCaHAYAyABKAUSCwoDYXRrGAQgASgFEg0KBXNwZWVk",
-            "GAUgASgCEg4KBnJhcml0eRgGIAEoDRISCgpza2lsbF9saXN0GAcgAygFEjwK",
-            "CmF0dHJfYm9udXMYCCADKAsyKC5jb20ueW91enUuZ290LmNvbmZpZy5LZXlW",
-            "YWx1ZVBhaXJTdHJJbnQSMgoIaW5pdF9wb3MYCSABKAsyIC5jb20ueW91enUu",
-            "Z290LmNvbmZpZy5WZWN0b3IySW50IkQKF0hlcm9fTElTVF9UT09MX1JFU0VS",
-            "VkVEEikKBWl0ZW1zGAEgAygLMhouY29tLnlvdXp1LmdvdC5jb25maWcuSGVy",
-            "b2IGcHJvdG8z"));
+            "CgpoZXJvLnByb3RvEhF5ZnJhbWV3b3JrLmNvbmZpZxoUQ29uZmlnQmFzZVR5",
+            "cGUucHJvdG8i4gEKBEhlcm8SEQoJaGVyb19uYW1lGAEgASgJEg8KB2hlcm9f",
+            "aWQYAiABKA0SCgoCaHAYAyABKAUSCwoDYXRrGAQgASgFEg0KBXNwZWVkGAUg",
+            "ASgCEg4KBnJhcml0eRgGIAEoDRISCgpza2lsbF9saXN0GAcgAygFEjkKCmF0",
+            "dHJfYm9udXMYCCADKAsyJS55ZnJhbWV3b3JrLmNvbmZpZy5LZXlWYWx1ZVBh",
+            "aXJTdHJJbnQSLwoIaW5pdF9wb3MYCSABKAsyHS55ZnJhbWV3b3JrLmNvbmZp",
+            "Zy5WZWN0b3IySW50IkEKF0hlcm9fTElTVF9UT09MX1JFU0VSVkVEEiYKBWl0",
+            "ZW1zGAEgAygLMhcueWZyYW1ld29yay5jb25maWcuSGVyb0IUqgIRWUZyYW1l",
+            "d29yay5Db25maWdiBnByb3RvMw=="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
-          new pbr::FileDescriptor[] { global::Com.Youzu.Got.Config.ConfigBaseTypeReflection.Descriptor, },
+          new pbr::FileDescriptor[] { global::YFramework.Config.ConfigBaseTypeReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(null, new pbr::GeneratedClrTypeInfo[] {
-            new pbr::GeneratedClrTypeInfo(typeof(global::Com.Youzu.Got.Config.Hero), global::Com.Youzu.Got.Config.Hero.Parser, new[]{ "HeroName", "HeroId", "Hp", "Atk", "Speed", "Rarity", "SkillList", "AttrBonus", "InitPos" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Com.Youzu.Got.Config.Hero_LIST_TOOL_RESERVED), global::Com.Youzu.Got.Config.Hero_LIST_TOOL_RESERVED.Parser, new[]{ "Items" }, null, null, null)
+            new pbr::GeneratedClrTypeInfo(typeof(global::YFramework.Config.Hero), global::YFramework.Config.Hero.Parser, new[]{ "HeroName", "HeroId", "Hp", "Atk", "Speed", "Rarity", "SkillList", "AttrBonus", "InitPos" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::YFramework.Config.Hero_LIST_TOOL_RESERVED), global::YFramework.Config.Hero_LIST_TOOL_RESERVED.Parser, new[]{ "Items" }, null, null, null)
           }));
     }
     #endregion
@@ -52,7 +52,7 @@ namespace Com.Youzu.Got.Config {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Com.Youzu.Got.Config.HeroReflection.Descriptor.MessageTypes[0]; }
+      get { return global::YFramework.Config.HeroReflection.Descriptor.MessageTypes[0]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -185,25 +185,25 @@ namespace Com.Youzu.Got.Config {
 
     /// <summary>Field number for the "attr_bonus" field.</summary>
     public const int AttrBonusFieldNumber = 8;
-    private static readonly pb::FieldCodec<global::Com.Youzu.Got.Config.KeyValuePairStrInt> _repeated_attrBonus_codec
-        = pb::FieldCodec.ForMessage(66, global::Com.Youzu.Got.Config.KeyValuePairStrInt.Parser);
-    private readonly pbc::RepeatedField<global::Com.Youzu.Got.Config.KeyValuePairStrInt> attrBonus_ = new pbc::RepeatedField<global::Com.Youzu.Got.Config.KeyValuePairStrInt>();
+    private static readonly pb::FieldCodec<global::YFramework.Config.KeyValuePairStrInt> _repeated_attrBonus_codec
+        = pb::FieldCodec.ForMessage(66, global::YFramework.Config.KeyValuePairStrInt.Parser);
+    private readonly pbc::RepeatedField<global::YFramework.Config.KeyValuePairStrInt> attrBonus_ = new pbc::RepeatedField<global::YFramework.Config.KeyValuePairStrInt>();
     /// <summary>
     ///属性加成
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public pbc::RepeatedField<global::Com.Youzu.Got.Config.KeyValuePairStrInt> AttrBonus {
+    public pbc::RepeatedField<global::YFramework.Config.KeyValuePairStrInt> AttrBonus {
       get { return attrBonus_; }
     }
 
     /// <summary>Field number for the "init_pos" field.</summary>
     public const int InitPosFieldNumber = 9;
-    private global::Com.Youzu.Got.Config.Vector2Int initPos_;
+    private global::YFramework.Config.Vector2Int initPos_;
     /// <summary>
     ///初始位置
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public global::Com.Youzu.Got.Config.Vector2Int InitPos {
+    public global::YFramework.Config.Vector2Int InitPos {
       get { return initPos_; }
       set {
         initPos_ = value;
@@ -354,7 +354,7 @@ namespace Com.Youzu.Got.Config {
       attrBonus_.Add(other.attrBonus_);
       if (other.initPos_ != null) {
         if (initPos_ == null) {
-          initPos_ = new global::Com.Youzu.Got.Config.Vector2Int();
+          initPos_ = new global::YFramework.Config.Vector2Int();
         }
         InitPos.MergeFrom(other.InitPos);
       }
@@ -404,7 +404,7 @@ namespace Com.Youzu.Got.Config {
           }
           case 74: {
             if (initPos_ == null) {
-              initPos_ = new global::Com.Youzu.Got.Config.Vector2Int();
+              initPos_ = new global::YFramework.Config.Vector2Int();
             }
             input.ReadMessage(initPos_);
             break;
@@ -423,7 +423,7 @@ namespace Com.Youzu.Got.Config {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Com.Youzu.Got.Config.HeroReflection.Descriptor.MessageTypes[1]; }
+      get { return global::YFramework.Config.HeroReflection.Descriptor.MessageTypes[1]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -451,11 +451,11 @@ namespace Com.Youzu.Got.Config {
 
     /// <summary>Field number for the "items" field.</summary>
     public const int ItemsFieldNumber = 1;
-    private static readonly pb::FieldCodec<global::Com.Youzu.Got.Config.Hero> _repeated_items_codec
-        = pb::FieldCodec.ForMessage(10, global::Com.Youzu.Got.Config.Hero.Parser);
-    private readonly pbc::RepeatedField<global::Com.Youzu.Got.Config.Hero> items_ = new pbc::RepeatedField<global::Com.Youzu.Got.Config.Hero>();
+    private static readonly pb::FieldCodec<global::YFramework.Config.Hero> _repeated_items_codec
+        = pb::FieldCodec.ForMessage(10, global::YFramework.Config.Hero.Parser);
+    private readonly pbc::RepeatedField<global::YFramework.Config.Hero> items_ = new pbc::RepeatedField<global::YFramework.Config.Hero>();
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public pbc::RepeatedField<global::Com.Youzu.Got.Config.Hero> Items {
+    public pbc::RepeatedField<global::YFramework.Config.Hero> Items {
       get { return items_; }
     }
 

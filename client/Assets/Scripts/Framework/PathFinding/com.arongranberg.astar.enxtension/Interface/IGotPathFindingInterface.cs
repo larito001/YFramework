@@ -9,7 +9,7 @@ public enum PathFindingType
     AStar,
 }
 
-public interface IGotPathFindingManager
+public interface IYPathFindingManager
 {
     //加载寻路
     public void LoadPathFinding(UnityAction loadCompeleteCallBack, string[] graphList);
@@ -284,7 +284,7 @@ public abstract class PathFindingSeekerConfig
     public UnityAction OnMovingDontUseLambda;
 }
 
-public interface IGotSeeker
+public interface IYSeeker
 {
     public void Init(PathFindingSeekerConfig config); //初始化
     public IAstarAI GetSeeker();
@@ -309,7 +309,7 @@ public interface IGotSeeker
 
 public class PathFindingObstacleConfig
 {
-    public enum GotObstacleType
+    public enum YObstacleType
     {
         /// <summary>
         /// 矩形
@@ -322,12 +322,12 @@ public class PathFindingObstacleConfig
         Polygon,
     }
 
-    public class GotObstacleShape
+    public class YObstacleShape
     {
         /// <summary>
         /// 形状
         /// </summary>
-        public GotObstacleType shape = GotObstacleType.Box;
+        public YObstacleType shape = YObstacleType.Box;
 
         /// <summary>
         /// 通用：中心点
@@ -376,7 +376,7 @@ public class PathFindingObstacleConfig
     /// <summary>
     /// 障碍物的配置信息
     /// </summary>
-    public GotObstacleShape info = new GotObstacleShape();
+    public YObstacleShape info = new YObstacleShape();
 
     /// <summary>
     /// 是否为静态物体，静态物体会禁用旋转和缩放对cut的更改
@@ -401,7 +401,7 @@ public class PathFindingObstacleConfig
         GameObject obstacleObject,
         bool isAddOnPrefab = false,
         bool isEnable = true,
-        GotObstacleShape info = null,
+        YObstacleShape info = null,
         bool useRotationAndScale = true,
         bool alwaysUpdate = false,
         bool isDual = false,
@@ -411,7 +411,7 @@ public class PathFindingObstacleConfig
         this.obstacleObject = obstacleObject ?? throw new ArgumentNullException(nameof(obstacleObject));
         this.isAddOnPrefab = isAddOnPrefab;
         this.isEnable = isEnable;
-        this.info = info ?? new GotObstacleShape();
+        this.info = info ?? new YObstacleShape();
         this.useRotationAndScale = useRotationAndScale;
         this.alwaysUpdate = alwaysUpdate;
         this.isDual = isDual;
@@ -419,13 +419,13 @@ public class PathFindingObstacleConfig
     }
 }
 
-public interface IGotObstacle
+public interface IYObstacle
 {
     public void Init(PathFindingObstacleConfig config); //初始化
     public void SetEnable(bool enable); //是否启用，默认启用
     public void Remove(); //移除障碍
     public void SetGraph(string[] graphList); //设置层级
-    public void SetObstacleInfo(PathFindingObstacleConfig.GotObstacleShape info); //更改配置
+    public void SetObstacleInfo(PathFindingObstacleConfig.YObstacleShape info); //更改配置
 }
 
 public class PathFindingLinkerConfig
@@ -456,7 +456,7 @@ public class PathFindingLinkerConfig
     public string[] graphList = new string[] { };
 }
 
-public interface IGotLinker
+public interface IYLinker
 {
     public void Init(PathFindingLinkerConfig config); //初始化
     public void SetEnable(bool enable); //是否启用，默认启用

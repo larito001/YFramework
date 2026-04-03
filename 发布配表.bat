@@ -4,7 +4,7 @@ echo ========================================
 echo   Publish All
 echo ========================================
 
-python publish_config.py
+python tools\publish_config.py
 
 echo.
 echo Done!

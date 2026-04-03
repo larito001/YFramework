@@ -2,9 +2,9 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Com.Youzu.Got.Config
+namespace YFramework.Config
 {
-    public partial class GotConfigManager : IGameService
+    public partial class ConfigManager : IGameService
     {
         public void Init(GameContext ctx)
         {

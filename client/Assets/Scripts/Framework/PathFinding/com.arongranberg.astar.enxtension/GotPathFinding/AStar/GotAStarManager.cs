@@ -5,7 +5,7 @@ using UnityEngine.Events;
 using YOTO;
 
 [HelpURL("https://arongranberg.com/astar/documentation/stable/changelog.html")]
-public class GotAStarManager : IGotPathFindingManager
+public class YAStarManager : IYPathFindingManager
 {
     public const string fullPath = "Assets/Resources/Config/Astar/";
     public const string keyPointPath = "Assets/Script/Editor/PathFinding/linePoints";
@@ -14,7 +14,7 @@ public class GotAStarManager : IGotPathFindingManager
     private readonly SceneReferenceService sceneReferenceService;
     private readonly ResMgr resMgr;
 
-    public GotAStarManager(SceneReferenceService referenceService, ResMgr resourceManager)
+    public YAStarManager(SceneReferenceService referenceService, ResMgr resourceManager)
     {
         sceneReferenceService = referenceService;
         resMgr = resourceManager;
@@ -26,9 +26,9 @@ public class GotAStarManager : IGotPathFindingManager
 
     private UnityAction loadCompeleteCallBack;
     private GameObject astarPathObj;
-    private readonly Dictionary<long, GotAStarSeeker> aiDic = new Dictionary<long, GotAStarSeeker>();
+    private readonly Dictionary<long, YAStarSeeker> aiDic = new Dictionary<long, YAStarSeeker>();
     private readonly Queue<long> removeQueue = new Queue<long>();
-    private readonly Queue<GotAStarSeeker> addQueue = new Queue<GotAStarSeeker>();
+    private readonly Queue<YAStarSeeker> addQueue = new Queue<YAStarSeeker>();
     private int graphCount;
     private int graphCompleteCount;
 
@@ -90,21 +90,21 @@ public class GotAStarManager : IGotPathFindingManager
         GameObject.Destroy(astarPathObj);
     }
 
-    public GotAStarSeeker CreateSeeker(ICoroutineRunner runner)
+    public YAStarSeeker CreateSeeker(ICoroutineRunner runner)
     {
-        var seeker = GotAStarSeeker.pool.GetItem(null);
+        var seeker = YAStarSeeker.pool.GetItem(null);
         seeker.ConfigureRuntime(runner, this);
         return seeker;
     }
 
-    public GotAStartObstacle CreateObstacle()
+    public YAStarObstacle CreateObstacle()
     {
-        return GotAStartObstacle.pool.GetItem(null);
+        return YAStarObstacle.pool.GetItem(null);
     }
 
-    public GotAStarLinker CreateLinker()
+    public YAStarLinker CreateLinker()
     {
-        return GotAStarLinker.pool.GetItem(null);
+        return YAStarLinker.pool.GetItem(null);
     }
 
     public void SetGraph(string path, UnityAction callback)
@@ -146,7 +146,7 @@ public class GotAStarManager : IGotPathFindingManager
         AstarPath.active?.data?.ClearGraphs();
     }
 
-    public void AddAISearch(GotAStarSeeker ai)
+    public void AddAISearch(YAStarSeeker ai)
     {
         if (_addQueueContains(ai))
         {
@@ -159,7 +159,7 @@ public class GotAStarManager : IGotPathFindingManager
         }
     }
 
-    public void RemoveAISearch(GotAStarSeeker ai)
+    public void RemoveAISearch(YAStarSeeker ai)
     {
         if (removeQueue.Contains(ai.id))
         {
@@ -181,7 +181,7 @@ public class GotAStarManager : IGotPathFindingManager
         }
     }
 
-    private bool _addQueueContains(GotAStarSeeker ai)
+    private bool _addQueueContains(YAStarSeeker ai)
     {
         foreach (var item in addQueue)
         {

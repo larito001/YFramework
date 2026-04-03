@@ -11,15 +11,22 @@ from gtp.writer import ProtoWriter, ProtoDataWriter, CSWriter
 
 
 def loadConfig(iniPath: str = "tools_config.ini") -> dict[str, any]:
-    """从指定 ini 文件加载路径配置"""
+    """从指定 ini 文件加载路径配置，所有相对路径基于 ini 文件所在目录解析"""
     config = configparser.ConfigParser()
     config.read(iniPath, encoding="utf-8")
+    baseDir = os.path.dirname(os.path.abspath(iniPath))
+
+    def resolve(value: str) -> str:
+        if os.path.isabs(value):
+            return value
+        return os.path.normpath(os.path.join(baseDir, value))
+
     return {
-        "config_dir":   config.get("path", "config_dir"),
-        "client_dir":   config.get("path", "client_dir"),
-        "proto_dir":    config.get("path", "proto_dir"),
-        "cs_proto_dir": config.get("path", "cs_proto_dir"),
-        "protoc":       os.path.abspath(config.get("path", "protoc")),
+        "config_dir":   resolve(config.get("path", "config_dir")),
+        "client_dir":   resolve(config.get("path", "client_dir")),
+        "proto_dir":    resolve(config.get("path", "proto_dir")),
+        "cs_proto_dir": resolve(config.get("path", "cs_proto_dir")),
+        "protoc":       resolve(config.get("path", "protoc")),
         "skip_files":   [s.strip() for s in config.get("publish", "skip_files", fallback="").split(",") if s.strip()],
     }
 
@@ -172,8 +179,9 @@ def generateBytes(cfg: dict) -> None:
 
 
 if __name__ == "__main__":
-    # 支持通过 --config 指定配置文件
-    iniPath = "tools_config.ini"
+    # 支持通过 --config 指定配置文件（默认与脚本同目录）
+    scriptDir = os.path.dirname(os.path.abspath(__file__))
+    iniPath = os.path.join(scriptDir, "tools_config.ini")
     args = sys.argv[1:]
     if len(args) >= 2 and args[0] == "--config":
         iniPath = args[1]

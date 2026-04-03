@@ -9,10 +9,10 @@ using UnityEngine.Events;
 using YOTO;
 
 [HelpURL("https://arongranberg.com/astar/documentation/stable/changelog.html")]
-public class GotAStarSeeker : IGotSeeker, PoolItem<object>
+public class YAStarSeeker : IYSeeker, PoolItem<object>
 {
-    public static DataObjPool<GotAStarSeeker, object> pool =
-        new DataObjPool<GotAStarSeeker, object>("GotAStarSeeker", 50);
+    public static DataObjPool<YAStarSeeker, object> pool =
+        new DataObjPool<YAStarSeeker, object>("YAStarSeeker", 50);
 
     private static long staticId = 0;
     public long id = 0;
@@ -27,7 +27,7 @@ public class GotAStarSeeker : IGotSeeker, PoolItem<object>
     private GraphMaskTraversalProvider _graphMaskTraversalProvider = null;
     private RVOController _rvoController = null;
     private ICoroutineRunner coroutineRunner;
-    private GotAStarManager pathFindingManager;
+    private YAStarManager pathFindingManager;
 
 
     //尽量不要频繁调用
@@ -72,7 +72,7 @@ public class GotAStarSeeker : IGotSeeker, PoolItem<object>
         var config = _config as AStarMidSeekerConfig;
         if (config == null)
         {
-            Debug.LogError("[GotPathFinding] Init Config is null");
+            Debug.LogError("[YPathFinding] Init Config is null");
             return;
         }
 
@@ -118,7 +118,7 @@ public class GotAStarSeeker : IGotSeeker, PoolItem<object>
         var config = _config as AStarLowSeekerConfig;
         if (config == null)
         {
-            Debug.LogError("[GotPathFinding] Init Config is null");
+            Debug.LogError("[YPathFinding] Init Config is null");
             return;
         }
 
@@ -255,7 +255,7 @@ public class GotAStarSeeker : IGotSeeker, PoolItem<object>
         isInPool = false;
     }
 
-    public void ConfigureRuntime(ICoroutineRunner runner, GotAStarManager manager)
+    public void ConfigureRuntime(ICoroutineRunner runner, YAStarManager manager)
     {
         coroutineRunner = runner;
         pathFindingManager = manager;
@@ -268,14 +268,14 @@ public class GotAStarSeeker : IGotSeeker, PoolItem<object>
 
         if (config == null)
         {
-            Debug.LogError("[GotPathFinding]Seeker Init Config is null");
+            Debug.LogError("[YPathFinding]Seeker Init Config is null");
             return;
         }
 
         obj = config.moveObject;
         if (obj == null)
         {
-            Debug.LogError("[GotPathFinding]Seeker Init obj is null ");
+            Debug.LogError("[YPathFinding]Seeker Init obj is null ");
             return;
         }
 
@@ -335,10 +335,10 @@ public class GotAStarSeeker : IGotSeeker, PoolItem<object>
     {
         if (!isInit || isInPool)
         {
-            Debug.LogError("[GotPathFinding]Seeker has been recycled by the object pool,you cant remove it again.");
+            Debug.LogError("[YPathFinding]Seeker has been recycled by the object pool,you cant remove it again.");
 #if UNITY_EDITOR
             throw new Exception(
-                "[GotPathFinding]Seeker has been recycled by the object pool,you cant remove it again.");
+                "[YPathFinding]Seeker has been recycled by the object pool,you cant remove it again.");
 #endif
             return;
         }
@@ -522,7 +522,7 @@ public class GotAStarSeeker : IGotSeeker, PoolItem<object>
         }
         // else
         // {
-        //     Debug.LogWarning("[GotPathFinding] PathFinding Stop Error,because is not starting!");
+        //     Debug.LogWarning("[YPathFinding] PathFinding Stop Error,because is not starting!");
         // }
     }
 
@@ -540,7 +540,7 @@ public class GotAStarSeeker : IGotSeeker, PoolItem<object>
         }
         // else
         // {
-        //     Debug.LogWarning("[GotPathFinding] PathFinding Stop Error,because is not starting!");
+        //     Debug.LogWarning("[YPathFinding] PathFinding Stop Error,because is not starting!");
         // }
     }
 
@@ -553,7 +553,7 @@ public class GotAStarSeeker : IGotSeeker, PoolItem<object>
 
         _isStarting = false;
         _config.OnPathComplete?.Invoke();
-        // Debug.Log("[GotPathFinding] Path Finding End Success");
+        // Debug.Log("[YPathFinding] Path Finding End Success");
     }
 
     #endregion
@@ -685,10 +685,10 @@ public class GotAStarSeeker : IGotSeeker, PoolItem<object>
     {
         if (isInPool)
         {
-            Debug.LogError("[GotPathFinding]Seeker has been recycled by the object pool,you cant use any function.");
+            Debug.LogError("[YPathFinding]Seeker has been recycled by the object pool,you cant use any function.");
 #if UNITY_EDITOR
             throw new Exception(
-                "[GotPathFinding]Seeker has been recycled by the object pool,you cant use any function.");
+                "[YPathFinding]Seeker has been recycled by the object pool,you cant use any function.");
 #endif
             return false;
         }
@@ -696,10 +696,10 @@ public class GotAStarSeeker : IGotSeeker, PoolItem<object>
         if (obj == null)
         {
             Debug.LogError(
-                "[GotPathFinding]Seeker Object has already been destroyed but you are still trying to access it. This is invalid.");
+                "[YPathFinding]Seeker Object has already been destroyed but you are still trying to access it. This is invalid.");
 #if UNITY_EDITOR
             throw new Exception(
-                "[GotPathFinding]Seeker Object has already been destroyed but you are still trying to access it. This is invalid.");
+                "[YPathFinding]Seeker Object has already been destroyed but you are still trying to access it. This is invalid.");
 #endif
             return false;
         }

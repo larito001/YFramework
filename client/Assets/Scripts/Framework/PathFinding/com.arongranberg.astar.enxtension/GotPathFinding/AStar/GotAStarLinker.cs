@@ -3,10 +3,10 @@ using System;
 using Pathfinding;
 using UnityEngine;
 
-public class GotAStarLinker : IGotLinker, PoolItem<object>
+public class YAStarLinker : IYLinker, PoolItem<object>
 {
-    public static DataObjPool<GotAStarLinker, object> pool =
-        new DataObjPool<GotAStarLinker, object>("GotAStarLinker", 50);
+    public static DataObjPool<YAStarLinker, object> pool =
+        new DataObjPool<YAStarLinker, object>("YAStarLinker", 50);
 
     private PathFindingLinkerConfig _config;
     private bool isInPool = true;
@@ -19,7 +19,7 @@ public class GotAStarLinker : IGotLinker, PoolItem<object>
     {
         if (isInit)
         {
-            Debug.LogError("[GotPathFinding]Linker Init has been init");
+            Debug.LogError("[YPathFinding]Linker Init has been init");
             return;
         }
         
@@ -84,7 +84,7 @@ public class GotAStarLinker : IGotLinker, PoolItem<object>
 
         if (!isInit)
         {
-            Debug.LogError("[GotPathFinding]Linker Init has not been init,but you remove it.");
+            Debug.LogError("[YPathFinding]Linker Init has not been init,but you remove it.");
             return;
         }
         GameObject.Destroy(start);
@@ -98,10 +98,10 @@ public class GotAStarLinker : IGotLinker, PoolItem<object>
     {
         if (isInPool)
         {
-            Debug.LogError("[GotPathFinding]Linker has been recycled by the object pool,you cant use any function.");
+            Debug.LogError("[YPathFinding]Linker has been recycled by the object pool,you cant use any function.");
 #if UNITY_EDITOR
             throw new Exception(
-                "[GotPathFinding]Linker has been recycled by the object pool,you cant use any function.");
+                "[YPathFinding]Linker has been recycled by the object pool,you cant use any function.");
 #endif
             return false;
         }

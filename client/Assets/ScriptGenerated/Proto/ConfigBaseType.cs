@@ -9,7 +9,7 @@ using pb = global::Google.Protobuf;
 using pbc = global::Google.Protobuf.Collections;
 using pbr = global::Google.Protobuf.Reflection;
 using scg = global::System.Collections.Generic;
-namespace Com.Youzu.Got.Config {
+namespace YFramework.Config {
 
   /// <summary>Holder for reflection information generated from ConfigBaseType.proto</summary>
   public static partial class ConfigBaseTypeReflection {
@@ -24,36 +24,36 @@ namespace Com.Youzu.Got.Config {
     static ConfigBaseTypeReflection() {
       byte[] descriptorData = global::System.Convert.FromBase64String(
           string.Concat(
-            "ChRDb25maWdCYXNlVHlwZS5wcm90bxIUY29tLnlvdXp1LmdvdC5jb25maWci",
-            "IgoKVmVjdG9yMkludBIJCgF4GAEgASgFEgkKAXkYAiABKAUiLQoKVmVjdG9y",
-            "M0ludBIJCgF4GAEgASgFEgkKAXkYAiABKAUSCQoBehgDIAEoBSIkCgxWZWN0",
-            "b3IyRmxvYXQSCQoBeBgBIAEoAhIJCgF5GAIgASgCIi8KDFZlY3RvcjNGbG9h",
-            "dBIJCgF4GAEgASgCEgkKAXkYAiABKAISCQoBehgDIAEoAiIqChJLZXlWYWx1",
-            "ZVBhaXJTdHJJbnQSCQoBaxgBIAEoCRIJCgF2GAIgASgFIiwKFEtleVZhbHVl",
-            "UGFpclN0ckZsb2F0EgkKAWsYASABKAkSCQoBdhgCIAEoAiImCghJbmRleElu",
-            "dBIKCgJpZBgBIAEoBRIOCgZvZmZzZXQYAiABKAUiQgoPQ29uZmlnSW50SGVh",
-            "ZGVyEi8KB2hlYWRlcnMYASADKAsyHi5jb20ueW91enUuZ290LmNvbmZpZy5J",
-            "bmRleEludCInCglJbmRleFVpbnQSCgoCaWQYASABKA0SDgoGb2Zmc2V0GAIg",
-            "ASgFIkQKEENvbmZpZ1VpbnRIZWFkZXISMAoHaGVhZGVycxgBIAMoCzIfLmNv",
-            "bS55b3V6dS5nb3QuY29uZmlnLkluZGV4VWludCImCghJbmRleFN0chIKCgJp",
-            "ZBgBIAEoCRIOCgZvZmZzZXQYAiABKAUiRQoSQ29uZmlnU3RyaW5nSGVhZGVy",
-            "Ei8KB2hlYWRlcnMYASADKAsyHi5jb20ueW91enUuZ290LmNvbmZpZy5JbmRl",
-            "eFN0cmIGcHJvdG8z"));
+            "ChRDb25maWdCYXNlVHlwZS5wcm90bxIReWZyYW1ld29yay5jb25maWciIgoK",
+            "VmVjdG9yMkludBIJCgF4GAEgASgFEgkKAXkYAiABKAUiLQoKVmVjdG9yM0lu",
+            "dBIJCgF4GAEgASgFEgkKAXkYAiABKAUSCQoBehgDIAEoBSIkCgxWZWN0b3Iy",
+            "RmxvYXQSCQoBeBgBIAEoAhIJCgF5GAIgASgCIi8KDFZlY3RvcjNGbG9hdBIJ",
+            "CgF4GAEgASgCEgkKAXkYAiABKAISCQoBehgDIAEoAiIqChJLZXlWYWx1ZVBh",
+            "aXJTdHJJbnQSCQoBaxgBIAEoCRIJCgF2GAIgASgFIiwKFEtleVZhbHVlUGFp",
+            "clN0ckZsb2F0EgkKAWsYASABKAkSCQoBdhgCIAEoAiImCghJbmRleEludBIK",
+            "CgJpZBgBIAEoBRIOCgZvZmZzZXQYAiABKAUiPwoPQ29uZmlnSW50SGVhZGVy",
+            "EiwKB2hlYWRlcnMYASADKAsyGy55ZnJhbWV3b3JrLmNvbmZpZy5JbmRleElu",
+            "dCInCglJbmRleFVpbnQSCgoCaWQYASABKA0SDgoGb2Zmc2V0GAIgASgFIkEK",
+            "EENvbmZpZ1VpbnRIZWFkZXISLQoHaGVhZGVycxgBIAMoCzIcLnlmcmFtZXdv",
+            "cmsuY29uZmlnLkluZGV4VWludCImCghJbmRleFN0chIKCgJpZBgBIAEoCRIO",
+            "CgZvZmZzZXQYAiABKAUiQgoSQ29uZmlnU3RyaW5nSGVhZGVyEiwKB2hlYWRl",
+            "cnMYASADKAsyGy55ZnJhbWV3b3JrLmNvbmZpZy5JbmRleFN0ckIUqgIRWUZy",
+            "YW1ld29yay5Db25maWdiBnByb3RvMw=="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { },
           new pbr::GeneratedClrTypeInfo(null, new pbr::GeneratedClrTypeInfo[] {
-            new pbr::GeneratedClrTypeInfo(typeof(global::Com.Youzu.Got.Config.Vector2Int), global::Com.Youzu.Got.Config.Vector2Int.Parser, new[]{ "X", "Y" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Com.Youzu.Got.Config.Vector3Int), global::Com.Youzu.Got.Config.Vector3Int.Parser, new[]{ "X", "Y", "Z" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Com.Youzu.Got.Config.Vector2Float), global::Com.Youzu.Got.Config.Vector2Float.Parser, new[]{ "X", "Y" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Com.Youzu.Got.Config.Vector3Float), global::Com.Youzu.Got.Config.Vector3Float.Parser, new[]{ "X", "Y", "Z" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Com.Youzu.Got.Config.KeyValuePairStrInt), global::Com.Youzu.Got.Config.KeyValuePairStrInt.Parser, new[]{ "K", "V" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Com.Youzu.Got.Config.KeyValuePairStrFloat), global::Com.Youzu.Got.Config.KeyValuePairStrFloat.Parser, new[]{ "K", "V" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Com.Youzu.Got.Config.IndexInt), global::Com.Youzu.Got.Config.IndexInt.Parser, new[]{ "Id", "Offset" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Com.Youzu.Got.Config.ConfigIntHeader), global::Com.Youzu.Got.Config.ConfigIntHeader.Parser, new[]{ "Headers" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Com.Youzu.Got.Config.IndexUint), global::Com.Youzu.Got.Config.IndexUint.Parser, new[]{ "Id", "Offset" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Com.Youzu.Got.Config.ConfigUintHeader), global::Com.Youzu.Got.Config.ConfigUintHeader.Parser, new[]{ "Headers" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Com.Youzu.Got.Config.IndexStr), global::Com.Youzu.Got.Config.IndexStr.Parser, new[]{ "Id", "Offset" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Com.Youzu.Got.Config.ConfigStringHeader), global::Com.Youzu.Got.Config.ConfigStringHeader.Parser, new[]{ "Headers" }, null, null, null)
+            new pbr::GeneratedClrTypeInfo(typeof(global::YFramework.Config.Vector2Int), global::YFramework.Config.Vector2Int.Parser, new[]{ "X", "Y" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::YFramework.Config.Vector3Int), global::YFramework.Config.Vector3Int.Parser, new[]{ "X", "Y", "Z" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::YFramework.Config.Vector2Float), global::YFramework.Config.Vector2Float.Parser, new[]{ "X", "Y" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::YFramework.Config.Vector3Float), global::YFramework.Config.Vector3Float.Parser, new[]{ "X", "Y", "Z" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::YFramework.Config.KeyValuePairStrInt), global::YFramework.Config.KeyValuePairStrInt.Parser, new[]{ "K", "V" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::YFramework.Config.KeyValuePairStrFloat), global::YFramework.Config.KeyValuePairStrFloat.Parser, new[]{ "K", "V" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::YFramework.Config.IndexInt), global::YFramework.Config.IndexInt.Parser, new[]{ "Id", "Offset" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::YFramework.Config.ConfigIntHeader), global::YFramework.Config.ConfigIntHeader.Parser, new[]{ "Headers" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::YFramework.Config.IndexUint), global::YFramework.Config.IndexUint.Parser, new[]{ "Id", "Offset" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::YFramework.Config.ConfigUintHeader), global::YFramework.Config.ConfigUintHeader.Parser, new[]{ "Headers" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::YFramework.Config.IndexStr), global::YFramework.Config.IndexStr.Parser, new[]{ "Id", "Offset" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::YFramework.Config.ConfigStringHeader), global::YFramework.Config.ConfigStringHeader.Parser, new[]{ "Headers" }, null, null, null)
           }));
     }
     #endregion
@@ -68,7 +68,7 @@ namespace Com.Youzu.Got.Config {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Com.Youzu.Got.Config.ConfigBaseTypeReflection.Descriptor.MessageTypes[0]; }
+      get { return global::YFramework.Config.ConfigBaseTypeReflection.Descriptor.MessageTypes[0]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -225,7 +225,7 @@ namespace Com.Youzu.Got.Config {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Com.Youzu.Got.Config.ConfigBaseTypeReflection.Descriptor.MessageTypes[1]; }
+      get { return global::YFramework.Config.ConfigBaseTypeReflection.Descriptor.MessageTypes[1]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -410,7 +410,7 @@ namespace Com.Youzu.Got.Config {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Com.Youzu.Got.Config.ConfigBaseTypeReflection.Descriptor.MessageTypes[2]; }
+      get { return global::YFramework.Config.ConfigBaseTypeReflection.Descriptor.MessageTypes[2]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -567,7 +567,7 @@ namespace Com.Youzu.Got.Config {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Com.Youzu.Got.Config.ConfigBaseTypeReflection.Descriptor.MessageTypes[3]; }
+      get { return global::YFramework.Config.ConfigBaseTypeReflection.Descriptor.MessageTypes[3]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -752,7 +752,7 @@ namespace Com.Youzu.Got.Config {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Com.Youzu.Got.Config.ConfigBaseTypeReflection.Descriptor.MessageTypes[4]; }
+      get { return global::YFramework.Config.ConfigBaseTypeReflection.Descriptor.MessageTypes[4]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -909,7 +909,7 @@ namespace Com.Youzu.Got.Config {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Com.Youzu.Got.Config.ConfigBaseTypeReflection.Descriptor.MessageTypes[5]; }
+      get { return global::YFramework.Config.ConfigBaseTypeReflection.Descriptor.MessageTypes[5]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -1069,7 +1069,7 @@ namespace Com.Youzu.Got.Config {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Com.Youzu.Got.Config.ConfigBaseTypeReflection.Descriptor.MessageTypes[6]; }
+      get { return global::YFramework.Config.ConfigBaseTypeReflection.Descriptor.MessageTypes[6]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -1226,7 +1226,7 @@ namespace Com.Youzu.Got.Config {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Com.Youzu.Got.Config.ConfigBaseTypeReflection.Descriptor.MessageTypes[7]; }
+      get { return global::YFramework.Config.ConfigBaseTypeReflection.Descriptor.MessageTypes[7]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -1254,11 +1254,11 @@ namespace Com.Youzu.Got.Config {
 
     /// <summary>Field number for the "headers" field.</summary>
     public const int HeadersFieldNumber = 1;
-    private static readonly pb::FieldCodec<global::Com.Youzu.Got.Config.IndexInt> _repeated_headers_codec
-        = pb::FieldCodec.ForMessage(10, global::Com.Youzu.Got.Config.IndexInt.Parser);
-    private readonly pbc::RepeatedField<global::Com.Youzu.Got.Config.IndexInt> headers_ = new pbc::RepeatedField<global::Com.Youzu.Got.Config.IndexInt>();
+    private static readonly pb::FieldCodec<global::YFramework.Config.IndexInt> _repeated_headers_codec
+        = pb::FieldCodec.ForMessage(10, global::YFramework.Config.IndexInt.Parser);
+    private readonly pbc::RepeatedField<global::YFramework.Config.IndexInt> headers_ = new pbc::RepeatedField<global::YFramework.Config.IndexInt>();
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public pbc::RepeatedField<global::Com.Youzu.Got.Config.IndexInt> Headers {
+    public pbc::RepeatedField<global::YFramework.Config.IndexInt> Headers {
       get { return headers_; }
     }
 
@@ -1347,7 +1347,7 @@ namespace Com.Youzu.Got.Config {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Com.Youzu.Got.Config.ConfigBaseTypeReflection.Descriptor.MessageTypes[8]; }
+      get { return global::YFramework.Config.ConfigBaseTypeReflection.Descriptor.MessageTypes[8]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -1504,7 +1504,7 @@ namespace Com.Youzu.Got.Config {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Com.Youzu.Got.Config.ConfigBaseTypeReflection.Descriptor.MessageTypes[9]; }
+      get { return global::YFramework.Config.ConfigBaseTypeReflection.Descriptor.MessageTypes[9]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -1532,11 +1532,11 @@ namespace Com.Youzu.Got.Config {
 
     /// <summary>Field number for the "headers" field.</summary>
     public const int HeadersFieldNumber = 1;
-    private static readonly pb::FieldCodec<global::Com.Youzu.Got.Config.IndexUint> _repeated_headers_codec
-        = pb::FieldCodec.ForMessage(10, global::Com.Youzu.Got.Config.IndexUint.Parser);
-    private readonly pbc::RepeatedField<global::Com.Youzu.Got.Config.IndexUint> headers_ = new pbc::RepeatedField<global::Com.Youzu.Got.Config.IndexUint>();
+    private static readonly pb::FieldCodec<global::YFramework.Config.IndexUint> _repeated_headers_codec
+        = pb::FieldCodec.ForMessage(10, global::YFramework.Config.IndexUint.Parser);
+    private readonly pbc::RepeatedField<global::YFramework.Config.IndexUint> headers_ = new pbc::RepeatedField<global::YFramework.Config.IndexUint>();
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public pbc::RepeatedField<global::Com.Youzu.Got.Config.IndexUint> Headers {
+    public pbc::RepeatedField<global::YFramework.Config.IndexUint> Headers {
       get { return headers_; }
     }
 
@@ -1625,7 +1625,7 @@ namespace Com.Youzu.Got.Config {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Com.Youzu.Got.Config.ConfigBaseTypeReflection.Descriptor.MessageTypes[10]; }
+      get { return global::YFramework.Config.ConfigBaseTypeReflection.Descriptor.MessageTypes[10]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -1782,7 +1782,7 @@ namespace Com.Youzu.Got.Config {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Com.Youzu.Got.Config.ConfigBaseTypeReflection.Descriptor.MessageTypes[11]; }
+      get { return global::YFramework.Config.ConfigBaseTypeReflection.Descriptor.MessageTypes[11]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -1810,11 +1810,11 @@ namespace Com.Youzu.Got.Config {
 
     /// <summary>Field number for the "headers" field.</summary>
     public const int HeadersFieldNumber = 1;
-    private static readonly pb::FieldCodec<global::Com.Youzu.Got.Config.IndexStr> _repeated_headers_codec
-        = pb::FieldCodec.ForMessage(10, global::Com.Youzu.Got.Config.IndexStr.Parser);
-    private readonly pbc::RepeatedField<global::Com.Youzu.Got.Config.IndexStr> headers_ = new pbc::RepeatedField<global::Com.Youzu.Got.Config.IndexStr>();
+    private static readonly pb::FieldCodec<global::YFramework.Config.IndexStr> _repeated_headers_codec
+        = pb::FieldCodec.ForMessage(10, global::YFramework.Config.IndexStr.Parser);
+    private readonly pbc::RepeatedField<global::YFramework.Config.IndexStr> headers_ = new pbc::RepeatedField<global::YFramework.Config.IndexStr>();
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public pbc::RepeatedField<global::Com.Youzu.Got.Config.IndexStr> Headers {
+    public pbc::RepeatedField<global::YFramework.Config.IndexStr> Headers {
       get { return headers_; }
     }
 

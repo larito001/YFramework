@@ -9,7 +9,7 @@ public enum LoadSceneMode
     Additive = 1,
 }
 
-public class GotSceneManager : IGameService
+public class YSceneManager : IGameService
 {
     public static ThreadPriority LoadingBackgroundLoadingPriority = ThreadPriority.High;
     public static int LoadingAsyncUploadBufferSize = 4;
@@ -20,15 +20,15 @@ public class GotSceneManager : IGameService
     public static int DefaultAsyncUploadTimeSlice;
 
     public GameObject SceneRoot { get; private set; }
-    public GotSceneBase CurrentScene { get; private set; }
-    public GotSceneType PreSceneType { get; private set; }
+    public YSceneBase CurrentScene { get; private set; }
+    public YSceneType PreSceneType { get; private set; }
     public bool SwitchSceneComplete { get; private set; }
-    public GotSceneType SceneType => CurrentScene == null ? GotSceneType.None : CurrentScene.SceneType;
+    public YSceneType SceneType => CurrentScene == null ? YSceneType.None : CurrentScene.SceneType;
 
-    private readonly Dictionary<GotSceneType, GotSceneBase> scenes = new Dictionary<GotSceneType, GotSceneBase>();
+    private readonly Dictionary<YSceneType, YSceneBase> scenes = new Dictionary<YSceneType, YSceneBase>();
     private readonly List<Type> registeredSceneTypes = new List<Type>();
 
-    private Stack<GotSceneType> loadedScenes;
+    private Stack<YSceneType> loadedScenes;
     private LoadSceneMode currentLoadSceneMode = LoadSceneMode.Single;
     private GameContext context;
     private UIMgr uiMgr;
@@ -36,7 +36,7 @@ public class GotSceneManager : IGameService
     private SceneReferenceService sceneReferenceService;
     private ICoroutineRunner coroutineRunner;
 
-    public void RegisterScene<T>() where T : GotSceneBase, new()
+    public void RegisterScene<T>() where T : YSceneBase, new()
     {
         var sceneType = typeof(T);
         if (registeredSceneTypes.Contains(sceneType))
@@ -51,7 +51,7 @@ public class GotSceneManager : IGameService
         }
     }
 
-    public void SwitchScene(GotSceneType sceneType, object args = null, bool showLoading = true,
+    public void SwitchScene(YSceneType sceneType, object args = null, bool showLoading = true,
         LoadSceneMode loadSceneMode = LoadSceneMode.Single)
     {
         Debug.Assert(loadedScenes.Count <= 1);
@@ -134,18 +134,18 @@ public class GotSceneManager : IGameService
         }
     }
 
-    public GotSceneBase GetScene(GotSceneType sceneType)
+    public YSceneBase GetScene(YSceneType sceneType)
     {
         scenes.TryGetValue(sceneType, out var scene);
         return scene;
     }
 
-    public T GetScene<T>(GotSceneType sceneType) where T : GotSceneBase
+    public T GetScene<T>(YSceneType sceneType) where T : YSceneBase
     {
         return GetScene(sceneType) as T;
     }
 
-    public bool IsInScene(GotSceneType sceneType)
+    public bool IsInScene(YSceneType sceneType)
     {
         return CurrentScene != null && CurrentScene.SceneType == sceneType;
     }
@@ -165,14 +165,14 @@ public class GotSceneManager : IGameService
 
         for (int i = 0; i < registeredSceneTypes.Count; i++)
         {
-            var scene = Activator.CreateInstance(registeredSceneTypes[i]) as GotSceneBase;
+            var scene = Activator.CreateInstance(registeredSceneTypes[i]) as YSceneBase;
             if (scene != null)
             {
                 AddSceneInstance(scene, SceneRoot);
             }
         }
 
-        loadedScenes = new Stack<GotSceneType>();
+        loadedScenes = new Stack<YSceneType>();
     }
 
     public void Shutdown()
@@ -199,7 +199,7 @@ public class GotSceneManager : IGameService
         coroutineRunner = null;
     }
 
-    private void AddSceneInstance(GotSceneBase scene, GameObject sceneRoot)
+    private void AddSceneInstance(YSceneBase scene, GameObject sceneRoot)
     {
         if (scenes.ContainsKey(scene.SceneType))
         {

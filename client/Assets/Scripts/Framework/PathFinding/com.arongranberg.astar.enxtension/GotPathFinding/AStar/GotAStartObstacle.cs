@@ -4,10 +4,10 @@ using System.Collections.Generic;
 using Pathfinding;
 using UnityEngine;
 
-public class GotAStartObstacle : IGotObstacle, PoolItem<object>
+public class YAStarObstacle : IYObstacle, PoolItem<object>
 {
-    public static DataObjPool<GotAStartObstacle, object> pool =
-        new DataObjPool<GotAStartObstacle, object>("GotAStartObstacle", 50);
+    public static DataObjPool<YAStarObstacle, object> pool =
+        new DataObjPool<YAStarObstacle, object>("YAStarObstacle", 50);
 
     List<NavmeshCut> cutters = new List<NavmeshCut>();
     private PathFindingObstacleConfig _config = null;
@@ -20,7 +20,7 @@ public class GotAStartObstacle : IGotObstacle, PoolItem<object>
     {
         if (isInit)
         {
-            Debug.LogError("[GotPathFinding]Obstacle Init has been init");
+            Debug.LogError("[YPathFinding]Obstacle Init has been init");
             return;
         }
 
@@ -28,14 +28,14 @@ public class GotAStartObstacle : IGotObstacle, PoolItem<object>
 
         if (_config == null)
         {
-            Debug.LogError("[GotPathFinding]Obstacle Init Config is null");
+            Debug.LogError("[YPathFinding]Obstacle Init Config is null");
             return;
         }
 
         obj = _config.obstacleObject;
         if (obj == null)
         {
-            Debug.LogError("[GotPathFinding]Obstacle Init obj is null ");
+            Debug.LogError("[YPathFinding]Obstacle Init obj is null ");
             return;
         }
         //todo:获取obj和其子对象的所有NavmeshCut组件
@@ -43,7 +43,7 @@ public class GotAStartObstacle : IGotObstacle, PoolItem<object>
         obj.GetComponentsInChildren<NavmeshCut>(cutters);
         if (cutters.Count == 0)
         {
-            Debug.LogError("[GotPathFinding]Obstacle Init obj has no NavmeshCut component");
+            Debug.LogError("[YPathFinding]Obstacle Init obj has no NavmeshCut component");
             return;
         }
 
@@ -109,15 +109,15 @@ public class GotAStartObstacle : IGotObstacle, PoolItem<object>
         
         if (!isInit)
         {
-            Debug.LogError("[GotPathFinding]Obstacle Init has not been init,but you remove it.");
+            Debug.LogError("[YPathFinding]Obstacle Init has not been init,but you remove it.");
             return;
         }
         if (isInPool)
         {
-            Debug.LogError("[GotPathFinding]Obstacle has been recycled by the object pool,you cant use any function.");
+            Debug.LogError("[YPathFinding]Obstacle has been recycled by the object pool,you cant use any function.");
 #if UNITY_EDITOR
             throw new Exception(
-                "[GotPathFinding]Obstacle has been recycled by the object pool,you cant use any function.");
+                "[YPathFinding]Obstacle has been recycled by the object pool,you cant use any function.");
 #endif
         }
 
@@ -125,7 +125,7 @@ public class GotAStartObstacle : IGotObstacle, PoolItem<object>
         isInit = false;
         if (obj != null)
         {
-            Debug.LogWarning("[GotPathFinding] obj is null before remove, is sure?");
+            Debug.LogWarning("[YPathFinding] obj is null before remove, is sure?");
             foreach (var cutter in cutters)
             {
                 GameObject.Destroy(cutter);
@@ -135,7 +135,7 @@ public class GotAStartObstacle : IGotObstacle, PoolItem<object>
     }
 
 
-    public void SetObstacleInfo(PathFindingObstacleConfig.GotObstacleShape info)
+    public void SetObstacleInfo(PathFindingObstacleConfig.YObstacleShape info)
     {
         foreach (var cutter in cutters)
         {
@@ -143,12 +143,12 @@ public class GotAStartObstacle : IGotObstacle, PoolItem<object>
 
             cutter.height = info.height; // Y方向高度
 
-            if (info.shape == PathFindingObstacleConfig.GotObstacleType.Box)
+            if (info.shape == PathFindingObstacleConfig.YObstacleType.Box)
             {
                 cutter.type = NavmeshCut.MeshType.Box;
                 cutter.rectangleSize = new Vector2(info.width, info.depth); // X, Y, Z方向的尺寸
             }
-            else if (info.shape == PathFindingObstacleConfig.GotObstacleType.Polygon)
+            else if (info.shape == PathFindingObstacleConfig.YObstacleType.Polygon)
             {
                 cutter.type = NavmeshCut.MeshType.Circle;
                 cutter.circleResolution = Mathf.Clamp(info.resolution, 3, 12); // 多边形拟合精度
@@ -165,10 +165,10 @@ public class GotAStartObstacle : IGotObstacle, PoolItem<object>
     {
         if (isInPool)
         {
-            Debug.LogError("[GotPathFinding]Obstacle has been recycled by the object pool,you cant use any function.");
+            Debug.LogError("[YPathFinding]Obstacle has been recycled by the object pool,you cant use any function.");
 #if UNITY_EDITOR
             throw new Exception(
-                "[GotPathFinding]Obstacle has been recycled by the object pool,you cant use any function.");
+                "[YPathFinding]Obstacle has been recycled by the object pool,you cant use any function.");
 #endif
             return false;
         }
@@ -176,11 +176,11 @@ public class GotAStartObstacle : IGotObstacle, PoolItem<object>
         if (obj == null)
         {
             Debug.LogError(
-                "[GotPathFinding]Obstacle Object has already been destroyed but you are still trying to access it. This is invalid.");
+                "[YPathFinding]Obstacle Object has already been destroyed but you are still trying to access it. This is invalid.");
 
 #if UNITY_EDITOR
             throw new Exception(
-                "[GotPathFinding]Obstacle Object has already been destroyed but you are still trying to access it. This is invalid.");
+                "[YPathFinding]Obstacle Object has already been destroyed but you are still trying to access it. This is invalid.");
 #endif
             return false;
         }

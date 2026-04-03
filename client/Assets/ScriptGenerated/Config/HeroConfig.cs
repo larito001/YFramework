@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 
-namespace Com.Youzu.Got.Config
+namespace YFramework.Config
 {
     public partial class HeroConfig : ConfigBase
     {
@@ -52,7 +52,7 @@ namespace Com.Youzu.Got.Config
         }
     }
 
-    public partial class GotConfigManager
+    public partial class ConfigManager
     {
         private HeroConfig m_heroConfig;
         public HeroConfig heroConfig

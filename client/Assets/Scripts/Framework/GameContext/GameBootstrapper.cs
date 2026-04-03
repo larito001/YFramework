@@ -1,4 +1,4 @@
-using Com.Youzu.Got.Config;
+using YFramework.Config;
 using HotUpdate.Scripts.Framework.Pool.newPool;
 using Unity.VisualScripting;
 using UnityEngine;
@@ -15,7 +15,7 @@ public static partial class GameBootstrapper
     {
         var ctx = new GameContext();
         ctx.Register(new TestService());
-        ctx.Register(new GotConfigManager());
+        ctx.Register(new ConfigManager());
         // Framework services only. Project-specific services are injected via partial methods.
         ctx.Register(new ObjectPool());
         ctx.Register(new ScreenMonitor());
@@ -28,7 +28,7 @@ public static partial class GameBootstrapper
         ctx.Register(new SoundMgr());
         ctx.Register(new TaskManager());
         
-        var sceneManager = new GotSceneManager();
+        var sceneManager = new YSceneManager();
         ConfigureProjectScenes(sceneManager);
         ctx.Register(sceneManager);
 
@@ -40,10 +40,10 @@ public static partial class GameBootstrapper
         }
 
         ctx.Register<ICoroutineRunner>(runner);
-        var aStarManager = new GotAStarManager(ctx.Get<SceneReferenceService>(), ctx.Get<ResMgr>());
+        var aStarManager = new YAStarManager(ctx.Get<SceneReferenceService>(), ctx.Get<ResMgr>());
         ctx.Register(aStarManager);
         RegisterProjectServices(ctx);
-        Debug.Log(ctx.Get<GotConfigManager>().heroConfig.Get(1001).HeroName);
+        Debug.Log(ctx.Get<ConfigManager>().heroConfig.Get(1001).HeroName);
  
         return ctx;
     }
@@ -61,7 +61,7 @@ public static partial class GameBootstrapper
     }
 
     static partial void RegisterProjectServices(GameContext ctx);
-    static partial void ConfigureProjectScenes(GotSceneManager sceneManager);
+    static partial void ConfigureProjectScenes(YSceneManager sceneManager);
     static partial void ConfigureProjectUi(UIConfig uiConfig);
     static partial void RunProjectStartup(GameContext ctx);
 }

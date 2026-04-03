@@ -13,9 +13,9 @@ public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>,IDamageabl
 
     private ICoroutineRunner coroutineRunner;
     private System.Action<EnemyEntity> removeEnemyAction;
-    private GotAStarManager pathFindingManager;
+    private YAStarManager pathFindingManager;
 
-    public IGotSeeker seeker;
+    public IYSeeker seeker;
     public bool NeedRound = false;
     public Vector3 OrgPos = Vector3.zero;
     private IThreatTarget _lockTarget = null;
@@ -95,7 +95,7 @@ public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>,IDamageabl
         RecoverObject();
     }
 
-    public void ConfigureRuntime(ICoroutineRunner runner, System.Action<EnemyEntity> removeEnemy, GotAStarManager manager)
+    public void ConfigureRuntime(ICoroutineRunner runner, System.Action<EnemyEntity> removeEnemy, YAStarManager manager)
     {
         coroutineRunner = runner;
         removeEnemyAction = removeEnemy;

@@ -18,7 +18,7 @@ public class EnemiesManager : IGameService
     public Dictionary<int, EnemyGroupData> enemyGroupdata = new();
     public Dictionary<int, EnemyData> enemyDatas = new();
     private ICoroutineRunner coroutineRunner;
-    private GotAStarManager aStarManager;
+    private YAStarManager aStarManager;
 
  
     
@@ -102,7 +102,7 @@ public class EnemiesManager : IGameService
     public void Init(GameContext ctx)
     {
         coroutineRunner = ctx.Get<ICoroutineRunner>();
-        aStarManager = ctx.Get<GotAStarManager>();
+        aStarManager = ctx.Get<YAStarManager>();
         nightCamp = CreateCamp();
     }
 

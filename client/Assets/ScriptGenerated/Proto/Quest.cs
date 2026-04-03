@@ -9,7 +9,7 @@ using pb = global::Google.Protobuf;
 using pbc = global::Google.Protobuf.Collections;
 using pbr = global::Google.Protobuf.Reflection;
 using scg = global::System.Collections.Generic;
-namespace Com.Youzu.Got.Config {
+namespace YFramework.Config {
 
   /// <summary>Holder for reflection information generated from quest.proto</summary>
   public static partial class QuestReflection {
@@ -24,17 +24,17 @@ namespace Com.Youzu.Got.Config {
     static QuestReflection() {
       byte[] descriptorData = global::System.Convert.FromBase64String(
           string.Concat(
-            "CgtxdWVzdC5wcm90bxIUY29tLnlvdXp1LmdvdC5jb25maWcaFENvbmZpZ0Jh",
-            "c2VUeXBlLnByb3RvIlwKBVF1ZXN0EhIKCnF1ZXN0X25hbWUYASABKAkSEAoI",
-            "cXVlc3RfaWQYAiABKA0SDwoHc3RlcF9pZBgDIAEoDRIMCgRkZXNjGAQgASgJ",
-            "Eg4KBnJld2FyZBgFIAEoBSJGChhRdWVzdF9MSVNUX1RPT0xfUkVTRVJWRUQS",
-            "KgoFaXRlbXMYASADKAsyGy5jb20ueW91enUuZ290LmNvbmZpZy5RdWVzdGIG",
-            "cHJvdG8z"));
+            "CgtxdWVzdC5wcm90bxIReWZyYW1ld29yay5jb25maWcaFENvbmZpZ0Jhc2VU",
+            "eXBlLnByb3RvIlwKBVF1ZXN0EhIKCnF1ZXN0X25hbWUYASABKAkSEAoIcXVl",
+            "c3RfaWQYAiABKA0SDwoHc3RlcF9pZBgDIAEoDRIMCgRkZXNjGAQgASgJEg4K",
+            "BnJld2FyZBgFIAEoBSJDChhRdWVzdF9MSVNUX1RPT0xfUkVTRVJWRUQSJwoF",
+            "aXRlbXMYASADKAsyGC55ZnJhbWV3b3JrLmNvbmZpZy5RdWVzdEIUqgIRWUZy",
+            "YW1ld29yay5Db25maWdiBnByb3RvMw=="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
-          new pbr::FileDescriptor[] { global::Com.Youzu.Got.Config.ConfigBaseTypeReflection.Descriptor, },
+          new pbr::FileDescriptor[] { global::YFramework.Config.ConfigBaseTypeReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(null, new pbr::GeneratedClrTypeInfo[] {
-            new pbr::GeneratedClrTypeInfo(typeof(global::Com.Youzu.Got.Config.Quest), global::Com.Youzu.Got.Config.Quest.Parser, new[]{ "QuestName", "QuestId", "StepId", "Desc", "Reward" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Com.Youzu.Got.Config.Quest_LIST_TOOL_RESERVED), global::Com.Youzu.Got.Config.Quest_LIST_TOOL_RESERVED.Parser, new[]{ "Items" }, null, null, null)
+            new pbr::GeneratedClrTypeInfo(typeof(global::YFramework.Config.Quest), global::YFramework.Config.Quest.Parser, new[]{ "QuestName", "QuestId", "StepId", "Desc", "Reward" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::YFramework.Config.Quest_LIST_TOOL_RESERVED), global::YFramework.Config.Quest_LIST_TOOL_RESERVED.Parser, new[]{ "Items" }, null, null, null)
           }));
     }
     #endregion
@@ -49,7 +49,7 @@ namespace Com.Youzu.Got.Config {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Com.Youzu.Got.Config.QuestReflection.Descriptor.MessageTypes[0]; }
+      get { return global::YFramework.Config.QuestReflection.Descriptor.MessageTypes[0]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -305,7 +305,7 @@ namespace Com.Youzu.Got.Config {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Com.Youzu.Got.Config.QuestReflection.Descriptor.MessageTypes[1]; }
+      get { return global::YFramework.Config.QuestReflection.Descriptor.MessageTypes[1]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -333,11 +333,11 @@ namespace Com.Youzu.Got.Config {
 
     /// <summary>Field number for the "items" field.</summary>
     public const int ItemsFieldNumber = 1;
-    private static readonly pb::FieldCodec<global::Com.Youzu.Got.Config.Quest> _repeated_items_codec
-        = pb::FieldCodec.ForMessage(10, global::Com.Youzu.Got.Config.Quest.Parser);
-    private readonly pbc::RepeatedField<global::Com.Youzu.Got.Config.Quest> items_ = new pbc::RepeatedField<global::Com.Youzu.Got.Config.Quest>();
+    private static readonly pb::FieldCodec<global::YFramework.Config.Quest> _repeated_items_codec
+        = pb::FieldCodec.ForMessage(10, global::YFramework.Config.Quest.Parser);
+    private readonly pbc::RepeatedField<global::YFramework.Config.Quest> items_ = new pbc::RepeatedField<global::YFramework.Config.Quest>();
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public pbc::RepeatedField<global::Com.Youzu.Got.Config.Quest> Items {
+    public pbc::RepeatedField<global::YFramework.Config.Quest> Items {
       get { return items_; }
     }
 

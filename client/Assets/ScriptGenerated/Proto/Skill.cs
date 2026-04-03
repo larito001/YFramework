@@ -9,7 +9,7 @@ using pb = global::Google.Protobuf;
 using pbc = global::Google.Protobuf.Collections;
 using pbr = global::Google.Protobuf.Reflection;
 using scg = global::System.Collections.Generic;
-namespace Com.Youzu.Got.Config {
+namespace YFramework.Config {
 
   /// <summary>Holder for reflection information generated from skill.proto</summary>
   public static partial class SkillReflection {
@@ -24,17 +24,17 @@ namespace Com.Youzu.Got.Config {
     static SkillReflection() {
       byte[] descriptorData = global::System.Convert.FromBase64String(
           string.Concat(
-            "Cgtza2lsbC5wcm90bxIUY29tLnlvdXp1LmdvdC5jb25maWcaFENvbmZpZ0Jh",
-            "c2VUeXBlLnByb3RvImAKBVNraWxsEhIKCnNraWxsX25hbWUYASABKAkSDwoH",
-            "aGVyb19pZBgCIAEoDRIQCghza2lsbF9pZBgDIAEoDRIOCgZkYW1hZ2UYBCAB",
-            "KAUSEAoIY29vbGRvd24YBSABKAIiRgoYU2tpbGxfTElTVF9UT09MX1JFU0VS",
-            "VkVEEioKBWl0ZW1zGAEgAygLMhsuY29tLnlvdXp1LmdvdC5jb25maWcuU2tp",
-            "bGxiBnByb3RvMw=="));
+            "Cgtza2lsbC5wcm90bxIReWZyYW1ld29yay5jb25maWcaFENvbmZpZ0Jhc2VU",
+            "eXBlLnByb3RvImAKBVNraWxsEhIKCnNraWxsX25hbWUYASABKAkSDwoHaGVy",
+            "b19pZBgCIAEoDRIQCghza2lsbF9pZBgDIAEoDRIOCgZkYW1hZ2UYBCABKAUS",
+            "EAoIY29vbGRvd24YBSABKAIiQwoYU2tpbGxfTElTVF9UT09MX1JFU0VSVkVE",
+            "EicKBWl0ZW1zGAEgAygLMhgueWZyYW1ld29yay5jb25maWcuU2tpbGxCFKoC",
+            "EVlGcmFtZXdvcmsuQ29uZmlnYgZwcm90bzM="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
-          new pbr::FileDescriptor[] { global::Com.Youzu.Got.Config.ConfigBaseTypeReflection.Descriptor, },
+          new pbr::FileDescriptor[] { global::YFramework.Config.ConfigBaseTypeReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(null, new pbr::GeneratedClrTypeInfo[] {
-            new pbr::GeneratedClrTypeInfo(typeof(global::Com.Youzu.Got.Config.Skill), global::Com.Youzu.Got.Config.Skill.Parser, new[]{ "SkillName", "HeroId", "SkillId", "Damage", "Cooldown" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Com.Youzu.Got.Config.Skill_LIST_TOOL_RESERVED), global::Com.Youzu.Got.Config.Skill_LIST_TOOL_RESERVED.Parser, new[]{ "Items" }, null, null, null)
+            new pbr::GeneratedClrTypeInfo(typeof(global::YFramework.Config.Skill), global::YFramework.Config.Skill.Parser, new[]{ "SkillName", "HeroId", "SkillId", "Damage", "Cooldown" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::YFramework.Config.Skill_LIST_TOOL_RESERVED), global::YFramework.Config.Skill_LIST_TOOL_RESERVED.Parser, new[]{ "Items" }, null, null, null)
           }));
     }
     #endregion
@@ -49,7 +49,7 @@ namespace Com.Youzu.Got.Config {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Com.Youzu.Got.Config.SkillReflection.Descriptor.MessageTypes[0]; }
+      get { return global::YFramework.Config.SkillReflection.Descriptor.MessageTypes[0]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -305,7 +305,7 @@ namespace Com.Youzu.Got.Config {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Com.Youzu.Got.Config.SkillReflection.Descriptor.MessageTypes[1]; }
+      get { return global::YFramework.Config.SkillReflection.Descriptor.MessageTypes[1]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -333,11 +333,11 @@ namespace Com.Youzu.Got.Config {
 
     /// <summary>Field number for the "items" field.</summary>
     public const int ItemsFieldNumber = 1;
-    private static readonly pb::FieldCodec<global::Com.Youzu.Got.Config.Skill> _repeated_items_codec
-        = pb::FieldCodec.ForMessage(10, global::Com.Youzu.Got.Config.Skill.Parser);
-    private readonly pbc::RepeatedField<global::Com.Youzu.Got.Config.Skill> items_ = new pbc::RepeatedField<global::Com.Youzu.Got.Config.Skill>();
+    private static readonly pb::FieldCodec<global::YFramework.Config.Skill> _repeated_items_codec
+        = pb::FieldCodec.ForMessage(10, global::YFramework.Config.Skill.Parser);
+    private readonly pbc::RepeatedField<global::YFramework.Config.Skill> items_ = new pbc::RepeatedField<global::YFramework.Config.Skill>();
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    public pbc::RepeatedField<global::Com.Youzu.Got.Config.Skill> Items {
+    public pbc::RepeatedField<global::YFramework.Config.Skill> Items {
       get { return items_; }
     }
 

@@ -6,7 +6,7 @@ using System.IO;
 using Google.Protobuf;
 using UnityEngine;
 
-namespace Com.Youzu.Got.Config
+namespace YFramework.Config
 {
     public abstract class ConfigBase
     {
@@ -30,7 +30,7 @@ namespace Com.Youzu.Got.Config
         }
     }
 
-    public partial class GotConfigManager
+    public partial class ConfigManager
     {
     }
 }

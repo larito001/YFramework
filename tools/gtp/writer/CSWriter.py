@@ -4,8 +4,8 @@ import os
 from gtp.common.ConfigData import ConfigData
 from gtp.writer import ProtoHelper
 
-NAMESPACE = "Com.Youzu.Got.Config"
-MANAGER_CLASS = "GotConfigManager"
+NAMESPACE = "YFramework.Config"
+MANAGER_CLASS = "ConfigManager"
 BASE_CLASS = "ConfigBase"
 
 

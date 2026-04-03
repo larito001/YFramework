@@ -9,7 +9,7 @@ public static partial class GameBootstrapper
         ctx.Register(new SceneResManager());
     }
 
-    static partial void ConfigureProjectScenes(GotSceneManager sceneManager)
+    static partial void ConfigureProjectScenes(YSceneManager sceneManager)
     {
         sceneManager.RegisterScene<GameMainScene>();
         sceneManager.RegisterScene<GameStartScene>();

@@ -26,7 +26,7 @@ public class StartPanel : UIPageBase
 
     private void OnNewClick()
     {
-        GetService<GotSceneManager>().SwitchScene(GotSceneType.Home);
+        GetService<YSceneManager>().SwitchScene(YSceneType.Home);
     }
 
     public override void OnShow()

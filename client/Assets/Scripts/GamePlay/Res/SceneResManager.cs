@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using Com.Youzu.Got.Config;
+using YFramework.Config;
 using UnityEngine;
 using YOTO;
 

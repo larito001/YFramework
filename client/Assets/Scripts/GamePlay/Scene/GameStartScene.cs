@@ -3,11 +3,11 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class GameStartScene : GotSceneBase
+public class GameStartScene : YSceneBase
 {
-    public override GotSceneType SceneType
+    public override YSceneType SceneType
     {
-        get { return GotSceneType.Home; }
+        get { return YSceneType.Home; }
     }
 
     public override string SceneName

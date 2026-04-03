@@ -1,4 +1,4 @@
-public enum GotSceneType
+public enum YSceneType
 {
     Home,
     GamePlay,

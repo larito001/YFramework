@@ -1,9 +1,9 @@
 using UnityEngine;
 using YOTO;
 
-public class GameMainScene : GotSceneBase
+public class GameMainScene : YSceneBase
 {
-    public override GotSceneType SceneType => GotSceneType.GamePlay;
+    public override YSceneType SceneType => YSceneType.GamePlay;
 
     public override string SceneName => "GameMainScene";
 
