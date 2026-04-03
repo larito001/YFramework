@@ -1,5 +1,7 @@
+using Com.Youzu.Got.Config;
 using HotUpdate.Scripts.Framework.Pool.newPool;
 using Unity.VisualScripting;
+using UnityEngine;
 using YOTO;
 
 /// <summary>
@@ -13,7 +15,7 @@ public static partial class GameBootstrapper
     {
         var ctx = new GameContext();
         ctx.Register(new TestService());
-
+        ctx.Register(new GotConfigManager());
         // Framework services only. Project-specific services are injected via partial methods.
         ctx.Register(new ObjectPool());
         ctx.Register(new ScreenMonitor());
@@ -41,7 +43,8 @@ public static partial class GameBootstrapper
         var aStarManager = new GotAStarManager(ctx.Get<SceneReferenceService>(), ctx.Get<ResMgr>());
         ctx.Register(aStarManager);
         RegisterProjectServices(ctx);
-
+        Debug.Log(ctx.Get<GotConfigManager>().heroConfig.Get(1001).HeroName);
+ 
         return ctx;
     }
 

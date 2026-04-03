@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Com.Youzu.Got.Config;
 using UnityEngine;
 using YOTO;
 
@@ -30,6 +31,7 @@ public class SceneResManager : IGameService
       
         resList.Clear();
         uiMgr = ctx.Get<UIMgr>();
+      
     }
 
     public void Shutdown()
