@@ -24,6 +24,7 @@ public static partial class GameBootstrapper
         ctx.Register(new ResMgr());
         ctx.Register(new SceneReferenceService());
         ctx.Register(new CameraMgr());
+        ctx.Register(new SceneInteractionService());
         ctx.Register(new UIMgr(BuildUiConfig()));
         ctx.Register(new SoundMgr());
         ctx.Register(new TaskManager());
