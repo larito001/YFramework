@@ -57,7 +57,7 @@ namespace Combat
         public Vector3 Direction;        // 发射方向（单位向量）
         public float MaxDistance;        // hitscan 用
         public DamageSpec Damage;        // 伤害规格
-        public WeaponConfigSO Config;    // 武器配置（用于弹道、散布、速度等）
+        public int WeaponId;
     }
    
 

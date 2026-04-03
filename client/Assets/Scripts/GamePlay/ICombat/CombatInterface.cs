@@ -40,7 +40,7 @@ namespace Combat
         TeamId Team { get; }
         Vector3 Owner { get; }
 
-        WeaponConfigSO Config { get; }
+        int WeaponId { get; }
 
         // 统一入口：枪和塔都是 Fire(FireRequest)
         bool TryFire(in FireRequest request);

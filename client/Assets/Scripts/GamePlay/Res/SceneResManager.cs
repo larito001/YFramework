@@ -4,11 +4,11 @@ using YOTO;
 
 public class SceneResManager : IGameService
 {
-    public RewardBoxDataSO RewardDataSO;
+  
     private readonly List<IUsable> resList = new List<IUsable>();
 
     private IUIService uiMgr;
-    private ResourceHandle<RewardBoxDataSO> rewardDataHandle;
+   
 
     public bool GetNearestRes(Vector3 pos, float range, out IUsable res)
     {
@@ -27,8 +27,7 @@ public class SceneResManager : IGameService
 
     public void Init(GameContext ctx)
     {
-        rewardDataHandle = ctx.Get<ResMgr>().LoadHandle<RewardBoxDataSO>("Config/RewardBoxDataSO");
-        RewardDataSO = rewardDataHandle?.Asset;
+      
         resList.Clear();
         uiMgr = ctx.Get<UIMgr>();
     }
@@ -36,9 +35,7 @@ public class SceneResManager : IGameService
     public void Shutdown()
     {
         uiMgr = null;
-        rewardDataHandle?.Release();
-        rewardDataHandle = null;
-        RewardDataSO = null;
+
         resList.Clear();
     }
 
