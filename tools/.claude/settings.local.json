@@ -1,0 +1,33 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip install:*)",
+      "Bash(python gen_test_excel.py)",
+      "Bash(python test_publish.py)",
+      "Bash(where protoc:*)",
+      "Bash(python:*)",
+      "Bash(curl -L -o C:/Users/ytli/Desktop/tools/3rdparty/protobuf/protoc.zip \"https://github.com/protocolbuffers/protobuf/releases/download/v3.6.1/protoc-3.6.1-win32.zip\")",
+      "Bash(unzip -o protoc.zip bin/protoc.exe -d .)",
+      "Bash(mv bin/protoc.exe .)",
+      "Bash(rm -rf bin include protoc.zip readme.txt)",
+      "Bash(/c/Users/ytli/Desktop/tools/3rdparty/protobuf/protoc.exe:*)",
+      "Bash(/c/Users/20723/AppData/Local/Microsoft/WindowsApps/python3:*)",
+      "Bash(where python:*)",
+      "Bash(py --version)",
+      "Bash(py -3 --version)",
+      "Bash(winget:*)",
+      "Bash(export PATH=\"/c/Users/20723/AppData/Local/Programs/Python/Python312/Scripts:/c/Users/20723/AppData/Local/Programs/Python/Python312:$PATH\")",
+      "Bash(C:/Users/20723/Desktop/tools/3rdparty/protobuf/protoc.exe:*)",
+      "Bash(export:*)",
+      "Read(//c/UnityProject/YFramework/**)",
+      "Bash(rm:*)",
+      "Bash(rm -rf \"C:/UnityProject/YFramework/client/Assets/ScriptGenerated\")",
+      "Bash(rm -rf \"C:/UnityProject/YFramework/client/Assets/ResourcesAssets/Config/Data/Default\")",
+      "Bash(cd /tmp)",
+      "Bash(curl -L -o google.protobuf.nupkg \"https://www.nuget.org/api/v2/package/Google.Protobuf/3.21.12\")",
+      "Bash(unzip -o google.protobuf.nupkg -d google_protobuf)",
+      "Bash(mkdir -p \"/c/UnityProject/YFramework/client/Assets/Plugins/Google.Protobuf\")",
+      "Bash(cp /tmp/google_protobuf/lib/netstandard2.0/Google.Protobuf.dll \"/c/UnityProject/YFramework/client/Assets/Plugins/Google.Protobuf/\")"
+    ]
+  }
+}
