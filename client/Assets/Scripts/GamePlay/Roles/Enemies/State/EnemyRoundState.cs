@@ -1,6 +1,5 @@
 using System.Collections;
 using System.Collections.Generic;
-using Combat;
 using UnityEngine;
 
 public class EnemyRoundState : IYState, PoolItem<object>
@@ -23,23 +22,10 @@ public class EnemyRoundState : IYState, PoolItem<object>
         var target = center + new Vector3(Random.Range(-5, 5), 0, Random.Range(-5, 5));
         target.y = 0;
         _stateMachine.Enemy.OnPathComplete += OnPathComplete;
-        _stateMachine.Enemy.OnEnterCallbackStateMachine += OnEnterCallback;
-        _stateMachine.Enemy.OnHurtCallbackStateMachine += OnHurtCallback;
         _stateMachine.Enemy.seeker.OncePathFinding(target);
 
     }
 
-    private void OnHurtCallback(IThreatTarget target)
-    {
-        _stateMachine.Enemy.SetTarget(target);
-        _stateMachine.SwitchState(EnemyPinState.pool.GetItem(null),null);
-    }
-
-    private void OnEnterCallback(IThreatTarget target)
-    {
-        _stateMachine.Enemy.SetTarget(target);
-        _stateMachine.SwitchState(EnemyPinState.pool.GetItem(null),null);
-    }
     private void OnPathComplete()
     {
         _stateMachine.SwitchState(EnemyIdelState.pool.GetItem(null),null);
@@ -53,8 +39,6 @@ public class EnemyRoundState : IYState, PoolItem<object>
     public void ExitState(YStateMachine enemy)
     {
         _stateMachine.Enemy.OnPathComplete -= OnPathComplete;
-        _stateMachine.Enemy.OnEnterCallbackStateMachine -= OnEnterCallback;
-        _stateMachine.Enemy.OnHurtCallbackStateMachine -= OnHurtCallback;
         _stateMachine = null;
         pool.RecoverItem(this);
     }

@@ -22,15 +22,6 @@ public class EnemyPinState : IYState, PoolItem<object>
 
     private void OnPinPathComplete()
     {
-        //todo:如果没有moving且到达索敌半径
-        var target = _stateMachine.Enemy.GetTarget();
-        if (target != null)
-        {
-            // if ((target.GetPosition() - _stateMachine.Enemy.GetPosition()).magnitude <= _stateMachine.Enemy.enemyConfig.atkRange+2)
-            {
-                _stateMachine.SwitchState(EnemyAtkState.pool.GetItem(null),null);
-            }
-        }
     }
 
     public void UpdateState(YStateMachine enemy, float dt)
@@ -41,7 +32,7 @@ public class EnemyPinState : IYState, PoolItem<object>
 
     private void PathFind()
     {
-        var target = _stateMachine.Enemy.GetTarget();
+
         // if (target != null && target.GetProperties().State != RoleState.Dead)
         // {
         //     _stateMachine.Enemy.seeker.OncePathFinding(target.GetPosition());

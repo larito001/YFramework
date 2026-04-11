@@ -1,12 +1,11 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
-using Combat;
 using Pathfinding.Examples;
 using UnityEngine;
 using UnityEngine.Events;
 using YOTO;
 
-public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>,IDamageable,IThreatTarget,ITickable
+public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>,ITickable
 {
     public static DataObjPool<EnemyEntity, (EnemyData, Vector3)> pool =
         new DataObjPool<EnemyEntity, (EnemyData, Vector3)>("EnemyEntity", 200);
@@ -18,12 +17,10 @@ public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>,IDamageabl
     public IYSeeker seeker;
     public bool NeedRound = false;
     public Vector3 OrgPos = Vector3.zero;
-    private IThreatTarget _lockTarget = null;
+ 
     
     #region stateMachine
 
-    public UnityAction<IThreatTarget> OnHurtCallbackStateMachine = null;
-    public UnityAction<IThreatTarget> OnEnterCallbackStateMachine = null;
     public UnityAction OnAtkFinishCallbackStateMachine = null;
     public UnityAction OnPathComplete;
     private EnemyStateMachine stateMachine;
@@ -188,16 +185,8 @@ public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>,IDamageabl
     }
     
 
-    public IThreatTarget GetTarget()
-    {
-        return _lockTarget;
-    }
 
-    public void SetTarget(IThreatTarget target)
-    {
-        _lockTarget = target;
-    }
-    
+
     
     List<Vector3> atkSlot = new List<Vector3>();
 
@@ -299,7 +288,7 @@ public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>,IDamageabl
     
     #region Damageable State
 
-    private TeamId _team = new TeamId(0);
+  
     private bool _isTargetable = false;
     private bool _isAlive = false;
     private float _maxHP=100;
@@ -308,10 +297,7 @@ public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>,IDamageabl
     private float _def=10;
     private int _level=1;
     
-    public TeamId Team
-    {
-        get { return _team; }
-    }
+
     public bool IsTargetable { get { return _isTargetable; } }
     public bool IsAlive { get{ return _isAlive;} }
 
@@ -345,10 +331,7 @@ public class EnemyEntity : ObjectBase, PoolItem<(EnemyData, Vector3)>,IDamageabl
     public float Def { get{ return _def;} }
     public int Level { get{ return _level;} }
 
-    public bool ApplyDamage(in DamageSpec spec, in HitInfo hit, IProjectile instigator)
-    {
-        return true;
-    }
+
 
     #endregion
     

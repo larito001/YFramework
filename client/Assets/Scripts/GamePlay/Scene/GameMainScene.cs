@@ -16,13 +16,11 @@ public class GameMainScene : YSceneBase
 
     protected override void OnEnterScene()
     {
-        GetService<PlayerManager>().GeneratePlayer();
         EnterSceneComplete();
     }
 
     protected override void OnLeaveScene()
     {
-        GetService<PlayerManager>().ClearPlayer();
         LeaveSceneComplete();
     }
 }

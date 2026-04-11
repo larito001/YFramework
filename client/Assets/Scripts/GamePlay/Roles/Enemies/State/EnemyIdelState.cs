@@ -1,6 +1,5 @@
 using System.Collections;
 using System.Collections.Generic;
-using Combat;
 using UnityEngine;
 
 public class EnemyIdelState : IYState, PoolItem<object>
@@ -20,26 +19,16 @@ public class EnemyIdelState : IYState, PoolItem<object>
     {
         _stateMachine = enemy as EnemyStateMachine;
         _stateMachine.Enemy.seeker?.StopPathFinding();
-        _stateMachine.Enemy.OnEnterCallbackStateMachine += OnEnterCallback;
-        _stateMachine.Enemy.OnHurtCallbackStateMachine += OnHurtCallback;
+    
         timer = 3;
         //范围内自动索敌（如果有的话）
         _stateMachine.Enemy.TryExchangeTarget();
 
     }
 
-    private void OnHurtCallback(IThreatTarget target)
-    {
-        _stateMachine.Enemy.SetTarget(target);
-        _stateMachine.SwitchState(EnemyPinState.pool.GetItem(null),null);
-    }
 
-    private void OnEnterCallback(IThreatTarget target)
-    {
-        _stateMachine.Enemy.SetTarget(target);
-        _stateMachine.SwitchState(EnemyPinState.pool.GetItem(null),null);
-    }
-    
+
+
     public void UpdateState(YStateMachine enemy,float dt)
     {
         if (_stateMachine == null) return;
@@ -57,8 +46,7 @@ public class EnemyIdelState : IYState, PoolItem<object>
 
     public void ExitState(YStateMachine enemy)
     {
-        _stateMachine.Enemy.OnEnterCallbackStateMachine -= OnEnterCallback;
-        _stateMachine.Enemy.OnHurtCallbackStateMachine -= OnHurtCallback;
+      
         _stateMachine.Enemy.seeker?.ContinuePathFinding();
         _stateMachine = null;
         pool.RecoverItem(this);
