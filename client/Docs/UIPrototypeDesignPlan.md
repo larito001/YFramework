@@ -239,40 +239,506 @@ Docs/UIPlans/Bag/BagView.design.md
 - 删除：Btn_SellAll，批量出售按钮
 ```
 
-## 9. MVP 具体任务拆分
+## 5. Unity UI 编辑器详细设计
 
-### 9.1 Editor 工具
+### 5.1 设计定位
 
-- 创建 `UIPrototypeEditorWindow`。
-- 支持选择或创建 UI Prefab。
-- 支持扫描 Prefab 下的 UGUI 节点。
-- 支持编辑策划注释和是否导出为策划案。
-- 支持保存轻量迭代信息到 `plan.json`。
+该工具不是重新实现一个 UI 编辑器，也不是在 Unity 外做一套类似 Figma 的系统，而是在 Unity 原生 UGUI 编辑能力上做策划友好的扩展。
 
-### 9.2 Prefab 扫描与迭代信息生成
+核心定位：
 
-- 定义 `UIViewPlanInfo`。
-- 定义 `UIElementPlanInfo`。
-- 实现 Prefab 扫描器。
-- 实现轻量 `plan.json` 序列化。
-- 实现 ElementId 重复检查。
-- 实现缺失字段检查。
+- 布局、锚点、RectTransform、层级拖拽仍然使用 Unity 原生能力。
+- 策划通过 EditorWindow 添加项目预设 UI 组件。
+- 每个可进入策划案的组件都挂载项目语义脚本，例如 `YButton`、`YText`、`YImage`。
+- 策划案层级由 Prefab 层级和语义脚本共同决定。
+- `plan.json` 只保存策划注释、是否导出、版本、修改时间、删除记录等迭代信息，不保存完整 UI 结构。
 
-### 9.3 策划案生成
+### 5.2 编辑器入口
 
-- 实现 Markdown 模板生成。
-- 实现截图路径写入。
-- 实现组件类型到填写字段的映射。
-- 实现首次生成。
-- 实现再次生成时保留手写内容。
-- 实现新增元素自动追加。
+菜单入口：
 
-### 9.4 截图生成
+```text
+Tools/YFramework/UI Prototype Editor
+```
 
-- 实现 Canvas 渲染截图。
-- 支持固定分辨率。
-- 输出 PNG。
-- 自动复制或引用到策划案目录。
+主窗口：
 
+```csharp
+public class UIPrototypeEditorWindow : EditorWindow
+{
+    private GameObject currentPrefab;
+    private UIViewPlanInfo currentPlanInfo;
+    private Vector2 componentListScroll;
+    private Vector2 hierarchyScroll;
+    private Vector2 inspectorScroll;
+}
+```
 
+窗口分为四个区域：
 
+| 区域 | 用途 |
+| --- | --- |
+| 顶部工具栏 | 新建、打开、保存、生成截图、生成策划案、校验 |
+| 左侧组件库 | 展示指定目录下的 UI 组件 Prefab |
+| 中间当前 UI 结构 | 展示当前 Prefab 中可导出元素的树 |
+| 右侧语义面板 | 编辑选中元素的策划注释、是否导出等信息 |
+
+### 5.3 顶部工具栏设计
+
+顶部工具栏按钮：
+
+| 按钮 | 行为 |
+| --- | --- |
+| New UI | 创建新的 UI Prefab |
+| Open Prefab | 选择已有 UI Prefab |
+| Save | 保存 Prefab 和 `plan.json` |
+| Scan | 重新扫描 Prefab 结构 |
+| Validate | 检查命名、重复、缺失信息 |
+| Screenshot | 生成当前 UI 截图 |
+| Generate Doc | 生成或同步策划案 Markdown |
+
+推荐工作流：
+
+```text
+New/Open Prefab
+  -> 从左侧组件库拖入控件
+  -> 使用 Unity 原生 Scene 视图调整布局
+  -> 在右侧填写策划注释和导出选项
+  -> Validate
+  -> Screenshot
+  -> Generate Doc
+```
+
+### 5.4 组件库设计
+
+组件库不硬编码按钮、文本、图片等创建逻辑，而是扫描一个固定目录下的 Prefab。
+
+推荐目录：
+
+```text
+Assets/Game/UIPrototypeComponents/
+  Button.prefab
+  Text.prefab
+  Image.prefab
+  Slider.prefab
+  ScrollView.prefab
+  InputField.prefab
+```
+
+每个组件 Prefab 需要满足：
+
+- 根节点挂载对应语义脚本（没有就创建，默认继承Ugui的）。
+- 组件命名符合默认命名规范。
+- 内部可以包含完整 UGUI 结构。
+- 可以由程序或美术维护样式。
+
+示例：
+
+| 组件 Prefab | 根节点脚本 | 说明 |
+| --- | --- | --- |
+| Button.prefab | `YButton` | 用于点击行为 |
+| Text.prefab | `YText` | 用于静态或动态文本 |
+| Image.prefab | `YImage` | 用于图片、美术资源、图标 |
+| Slider.prefab | `YSlider` | 用于数值进度 |
+| ScrollView.prefab | `YScrollView` | 用于滚动列表 |
+| InputField.prefab | `YInput` | 用于输入 |
+
+组件库交互：
+
+- 左侧显示组件名称、类型和预览缩略图。
+- 支持拖拽到 Scene 视图或当前 UI 根节点。
+- 拖入后自动重命名，例如 `Btn_New`、`Txt_New`、`Img_New`。
+- 拖入后自动创建或更新 `plan.json` 中该元素的轻量记录。
+
+### 5.5 语义组件设计
+
+语义组件负责告诉工具：这个节点是什么、如何生成策划案字段。它不负责复杂业务逻辑，也不保存策划注释和导出开关。
+
+基础类：
+
+```csharp
+public abstract class YUIElement : MonoBehaviour
+{
+    public abstract string ElementType { get; }
+    public virtual string DisplayName => gameObject.name;
+    public virtual IEnumerable<string> GetDesignQuestions()
+    {
+        yield return "功能说明";
+    }
+}
+```
+
+按钮：
+
+```csharp
+public class YButton : YUIElement
+{
+    public override string ElementType => "Button";
+
+    public override IEnumerable<string> GetDesignQuestions()
+    {
+        yield return "点击后行为";
+        yield return "是否有音效";
+        yield return "是否有点击动画";
+        yield return "是否有禁用状态";
+    }
+}
+```
+
+文本：
+
+```csharp
+public class YText : YUIElement
+{
+    public override string ElementType => "Text";
+
+    public override IEnumerable<string> GetDesignQuestions()
+    {
+        yield return "文本来源";
+        yield return "默认文案";
+        yield return "是否需要多语言";
+        yield return "为空时表现";
+    }
+}
+```
+
+图片：
+
+```csharp
+public class YImage : YUIElement
+{
+    public override string ElementType => "Image";
+
+    public override IEnumerable<string> GetDesignQuestions()
+    {
+        yield return "图片用途";
+        yield return "是否需要美术出图";
+        yield return "资源命名";
+        yield return "是否有状态变化";
+    }
+}
+```
+
+滚动列表：
+
+```csharp
+public class YScrollView : YUIElement
+{
+    public override string ElementType => "ScrollView";
+
+    public override IEnumerable<string> GetDesignQuestions()
+    {
+        yield return "数据来源";
+        yield return "排序规则";
+        yield return "刷新时机";
+        yield return "为空时表现";
+        yield return "列表项点击行为";
+    }
+}
+```
+
+### 5.6 语义信息存储策略
+
+语义信息分两层：
+
+1. Prefab 内语义脚本。
+2. `plan.json` 迭代补充信息。
+
+推荐规则：
+
+- Prefab 只保存真实 UI 结构、UGUI 组件和 `YUIElement` 语义脚本。
+- `plannerComment`、`exportToDesignDoc`、`version`、`lastModifiedTime`、`deletedElements` 放在 `plan.json`。
+- `plan.json` 缺少某个 Prefab 元素记录时，工具自动补默认记录。
+- 不把完整 UI 结构写入 `plan.json`，避免形成第二份 UI 数据。
+
+推荐 `plan.json`：
+
+```json
+{
+  "viewId": "BagView",
+  "viewName": "背包界面",
+  "version": 3,
+  "lastModifiedTime": "2026-05-05 21:59:00",
+  "lastGeneratedDoc": "Docs/UIPlans/Bag/BagView.design.md",
+  "lastScreenshot": "Docs/UIPlans/Bag/BagView.png",
+  "elements": {
+    "Root/Header/Btn_Close": {
+      "plannerComment": "关闭当前界面",
+      "exportToDesignDoc": true
+    }
+  },
+  "deletedElements": [
+    {
+      "elementId": "Btn_SellAll",
+      "path": "Root/Footer/Btn_SellAll",
+      "elementType": "Button",
+      "deletedAtVersion": 3
+    }
+  ]
+}
+```
+
+### 5.7 Prefab 扫描规则
+
+扫描入口：
+
+```csharp
+public sealed class UIPrefabScanner
+{
+    public UIViewScanResult Scan(GameObject prefabRoot);
+}
+```
+
+扫描规则：
+
+1. 从 Prefab 根节点开始深度遍历。
+2. 只收集挂载 `YUIElement` 的节点。
+3. 如果节点未挂 `YUIElement`，但有 Button、Text、Image 等 UGUI 组件，Validate 时提示是否自动补挂。
+4. 从 `plan.json` 读取该节点的 `exportToDesignDoc`。
+5. 如果 `exportToDesignDoc = false`，节点不进入策划案正文，但仍可作为结构节点存在。
+6. Path 由 Prefab 根节点到当前节点的 GameObject 名称组成。
+7. ElementId 默认等于 GameObject 名称。
+8. 同一 Prefab 内 ElementId 必须唯一。
+
+扫描结果：
+
+```csharp
+public sealed class UIViewScanResult
+{
+    public string ViewId;
+    public string ViewName;
+    public List<UIElementScanInfo> Elements;
+    public List<UIValidationIssue> Issues;
+}
+
+public sealed class UIElementScanInfo
+{
+    public string ElementId;
+    public string DisplayName;
+    public string ElementType;
+    public string Path;
+    public bool ExportToDesignDoc;
+    public string PlannerComment;
+    public List<string> DesignQuestions;
+}
+```
+
+### 5.8 当前 UI 结构面板
+
+中间面板显示当前 Prefab 中的语义节点树。
+
+展示字段：
+
+| 字段 | 说明 |
+| --- | --- |
+| 图标 | 根据组件类型显示 |
+| ElementId | GameObject 名称 |
+| Type | `YButton`、`YText` 等 |
+| Export | 是否导出为策划案 |
+| Status | 正常、新增、已删除、命名冲突、缺失脚本 |
+
+交互：
+
+- 点击节点时，同步选中 Unity Hierarchy 中的 GameObject。
+- 双击节点时，在 Scene 视图聚焦。
+- 勾选/取消 Export 时，立即更新 `plan.json` 中的轻量记录。
+- 命名冲突以红色标记。
+- 未挂语义脚本但可识别的 UGUI 节点以黄色标记，并提供“一键补挂”。
+
+### 5.9 右侧语义面板
+
+选中一个 UI 元素后，右侧显示：
+
+```text
+ElementId: Btn_Close
+Type: Button
+Path: Root/Header/Btn_Close
+Export To Design Doc: true
+Planner Comment: 关闭当前界面
+Generated Questions:
+  - 点击后行为
+  - 是否有音效
+  - 是否有点击动画
+  - 是否有禁用状态
+```
+
+字段说明：
+
+- `ElementId` 不建议单独编辑，直接修改 GameObject 名称。
+- `Type` 由脚本类型决定，不允许在这里改。
+- `Path` 只读。
+- `Export To Design Doc` 可编辑，保存到 `plan.json`。
+- `Planner Comment` 可编辑，保存到 `plan.json`。
+- `Generated Questions` 只读，由组件类型提供。
+
+### 5.10 新建 UI 页面流程
+
+新建流程：
+
+1. 点击 `New UI`。
+2. 输入模块名和界面名。
+3. 工具创建 Canvas 根节点和 UI 根节点。
+4. 保存为 Prefab。
+5. 初始化 `plan.json`。
+6. 自动打开 Prefab 编辑模式。
+
+推荐目录：
+
+```text
+Assets/Game/UIPrototypes/{Module}/{ViewId}/{ViewId}.prefab
+Assets/Game/UIPrototypes/{Module}/{ViewId}/{ViewId}.plan.json
+Docs/UIPlans/{Module}/{ViewId}.design.md
+Docs/UIPlans/{Module}/{ViewId}.png
+```
+
+默认根节点结构：
+
+```text
+BagView
+  Root
+    Header
+    Content
+    Footer
+```
+
+### 5.11 组件拖入流程
+
+拖入流程：
+
+1. 策划从左侧组件库拖一个组件 Prefab。
+2. 放到 Scene 视图或当前 UI 结构树中的某个父节点。
+3. 工具实例化该组件。
+4. 根据组件类型生成默认名称。
+5. 检查名称是否重复。
+6. 选中新元素并打开右侧语义面板。
+7. 策划填写 `Planner Comment`，确认是否导出。
+
+默认命名规则：
+
+| 类型 | 前缀 | 示例 |
+| --- | --- | --- |
+| Button | Btn_ | `Btn_Close` |
+| Text | Txt_ | `Txt_Title` |
+| Image | Img_ | `Img_Icon` |
+| Slider | Sld_ | `Sld_Progress` |
+| ScrollView | List_ | `List_Item` |
+| InputField | Input_ | `Input_Name` |
+
+### 5.12 校验规则
+
+点击 `Validate` 后执行：
+
+| 规则 | 级别 | 处理 |
+| --- | --- | --- |
+| ElementId 重复 | Error | 必须修改 |
+| 导出元素未挂 `YUIElement` | Error | 补挂或不导出 |
+| GameObject 名称为空或默认名 | Warning | 建议重命名 |
+| `Planner Comment` 为空 | Warning | 建议填写 |
+| 图片类元素未说明是否需要美术 | Warning | 建议补充 |
+| ScrollView 没有 Item 模板 | Warning | 建议补充 |
+| Prefab 未保存 | Warning | 先保存再生成 |
+
+校验结果显示在窗口底部，点击问题可定位到对应节点。
+
+### 5.13 策划案生成流程
+
+生成流程：
+
+```text
+Scan Prefab
+  -> Validate
+  -> Load Existing Markdown
+  -> Extract Existing <!--content--> Blocks
+  -> Generate New Structure From Prefab
+  -> Restore Existing Content
+  -> Append New Items With <!--content--> 待填写
+  -> Mark Deleted Items
+  -> Save Markdown
+  -> Update plan.json Version And Modified Time
+```
+
+关键策略：
+
+- 章节标题由 Prefab 层级和元素类型生成。
+- 每个需要策划填写的字段下面只放一个 `<!--content-->`。
+- 旧文档中 `<!--content-->` 后的内容按标题路径回填。
+- 新增 UI 元素生成新的待填写内容。
+- 删除 UI 元素保留旧内容，并在标题上标记 `[已删除]`。
+
+### 5.14 截图生成流程
+
+截图按钮行为：
+
+1. 加载当前 Prefab。
+2. 创建临时 Preview Scene 或使用 Prefab Stage。
+3. 找到 Canvas 和 Camera。
+4. 以指定分辨率渲染。
+5. 输出 PNG 到策划案目录。
+6. 更新 `plan.json.lastScreenshot`。
+
+默认分辨率：
+
+```text
+1080 x 1920
+```
+
+可在窗口顶部提供分辨率下拉：
+
+- 1080 x 1920
+- 750 x 1334
+- 1920 x 1080
+- 自定义
+
+### 5.15 文件与类建议
+
+推荐代码目录：
+
+```text
+Assets/Scripts/Editor/UIPrototype/
+  UIPrototypeEditorWindow.cs
+  UIPrototypeComponentLibrary.cs
+  UIPrefabScanner.cs
+  UIDesignDocGenerator.cs
+  UIScreenshotGenerator.cs
+  UIPlanJsonStore.cs
+  UIPrototypeValidator.cs
+
+Assets/Scripts/Runtime/UIPrototype/
+  YUIElement.cs
+  YButton.cs
+  YText.cs
+  YImage.cs
+  YSlider.cs
+  YScrollView.cs
+  YInput.cs
+```
+
+说明：
+
+- Editor 代码只在 Unity Editor 中运行。
+- Runtime 语义脚本挂在 Prefab 上，因此放 Runtime 目录。
+- 如果不希望这些脚本进入正式包，后续可以通过 asmdef 或构建剥离策略处理。
+
+### 5.16 MVP 实现边界
+
+MVP 只做以下能力：
+
+- 打开或新建 UI Prefab。
+- 从组件库拖入预设组件。
+- 扫描挂载 `YUIElement` 的节点。
+- 编辑 `plannerComment` 和 `exportToDesignDoc`。
+- 生成 `plan.json`。
+- 生成截图。
+- 生成 Markdown 策划案。
+- 再次生成时保留 `<!--content-->` 内容。
+- 新增节点自动生成待填写项。
+- 删除节点标记为已删除。
+
+MVP 暂不做：
+
+- 自定义复杂布局系统。
+- 类 Figma 操作体验。
+- 多人协作锁。
+- Word/飞书同步。
+- AI 代码生成。
+- 程序绑定代码生成。
