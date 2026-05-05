@@ -46,27 +46,26 @@ Unity Editor UI Builder
 
 ### 4.1 UI 拼装编辑器
 
-实现一个 Unity EditorWindow，供策划创建和编辑 UI 页面。
+实现一个 Unity EditorWindow，供策划创建和编辑 UI 页面。本质是对Ugui编辑进行扩展（注意不是模仿，是基于UGui的基础上扩展）。
 
 主要能力：
 
-- 新建 UI 页面。
+- 新建 UI 页面，ui界面保存为预制体
 - 基于预设组件添加 UGUI 控件。
-- 支持基础布局调整。
+- 预设组件是特定文件夹下的Prefab文件，在EditorWindow的里的列表里可以拖拽进编辑器
+- 支持基础布局调整（Ugui原生）。
 - 支持组件语义填写。
-- 支持实时预览。
-- 支持保存为 Prefab。
 - 支持从 Prefab 语义生成策划案结构。
 - 支持生成截图。
 
 首批支持组件：
 
-- Button
-- Text / TMP_Text
-- Image
-- Slider
-- ScrollView
-- InputField
+- Button【挂YButton脚本】
+- Text / TMP_Text【挂YText脚本】
+- Image【挂YImage脚本】
+- Slider【挂YSlider脚本】
+- ScrollView【挂YScrollView脚本】
+- InputField【挂YInput脚本】
 
 每个组件优先从 Prefab 本身推导基础信息：
 
