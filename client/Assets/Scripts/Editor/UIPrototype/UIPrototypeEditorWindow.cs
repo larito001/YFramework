@@ -464,9 +464,73 @@ public class UIPrototypeEditorWindow : EditorWindow
         SaveCurrent();
         ScanCurrent(true);
         planStore.Touch(currentPlanInfo);
-        string path = designDocGenerator.Generate(currentPrefabPath, currentPlanInfo, currentScanResult);
+        string mdAssetPath = designDocGenerator.Generate(currentPrefabPath, currentPlanInfo, currentScanResult);
         planStore.Save(currentPrefabPath, currentPlanInfo);
-        ShowNotification(new GUIContent("策划案已生成：" + path));
+
+        string scriptAssetPath = TryGenerateUIScript(mdAssetPath);
+        if (string.IsNullOrEmpty(scriptAssetPath))
+        {
+            ShowNotification(new GUIContent("策划案已生成（脚本生成跳过，详见 Console）：" + mdAssetPath));
+            return;
+        }
+
+        AssetDatabase.Refresh();
+        UIPrototypeCodeBinderQueue.Enqueue(currentPrefabPath, scriptAssetPath);
+        ShowNotification(new GUIContent("策划案+脚本已生成，编译完后将自动绑定字段"));
+    }
+
+    private string TryGenerateUIScript(string mdAssetPath)
+    {
+        string projectRoot = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
+        string skillScript = Path.GetFullPath(Path.Combine(projectRoot, ".claude", "skills", "gen-ui-from-plan", "scripts", "gen_ui.py"));
+        if (!File.Exists(skillScript))
+        {
+            Debug.LogError("[UIPrototype] gen-ui-from-plan skill 脚本不存在：" + skillScript);
+            return null;
+        }
+
+        string mdFullPath = UIPrototypePathUtility.AssetPathToFullPath(mdAssetPath);
+        string viewId = currentPlanInfo != null && !string.IsNullOrEmpty(currentPlanInfo.viewId)
+            ? currentPlanInfo.viewId
+            : Path.GetFileNameWithoutExtension(currentPrefabPath);
+        string outAssetPath = "Assets/Scripts/GamePlay/UI/" + viewId + ".cs";
+
+        var psi = new System.Diagnostics.ProcessStartInfo
+        {
+            FileName = "python",
+            Arguments = "\"" + skillScript + "\" --design \"" + mdFullPath + "\" --force",
+            WorkingDirectory = projectRoot,
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            CreateNoWindow = true,
+        };
+
+        try
+        {
+            using (var p = System.Diagnostics.Process.Start(psi))
+            {
+                string stdout = p.StandardOutput.ReadToEnd();
+                string stderr = p.StandardError.ReadToEnd();
+                p.WaitForExit();
+                if (p.ExitCode != 0)
+                {
+                    Debug.LogError("[UIPrototype] gen_ui.py 失败 (exit " + p.ExitCode + "):\n" + stdout + "\n" + stderr);
+                    return null;
+                }
+                if (!string.IsNullOrEmpty(stdout))
+                {
+                    Debug.Log("[UIPrototype] " + stdout.Trim());
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError("[UIPrototype] 调用 python 失败：" + ex.Message + "\n请确认 python 已加入 PATH，或手动执行 skill 后再点一次按钮。");
+            return null;
+        }
+
+        return outAssetPath;
     }
 
     private void ClearDeletedElements()

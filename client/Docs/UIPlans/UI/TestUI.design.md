@@ -5,7 +5,7 @@
 
 - 界面 ID：TestUI
 - 界面名称：TestUI
-- UI 版本：44
+- UI 版本：49
 - 生成时间：2026-05-06
 - 负责人：待填写
 
@@ -26,21 +26,21 @@
 ### 3.1 打开入口
 
 <!--content-begin-->
-待填写。
+游戏开始打开登陆页面
 <!--content-end-->
 
 
 ### 3.2 关闭规则
 
 <!--content-begin-->
-待填写。
+点击登录按钮或close按钮
 <!--content-end-->
 
 
 ### 3.3 权限/等级/条件
 
 <!--content-begin-->
-待填写。
+无条件
 <!--content-end-->
 
 
@@ -57,21 +57,21 @@
 #### 图片用途
 
 <!--content-begin-->
-待填写。
+登录面板背景板
 <!--content-end-->
 
 
 #### 资源命名
 
 <!--content-begin-->
-待填写。
+bg_Login
 <!--content-end-->
 
 
 #### 是否有状态变化
 
 <!--content-begin-->
-待填写。
+无
 <!--content-end-->
 
 
@@ -92,7 +92,7 @@
 #### 按钮文本
 
 <!--content-begin-->
-待填写。
+关闭
 <!--content-end-->
 
 
@@ -106,6 +106,7 @@
 #### 点击后行为
 
 <!--content-begin-->
+
 待填写。
 <!--content-end-->
 
@@ -113,7 +114,7 @@
 #### 按钮文本
 
 <!--content-begin-->
-待填写。
+信息
 <!--content-end-->
 
 
@@ -127,28 +128,28 @@
 #### 输入内容含义
 
 <!--content-begin-->
-待填写。
+账号
 <!--content-end-->
 
 
 #### 默认占位文案
 
 <!--content-begin-->
-待填写。
+请输入账号
 <!--content-end-->
 
 
 #### 合法性校验
 
 <!--content-begin-->
-待填写。
+邮箱
 <!--content-end-->
 
 
 #### 提交或失焦行为
 
 <!--content-begin-->
-待填写。
+按Tab和password切换
 <!--content-end-->
 
 
@@ -162,28 +163,28 @@
 #### 输入内容含义
 
 <!--content-begin-->
-待填写。
+密码
 <!--content-end-->
 
 
 #### 默认占位文案
 
 <!--content-begin-->
-待填写。
+请输入密码
 <!--content-end-->
 
 
 #### 合法性校验
 
 <!--content-begin-->
-待填写。
+大于6位
 <!--content-end-->
 
 
 #### 提交或失焦行为
 
 <!--content-begin-->
-待填写。
+按tab与账号切换焦点
 <!--content-end-->
 
 
@@ -191,6 +192,27 @@
 
 - 类型：Button
 - 路径：Root/Image_Bg/button_login
+- 策划注释：待填写
+
+
+#### 点击后行为
+
+<!--content-begin-->
+关闭登录界面
+<!--content-end-->
+
+
+#### 按钮文本
+
+<!--content-begin-->
+登录
+<!--content-end-->
+
+
+### button_logon：button_logon
+
+- 类型：Button
+- 路径：Root/Image_Bg/button_logon
 - 策划注释：待填写
 
 
