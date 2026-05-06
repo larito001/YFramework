@@ -65,8 +65,6 @@ public sealed class UIDesignDocGenerator
             writer.AddLine("- 类型：" + element.ElementType);
             writer.AddLine("- 路径：" + element.Path);
             writer.AddLine("- 策划注释：" + (string.IsNullOrEmpty(element.PlannerComment) ? "待填写" : element.PlannerComment));
-            writer.AddLine("- 是否需要程序：是");
-            writer.AddLine("- 是否需要美术：" + (element.ElementType == "Image" ? "是" : "否"));
             writer.AddBlankLine();
 
             for (int questionIndex = 0; questionIndex < element.DesignQuestions.Count; questionIndex++)
