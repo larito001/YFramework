@@ -5,7 +5,7 @@
 
 - 界面 ID：TestUI
 - 界面名称：TestUI
-- UI 版本：43
+- UI 版本：44
 - 生成时间：2026-05-06
 - 负责人：待填写
 
@@ -50,8 +50,8 @@
 ### Image_Bg：Image_Bg
 
 - 类型：Image
-- 路径：Root/Header/Image_Bg
-- 策划注释：登录背景板
+- 路径：Root/Image_Bg
+- 策划注释：待填写
 
 
 #### 图片用途
@@ -78,8 +78,8 @@
 ### button_close：button_close
 
 - 类型：Button
-- 路径：Root/Header/Image_Bg/button_close
-- 策划注释：关闭按钮
+- 路径：Root/Image_Bg/button_close
+- 策划注释：待填写
 
 
 #### 点击后行为
@@ -99,8 +99,8 @@
 ### button_info：button_info
 
 - 类型：Button
-- 路径：Root/Header/Image_Bg/button_info
-- 策划注释：活动信息按钮
+- 路径：Root/Image_Bg/button_info
+- 策划注释：待填写
 
 
 #### 点击后行为
@@ -120,8 +120,8 @@
 ### Input_account：Input_account
 
 - 类型：InputField
-- 路径：Root/Header/Image_Bg/Input_account
-- 策划注释：输入账号
+- 路径：Root/Image_Bg/Input_account
+- 策划注释：待填写
 
 
 #### 输入内容含义
@@ -155,8 +155,8 @@
 ### Input_password：Input_password
 
 - 类型：InputField
-- 路径：Root/Header/Image_Bg/Input_password
-- 策划注释：输入密码
+- 路径：Root/Image_Bg/Input_password
+- 策划注释：待填写
 
 
 #### 输入内容含义
@@ -190,8 +190,8 @@
 ### button_login：button_login
 
 - 类型：Button
-- 路径：Root/Header/Image_Bg/button_login
-- 策划注释：登录按钮
+- 路径：Root/Image_Bg/button_login
+- 策划注释：待填写
 
 
 #### 点击后行为
