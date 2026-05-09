@@ -1,21 +1,19 @@
 using System.IO;
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public sealed class UIScreenshotGenerator
 {
-    private static readonly Color BackgroundColor = new Color(0.95f, 0.95f, 0.95f, 1f);
-    private static readonly Vector3 StagingOrigin = new Vector3(100000f, 100000f, 0f);
-
     public string Generate(GameObject prefabRoot, string prefabAssetPath, UIViewPlanInfo planInfo, int width, int height)
     {
         string screenshotAssetPath = UIPrototypePathUtility.GetScreenshotPath(prefabAssetPath, planInfo);
         string fullPath = UIPrototypePathUtility.AssetPathToFullPath(screenshotAssetPath);
         Directory.CreateDirectory(Path.GetDirectoryName(fullPath));
 
-        GameObject instance = null;
-        GameObject cameraObject = null;
+        Scene previewScene = EditorSceneManager.NewPreviewScene();
         RenderTexture renderTexture = null;
         Texture2D texture = null;
         RenderTexture previous = null;
@@ -23,38 +21,30 @@ public sealed class UIScreenshotGenerator
 
         try
         {
-            instance = Object.Instantiate(prefabRoot);
-            instance.hideFlags = HideFlags.HideAndDontSave;
-            instance.transform.position = StagingOrigin;
+            GameObject instance = Object.Instantiate(prefabRoot);
+            SceneManager.MoveGameObjectToScene(instance, previewScene);
 
-            cameraObject = new GameObject("UIPrototypeScreenshotCamera");
-            cameraObject.hideFlags = HideFlags.HideAndDontSave;
+            GameObject cameraObject = new GameObject("UIPrototypeScreenshotCamera");
+            SceneManager.MoveGameObjectToScene(cameraObject, previewScene);
             camera = cameraObject.AddComponent<Camera>();
-            camera.enabled = false;
             camera.clearFlags = CameraClearFlags.SolidColor;
-            camera.backgroundColor = BackgroundColor;
+            camera.backgroundColor = new Color(0.62f, 0.65f, 0.70f, 1f);
             camera.cullingMask = ~0;
             camera.orthographic = true;
-            camera.orthographicSize = height * 0.5f;
-            camera.aspect = (float)width / height;
+            camera.orthographicSize = 5f;
             camera.nearClipPlane = 0.1f;
-            camera.farClipPlane = 1000f;
-            camera.transform.position = StagingOrigin + new Vector3(0f, 0f, -100f);
+            camera.farClipPlane = 100f;
+            camera.transform.position = new Vector3(0f, 0f, -10f);
             camera.transform.rotation = Quaternion.identity;
-            camera.allowMSAA = false;
-            camera.allowHDR = false;
 
             PrepareCanvases(instance, camera, width, height);
 
             renderTexture = new RenderTexture(width, height, 24, RenderTextureFormat.ARGB32);
-            renderTexture.Create();
             camera.targetTexture = renderTexture;
-
-            ForceRebuildAllUI(instance);
-
             previous = RenderTexture.active;
             RenderTexture.active = renderTexture;
             GL.Clear(true, true, camera.backgroundColor);
+            ForceRebuildLayouts(instance);
             camera.Render();
 
             texture = new Texture2D(width, height, TextureFormat.RGBA32, false);
@@ -92,15 +82,7 @@ public sealed class UIScreenshotGenerator
                 Object.DestroyImmediate(texture);
             }
 
-            if (cameraObject != null)
-            {
-                Object.DestroyImmediate(cameraObject);
-            }
-
-            if (instance != null)
-            {
-                Object.DestroyImmediate(instance);
-            }
+            EditorSceneManager.ClosePreviewScene(previewScene);
         }
     }
 
@@ -117,48 +99,43 @@ public sealed class UIScreenshotGenerator
         {
             Canvas canvas = canvases[i];
             canvas.enabled = true;
-            canvas.renderMode = RenderMode.WorldSpace;
+            canvas.renderMode = RenderMode.ScreenSpaceCamera;
             canvas.worldCamera = camera;
+            canvas.planeDistance = 1f + i * 0.01f;
             canvas.overrideSorting = true;
             canvas.sortingOrder = i;
+
+            CanvasScaler scaler = canvas.GetComponent<CanvasScaler>();
+            if (scaler != null)
+            {
+                scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+                scaler.referenceResolution = new Vector2(width, height);
+                scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
+                scaler.matchWidthOrHeight = 0.5f;
+            }
 
             RectTransform rectTransform = canvas.GetComponent<RectTransform>();
             if (rectTransform != null)
             {
-                rectTransform.pivot = new Vector2(0.5f, 0.5f);
-                rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
-                rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
-                rectTransform.sizeDelta = new Vector2(width, height);
+                rectTransform.anchorMin = Vector2.zero;
+                rectTransform.anchorMax = Vector2.one;
+                rectTransform.offsetMin = Vector2.zero;
+                rectTransform.offsetMax = Vector2.zero;
                 rectTransform.localScale = Vector3.one;
                 rectTransform.localRotation = Quaternion.identity;
-                rectTransform.position = StagingOrigin + new Vector3(0f, 0f, i * 0.01f);
+                rectTransform.anchoredPosition3D = Vector3.zero;
             }
         }
     }
 
-    private static void ForceRebuildAllUI(GameObject root)
+    private static void ForceRebuildLayouts(GameObject root)
     {
+        Canvas.ForceUpdateCanvases();
         RectTransform[] rectTransforms = root.GetComponentsInChildren<RectTransform>(true);
         for (int i = 0; i < rectTransforms.Length; i++)
         {
             LayoutRebuilder.ForceRebuildLayoutImmediate(rectTransforms[i]);
-        }
-
-        Graphic[] graphics = root.GetComponentsInChildren<Graphic>(true);
-        for (int i = 0; i < graphics.Length; i++)
-        {
-            Graphic graphic = graphics[i];
-            if (graphic == null) continue;
-            graphic.SetAllDirty();
-        }
-
-        Canvas.ForceUpdateCanvases();
-
-        for (int i = 0; i < graphics.Length; i++)
-        {
-            Graphic graphic = graphics[i];
-            if (graphic == null) continue;
-            graphic.Rebuild(CanvasUpdate.PreRender);
+            rectTransforms[i].ForceUpdateRectTransforms();
         }
 
         Canvas.ForceUpdateCanvases();
@@ -166,8 +143,8 @@ public sealed class UIScreenshotGenerator
 
     private static bool HasVisiblePixels(Texture2D texture, Color background)
     {
-        int stepX = Mathf.Max(1, texture.width / 200);
-        int stepY = Mathf.Max(1, texture.height / 200);
+        int stepX = Mathf.Max(1, texture.width / 80);
+        int stepY = Mathf.Max(1, texture.height / 80);
         for (int y = 0; y < texture.height; y += stepY)
         {
             for (int x = 0; x < texture.width; x += stepX)
@@ -176,7 +153,7 @@ public sealed class UIScreenshotGenerator
                 float delta = Mathf.Abs(pixel.r - background.r) +
                               Mathf.Abs(pixel.g - background.g) +
                               Mathf.Abs(pixel.b - background.b);
-                if (delta > 0.05f)
+                if (delta > 0.08f)
                 {
                     return true;
                 }
