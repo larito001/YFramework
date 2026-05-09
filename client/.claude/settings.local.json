@@ -2,11 +2,7 @@
   "permissions": {
     "allow": [
       "Bash(grep -E \"\\\\.cs$\")",
-      "Bash(xargs grep:*)",
-      "Read(//c/UnityProject/YFramework/.claude/**)",
-      "Read(//c/Users/20723/.claude/**)",
-      "Bash(xargs head *)",
-      "Bash(python *)"
+      "Bash(xargs grep:*)"
     ]
   }
 }
