@@ -655,6 +655,9 @@ public class UIPrototypeEditorWindow : EditorWindow
 
         GameObject root = CreateRectChild(view.transform, "Root");
         Stretch(root.GetComponent<RectTransform>());
+        CreateRectChild(root.transform, "Header");
+        CreateRectChild(root.transform, "Content");
+        CreateRectChild(root.transform, "Footer");
         return view;
     }
 
