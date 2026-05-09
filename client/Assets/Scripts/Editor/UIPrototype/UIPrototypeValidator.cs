@@ -42,7 +42,7 @@ public sealed class UIPrototypeValidator
             {
                 issues.Add(new UIValidationIssue(
                     UIValidationSeverity.Warning,
-                    "图片类元素建议在策划注释中说明用途和资源来源。",
+                    "图片类元素建议说明用途和是否需要美术出图。",
                     element.Path,
                     element.Element));
             }

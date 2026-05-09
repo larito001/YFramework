@@ -1,17 +1,17 @@
 ﻿{
   "viewId": "TestUI",
   "viewName": "TestUI",
-  "version": 43,
-  "lastModifiedTime": "2026-05-06 12:20:45",
+  "version": 40,
+  "lastModifiedTime": "2026-05-06 12:06:48",
   "lastGeneratedDoc": "Docs/UIPlans/UI/TestUI.design.md",
   "lastScreenshot": "Docs/UIPlans/UI/TestUI.png",
   "elements": {
     "Root/Header/Image_Bg/Input_password": {
-      "plannerComment": "输入密码",
+      "plannerComment": null,
       "exportToDesignDoc": true
     },
     "Root/Header/Image_Bg/button_login": {
-      "plannerComment": "登录按钮",
+      "plannerComment": null,
       "exportToDesignDoc": true
     },
     "Root/Header/Image_Bg": {
@@ -19,7 +19,7 @@
       "exportToDesignDoc": true
     },
     "Root/Header/Image_Bg/button_close": {
-      "plannerComment": "关闭按钮",
+      "plannerComment": "关闭页面按钮",
       "exportToDesignDoc": true
     },
     "Root/Header/Image_Bg/button_info": {
@@ -27,7 +27,7 @@
       "exportToDesignDoc": true
     },
     "Root/Header/Image_Bg/Input_account": {
-      "plannerComment": "输入账号",
+      "plannerComment": null,
       "exportToDesignDoc": true
     }
   },

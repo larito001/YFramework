@@ -42,18 +42,10 @@ public class UIPrototypeEditorWindow : EditorWindow
         new Vector2Int(1920, 1080)
     };
 
-    private const float IssuePanelHeight = 150f;
-    private const float ToolbarHeight = 22f;
-
     [MenuItem("Tools/YFramework/UI Prototype Editor")]
     public static void Open()
     {
         GetWindow<UIPrototypeEditorWindow>("UI原型工具");
-    }
-
-    private void OnEnable()
-    {
-        minSize = new Vector2(960f, 600f);
     }
 
     private void OnDisable()
@@ -63,22 +55,14 @@ public class UIPrototypeEditorWindow : EditorWindow
 
     private void OnGUI()
     {
-        if (Event.current.type == EventType.MouseDown && Event.current.button == 0)
-        {
-            GUI.FocusControl(null);
-        }
-
         SyncCurrentPrefabStage();
         DrawToolbar();
 
-        float middleHeight = Mathf.Max(120f, position.height - ToolbarHeight * 2f - IssuePanelHeight);
-        EditorGUILayout.BeginVertical(GUILayout.Height(middleHeight));
         EditorGUILayout.BeginHorizontal();
         DrawComponentLibraryPanel();
         DrawHierarchyPanel();
         DrawInspectorPanel();
         EditorGUILayout.EndHorizontal();
-        EditorGUILayout.EndVertical();
 
         DrawIssuePanel();
     }
@@ -113,21 +97,13 @@ public class UIPrototypeEditorWindow : EditorWindow
             ValidateCurrent();
         }
 
+        resolutionIndex = EditorGUILayout.Popup(resolutionIndex, ResolutionNames, EditorStyles.toolbarPopup, GUILayout.Width(120));
+
         if (GUILayout.Button(new GUIContent("清理删除项", "彻底清空 plan.json 中的 deletedElements 历史删除记录。不会删除当前预制体节点。"), EditorStyles.toolbarButton, GUILayout.Width(85)))
         {
             ClearDeletedElements();
         }
-        EditorGUI.EndDisabledGroup();
 
-        GUILayout.FlexibleSpace();
-        GUILayout.Label(string.IsNullOrEmpty(currentPrefabPath) ? "未选择预制体" : currentPrefabPath, EditorStyles.miniLabel);
-        EditorGUILayout.EndHorizontal();
-
-        EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);
-        GUILayout.Label("分辨率", EditorStyles.miniLabel, GUILayout.Width(45));
-        resolutionIndex = EditorGUILayout.Popup(resolutionIndex, ResolutionNames, EditorStyles.toolbarPopup, GUILayout.Width(120));
-
-        EditorGUI.BeginDisabledGroup(currentPrefab == null);
         if (GUILayout.Button("截图", EditorStyles.toolbarButton, GUILayout.Width(55)))
         {
             GenerateScreenshot();
@@ -140,6 +116,7 @@ public class UIPrototypeEditorWindow : EditorWindow
         EditorGUI.EndDisabledGroup();
 
         GUILayout.FlexibleSpace();
+        GUILayout.Label(string.IsNullOrEmpty(currentPrefabPath) ? "未选择预制体" : currentPrefabPath, EditorStyles.miniLabel);
         EditorGUILayout.EndHorizontal();
     }
 

@@ -5,7 +5,7 @@
 
 - 界面 ID：TestUI
 - 界面名称：TestUI
-- UI 版本：43
+- UI 版本：40
 - 生成时间：2026-05-06
 - 负责人：待填写
 
@@ -52,9 +52,18 @@
 - 类型：Image
 - 路径：Root/Header/Image_Bg
 - 策划注释：登录背景板
+- 是否需要程序：是
+- 是否需要美术：是
 
 
 #### 图片用途
+
+<!--content-begin-->
+待填写。
+<!--content-end-->
+
+
+#### 是否需要美术出图
 
 <!--content-begin-->
 待填写。
@@ -79,7 +88,9 @@
 
 - 类型：Button
 - 路径：Root/Header/Image_Bg/button_close
-- 策划注释：关闭按钮
+- 策划注释：关闭页面按钮
+- 是否需要程序：是
+- 是否需要美术：否
 
 
 #### 点击后行为
@@ -101,6 +112,8 @@
 - 类型：Button
 - 路径：Root/Header/Image_Bg/button_info
 - 策划注释：活动信息按钮
+- 是否需要程序：是
+- 是否需要美术：否
 
 
 #### 点击后行为
@@ -121,7 +134,9 @@
 
 - 类型：InputField
 - 路径：Root/Header/Image_Bg/Input_account
-- 策划注释：输入账号
+- 策划注释：待填写
+- 是否需要程序：是
+- 是否需要美术：否
 
 
 #### 输入内容含义
@@ -156,7 +171,9 @@
 
 - 类型：InputField
 - 路径：Root/Header/Image_Bg/Input_password
-- 策划注释：输入密码
+- 策划注释：待填写
+- 是否需要程序：是
+- 是否需要美术：否
 
 
 #### 输入内容含义
@@ -191,7 +208,9 @@
 
 - 类型：Button
 - 路径：Root/Header/Image_Bg/button_login
-- 策划注释：登录按钮
+- 策划注释：待填写
+- 是否需要程序：是
+- 是否需要美术：否
 
 
 #### 点击后行为
