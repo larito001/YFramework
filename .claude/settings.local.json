@@ -2,7 +2,11 @@
   "permissions": {
     "allow": [
       "Bash(grep -v \"\\\\\\\\.\")",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(python *)",
+      "Bash(git mv *)",
+      "Bash(rmdir \"client/Assets/Scripts/GamePlay/UI/FlyTexts\")",
+      "Bash(rm \"client/Assets/Scripts/GamePlay/UI/FlyTexts.meta\")"
     ]
   }
 }

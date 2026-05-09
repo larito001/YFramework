@@ -37,7 +37,7 @@ public class YAStarManager : IYPathFindingManager
         graphCount = graphList.Length;
         loadCompeleteCallBack = callback;
 
-        if (sceneReferenceService.TryGetTransform(SceneReferenceKeys.AStarRoot, out var astarTransform))
+        if (sceneReferenceService.TryGetTransform(SceneRefKeys.AStarRoot, out var astarTransform))
         {
             astarPathObj = astarTransform.gameObject;
         }
@@ -45,7 +45,7 @@ public class YAStarManager : IYPathFindingManager
         AstarPath astarPath;
         if (astarPathObj == null)
         {
-            astarPathObj = new GameObject(SceneReferenceKeys.AStarRoot);
+            astarPathObj = new GameObject(SceneRefKeys.AStarRoot);
             astarPath = astarPathObj.AddComponent<AstarPath>();
         }
         else

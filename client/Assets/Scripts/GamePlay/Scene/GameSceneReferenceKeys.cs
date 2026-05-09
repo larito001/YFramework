@@ -1,9 +1,8 @@
-public static class SceneReferenceKeys
+/// <summary>
+/// 业务场景引用键。框架键请使用 <see cref="SceneRefKeys"/>。
+/// </summary>
+public static class GameSceneRefKeys
 {
-    public const string MainCamera = "MainCamera";
-    public const string MainLight = "MainLight";
     public const string PlayerSpawn = "playerPos";
     public const string Spline = "Spline";
-    public const string AStarRoot = "A*";
-    public const string MainCameraVirtual = "MainCameraVirtual";
 }

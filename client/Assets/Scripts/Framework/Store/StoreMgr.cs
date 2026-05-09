@@ -6,34 +6,6 @@ using UnityEngine;
 
 namespace YOTO
 {
-    #region Example
-
-    [Serializable]
-    public class TestPlayerData
-    {
-        public string playerName;
-        public int coins;
-    }
-
-    public class TestPlayerDataContaner : DataContaner<TestPlayerData>
-    {
-        private TestPlayerData _data = new();
-        public override string SaveKey => "player_save";
-
-        public override TestPlayerData GetData() => _data;
-        public override void __SetData(TestPlayerData data) => _data = data;
-    }
-
-    public class ExampleUsage : MonoBehaviour
-    {
-        void Start()
-        {
-            Debug.Log("Bind a StoreMgr to the data container before calling Save/Load.");
-        }
-    }
-
-    #endregion
-
     public abstract class DataContaner<T> : IDataContainerBase where T : class, new()
     {
         private StoreMgr storeMgr;

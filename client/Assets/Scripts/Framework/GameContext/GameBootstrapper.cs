@@ -14,7 +14,6 @@ public static partial class GameBootstrapper
     public static GameContext BuildContext()
     {
         var ctx = new GameContext();
-        ctx.Register(new TestService());
         ctx.Register(new ConfigManager());
         // Framework services only. Project-specific services are injected via partial methods.
         ctx.Register(new ObjectPool());

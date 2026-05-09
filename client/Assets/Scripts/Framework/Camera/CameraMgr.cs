@@ -82,7 +82,7 @@ public class CameraMgr : IGameService
         sceneReferenceService = ctx.Get<SceneReferenceService>();
         if (!TryResolveMainCamera(out var mainCamera))
         {
-            Debug.LogError($"{SceneReferenceKeys.MainCamera} was not found or does not have a Camera component.");
+            Debug.LogError($"{SceneRefKeys.MainCamera} was not found or does not have a Camera component.");
             return;
         }
 
@@ -112,7 +112,7 @@ public class CameraMgr : IGameService
     {
         camera = null;
         if (sceneReferenceService == null ||
-            !sceneReferenceService.TryGetTransform(SceneReferenceKeys.MainCamera, out var camTransform))
+            !sceneReferenceService.TryGetTransform(SceneRefKeys.MainCamera, out var camTransform))
         {
             return false;
         }
@@ -134,7 +134,7 @@ public class CameraMgr : IGameService
         brain.m_UpdateMethod = CinemachineBrain.UpdateMethod.FixedUpdate;
         brain.m_DefaultBlend.m_Time = 0.5f;
 
-        GetVirtualCamera(SceneReferenceKeys.MainCameraVirtual);
+        GetVirtualCamera(SceneRefKeys.MainCameraVirtual);
     }
 
     private TCamera GetOrCreateCachedCamera<TCamera>(string name, Dictionary<string, TCamera> cache)

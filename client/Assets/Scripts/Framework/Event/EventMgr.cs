@@ -4,6 +4,11 @@ using UnityEngine;
 
 namespace YOTO
 {
+    /// <summary>
+    /// 类型安全的全局事件分发器。事件键为任意 <see cref="Enum"/>，业务侧定义具体枚举（如
+    /// <c>YOTOEventType</c> 在 GamePlay/Event/GameEventTypes.cs）。
+    /// 同一个事件键一旦关联了某个委托签名，后续订阅必须保持一致。
+    /// </summary>
     public class EventMgr : IGameService
     {
         private interface IEventSlot
@@ -48,83 +53,83 @@ namespace YOTO
             }
         }
 
-        private readonly Dictionary<YOTOEventType, IEventSlot> events = new();
+        private readonly Dictionary<Enum, IEventSlot> events = new();
 
-        public void Add(YOTOEventType type, Action callback)
+        public void Add(Enum type, Action callback)
         {
             AddInternal(type, callback);
         }
 
-        public void Add<T>(YOTOEventType type, Action<T> callback)
+        public void Add<T>(Enum type, Action<T> callback)
         {
             AddInternal(type, callback);
         }
 
-        public void Add<T1, T2>(YOTOEventType type, Action<T1, T2> callback)
+        public void Add<T1, T2>(Enum type, Action<T1, T2> callback)
         {
             AddInternal(type, callback);
         }
 
-        public void Add<T1, T2, T3>(YOTOEventType type, Action<T1, T2, T3> callback)
+        public void Add<T1, T2, T3>(Enum type, Action<T1, T2, T3> callback)
         {
             AddInternal(type, callback);
         }
 
-        public void Add<T1, T2, T3, T4>(YOTOEventType type, Action<T1, T2, T3, T4> callback)
+        public void Add<T1, T2, T3, T4>(Enum type, Action<T1, T2, T3, T4> callback)
         {
             AddInternal(type, callback);
         }
 
-        public void Remove(YOTOEventType type, Action callback)
+        public void Remove(Enum type, Action callback)
         {
             RemoveInternal(type, callback);
         }
 
-        public void Remove<T>(YOTOEventType type, Action<T> callback)
+        public void Remove<T>(Enum type, Action<T> callback)
         {
             RemoveInternal(type, callback);
         }
 
-        public void Remove<T1, T2>(YOTOEventType type, Action<T1, T2> callback)
+        public void Remove<T1, T2>(Enum type, Action<T1, T2> callback)
         {
             RemoveInternal(type, callback);
         }
 
-        public void Remove<T1, T2, T3>(YOTOEventType type, Action<T1, T2, T3> callback)
+        public void Remove<T1, T2, T3>(Enum type, Action<T1, T2, T3> callback)
         {
             RemoveInternal(type, callback);
         }
 
-        public void Remove<T1, T2, T3, T4>(YOTOEventType type, Action<T1, T2, T3, T4> callback)
+        public void Remove<T1, T2, T3, T4>(Enum type, Action<T1, T2, T3, T4> callback)
         {
             RemoveInternal(type, callback);
         }
 
-        public void Trigger(YOTOEventType type)
+        public void Trigger(Enum type)
         {
             var slot = GetSlot<EventSlot<Action>>(type, shouldLogError: true);
             slot?.GetCallbacks()?.Invoke();
         }
 
-        public void Trigger<T>(YOTOEventType type, T arg)
+        public void Trigger<T>(Enum type, T arg)
         {
             var slot = GetSlot<EventSlot<Action<T>>>(type, shouldLogError: true);
             slot?.GetCallbacks()?.Invoke(arg);
         }
 
-        public void Trigger<T1, T2>(YOTOEventType type, T1 arg1, T2 arg2)
+        public void Trigger<T1, T2>(Enum type, T1 arg1, T2 arg2)
         {
             var slot = GetSlot<EventSlot<Action<T1, T2>>>(type, shouldLogError: true);
             slot?.GetCallbacks()?.Invoke(arg1, arg2);
         }
 
-        public void Trigger<T1, T2, T3>(YOTOEventType type, T1 arg1, T2 arg2, T3 arg3)
+        public void Trigger<T1, T2, T3>(Enum type, T1 arg1, T2 arg2, T3 arg3)
         {
             var slot = GetSlot<EventSlot<Action<T1, T2, T3>>>(type, shouldLogError: true);
             slot?.GetCallbacks()?.Invoke(arg1, arg2, arg3);
         }
 
-        public void Trigger<T1, T2, T3, T4>(YOTOEventType type, T1 arg1, T2 arg2, T3 arg3, T4 arg4)
+        public void Trigger<T1, T2, T3, T4>(Enum type, T1 arg1, T2 arg2, T3 arg3, T4 arg4)
         {
             var slot = GetSlot<EventSlot<Action<T1, T2, T3, T4>>>(type, shouldLogError: true);
             slot?.GetCallbacks()?.Invoke(arg1, arg2, arg3, arg4);
@@ -145,7 +150,7 @@ namespace YOTO
             Clear();
         }
 
-        private void AddInternal<TDelegate>(YOTOEventType type, TDelegate callback) where TDelegate : Delegate
+        private void AddInternal<TDelegate>(Enum type, TDelegate callback) where TDelegate : Delegate
         {
             if (callback == null)
             {
@@ -166,7 +171,7 @@ namespace YOTO
             slot.Add(callback);
         }
 
-        private void RemoveInternal<TDelegate>(YOTOEventType type, TDelegate callback) where TDelegate : Delegate
+        private void RemoveInternal<TDelegate>(Enum type, TDelegate callback) where TDelegate : Delegate
         {
             if (callback == null)
             {
@@ -186,7 +191,7 @@ namespace YOTO
             }
         }
 
-        private TSlot GetOrCreateSlot<TSlot>(YOTOEventType type) where TSlot : class, IEventSlot, new()
+        private TSlot GetOrCreateSlot<TSlot>(Enum type) where TSlot : class, IEventSlot, new()
         {
             if (events.TryGetValue(type, out var existingSlot))
             {
@@ -204,7 +209,7 @@ namespace YOTO
             return newSlot;
         }
 
-        private TSlot GetSlot<TSlot>(YOTOEventType type, bool shouldLogError) where TSlot : class, IEventSlot
+        private TSlot GetSlot<TSlot>(Enum type, bool shouldLogError) where TSlot : class, IEventSlot
         {
             if (!events.TryGetValue(type, out var slot))
             {

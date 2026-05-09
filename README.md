@@ -50,11 +50,11 @@ GameLoop.LateUpdate()   → ILateTickable.LateTick(dt)
 | 资源管理 | `ResMgr` | 引用计数 `ResourceHandle<T>`，同步/异步加载，场景切换自动卸载 |
 | 对象池 | `ObjectPool` | 异步模板加载，时间衰减回收，逐帧释放限制 |
 | UI 系统 | `UIMgr` | 5 层 Canvas 架构（Normal/Top/RayCast/Tips/PopText），页面生命周期管理 |
-| 场景管理 | `GotSceneManager` | 异步切换，`GotSceneBase` 生命周期，支持 Loading 过渡 |
+| 场景管理 | `YSceneManager` | 异步切换，`YSceneBase` 生命周期，支持 Loading 过渡 |
 | 相机 | `CameraMgr` | Cinemachine 集成，射线点击/悬停/拖拽事件分发 |
 | 音频 | `SoundMgr` | 多通道（BGM/SFX/UI），交叉淡入淡出，最多 16 路 SFX |
 | 数据存储 | `StoreMgr` | `DataContainer<T>` 持久化，可替换存储驱动 |
-| 寻路 | `GotAStarManager` | A* Pathfinding 封装 |
+| 寻路 | `YAStarManager` | A* Pathfinding 封装 |
 | 状态机 | `YStateMachine` | 简易分层状态机，支持状态回退 |
 | 定时器 | `Timers` | 全局定时器，支持无限循环 |
 | 协程 | `CoroutineRunner` | 服务化协程管理 |
@@ -72,15 +72,15 @@ partial void RegisterProjectServices(GameContext ctx)
     ctx.Register(new EnemiesManager());
 }
 
-partial void ConfigureProjectScenes(GotSceneManager sceneMgr)
+partial void ConfigureProjectScenes(YSceneManager sceneMgr)
 {
-    sceneMgr.RegisterScene<GameStartScene>(GotSceneType.Startup);
-    sceneMgr.RegisterScene<GameMainScene>(GotSceneType.GamePlay);
+    sceneMgr.RegisterScene<GameStartScene>();
+    sceneMgr.RegisterScene<GameMainScene>();
 }
 
-partial void ConfigureProjectUi(IUIService uiMgr)
+partial void ConfigureProjectUi(UIConfig uiConfig)
 {
-    UIConfig.Register<StartPanel>(UIEnum.StartPanel, UILayerEnum.Normal, "Prefabs/UI/StartPanel");
+    uiConfig.Register<StartPanel>(UIEnum.StartPanel, UILayerEnum.Normal, "UI/StartPanel");
 }
 ```
 
