@@ -722,6 +722,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   autoStart: 1
   isTest: 0
+  buffCollection: {fileID: 11400000, guid: 95507c772b3d96a4fa910ae2ecd62086, type: 2}
+  buffData: {fileID: 11400000, guid: 6e45df6cefda0214f9d2df1567e70d95, type: 2}
 --- !u!1 &1225825839
 GameObject:
   m_ObjectHideFlags: 0
