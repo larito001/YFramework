@@ -22,8 +22,6 @@ public class GameMainPanel : UIPageBase
         eventMgr.Add(YOTOEventType.RefreshBagList, OnRefresh);
         eventMgr.Add(YOTOEventType.RefreshTrainHP, RefreshTrainHP);
         eventMgr.Add(YOTOEventType.RefreshTime, OnRefreshTime);
-        bagBtn.onClick.RemoveListener(OnBagBtnClick);
-        bagBtn.onClick.AddListener(OnBagBtnClick);
         OnRefreshTime();
         OnRefresh();
     }
@@ -33,8 +31,6 @@ public class GameMainPanel : UIPageBase
         var eventMgr = GetService<EventMgr>();
         eventMgr.Remove(YOTOEventType.RefreshBagList, OnRefresh);
         eventMgr.Remove(YOTOEventType.RefreshTrainHP, RefreshTrainHP);
-        eventMgr.Remove(YOTOEventType.RefreshTime, OnRefreshTime);
-        bagBtn.onClick.RemoveListener(OnBagBtnClick);
     }
 
     public override void OnResize()
@@ -53,9 +49,5 @@ public class GameMainPanel : UIPageBase
     private void OnRefresh()
     {
     }
-
-    private void OnBagBtnClick()
-    {
-        Show<BagPanel>();
-    }
+    
 }

@@ -6,13 +6,4 @@ public enum UIEnum
     GameMainPanel,
     FinishPanel,
     SettingPanel,
-    ShopPanel,
-    WarehousePanel,
-    SkillTreePanel,
-    BagPanel,
-    SelectTowerPanel,
-    TowerUpPanel,
-    WinPanel,
-    GuidePanel,
-    SearchPanel
 }
