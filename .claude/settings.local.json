@@ -6,7 +6,20 @@
       "Bash(python *)",
       "Bash(git mv *)",
       "Bash(rmdir \"client/Assets/Scripts/GamePlay/UI/FlyTexts\")",
-      "Bash(rm \"client/Assets/Scripts/GamePlay/UI/FlyTexts.meta\")"
+      "Bash(rm \"client/Assets/Scripts/GamePlay/UI/FlyTexts.meta\")",
+      "Bash(where claude *)",
+      "Bash(npm install *)",
+      "Bash(node server.js)",
+      "Bash(curl -s http://localhost:7777/api/health)",
+      "Bash(curl -s \"http://localhost:7777/api/tree?dir=%E7%AD%96%E5%88%92%E6%A1%88\")",
+      "Bash(curl -s http://localhost:7777/api/git/diff)",
+      "Bash(curl -s http://localhost:7777/)",
+      "Bash(netstat -ano)",
+      "Bash(tasklist)",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code} | %{time_total}s\\\\n\" http://localhost:7777/)",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" http://127.0.0.1:7777/)",
+      "Bash(taskkill //F //PID 43972)",
+      "Bash(curl -s -X POST http://localhost:7777/api/launch -H \"Content-Type: application/json\" -d '{\"prompt\":\"/requirement-analysis 测试用例：做一个背包系统\",\"title\":\"Claude — 测试新建需求\"}')"
     ]
   }
 }

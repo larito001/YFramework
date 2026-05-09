@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>YFramework 工作流控制台</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked@12.0.0/marked.min.js"></script>
+</head>
+<body>
+    <header>
+        <div class="title">
+            <span class="logo">⚙</span>
+            <h1>YFramework 工作流控制台</h1>
+        </div>
+        <div class="actions">
+            <button id="btn-new-req" class="primary">+ 新建需求</button>
+            <button id="btn-review-any">🔍 评审任意范围</button>
+            <button id="btn-build-prefabs">🎨 生成预制体</button>
+            <button id="btn-refresh" title="刷新所有目录">🔄 刷新</button>
+            <label class="auto-refresh">
+                <input type="checkbox" id="chk-auto-refresh" checked>
+                <span>自动刷新</span>
+            </label>
+        </div>
+    </header>
+
+    <nav id="pipeline">
+        <div class="stage" data-stage="1">
+            <div class="num">①</div>
+            <div class="name">需求分析</div>
+            <div class="desc">/requirement-analysis</div>
+        </div>
+        <div class="arrow">→</div>
+        <div class="stage manual" data-stage="2">
+            <div class="num">②</div>
+            <div class="name">人工审查</div>
+            <div class="desc">通过 / 打回</div>
+        </div>
+        <div class="arrow">→</div>
+        <div class="stage" data-stage="3">
+            <div class="num">③</div>
+            <div class="name">模块分析</div>
+            <div class="desc">/code-planning</div>
+        </div>
+        <div class="arrow">→</div>
+        <div class="stage" data-stage="4">
+            <div class="num">④</div>
+            <div class="name">代码生成</div>
+            <div class="desc">/code-generation</div>
+        </div>
+        <div class="arrow">→</div>
+        <div class="stage" data-stage="5">
+            <div class="num">⑤</div>
+            <div class="name">代码优化</div>
+            <div class="desc">/code-review</div>
+        </div>
+        <div class="arrow">→</div>
+        <div class="stage" data-stage="6">
+            <div class="num">⑥</div>
+            <div class="name">预制体生成</div>
+            <div class="desc">/prefab-generation</div>
+        </div>
+    </nav>
+
+    <main>
+        <aside id="sidebar">
+            <div class="folder-section" data-dir="策划案">
+                <h3>
+                    <span class="badge">①</span>
+                    <span>策划案</span>
+                    <span class="count" data-count></span>
+                </h3>
+                <ul class="file-list" data-list></ul>
+            </div>
+            <div class="folder-section" data-dir="代码规划">
+                <h3>
+                    <span class="badge">③</span>
+                    <span>代码规划</span>
+                    <span class="count" data-count></span>
+                </h3>
+                <ul class="file-list" data-list></ul>
+            </div>
+            <div class="folder-section" data-dir="代码优化规划">
+                <h3>
+                    <span class="badge">⑤</span>
+                    <span>代码优化规划</span>
+                    <span class="count" data-count></span>
+                </h3>
+                <ul class="file-list" data-list></ul>
+            </div>
+            <div class="folder-section" data-dir="git">
+                <h3>
+                    <span class="badge">📝</span>
+                    <span>未提交改动</span>
+                    <span class="count" data-count></span>
+                </h3>
+                <ul class="file-list" data-list></ul>
+            </div>
+        </aside>
+
+        <section id="preview">
+            <div id="preview-toolbar">
+                <div id="preview-meta">
+                    <div id="preview-path">从左侧选择文档预览</div>
+                    <div id="preview-status"></div>
+                </div>
+                <div id="preview-actions"></div>
+            </div>
+            <div id="preview-body">
+                <div class="empty-state">
+                    <div class="empty-icon">📄</div>
+                    <div class="empty-title">欢迎使用 YFramework 工作流控制台</div>
+                    <div class="empty-text">
+                        <p>左侧四个目录覆盖完整工作流：</p>
+                        <ul>
+                            <li><b>策划案</b>：需求文档（人工审查在这里完成）</li>
+                            <li><b>代码规划</b>：模块分析输出，代码生成的输入</li>
+                            <li><b>代码优化规划</b>：代码评审报告</li>
+                            <li><b>未提交改动</b>：尚未 commit 的本地代码（用于评审）</li>
+                        </ul>
+                        <p>选中文档后会在右侧显示对应阶段的操作按钮；每次操作打开一个新的 Claude 窗口。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div id="modal" class="modal-mask hidden">
+        <div class="modal-content">
+            <h3 id="modal-title">标题</h3>
+            <p id="modal-hint" class="modal-hint"></p>
+            <textarea id="modal-input" rows="6" placeholder="..."></textarea>
+            <div class="modal-actions">
+                <button id="modal-cancel">取消</button>
+                <button id="modal-confirm" class="primary">启动 Claude</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast hidden"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>
