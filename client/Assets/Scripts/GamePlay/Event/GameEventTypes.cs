@@ -15,5 +15,8 @@ namespace YOTO
         RefreshBagList,
         RefreshTrainHP,
         RefreshTime,
+
+        OnItemPickup,
+        OnItemDrop,
     }
 }

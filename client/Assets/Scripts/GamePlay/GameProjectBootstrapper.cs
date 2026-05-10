@@ -6,6 +6,7 @@ public static partial class GameBootstrapper
     {
         // ctx.Register(new EnemiesManager());
         // ctx.Register(new SceneResManager());
+        ctx.Register(new BagManager());
     }
 
     static partial void ConfigureProjectScenes(YSceneManager sceneManager)
@@ -21,6 +22,8 @@ public static partial class GameBootstrapper
         uiConfig.Register<GameMainPanel>(UIEnum.GameMainPanel, UILayerEnum.Normal, "UI/GameMainPanel");
         uiConfig.Register<FinishPanel>(UIEnum.FinishPanel, UILayerEnum.Normal, "UI/FinishPanel");
         uiConfig.Register<SettingPanel>(UIEnum.SettingPanel, UILayerEnum.Normal, "UI/Setting/SettingPanel");
+        uiConfig.Register<BagPanel>(UIEnum.BagPanel, UILayerEnum.Normal, "UI/BagPanel");
+        uiConfig.Register<BagDropConfirmPanel>(UIEnum.BagDropConfirmPanel, UILayerEnum.Top, "UI/BagDropConfirmPanel");
     }
 
     static partial void RunProjectStartup(GameContext ctx)
