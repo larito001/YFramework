@@ -1,6 +1,6 @@
 ---
 name: skill-chain-maintenance
-description: Skill 链维护 — 读取项目内全部 .claude/skills/<name>/SKILL.md（requirement-analysis / code-planning / code-generation / code-review 等），审计跨 skill 的一致性（输入/输出衔接、frontmatter 约定、状态词汇、路径前缀、红线冲突、对规范的引用），并支持五种模式：**audit**（健康度检查）/ **map**（链路可视化）/ **add-skill**（设计新 skill 接入位置）/ **integrate**（验证 skill 草稿是否符合链）/ **propagate**（规范变更影响分析）。**只读不改**：输出建议性报告与具体编辑建议，**绝不**自动改写既有 skill；用户显式授权（"apply"/"按建议改"）后才动手。当用户说"审一下 skill 链"、"工作流是否还连得上"、"加一个 XX skill"、"规范改了，下游 skill 要不要跟"、调用 /skill-chain-maintenance 时触发。
+description: Skill 链维护 — 读取项目内全部 .claude/skills/<name>/SKILL.md（requirement-analysis / code-planning / excel-generation / code-generation / code-review / prefab-generation 等），审计跨 skill 的一致性（输入/输出衔接、frontmatter 约定、状态词汇、路径前缀、红线冲突、串调下游工具检测、对规范的引用），并支持五种模式：**audit**（健康度检查）/ **map**（链路可视化）/ **add-skill**（设计新 skill 接入位置）/ **integrate**（验证 skill 草稿是否符合链）/ **propagate**（规范变更影响分析）。**只读不改**：输出建议性报告与具体编辑建议，**绝不**自动改写既有 skill；用户显式授权（"apply"/"按建议改"）后才动手。当用户说"审一下 skill 链"、"工作流是否还连得上"、"加一个 XX skill"、"规范改了，下游 skill 要不要跟"、调用 /skill-chain-maintenance 时触发。
 ---
 
 # Skill 链维护 Skill
@@ -31,8 +31,9 @@ C:\UnityProject\YFramework\Docs\需求规范.md
 | skill | 输入来源 | 输出目的 | frontmatter 关键字段 | 状态词汇 | 红线要点 | 对规范的引用 |
 |---|---|---|---|---|---|---|
 | requirement-analysis | 用户自然语言 | `策划案/<Type>/<Feature>/<前缀>-<Feature>-v<n>.md` | id/type/status/owner/reviewers/links | Draft/Review/Approved/Implemented/Deprecated | 不编造数值/不跳§7/不写实现细节 | 需求规范全文 |
-| code-planning | `策划案/...md` (Approved/Review) | `代码规划/<Type>/<Feature>/<前缀>-<Feature>-Plan-v<n>.md` | id/source/type/status/version/framework_extensions_required | Draft + 引用上游 status | 不扩展 Framework / 不发明 API / 不写实现代码 | 项目+模块+代码+需求 全部 |
-| code-generation | `代码规划/...md` (§10=0) | `client/Assets/Scripts/GamePlay/**/*.cs` | (修改代码而非写文档) | n/a | 不写 Framework / 不超规划 / 不创建非 .cs 资产 | 项目+模块+代码 |
+| code-planning | `策划案/...md` (Approved/Review) | `代码规划/<Type>/<Feature>/<前缀>-<Feature>-Plan-v<n>.md` + 有 xlsx 变更时同步出 `配表规划/<Type>/<Feature>/<前缀>-<Feature>-Excel-v<n>.md`（Step 4.5） | 代码规划: id/source/excel_plan/type/status/version/framework_extensions_required；配表规划: id/source/plan/type=ExcelPlan/status/version/links.excel | Draft + 引用上游 status | 不扩展 Framework / 不发明 API / 不写实现代码 / 不直接生成 xlsx（产配表规划文档由 Step 4.5） | 项目+模块+代码+需求 全部 |
+| excel-generation | 配表规划 (`配表规划/...md`，含 §3 完整 schema) | `excel/3xlsx/<table>.xlsx` + `tools/excel_builders/build_<table>.py` | (xlsx 是二进制无 frontmatter；builder.py 顶部注释含 excel_plan_doc/source_doc/plan_doc/created) | n/a | 不覆盖既有 xlsx / 不手写 .proto/.cs/.bytes / 不调 publish_config.py / 发布配表.bat（用户/外部 orchestrator 触发；遵循 A7 不串调）/ 不发明列（schema 唯一权威源是配表规划 §3）/ 类型必须在白名单 | 项目规范 §3.1 + §5；`tools/配表工具复刻指南.md` |
+| code-generation | `代码规划/...md` (§10=0) + 沿 `links.excel_plan` 链接的配表规划 §3 列出的 xlsx 与 *Config.cs 已发布（人工 .\发布配表.bat 后） | `client/Assets/Scripts/GamePlay/**/*.cs` | (修改代码而非写文档) | n/a | 不写 Framework / 不超规划 / 不创建非 .cs 资产 | 项目+模块+代码 |
 | code-review | 任意代码范围 (路径/diff/类) | `代码优化规划/<Scope>-Review-v<n>.md` 或 直接口头答复 | id/scope/status/severity counts | Draft/Reviewed/InProgress/Resolved/Stale | 只读不改 / 不脱离规范 / 不发明问题 | 项目+模块+代码 |
 | prefab-generation | 代码规划 id / Panel 类名 / git diff | `client/Assets/Scripts/Editor/PrefabBuilders/*.cs` (Editor 构建器) | (无文档输出，输出 .cs) | n/a | 不写 .prefab/.meta / 不修改业务代码 / 不臆造路径 / 不静默覆盖既有 prefab | 项目 §3.1 + 模块 §6 + 代码 §7/§10 |
 
@@ -68,7 +69,10 @@ options:
 对相邻 skill：上游声明的"输出文件命名 / 字段"必须能被下游"Step 1 定位输入"消费。
 
 - requirement-analysis 输出 `id: GP-Combat-v1` → code-planning Step 1.1 必须能用此 id 定位。
-- code-planning 输出 `frontmatter.id: GP-Combat-Plan-v1` + `links.source: GP-Combat-v1` → code-generation Step 1 必须读 `links.source` 关联回策划案。
+- code-planning 输出 `frontmatter.id: GP-Combat-Plan-v1` + `links.source: GP-Combat-v1` + 有 xlsx 变更时同步出 `配表规划/<...>-Excel-v1.md` 且 `links.excel_plan` 双向回指 → excel-generation Step 1.1 必须能用 `links.excel_plan` 定位配表规划文档。
+- 配表规划文档 `links.source` / `links.plan` 必填 → excel-generation Step 1.2 校验链回的策划案与代码规划存在。
+- excel-generation 输出 `excel/3xlsx/<table>.xlsx` → 人工跑 `.\发布配表.bat` → 产 `ScriptGenerated/Config/<Table>Config.cs` + `Resources/Config/Data/<Table>.bytes` → code-generation Step 1 能 Read 这些。
+- code-planning 输出 `frontmatter.id: GP-Combat-Plan-v1` + `links.excel_plan` → code-generation Step 1 必须能沿 `links.excel_plan` 找到配表规划，进而校验 §3 列出的 xlsx + *Config.cs 已存在。
 - code-generation 输出 GamePlay 下 .cs → code-review Step 1.1 表格里"路径 / 模块名 / git diff"三种范围都能定位。
 
 不衔接 → 🔴 Critical。
@@ -81,10 +85,17 @@ options:
 id, title, type, status, owner, reviewers, created, updated, version, links
 ```
 
-- 类型字段（`type`）值的可选范围在每份 skill 里独立声明，但同一概念名不能不同（例如 `Gameplay` vs `GamePlay`）。
+- 类型字段（`type`）当前已知合法值：`Gameplay / System / UI / Numerical / Art / Audio`（需求文档），`CodePlan`（代码规划），`ExcelPlan`（配表规划），`ExcelPatch`（配表补列指引），`CodeReview`（代码评审）。同一概念名不能不同（例如 `Gameplay` vs `GamePlay`，或 `ExcelPlan` vs `ConfigPlan`）。
 - 日期格式统一 `YYYY-MM-DD`。
 - `id` ≡ 文件名（去 `.md`）。
-- 链接型字段（`source` / `replaces` / `related` / `framework_extensions_required`）出现位置一致：放在 `links:` 下还是顶层。
+- 链接型字段一律放在 `links:` 下（不放顶层）。已知子字段：
+  - `source` — 链回上游产物 id（如代码规划链策划案、配表规划链策划案）
+  - `plan` — 链回对应代码规划 id（仅配表规划/ExcelPatch 用）
+  - `excel_plan` — 链回对应配表规划 id（仅代码规划/ExcelPatch 用）
+  - `excel` — 该文档涉及的 xlsx 文件名清单（仅配表规划/ExcelPatch 用）
+  - `replaces` — 替代的旧版本 id
+  - `related` — 关联但非父子的其他文档 id
+  - `framework_extensions_required` — 待扩展项 id 清单（仅代码规划用）
 
 任一字段在不同 skill 出现拼写/嵌套/类型差异 → 🟠 Major。
 
@@ -108,20 +119,45 @@ Draft → Reviewed → InProgress → Resolved → Stale
 ### A4. [🟡] 路径前缀与命名
 
 - 所有绝对路径以 `C:\UnityProject\YFramework\` 开头。
-- 输出目录三件套（`策划案/` `代码规划/` `代码优化规划/`）镜像目录（按 `<Type>/<Feature>/`）。
-- 文件名前缀统一表：`GP-/SYS-/UI-/NUM-/ART-/AUD-`，附加后缀 `-Plan-v<n>` / `-Review-v<n>`。
+- 输出目录四件套，全部镜像目录（按 `<Type>/<Feature>/`）：
+  - `策划案/` — requirement-analysis 产
+  - `代码规划/` — code-planning 主产
+  - `配表规划/` — code-planning 同步产（有 xlsx 变更时）+ excel-generation 修改型补列指引
+  - `代码优化规划/` — code-review 产
+- 文件名前缀 + 后缀统一表：
+
+  | 阶段 | 前缀 | 后缀 |
+  |---|---|---|
+  | 需求 | `GP-/SYS-/UI-/NUM-/ART-/AUD-` | `-v<n>.md` |
+  | 代码规划 | 同上 | `-Plan-v<n>.md` |
+  | 配表规划 | 同上 | `-Excel-v<n>.md` |
+  | 配表补列指引 | 同上 | `-ExcelPatch-v<n>.md` |
+  | 代码评审 | 自定义 Scope（PascalCase） | `-Review-v<n>.md` |
+
+- 工具/编辑器产物的特殊路径（不进上述目录）：
+  - `excel/3xlsx/<table>.xlsx` — excel-generation 产 xlsx
+  - `tools/excel_builders/build_<table>.py` — excel-generation 持久化 builder
+  - `client/Assets/Scripts/Editor/PrefabBuilders/<Name>PrefabBuilder.cs` — prefab-generation 产 Editor 构建器
 
 不一致 → 🟡 Minor（一致性差，但不影响工作流跑通）。
 
 ### A5. [🔴] 红线冲突
 
-收集每份 skill 的"严守红线 / Red Lines"，两两比对：
+收集每份 skill 的"严守红线 / Red Lines"，两两比对。代表性红线：
 
-- code-planning："不扩展 Framework"
+- requirement-analysis："不编造数值 / 不写实现细节"
+- code-planning："不扩展 Framework / 不写实现代码 / 不直接生成 xlsx"
+- excel-generation："不覆盖既有 xlsx / 不调发布工具链 / schema 唯一权威源是配表规划 §3"
 - code-generation："不写 Framework / 不超规划"
 - code-review："只读不改"
+- prefab-generation："不写 .prefab/.meta / 不修改业务代码 / 不静默覆盖既有 prefab"
 
-红线之间不应出现"A 禁止做的事被 B 允许"。例如若某 skill 写"可在评审时直接修代码"就与 code-review 的"只读"冲突 → 🔴。
+红线之间不应出现"A 禁止做的事被 B 允许"。常见冲突模式：
+
+1. 某 skill 写"可在评审时直接修代码"→ 与 code-review 的"只读"冲突 → 🔴
+2. 某 skill 写"自动生成 xlsx 含示例数据"→ 与 excel-generation 的"不私自加示例数据"冲突 → 🔴
+3. 某 skill 写"扩展 Framework 加方法"→ 与 code-planning / code-generation 的"不扩展 Framework"冲突 → 🔴
+4. 某 skill 在不同地方两套相反语 → 内部矛盾 → 🔴
 
 ### A6. [🟠] 规范引用一致性
 
@@ -146,6 +182,20 @@ Draft → Reviewed → InProgress → Resolved → Stale
 ❌ 不要：下一步：调 /code-generation 生成代码
 ```
 
+### A7.1 [🟠] 串调下游工具检测（A7 的强化版）
+
+不仅是"指挥下一个 skill"违反原则，**skill 本体直接调用下游工具**也算违反"互相不感知"：
+
+- 自动跑 `.\发布配表.bat` / `python tools/publish_config.py`（这是 publish 工具链，应由人/orchestrator 触发）
+- 自动跑 `protoc`、Unity Editor 批处理（同上）
+- 自动调 `git push` / `gh pr create` 等向远端推送的命令
+
+skill 内出现这类自动化串调 → 🟠 Major。建议改为：在交付报告里**告知**用户"请跑 X"，让人/外部决策何时执行。
+
+**告知 vs 执行**的边界：
+- ✅ "xlsx 已落地，请在仓库根跑 `.\发布配表.bat`" — 告知，可
+- ❌ "Step 5 自动调 `.\发布配表.bat`" — 串调，🟠
+
 ### A8. 汇总判定
 
 ```
@@ -167,7 +217,9 @@ flowchart LR
     RA -->|策划案/<id>.md| MR{人工审查}
     MR -->|不通过| RA
     MR -->|Approved| CP[/code-planning/]
-    CP -->|代码规划/<id>-Plan.md<br/>§10=0| CG[/code-generation/]
+    CP -->|代码规划/<id>-Plan.md<br/>+ 配表规划/<id>-Excel.md（有 xlsx 变更时）<br/>§10=0| EG[/excel-generation/]
+    EG -->|读配表规划 §3<br/>→ excel/3xlsx/*.xlsx| PUB[".\\发布配表.bat<br/>(人工 / 外部 orchestrator)"]
+    PUB -->|*Config.cs + *.bytes + Proto/| CG[/code-generation/]
     CP -->|§10≠0| FX[/framework-extension<br/>占位/]
     FX --> CP
     CG -->|GamePlay/.cs| CR[/code-review/]
@@ -182,8 +234,10 @@ flowchart LR
 |---|---|---|---|---|---|
 | ① | requirement-analysis | 用户自然语言 | 对话 | `策划案/<Type>/<Feature>/<id>.md` | id, type, status |
 | ② | (人工) | 策划案 | 文件 | 修改 status | status |
-| ③ | code-planning | 策划案 id | `策划案/**/<id>.md` | `代码规划/<Type>/<Feature>/<id>-Plan-v<n>.md` | id, source, framework_extensions_required |
-| ④ | code-generation | 代码规划 id | `代码规划/**/<id>.md` | `client/Assets/Scripts/GamePlay/**/*.cs` | (无文档输出) |
+| ③ | code-planning | 策划案 id | `策划案/**/<id>.md` | `代码规划/<Type>/<Feature>/<id>-Plan-v<n>.md` + 有 xlsx 变更时同步出 `配表规划/<Type>/<Feature>/<前缀>-<Feature>-Excel-v<n>.md` | 代码规划: id, source, excel_plan, framework_extensions_required；配表规划: id, source, plan, links.excel |
+| ③' | excel-generation | 配表规划 id（必） | `配表规划/**/<id>.md` | `excel/3xlsx/<table>.xlsx` + `tools/excel_builders/build_<table>.py` | (xlsx 无 frontmatter；builder.py 注释含 excel_plan_doc/source_doc/plan_doc/created) |
+| ③'' | (人工 / 外部 orchestrator) | 已生成的 xlsx | 命令 | `.\发布配表.bat` → `ScriptGenerated/Config/*Config.cs` + `Resources/Config/Data/*.bytes` + `ScriptGenerated/Proto/*.cs` | n/a |
+| ④ | code-generation | 代码规划 id | `代码规划/**/<id>.md` + 沿 `links.excel_plan` 找配表规划，验证其 §3 列出的 xlsx 与 *Config.cs 已存在（应已被 ③'' publish 出） | `client/Assets/Scripts/GamePlay/**/*.cs` | (无文档输出) |
 | ⑤ | code-review | 代码范围 | 路径/diff/类 | `代码优化规划/<Scope>-Review-v<n>.md` 或口头 | id, scope, severity counts |
 
 如有 webCtrl，补一行：`webCtrl 在 http://localhost:7777 编排各阶段`。
@@ -202,7 +256,7 @@ flowchart LR
 
 ### C2. 套用骨架
 
-新 skill 必须沿用以下结构（从现有四份 skill 抽出的共同骨架）：
+新 skill 必须沿用以下结构（从现有六份项目级 skill 抽出的共同骨架）：
 
 ```markdown
 ---
@@ -236,10 +290,12 @@ description: <一句概述 + 触发词>
 
 ### C3. 输入/输出对齐
 
-- 输出文件名前缀延用现有表：`GP-/SYS-/UI-/NUM-/ART-/AUD-`，加新后缀（如 `-Prefab-v<n>`）。
-- 镜像 `<Type>/<Feature>/` 目录。
-- frontmatter 至少包含 `id, title, type, status, version, links.source`（链回上游产物 id）。
-- 状态词汇用现有表，不发明。
+- 输出文件名前缀延用现有表：`GP-/SYS-/UI-/NUM-/ART-/AUD-`，加新后缀（已用：`-Plan-v<n>` / `-Excel-v<n>` / `-ExcelPatch-v<n>` / `-Review-v<n>`；如需新增，先确认与既有不冲突）。
+- 镜像 `<Type>/<Feature>/` 目录（写入 `策划案/` `代码规划/` `配表规划/` `代码优化规划/` 之一）；**或**走非镜像的工具/编辑器路径（如 `tools/` `client/Assets/Scripts/Editor/`）—— 后者不受目录约定限制。
+- frontmatter 至少包含 `id, title, type, status, version, links.source`（链回上游产物 id）；如本 skill 横跨多个上游，再加 `links.plan` / `links.excel_plan` / `links.excel`。
+- `type` 用现有词表（见 A2）；新增类型需有合理理由，不与既有同义混淆。
+- 状态词汇用现有表（见 A3），不发明。
+- **不调下游工具链**（参见 A7.1）；交付报告里告知人工动作，不自动执行。
 
 ### C4. 上游产物格式是否够用
 

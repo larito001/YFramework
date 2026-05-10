@@ -12,6 +12,7 @@ const PROJECT_ROOT = path.resolve(__dirname, '..');
 const ALLOWED_DIRS = {
     '策划案': path.join(PROJECT_ROOT, '策划案'),
     '代码规划': path.join(PROJECT_ROOT, '代码规划'),
+    '配表规划': path.join(PROJECT_ROOT, '配表规划'),
     '代码优化规划': path.join(PROJECT_ROOT, '代码优化规划'),
 };
 
@@ -65,16 +66,22 @@ function parseFrontmatter(content) {
     const m = /^---\r?\n([\s\S]*?)\r?\n---/.exec(content);
     if (!m) return null;
     const fm = {};
+    // 缩进的子键扁平化到顶层（如 links: 块下的 source / excel_plan / plan / excel）
+    // 这里只处理一层缩进；嵌套更深的对象不支持。注释（# ...）会被一并保留进 v 然后下面剥离。
     for (const raw of m[1].split(/\r?\n/)) {
-        const kv = /^([a-zA-Z_][\w-]*):\s*(.*)$/.exec(raw);
-        if (kv) {
-            let v = kv[2].trim();
-            // 去掉 yaml 里两边的引号
-            if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
-                v = v.slice(1, -1);
-            }
-            fm[kv[1]] = v;
+        const kv = /^\s*([a-zA-Z_][\w-]*):\s*(.*)$/.exec(raw);
+        if (!kv) continue;
+        let v = kv[2].trim();
+        // 剥行尾注释（yaml 行尾 # 开始的注释）
+        const hashIdx = v.indexOf(' #');
+        if (hashIdx >= 0) v = v.slice(0, hashIdx).trim();
+        // 去掉 yaml 里两边的引号
+        if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
+            v = v.slice(1, -1);
         }
+        // 空值（如 `links:` 行）跳过，避免把 'links' 这种容器键塞进 fm
+        if (v === '' && kv[1] === 'links') continue;
+        fm[kv[1]] = v;
     }
     return fm;
 }
@@ -202,6 +209,50 @@ app.post('/api/launch', (req, res) => {
     child.unref();
 
     res.json({ ok: true, script: tmpScript, prompt, title: safeTitle });
+});
+
+// ---- API: 触发配表发布（webCtrl 作为外部 orchestrator 直接跑 .\发布配表.bat）----
+//      excel-generation skill 本身不调 publish；publish 由这个 endpoint 显式触发，体现"skill 不串调下游"原则。
+
+app.post('/api/publish-excel', (_req, res) => {
+    const tmpScript = path.join(
+        os.tmpdir(),
+        `publish-excel-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.ps1`
+    );
+    const escCwd = PROJECT_ROOT.replace(/'/g, "''");
+    const scriptContent = [
+        `# webCtrl 自动生成 ${new Date().toISOString()}`,
+        `$OutputEncoding = [System.Text.Encoding]::UTF8`,
+        `[Console]::OutputEncoding = [System.Text.Encoding]::UTF8`,
+        `[Console]::InputEncoding = [System.Text.Encoding]::UTF8`,
+        `try { $Host.UI.RawUI.WindowTitle = '发布配表 (.\\发布配表.bat)' } catch {}`,
+        `Set-Location -LiteralPath '${escCwd}'`,
+        `Write-Host '[webCtrl] 启动 .\\发布配表.bat (publish_config.py)' -ForegroundColor Cyan`,
+        `Write-Host '[webCtrl] 工作目录: ${escCwd}' -ForegroundColor Cyan`,
+        `Write-Host ''`,
+        `& '.\\发布配表.bat'`,
+        `Write-Host ''`,
+        `Write-Host '[webCtrl] 完成。按任意键关闭窗口...' -ForegroundColor Cyan`,
+        `[void][System.Console]::ReadKey($true)`,
+    ].join('\r\n');
+    fs.writeFileSync(tmpScript, '﻿' + scriptContent, { encoding: 'utf8' });
+
+    const child = spawn(
+        'cmd.exe',
+        ['/c', 'start', '""', 'powershell.exe', '-NoExit', '-ExecutionPolicy', 'Bypass', '-File', tmpScript],
+        {
+            detached: true,
+            stdio: 'ignore',
+            windowsHide: false,
+            windowsVerbatimArguments: true,
+        }
+    );
+    child.on('error', err => {
+        console.error('[publish-excel] spawn error:', err);
+    });
+    child.unref();
+
+    res.json({ ok: true, script: tmpScript });
 });
 
 // ---- API: 健康检查 ----

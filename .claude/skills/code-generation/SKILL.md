@@ -47,6 +47,7 @@ C:\UnityProject\YFramework\client\Assets\Scripts\GamePlay\Scene\GameSceneTypes.c
 | §7 注册位置写明了 `GameProjectBootstrapper` 改动 | 缺失 → 仅在确实没有注册需求时才放过 |
 | §9 验收对齐每条对应到具体类/方法 | 缺失 → 停（无法在代码里落地） |
 | **§10 待框架扩展数量 == 0** | **>0 时停**：列出待扩展项，提示"先调 framework-extension skill 处理这些项再回来生成代码；否则现在生成的代码会缺底层支撑。" |
+| **代码规划 `links.excel_plan` 指向的配表规划文档存在；且其 §3 列出的所有 `excel/3xlsx/<table>.xlsx` + 对应 `client/Assets/ScriptGenerated/Config/<Table>Config.cs` 实际存在** | 配表规划缺失 → 提示"先调 `/code-planning <策划案 id>` 出代码规划+配表规划"；xlsx 缺失 → 提示"先调 `/excel-generation <配表规划 id>` 生成 xlsx，再在仓库根 `.\发布配表.bat` 发布"；xlsx 在但 `*Config.cs` 缺失 → 提示"先在仓库根 `.\发布配表.bat`"，**停**。 |
 | §11 风险与未决无阻塞项 | 有阻塞项 → 列出并问"用户是否同意先按降级方案/占位实现继续？" |
 
 ### 1.3 把规划"展开"为可执行清单

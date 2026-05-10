@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(netstat -ano)",
+      "Bash(findstr \"7777 5757 4747 3737 8181\")",
+      "Bash(findstr LISTENING)",
+      "PowerShell(Get-NetTCPConnection *)",
+      "PowerShell(Get-Process *)",
+      "PowerShell(Test-Path \"C:\\\\UnityProject\\\\YFramework\\\\webCtrl\\\\node_modules\"; node -v)",
+      "PowerShell(try { \\(Invoke-WebRequest -Uri 'http://localhost:7777/api/health' -UseBasicParsing -TimeoutSec 3\\).Content } catch { \"ERR: $_\" })",
+      "Bash(where node *)",
+      "Bash(where claude *)",
+      "Bash(where npm *)",
+      "Bash(node server.js)",
+      "Bash(curl -s http://localhost:7777/api/health)",
+      "Bash(xxd \"C:/UnityProject/YFramework/webCtrl/start.bat\")"
+    ]
+  }
+}
