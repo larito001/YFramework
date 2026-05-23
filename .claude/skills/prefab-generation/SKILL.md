@@ -48,7 +48,7 @@ C:\UnityProject\YFramework\client\Assets\Scripts\GamePlay\UI\Setting\SettingPane
 
 - **UI Panel**：`<Class> : UIPageBase` 或 `: UIPageBase<TParam>` → **完整支持**
 - **ObjectBase 实体**：`<Class> : ObjectBase` → **有限支持**（生成空 root + 挂脚本，art 留 TODO）
-- **其他 MonoBehaviour 子组件**（如 `BaseSettingCtrl` 子类）：**默认**作为子节点出现（不单独生成 prefab）；**例外**：若某 Panel 字段命中"prefab 模板字段启发式"（见 Step 2.2），则该字段类型升级为独立 prefab 目标
+- **其他 MonoBehaviour 子组件**（如 `BaseSettingCtrl` 子类）：只在被某个 Panel 的字段引用时作为子节点出现，**不单独生成 prefab**
 - **Manager / IGameService**：不需要 prefab，**跳过并明确告知用户**
 
 ### 1.3 抽取 prefab 路径
@@ -111,17 +111,6 @@ Editor 脚本输出位置：
 ```
 
 ### 2.2 字段类型 → 子节点映射
-
-**前置启发式（先于下表）**：**任意类型字段**，若同时满足以下任一条件 → 视作 **prefab 模板字段**：
-
-1. 字段名后缀为 `Prefab` / `Template`（不区分大小写），如 `nodePrefab` / `slotItemPrefab` / `linePrefab` / `rowTemplate`。
-2. panel.cs 里存在 `Instantiate(field, ...)`、`buffer.AsyncLoadAndGetItem` 等以该字段为模板的调用。
-
-命中后处理：
-
-- 递归生成该字段类型的独立 prefab builder（路径默认 `Resources/UI/<PanelDir>/<FieldType>.prefab`，在 Step 1.4 让用户确认 / 改）。
-- 在本 Panel 的 builder 末尾，用 `AssetDatabase.LoadAssetAtPath<GameObject>(<TemplateBuilder>.PrefabPath)` + `GetComponent<T>()` 回填该字段。
-- **不在下面的子 GO 表里再处理这类字段**（避免双重创建）。
 
 按下表分类。**未列出的类型一律生成 TODO 注释，让用户手动挂引用**：
 
@@ -361,52 +350,6 @@ internal static class CombatPanelPrefabBuilder
 #endif
 ```
 
-含 prefab 模板字段的 Panel builder（命中 Step 2.2 启发式时的标准写法）：
-
-```csharp
-#if UNITY_EDITOR
-using UnityEditor;
-using UnityEngine;
-using UnityEngine.UI;
-
-internal static class CombatHUDPanelPrefabBuilder
-{
-    private const string PrefabPath = "Assets/Resources/UI/CombatHUDPanel.prefab";
-
-    [MenuItem("YFramework/Build Prefabs/CombatHUDPanel")]
-    public static void Build()
-    {
-        var root = PrefabBuilderHelpers.CreateRoot("CombatHUDPanel");
-        root.AddComponent<CanvasGroup>();
-        root.AddComponent<YOTOUIShow>();
-        var panel = root.AddComponent<CombatHUDPanel>();
-
-        // ... 其他自动生成字段 ...
-
-        // skillButtonPrefab : SkillButton —— prefab 模板字段（命中 Step 2.2 启发式：命名后缀 + Instantiate 引用）
-        // 由 SkillButtonPrefabBuilder 产出，BuildAll 中 SkillButton 字母序早于 CombatHUDPanel，先执行。
-        var skillBtnAsset = AssetDatabase.LoadAssetAtPath<GameObject>(SkillButtonPrefabBuilder.PrefabPath);
-        if (skillBtnAsset != null)
-        {
-            var comp = skillBtnAsset.GetComponent<SkillButton>();
-            if (comp != null) panel.skillButtonPrefab = comp;
-            else Debug.LogWarning($"[PrefabBuilder] {SkillButtonPrefabBuilder.PrefabPath} 缺少 SkillButton 组件，skillButtonPrefab 未回填，请手挂");
-        }
-        else
-        {
-            Debug.LogWarning($"[PrefabBuilder] {SkillButtonPrefabBuilder.PrefabPath} 不存在，skillButtonPrefab 未回填。请先点 [YFramework/Build Prefabs/SkillButton] 或重跑 [All]");
-        }
-
-        var prefab = PrefabBuilderHelpers.SavePrefab(root, PrefabPath, overwrite: true);
-        Object.DestroyImmediate(root);
-        if (prefab != null) EditorGUIUtility.PingObject(prefab);
-    }
-}
-#endif
-```
-
-> 模板 builder 必须把 `PrefabPath` 暴露为 `public const`（而非 `private const`），消费方才能引用。
-
 ObjectBase 实体的 builder（仅基础骨架，不挂任何 UI 组件）：
 
 ```csharp
@@ -456,9 +399,6 @@ internal static class AllPrefabBuilders
     {
         Debug.Log("[PrefabBuilder] BuildAll 开始");
         // ↓↓↓ 按字母序追加（生成的脚本自动维护此清单）↓↓↓
-        // 额外约束：若 builder X 通过 AssetDatabase 引用 builder Y 产出的 prefab（模板字段回填），
-        // BuildAll 中 Y 的 .Build() 必须早于 X。通常字母序即可满足；若字母序冲突，
-        // 显式上提 Y 的位置并加注释 "// 模板优先：Y 必须先于 X"，不再保持纯字母序。
         CombatEntityPrefabBuilder.Build();
         CombatPanelPrefabBuilder.Build();
         // ↑↑↑ 自动维护区域（手工修改会被本 skill 下次执行时重写）↑↑↑
@@ -499,12 +439,6 @@ internal static class AllPrefabBuilders
 - [ ] 对每个待生成的 `PrefabPath`，检查 `client/Assets/Resources/...` 下是否已存在同名 `.prefab`。
 - [ ] 已存在 → 在 builder 里把 `overwrite: true` 改为 `false` 并加注释 `// 已存在原始 prefab，BuildAll 默认不覆盖；如需覆盖手动改 overwrite: true`。**不要默默覆盖美术资产**。
 
-### 4.5 跨 prefab 引用核对
-
-- [ ] 对每个被 Step 2.2 启发式识别为 prefab 模板字段的字段：对应模板 builder 文件存在（`<FieldType>PrefabBuilder.cs`），且 `PrefabPath` 已声明为 `public const`。
-- [ ] 消费方 builder 中存在 `AssetDatabase.LoadAssetAtPath<GameObject>(<TemplateBuilder>.PrefabPath)` 回填代码，且找不到时有 `LogWarning`，不静默赋 null。
-- [ ] BuildAll 中模板 builder 的 `.Build()` 调用早于消费方 builder（字母序通常足够；若不足则显式上提 + 注释）。
-
 ## Step 5 · 交付报告
 
 ```
@@ -517,18 +451,17 @@ internal static class AllPrefabBuilders
 - client/Assets/Scripts/Editor/PrefabBuilders/AllPrefabBuilders.cs       (BuildAll 菜单)
 
 ### 自检
-- 字段映射对齐 ............ ✅（自动可建 N 个 / 外部 prefab 模板自动回填 K 个 / TODO 手动 M 个）
+- 字段映射对齐 ............ ✅（自动可建 N 个 / TODO 手动 M 个）
 - PrefabPath 与 Bootstrapper 注册行一致 ✅
 - 业务代码未修改 .......... ✅
 - 现有 prefab 安全 ........ ✅（X 个 overwrite=true / Y 个 overwrite=false 因已存在）
-- 跨 prefab 引用核对 ...... ✅（K 个模板字段全部 AssetDatabase 回填，BuildAll 顺序正确）
 
 ### 用户操作
 1. 切到 Unity Editor，让其编译新增 Editor 脚本（自动）。
 2. 顶部菜单 [YFramework/Build Prefabs/[All]] —— 一键生成所有 prefab。
    或单独点 [YFramework/Build Prefabs/<Name>] 只生成某一个。
 3. Console 应输出 `[PrefabBuilder] Saved Assets/Resources/UI/XxxPanel.prefab`。
-4. 在 Project 窗口验证：所选 prefab 上 CombatPanel 脚本已挂、btn_xxx / txt_xxx 等字段已自动填充；**模板 prefab 字段（如 `xxxPrefab` / `xxxTemplate`）已自动指向对应 prefab，未被留为 None**。
+4. 在 Project 窗口验证：所选 prefab 上 CombatPanel 脚本已挂、btn_xxx / txt_xxx 等字段已自动填充。
 5. 美术接手细化视觉（替换 Image / 调字号 / 调坐标），引用关系无需重连。
 
 ### 仍需人工的（TODO）
@@ -551,7 +484,7 @@ internal static class AllPrefabBuilders
 - **不臆造路径**。prefab 路径必须有源（Bootstrapper 注册行 / 代码规划 §6）。无源 → 让用户提供，不要 `"UI/Xxx.prefab"` 凭直觉填。
 - **不静默覆盖既有 prefab**。`Resources/...` 下已有同名 prefab → builder 默认 `overwrite: false` + 注释提醒。
 - **不为没有 Inspector 引用需求的字段创建子节点**（如 private 非 SerializeField、Manager 类型字段）。
-- **不发明字段映射**。Step 2.2 表外的类型一律 TODO 注释，不要"猜"。**例外**：命中 prefab 模板字段启发式（命名 `*Prefab` / `*Template` 或在 panel.cs 里被 `Instantiate` 引用）的字段，**禁止**默认留 TODO，必须升级为独立 prefab 目标并在 Step 1.4 用户确认时显式列出。
+- **不发明字段映射**。Step 2.2 表外的类型一律 TODO 注释，不要"猜"。
 - **不删 BuildAll 既有调用**。本 skill 重新执行时，只追加 / 替换"自动维护区域"内的本次范围；区域外的已存在调用保留（除非用户明确要求清理）。
 - **始终中文撰写交付报告**；代码内注释保持英文/中文皆可（同代码规范 §3）。
 - **始终用绝对日期** `YYYY-MM-DD`。
