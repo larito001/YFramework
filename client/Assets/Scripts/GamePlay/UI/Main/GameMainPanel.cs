@@ -14,12 +14,6 @@ public class GameMainPanel : UIPageBase
 
     public override void OnLoad()
     {
-        if (bagBtn != null) bagBtn.onClick.AddListener(OnBagBtnClick);
-    }
-
-    private void OnBagBtnClick()
-    {
-        Show<BagPanel>();
     }
 
     public override void OnShow()

@@ -26,9 +26,7 @@ public class StartPanel : UIPageBase
 
     private void OnNewClick()
     {
-     
-        GetService<UIMgr>().Show<BagPanel>();
-        // GetService<YSceneManager>().SwitchScene(YSceneType.Home);
+        GetService<YSceneManager>().SwitchScene(YSceneType.Home);
     }
 
     public override void OnShow()

@@ -6,6 +6,4 @@ public enum UIEnum
     GameMainPanel,
     FinishPanel,
     SettingPanel,
-    BagPanel,
-    BagDropConfirmPanel,
 }
