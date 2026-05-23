@@ -170,7 +170,7 @@ links:
 
 1. 文档绝对路径（`C:\UnityProject\YFramework\策划案\...\<id>-v1.md`）
 2. 一句话述：本文档定义了什么
-3. 当前 `status: Draft`，自检需求规范 §6 Checklist 是否全部满足
+3. 当前 `status: Draft`，下一步：策划自检需求规范 §6 Checklist → 提交 PR 进 Review
 4. 列出"按需"章节中 **未填** 的项（非强制，建议后续补充时考虑）
 5. 列出 §8 中所有未决问题（提醒策划尽快闭合）
 
