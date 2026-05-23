@@ -179,8 +179,6 @@ classDiagram
   - PlayerData 新增字段 lastSkillId : int    (修改)
 ```
 
-> **§2.5 [配表] 区块仅列高级清单**（xlsx 文件名 + 变更性质 + 一句变更摘要）。**详细列结构（Row1~Row6 / 类型 / 键 / 默认值 / 示例数据）不在代码规划主文档**，全部归入独立的配表规划文档（见 Step 4.5）。`frontmatter.links.excel_plan` 双向回指。
-
 ### 2.6 注册位置（GameProjectBootstrapper）
 
 明确在 `GameProjectBootstrapper.*.cs` 的哪个 partial 方法里加什么行：
@@ -291,7 +289,6 @@ updated: <today, YYYY-MM-DD>
 version: 0.1
 links:
   source: GP-Combat-v1                       # 必填：对应策划案 id
-  excel_plan: GP-Combat-Excel-v1             # 有 xlsx 变更时必填：对应配表规划 id（见 Step 4.5）
   related: []                                 # 关联的其他代码规划
   replaces: []                                # 替代的旧规划
   framework_extensions_required: []           # §2.10 中识别的扩展项 id（暂无规范，先用描述性短串）
@@ -321,8 +318,6 @@ Mermaid sequenceDiagram / flowchart（§2.4）。**至少一张**主流程图，
 
 ## 6. 资源 / 配表 / 事件 / 存档
 四张表（§2.5）。每条标"已有 / 新增 / 修改"，新增项标交付方与日期。
-
-> **[配表] 区块只列 hi-level**（xlsx 文件名 + 变更性质 + 一句变更摘要）。详细 schema（列定义/类型/键/默认值/示例数据）见 `links.excel_plan` 指向的配表规划文档（由本 skill Step 4.5 同时产出）。**禁止在本文档重复 schema 详细表格**。
 
 ## 7. 注册与生命周期
 - §7.1 注册位置：`GameProjectBootstrapper` 各 partial 方法的具体改动行。
@@ -360,116 +355,12 @@ Mermaid sequenceDiagram / flowchart（§2.4）。**至少一张**主流程图，
 - **§10 不能空缺**：要么列扩展项，要么显式写"无"。
 - **不写实现细节到代码层面**：不贴整段 C# 代码（伪代码可接受 ≤10 行）；规划是给程序"按图施工"的，不是把代码写完。
 - **不发明 API**：每个引用的 Framework 方法都必须能在模块规范里找到原文；找不到 → 移到 §10 待扩展。
-- **新增/修改的 xlsx 必须出配表规划文档**（Step 4.5）：详细列结构落入独立的 `配表规划/<Type>/<Feature>/<id>-Excel-v1.md`；frontmatter `links.excel_plan` 指回；缺则下游 excel-generation 无法消费。
-
-### 4.5 配表规划文档（如有 xlsx 变更必出）
-
-如果 §6 [配表] 列出了任何"新增/修改"的 xlsx，**必须**在生成代码规划主文档的同一轮内**追加产出**配表规划文档，作为 excel-generation skill 的权威输入。无 xlsx 变更则跳过本步。
-
-#### 4.5.1 路径与命名
-
-- 根目录：`C:\UnityProject\YFramework\配表规划\`（仓库根新增；项目规范 §1 同步加）
-- 子目录：镜像策划案的 `<Type>/<Feature>/`（如 `Gameplay\Combat\`）
-- 文件名：`<前缀>-<Feature>-Excel-v<版本号>.md`
-- 例：`配表规划\Gameplay\Combat\GP-Combat-Excel-v1.md` ←→ 对应 `代码规划\Gameplay\Combat\GP-Combat-Plan-v1.md`
-
-#### 4.5.2 frontmatter
-
-```yaml
----
-id: GP-Combat-Excel-v1
-title: 战斗系统 v1 · 配表规划
-type: ExcelPlan
-status: Draft
-owner: <规划负责人，与代码规划同人>
-reviewers: [<策划负责人>]   # 策划必须 review，schema 涉及业务字段
-created: <today, YYYY-MM-DD>
-updated: <today, YYYY-MM-DD>
-version: 0.1
-links:
-  source: GP-Combat-v1          # 必填：策划案 id
-  plan:   GP-Combat-Plan-v1     # 必填：对应代码规划 id
-  excel:  [skill.xlsx, hero.xlsx]   # 涉及的 xlsx 文件名（不含路径）
----
-```
-
-`source` 与 `plan` 都是强制字段，缺则下游 excel-generation 拒做。
-
-#### 4.5.3 正文章节（固定顺序）
-
-```markdown
-## 1. 概览
-本规划基于 [GP-Combat-v1] 策划案 §4 数据 + [GP-Combat-Plan-v1] 代码规划 §6，
-定义全部受影响 xlsx 的完整 schema。配表 schema 的最终决定权在程序（类型/键/默认值），
-列字段名来自策划。
-
-## 2. 表清单
-| xlsx | 性质 | 主键 | 列数 | 示例数据行数 |
-|---|---|---|---|---|
-| skill.xlsx | 新增 | skill_id (uint, client_key) | 6 | 2 |
-| hero.xlsx | 修改（+1 列） | hero_id (uint, client_key) | 9+1 | 不动既有 |
-
-## 3. 详细 schema（一表一节）
-
-### 3.1 excel/3xlsx/skill.xlsx (新增)
-- **用途**：技能数值与冷却
-- **主键**：`skill_id` (uint, client_key)
-- **是否树形/双键**：否
-- **客户端列**：全部
-- **服务端列**：无
-
-| 序 | Row1 列名 | Row2 colID | Row3 type | Row4 target | Row5 ext | Row6 default |
-|---|---|---|---|---|---|---|
-| 1 | 技能ID | skill_id | uint | client_key | | 0 |
-| 2 | 名称 | skill_name | string | client | | |
-| 3 | 伤害 | damage | int | client | | 0 |
-| 4 | 冷却(秒) | cooldown | float | client | | 0 |
-| 5 | 影响词条 | tags | array.string | client | | |
-| 6 | 加成 | bonus | map.string.int | client | | |
-
-**示例数据**（≥1 行，由策划提供；策划未提供则留空，excel-generation 只产默认值行）：
-
-| skill_id | skill_name | damage | cooldown | tags | bonus |
-|---|---|---|---|---|---|
-| 1001 | 火球术 | 50 | 2.5 | fire\|magic | atk~10 |
-| 1002 | 冰锥术 | 40 | 3.0 | ice\|magic | atk~8 |
-
-### 3.2 excel/3xlsx/hero.xlsx (修改：纯加列 init_pos)
-- **变更性质**：纯加列，不动既有列名/类型
-- 新增列：
-
-| 插入位置 | Row1 | Row2 colID | Row3 type | Row4 target | Row6 default |
-|---|---|---|---|---|---|
-| 第 9 列后 | 初始位置 | init_pos | vec2.int | client | 0~0 |
-
-**修改型变更由 excel-generation 输出补列指引（不动既有 xlsx）。**
-
-## 4. 类型/校验约束
-- 所有 type 必须在白名单：`int / uint / float / bool / string / array.<base> / vec2.<base> / vec3.<base> / map.<base>.<base>`（详见 `tools/配表工具复刻指南.md` §4.3）
-- target 取值：`client / server / all / client_key / all_key / main / child / rowkey`
-- 至少 1 个 `*_key` 列；双键表 2 个 key 列
-- 文件名 lowercase + ASCII；表名 = 文件名（不含扩展名）
-
-## 5. 变更记录
-- v0.1 - <today> - <owner> - 初版，对应 [GP-Combat-Plan-v1]
-```
-
-#### 4.5.4 强制不变量
-
-- **id 三处一致**：文件名（去 `.md`）== frontmatter `id` == §1 概述里自引用的 id。
-- **`source` 与 `plan` 必填**：链回的策划案与代码规划文件存在。
-- **代码规划 `links.excel_plan` 双向回指**：本配表规划 id 必须出现在对应代码规划的 `links.excel_plan` 字段。
-- **§3 一表一节**：每张代码规划 §6 [配表] 列出的"新增/修改" xlsx 都必须在本文档 §3 有完整列结构。
-- **类型在白名单 + 至少 1 个 key**：违反则下游 excel-generation 拒做。
-- **不发明列**：每个 colID 都必须能从策划案 §4 数据 / 代码规划 §6 资源/配表清单追溯到来源。
 
 ## Step 5 · 交付报告
 
 文档写完后，输出短报告（不要长篇）：
 
-1. 规划文档绝对路径：
-   - 代码规划主文档：`代码规划\...\<id>-Plan-v1.md`
-   - 配表规划文档（若 §6 有 xlsx 变更）：`配表规划\...\<id>-Excel-v1.md`；无变更则报"无 xlsx 变更，未生成"
+1. 规划文档绝对路径（`代码规划\...\<id>-Plan-v1.md`）。
 2. 一句话述：本规划基于 `<策划案 id>`，新增 N 个文件 / 修改 M 个文件 / 调用 K 个 Framework 服务。
 3. **§10 待框架扩展项数量**：0 / 或列出条数与一句概述。**> 0 时**提醒用户："这些项需要后续 framework-extension skill 处理；否则当前规划在实施时会卡住或降级。"
 4. **§11 未决问题数量**：列条数。
@@ -486,6 +377,5 @@ links:
 - **不破坏依赖方向**。`Framework/` 不能引用 `GamePlay/`；规划里出现这种情况立即调整。
 - **不混淆需求与实现**。需求层未决（如"暴击是否做"）不应被规划解决；规划只解决"如何做已确定的需求"。
 - **不省略 §10 与 §9**。这是规划文档区别于"草稿提纲"的关键。
-- **不直接生成 xlsx 文件**。本 skill 只产配表规划文档（Step 4.5）；实际 .xlsx 落地由 excel-generation skill 负责，publish 由人工 / 外部 orchestrator 触发。
 - **始终中文撰写**，与项目其他规范一致。
 - **始终用绝对日期**（`YYYY-MM-DD`）。

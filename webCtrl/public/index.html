@@ -15,7 +15,6 @@
         </div>
         <div class="actions">
             <button id="btn-new-req" class="primary">+ 新建需求</button>
-            <button id="btn-publish-excel" title="webCtrl 直接调 .\发布配表.bat（外部 orchestrator 触发，skill 不串调）">🚀 发布配表</button>
             <button id="btn-review-any">🔍 评审任意范围</button>
             <button id="btn-build-prefabs">🎨 生成预制体</button>
             <button id="btn-refresh" title="刷新所有目录">🔄 刷新</button>
@@ -42,35 +41,23 @@
         <div class="stage" data-stage="3">
             <div class="num">③</div>
             <div class="name">模块分析</div>
-            <div class="desc">/code-planning（含配表规划）</div>
+            <div class="desc">/code-planning</div>
         </div>
         <div class="arrow">→</div>
         <div class="stage" data-stage="4">
             <div class="num">④</div>
-            <div class="name">配表生成</div>
-            <div class="desc">/excel-generation</div>
-        </div>
-        <div class="arrow">→</div>
-        <div class="stage manual" data-stage="5">
-            <div class="num">⑤</div>
-            <div class="name">发布配表</div>
-            <div class="desc">.\发布配表.bat</div>
-        </div>
-        <div class="arrow">→</div>
-        <div class="stage" data-stage="6">
-            <div class="num">⑥</div>
             <div class="name">代码生成</div>
             <div class="desc">/code-generation</div>
         </div>
         <div class="arrow">→</div>
-        <div class="stage" data-stage="7">
-            <div class="num">⑦</div>
+        <div class="stage" data-stage="5">
+            <div class="num">⑤</div>
             <div class="name">代码优化</div>
             <div class="desc">/code-review</div>
         </div>
         <div class="arrow">→</div>
-        <div class="stage" data-stage="8">
-            <div class="num">⑧</div>
+        <div class="stage" data-stage="6">
+            <div class="num">⑥</div>
             <div class="name">预制体生成</div>
             <div class="desc">/prefab-generation</div>
         </div>
@@ -94,17 +81,9 @@
                 </h3>
                 <ul class="file-list" data-list></ul>
             </div>
-            <div class="folder-section" data-dir="配表规划">
-                <h3>
-                    <span class="badge">④</span>
-                    <span>配表规划</span>
-                    <span class="count" data-count></span>
-                </h3>
-                <ul class="file-list" data-list></ul>
-            </div>
             <div class="folder-section" data-dir="代码优化规划">
                 <h3>
-                    <span class="badge">⑦</span>
+                    <span class="badge">⑤</span>
                     <span>代码优化规划</span>
                     <span class="count" data-count></span>
                 </h3>
@@ -133,16 +112,14 @@
                     <div class="empty-icon">📄</div>
                     <div class="empty-title">欢迎使用 YFramework 工作流控制台</div>
                     <div class="empty-text">
-                        <p>左侧五个目录覆盖完整工作流：</p>
+                        <p>左侧四个目录覆盖完整工作流：</p>
                         <ul>
                             <li><b>策划案</b>：需求文档（人工审查在这里完成）</li>
-                            <li><b>代码规划</b>：模块分析输出，代码生成的输入；如有 xlsx 变更，<code>links.excel_plan</code> 会指向对应配表规划</li>
-                            <li><b>配表规划</b>：xlsx schema 详细定义，excel-generation 的输入；生成后用顶部 <b>🚀 发布配表</b> 触发 publish</li>
+                            <li><b>代码规划</b>：模块分析输出，代码生成的输入</li>
                             <li><b>代码优化规划</b>：代码评审报告</li>
                             <li><b>未提交改动</b>：尚未 commit 的本地代码（用于评审）</li>
                         </ul>
                         <p>选中文档后会在右侧显示对应阶段的操作按钮；每次操作打开一个新的 Claude 窗口。</p>
-                        <p><b>设计原则</b>：每个 skill 做完即停，不串调下游工具；<code>.\发布配表.bat</code> 由 webCtrl 顶部按钮显式触发（不由 excel-generation 自动跑）。</p>
                     </div>
                 </div>
             </div>

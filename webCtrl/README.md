@@ -8,15 +8,6 @@
                               人工审查（通过/打回）
                                       ↓
                           /code-planning → 代码规划/
-                                       + 配表规划/（有 xlsx 变更时，同步产出）
-                                      ↓
-                          /excel-generation → excel/3xlsx/*.xlsx
-                                              + tools/excel_builders/build_*.py
-                                      ↓
-                          [人工 / webCtrl] .\发布配表.bat
-                                      → ScriptGenerated/Config/*Config.cs
-                                      → Resources/Config/Data/*.bytes
-                                      → ScriptGenerated/Proto/*.cs
                                       ↓
                           /code-generation → 代码
                                       ↓
@@ -29,10 +20,9 @@
 
 ## 功能
 
-- 一个浏览器页面汇总展示 `策划案/` `代码规划/` `配表规划/` `代码优化规划/` 四个目录的 markdown 文档与 frontmatter 状态。
-- 每个文档根据其 `status` / 类型显示对应的操作按钮（含跨上游链接 `links.source/plan/excel_plan` 的反查）。
+- 一个浏览器页面汇总展示 `策划案/` `代码规划/` `代码优化规划/` 三个目录的 markdown 文档与 frontmatter 状态。
+- 每个文档根据其 `status` / 类型显示对应的操作按钮。
 - 点按钮 → 在新的 PowerShell 窗口启动一个独立 Claude Code 会话，初始指令已自动填好（如 `/code-planning GP-Combat-v1`）。
-- 顶部 [🚀 发布配表] 直接调 `.\发布配表.bat`（webCtrl 作为外部 orchestrator 触发；遵循 skill-chain-maintenance A7.1 "skill 不串调下游工具"原则）。
 - 实时显示 `git diff` 未提交改动，一键启动 `/code-review --diff`。
 - 人工审查（通过/打回）直接在网页内操作 frontmatter `status`，不开新窗口。
 - 5 秒自动轮询刷新（可关）。
@@ -54,7 +44,6 @@ npm start
 [webCtrl] 项目根: C:\UnityProject\YFramework
 [webCtrl] 策划案         → C:\UnityProject\YFramework\策划案
 [webCtrl] 代码规划       → C:\UnityProject\YFramework\代码规划
-[webCtrl] 配表规划       → C:\UnityProject\YFramework\配表规划
 [webCtrl] 代码优化规划   → C:\UnityProject\YFramework\代码优化规划
 ```
 
@@ -68,31 +57,24 @@ npm start
 | ① 修改需求 | 选中策划案 → [✏ 继续修改] | 文本框输入修改点 | 启动 `/requirement-analysis 基于 <id> 修改: ...` |
 | ② 通过审查 | 选中策划案 → [✓ 通过审查] | 直接确认 | frontmatter `status: Approved` |
 | ② 打回 | 选中策划案 → [✗ 打回] | 文本框输入理由 | `status: Draft` + 启动 `/requirement-analysis 审查打回 ...` |
-| ③ 模块分析 | 选中 Approved 策划案 → [⚙ 模块分析] | 直接 | 启动 `/code-planning <id>`，产出代码规划 + 配表规划（有 xlsx 时） |
-| ④ 配表生成（按规划） | 选中代码规划 → [📊 生成配表] | 直接（要求 frontmatter `links.excel_plan` 不空） | 启动 `/excel-generation <excel_plan id>`，产 xlsx + builder.py |
-| ④ 配表生成（按配表规划） | 选中配表规划 → [📊 生成 xlsx] | 直接 | 启动 `/excel-generation <id>`，产 xlsx + builder.py |
-| ⑤ 发布配表（统一入口） | 顶部 [🚀 发布配表] | 直接确认 | 新窗口跑 `.\发布配表.bat` 全量重发 |
-| ⑤ 发布配表（按配表规划） | 选中配表规划 → [🚀 发布配表] | 直接确认 | 同上 |
-| ⑥ 代码生成 | 选中代码规划 → [⚡ 生成代码] | 直接 | 启动 `/code-generation <id>` |
-| ⑦ 评审 diff | 选中"未提交改动" → [🔍 评审本批改动] | 直接 | 启动 `/code-review --diff` |
-| ⑦ 评审范围 | 顶部 [🔍 评审任意范围] | 文本框输入路径/类名 | 启动 `/code-review <scope>` |
-| ⑦ 修复优化 | 选中代码优化规划 → [🛠 按报告执行修复] | 直接 | 启动 Claude 让其按报告 §5 逐条修 |
-| ⑧ 预制体（按规划） | 选中代码规划 → [🎨 生成预制体] | 直接 | 启动 `/prefab-generation <plan-id>` 写 Editor 构建器 |
-| ⑧ 预制体（自由范围） | 顶部 [🎨 生成预制体] | 文本框输入 plan-id / 类名 / `--diff` | 启动 `/prefab-generation <scope>` |
-| ⑧ 实际产出 prefab | 在 Unity 内 [YFramework/Build Prefabs/[All]] | Unity 菜单 | 不在 webCtrl 范围；本步由 Unity Editor 完成 |
+| ③ 模块分析 | 选中 Approved 策划案 → [⚙ 模块分析] | 直接 | 启动 `/code-planning <id>` |
+| ④ 代码生成 | 选中代码规划 → [⚡ 生成代码] | 直接 | 启动 `/code-generation <id>` |
+| ⑤ 评审 diff | 选中"未提交改动" → [🔍 评审本批改动] | 直接 | 启动 `/code-review --diff` |
+| ⑤ 评审范围 | 顶部 [🔍 评审任意范围] | 文本框输入路径/类名 | 启动 `/code-review <scope>` |
+| ⑤ 修复优化 | 选中代码优化规划 → [🛠 按报告执行修复] | 直接 | 启动 Claude 让其按报告 §5 逐条修 |
+| ⑥ 预制体（按规划） | 选中代码规划 → [🎨 生成预制体] | 直接 | 启动 `/prefab-generation <plan-id>` 写 Editor 构建器 |
+| ⑥ 预制体（自由范围） | 顶部 [🎨 生成预制体] | 文本框输入 plan-id / 类名 / `--diff` | 启动 `/prefab-generation <scope>` |
+| ⑥ 实际产出 prefab | 在 Unity 内 [YFramework/Build Prefabs/[All]] | Unity 菜单 | 不在 webCtrl 范围；本步由 Unity Editor 完成 |
 
 ## 多窗口协作
 
 每次启动会开一个**独立**的 PowerShell + Claude 会话。窗口之间不共享上下文，**通过文件系统协作**：
 
 - 阶段 ① 写出 `策划案/...md` → 阶段 ③ 在另一个窗口读取它
-- 阶段 ③ 写出 `代码规划/...md`（含 `links.source: <策划案 id>` + `links.excel_plan: <配表规划 id>`）+ `配表规划/...md`（含 `links.source` + `links.plan`）→ 阶段 ④/⑥ 通过 frontmatter 反查链路
-- 阶段 ④ 写出 `excel/3xlsx/*.xlsx` + `tools/excel_builders/build_*.py` → 阶段 ⑤ 由 webCtrl 触发的 publish 读取它产出 `*Config.cs` / `*.bytes` / `Proto/`
-- 阶段 ⑥ 写出 `client/Assets/Scripts/GamePlay/...cs` → 阶段 ⑦ 通过 git diff 看到这些改动
+- 阶段 ③ 写出 `代码规划/...md`（含 `source: <策划案 id>` 反查链） → 阶段 ④ 读取它
+- 阶段 ④ 写出 `client/Assets/Scripts/GamePlay/...cs` → 阶段 ⑤ 通过 git diff 看到这些改动
 
-**重要原则**（与 skill-chain-maintenance A7 / A7.1 一致）：每个 skill 做完即停，不串调下游工具。`.\发布配表.bat` 由 webCtrl 顶部按钮 / 配表规划页面按钮显式触发；excel-generation skill 本体不调它。
-
-控制台 5 秒轮询一次四个目录与 `git status`，能在数秒内反映出新生成的文档。
+控制台 5 秒轮询一次三个目录与 `git status`，能在数秒内反映出新生成的文档。
 
 ## 端口
 
@@ -105,9 +87,8 @@ $env:PORT=8080; npm start
 ## 安全说明
 
 - 仅监听 `localhost`（Express 默认行为）；外网无法访问。
-- API 限定只能读 `策划案/` `代码规划/` `配表规划/` `代码优化规划/` 四个目录；`PUT /api/file/status` 仅修改 frontmatter 的 `status` 与 `updated` 字段，不允许任意改文件。
+- API 限定只能读 `策划案/` `代码规划/` `代码优化规划/` 三个目录；`PUT /api/file/status` 仅修改 frontmatter 的 `status` 与 `updated` 字段，不允许任意改文件。
 - `POST /api/launch` 会启动新窗口执行 `claude '<prompt>'`。**prompt 由前端传入**：本工具仅供本机使用，不要把端口暴露到外网。
-- `POST /api/publish-excel` 会启动新窗口执行 `.\发布配表.bat`（无前端入参，固定跑仓库根的 bat）。同样仅本机使用。
 
 ## 依赖
 

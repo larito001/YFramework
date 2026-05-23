@@ -10,7 +10,7 @@ const state = {
     refreshTimer: null,
 };
 
-const DIRS = ['策划案', '代码规划', '配表规划', '代码优化规划'];
+const DIRS = ['策划案', '代码规划', '代码优化规划'];
 
 // ================= 工具 =================
 
@@ -163,20 +163,15 @@ function parseFrontmatterClient(content) {
     const m = /^---\r?\n([\s\S]*?)\r?\n---/.exec(content || '');
     if (!m) return null;
     const fm = {};
-    // 缩进的子键扁平化到顶层（如 links: 块下的 source / excel_plan / plan / excel）
     for (const raw of m[1].split(/\r?\n/)) {
-        const kv = /^\s*([a-zA-Z_][\w-]*):\s*(.*)$/.exec(raw);
-        if (!kv) continue;
-        let v = kv[2].trim();
-        // 剥行尾注释（yaml 行尾 # 开始的注释）
-        const hashIdx = v.indexOf(' #');
-        if (hashIdx >= 0) v = v.slice(0, hashIdx).trim();
-        if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
-            v = v.slice(1, -1);
+        const kv = /^([a-zA-Z_][\w-]*):\s*(.*)$/.exec(raw);
+        if (kv) {
+            let v = kv[2].trim();
+            if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
+                v = v.slice(1, -1);
+            }
+            fm[kv[1]] = v;
         }
-        // 空值（如 `links:` 行）跳过
-        if (v === '' && kv[1] === 'links') continue;
-        fm[kv[1]] = v;
     }
     return fm;
 }
@@ -267,8 +262,7 @@ function renderPreview() {
 
 function renderFrontmatterCard(fm) {
     if (!fm || Object.keys(fm).length === 0) return '';
-    const keys = ['id', 'title', 'type', 'status', 'owner', 'reviewers', 'created', 'updated', 'version',
-                  'source', 'plan', 'excel_plan', 'excel', 'scope'];
+    const keys = ['id', 'title', 'type', 'status', 'owner', 'reviewers', 'created', 'updated', 'version', 'source', 'scope'];
     const rows = keys
         .filter(k => fm[k])
         .map(k => `<dt>${k}</dt><dd>${escapeHtml(fm[k])}</dd>`)
@@ -364,22 +358,6 @@ function renderActions(sel, fm) {
     if (sel.dir === '代码规划') {
         const id = fm.id || sel.path.replace(/\.md$/, '');
         const sourceId = fm.source || '';
-        const excelPlanId = fm.excel_plan || '';
-
-        // 配表生成（吃 frontmatter.links.excel_plan 指向的配表规划）
-        if (excelPlanId) {
-            buttons.push(makeBtn('📊 生成配表', '', () => {
-                launchClaude({
-                    title: `Claude — 配表生成 ${excelPlanId}`,
-                    prompt: `/excel-generation ${excelPlanId}`,
-                });
-            }));
-        } else {
-            const noExcelBtn = makeBtn('📊 生成配表', '', () => {});
-            noExcelBtn.disabled = true;
-            noExcelBtn.title = '本代码规划 frontmatter.links 无 excel_plan 字段（无 xlsx 变更，或规划版本未升级到含 §4.5 配表规划文档）。';
-            buttons.push(noExcelBtn);
-        }
 
         buttons.push(makeBtn('⚡ 生成代码', 'primary', () => {
             launchClaude({
@@ -419,38 +397,6 @@ function renderActions(sel, fm) {
                 });
             },
         })));
-    }
-
-    if (sel.dir === '配表规划') {
-        const id = fm.id || sel.path.replace(/\.md$/, '');
-        const planId = fm.plan || '';
-
-        buttons.push(makeBtn('📊 生成 xlsx', 'primary', () => {
-            launchClaude({
-                title: `Claude — 配表生成 ${id}`,
-                prompt: `/excel-generation ${id}`,
-            });
-        }));
-
-        buttons.push(makeBtn('🚀 发布配表', 'ok', async () => {
-            if (!confirm('在新窗口跑 .\\发布配表.bat（全量重发所有 xlsx）？耗时几秒到十几秒。')) return;
-            try {
-                await api('/api/publish-excel', { method: 'POST' });
-                showToast('已启动发布配表窗口（请在新 PowerShell 窗口查看输出）');
-            } catch (e) {
-                showToast('启动失败：' + e.message, 'error');
-            }
-        }));
-
-        if (planId) {
-            buttons.push(makeBtn('↩ 回到代码规划', '', () => {
-                // 跳转到对应代码规划文档
-                const planPath = sel.path.replace(/-Excel-v(\d+)\.md$/, '-Plan-v$1.md');
-                selectFile('代码规划', planPath).catch(() => {
-                    showToast(`未找到 ${planPath}，可能 -v 不一致`, 'error');
-                });
-            }));
-        }
     }
 
     if (sel.dir === '代码优化规划') {
@@ -549,16 +495,6 @@ function bindHeaderActions() {
         });
     });
 
-    $('#btn-publish-excel').addEventListener('click', async () => {
-        if (!confirm('在新窗口跑 .\\发布配表.bat（全量重发所有 excel/3xlsx/*.xlsx）？\n会刷新 ScriptGenerated/Config/*Config.cs + Resources/Config/Data/*.bytes + ScriptGenerated/Proto/*.cs。')) return;
-        try {
-            await api('/api/publish-excel', { method: 'POST' });
-            showToast('已启动发布配表窗口（请在新 PowerShell 窗口查看输出）');
-        } catch (e) {
-            showToast('启动失败：' + e.message, 'error');
-        }
-    });
-
     $('#btn-review-any').addEventListener('click', () => {
         openModal({
             title: '评审任意范围',
@@ -622,12 +558,10 @@ function bindHeaderActions() {
             const guide = {
                 '1': '点击右上角 [+ 新建需求] 启动 /requirement-analysis',
                 '2': '在左侧"策划案"选中文档 → 右侧 [✓ 通过审查] 或 [✗ 打回]',
-                '3': '在左侧"策划案"选中已 Approved 的文档 → 右侧 [⚙ 模块分析]；如有 xlsx 变更，会同步产出配表规划',
-                '4': '在左侧"代码规划"选中文档 → 右侧 [📊 生成配表]，或在"配表规划"选中文档 → [📊 生成 xlsx]',
-                '5': '在"配表规划"选中文档 → 右侧 [🚀 发布配表]，或顶部 [🚀 发布配表]；webCtrl 直接调 .\\发布配表.bat（外部 orchestrator 触发，skill 不串调）',
-                '6': '在左侧"代码规划"选中文档 → 右侧 [⚡ 生成代码]',
-                '7': '点击 [🔍 评审任意范围]，或选中"未提交改动"评审本批 diff',
-                '8': '在左侧"代码规划"选中文档 → 右侧 [🎨 生成预制体]，或顶部 [🎨 生成预制体] 给类名清单/--diff；产出 Editor 构建器，需在 Unity 点菜单实际产出 .prefab',
+                '3': '在左侧"策划案"选中已 Approved 的文档 → 右侧 [⚙ 模块分析]',
+                '4': '在左侧"代码规划"选中文档 → 右侧 [⚡ 生成代码]',
+                '5': '点击 [🔍 评审任意范围]，或选中"未提交改动"评审本批 diff',
+                '6': '在左侧"代码规划"选中文档 → 右侧 [🎨 生成预制体]，或顶部 [🎨 生成预制体] 给类名清单/--diff；产出 Editor 构建器，需在 Unity 点菜单实际产出 .prefab',
             };
             showToast(guide[n] || '');
         });
