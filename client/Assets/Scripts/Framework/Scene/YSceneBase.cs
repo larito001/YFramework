@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using YOTO;
 
 /// <summary>
 /// Base scene flow object used by <see cref="YSceneManager"/>.
@@ -34,7 +35,7 @@ public abstract class YSceneBase
     }
 
     protected IUIService UI => GetService<UIMgr>();
-
+    protected ResMgr Res => GetService<ResMgr>();
     protected virtual void OnCreate()
     {
     }
