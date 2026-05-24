@@ -10,8 +10,11 @@ public class GameMainScene : YSceneBase
     protected override void OnLoadingEnd()
     {
         base.OnLoadingEnd();
-        UI.Show<GameMainPanel>();
-        UI.Hide<StartPanel>();
+        // UI.Show<GameMainPanel>();
+        // UI.Hide<StartPanel>();
+        
+        
+        
     }
 
     protected override void OnEnterScene()

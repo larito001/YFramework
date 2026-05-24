@@ -2,7 +2,11 @@
   "permissions": {
     "allow": [
       "Bash(grep -E \"\\\\.cs$\")",
-      "Bash(xargs grep:*)"
+      "Bash(xargs grep:*)",
+      "PowerShell(Get-Process *)",
+      "Bash(git mv *)",
+      "Bash(mkdir -p Assets/Art/Animations Assets/Art/Audio/BGM Assets/Art/Audio/SFX Assets/Art/Characters Assets/Art/Environments Assets/Art/Props Assets/Art/Shaders Assets/Art/ThirdParty Assets/Art/VFX Assets/Art/UI/Atlas Assets/Art/UI/Icons Assets/Art/UI/Panels)",
+      "Bash(touch Assets/Art/__TRACKED_VAR__/.gitkeep)"
     ]
   }
 }
