@@ -1,11 +1,11 @@
 ---
 name: code-generation
-description: 代码生成 — 接受一份 C:\UnityProject\YFramework\代码规划\ 下的代码规划文档，**严格按规划**在 client/Assets/Scripts/GamePlay/ 下落地代码（新增/修改 .cs 文件、修改 GameProjectBootstrapper.cs partial、修改 GameEventTypes/UIEnum/YSceneType 枚举），完成后执行静态自检与局部自测。**不写 Framework/ 代码**，**不超出规划范围发挥**。当用户说"按 GP-Xxx-Plan-v1 写代码"、"生成 XX 的代码"、"实现 XX 规划"、调用 /code-generation 时触发。
+description: 代码生成 — 接受一份 C:\UnityProject\YFramework\代码规划\ 下的代码规划文档，**严格按规划**在 client/Assets/Scripts/ 下落地代码（GamePlay/ 与 Framework/ 都可写，按规划 §3 文件清单为准；修改 GameProjectBootstrapper.cs partial、修改 GameEventTypes/UIEnum/YSceneType 枚举），完成后执行静态自检与局部自测。**只按规划范围写**，规划没列的文件一律不动。当用户说"按 GP-Xxx-Plan-v1 写代码"、"生成 XX 的代码"、"实现 XX 规划"、调用 /code-generation 时触发。
 ---
 
 # 代码生成 Skill
 
-你现在的角色是**严格执行规划的 Unity 客户端工程师**。任务：把一份已存在的代码规划文档（`代码规划/...md`）一字不差地翻译成可编译的 C# 代码，落到 `client/Assets/Scripts/GamePlay/` 下。
+你现在的角色是**严格执行规划的 Unity 客户端工程师**。任务：把一份已存在的代码规划文档（`代码规划/...md`）一字不差地翻译成可编译的 C# 代码，落到 `client/Assets/Scripts/` 下（`GamePlay/` 与 `Framework/` 均可，**严格按规划 §3 文件清单的落点**）。
 
 **核心原则**：规划是合同。规划写了的全部要做、规划没写的一律不做。发现规划缺失或矛盾 → 停下问用户，不擅自补全。
 
@@ -17,7 +17,6 @@ description: 代码生成 — 接受一份 C:\UnityProject\YFramework\代码规�
 C:\UnityProject\YFramework\Docs\项目规范.md         (§1.1 分层、§3 资源约定)
 C:\UnityProject\YFramework\Docs\模块规范.md         (各 Manager 的 API 签名)
 C:\UnityProject\YFramework\Docs\代码规范.md         (§1 命名、§2 文件结构、§4 服务、§7 UI、§9 性能、§10 Unity)
-C:\UnityProject\YFramework\Docs\需求规范.md         (本 skill 不直接用，但作背景)
 C:\UnityProject\YFramework\client\Assets\Scripts\GamePlay\GameProjectBootstrapper.cs  (要插入注册行)
 C:\UnityProject\YFramework\client\Assets\Scripts\GamePlay\Event\GameEventTypes.cs      (要补枚举值)
 C:\UnityProject\YFramework\client\Assets\Scripts\GamePlay\UI\GameUIEnum.cs              (要补 UIEnum)
@@ -40,24 +39,27 @@ C:\UnityProject\YFramework\client\Assets\Scripts\GamePlay\Scene\GameSceneTypes.c
 
 | 检查项 | 不通过时的动作 |
 |---|---|
-| frontmatter 有 `id` / `source` / `status` | 报错并停（规划元数据残缺） |
-| `source` 指向的 `策划案/...md` 文件存在 | Read 验证；不存在 → 提示用户修复规划 |
+| frontmatter 有 `id` | 缺失 → 报错并停 |
+| frontmatter `links.source` 指向的 `策划案/...md` 文件 | 有 source 且非 `freeform` → Read 验证；不存在只**提醒**不停。无 source / `freeform` → 跳过此检查 |
 | §3 文件清单存在且至少 1 项 | 缺失 → 停 |
+| §3 末尾"本次涉及 Framework：是/否"标注 | 缺失 → 提醒补；为"是"时同步要求 §11 已勾完六条原则 |
 | §6 资源/配表/事件/存档变更四节齐全 | 缺失 → 停 |
-| §7 注册位置写明了 `GameProjectBootstrapper` 改动 | 缺失 → 仅在确实没有注册需求时才放过 |
+| §7 注册位置写明了 `GameProjectBootstrapper` / 框架级注册入口的改动 | 缺失 → 仅在确实没有注册需求时才放过 |
 | §9 验收对齐每条对应到具体类/方法 | 缺失 → 停（无法在代码里落地） |
-| **§10 待框架扩展数量 == 0** | **>0 时停**：列出待扩展项，提示"先调 framework-extension skill 处理这些项再回来生成代码；否则现在生成的代码会缺底层支撑。" |
-| §11 风险与未决无阻塞项 | 有阻塞项 → 列出并问"用户是否同意先按降级方案/占位实现继续？" |
+| §11 Framework 设计原则（若 §3 涉及 Framework） | 有"未勾"的原则 → 停，让用户回 `/code-planning` 调整设计 |
+| §10 风险与未决中的阻塞性未决（"@xx 决策日期"未到、需求层未闭合） | 列出并问"用户是否同意先按 X 方案继续？" |
 
 ### 1.3 把规划"展开"为可执行清单
 
-从规划里抽出五张内部清单（保存到对话上下文，不写入文件）：
+从规划里抽出七张内部清单（保存到对话上下文，不写入文件）：
 
-1. **新增 `.cs` 文件**：路径 + 类名 + 父类/接口 + 一句用途。
-2. **修改 `.cs` 文件**：路径 + 改什么（加枚举值 / 加注册行 / 改字段）。
+1. **新增 `.cs` 文件**：路径 + 类名 + 父类/接口 + 一句用途。**分 GamePlay/ 与 Framework/ 两段**。
+2. **修改 `.cs` 文件**：路径 + 改什么（加枚举值 / 加注册行 / 改字段 / 给现有 Framework 服务加重载）。**分 GamePlay/ 与 Framework/ 两段**。
 3. **资源依赖**：prefab / sound / 配表 path（这些 **本 skill 不创建**，只检查规划是否标注了交付方）。
 4. **事件 / 存档新增**：`YOTOEventType` 加值、`UIEnum` 加值、`YSceneType` 加值、新 `DataContaner<T>` 类。
 5. **生命周期合约**：每个新增类的 `Init/Shutdown/OnLoad/OnShow/OnHide/AfterIntoObjectPool/BeforeRecover` 各做什么（来自规划 §7.2）。
+6. **设计模式落点**：规划 §4 旁标注的设计模式（状态机/对象池/观察者/策略/工厂），逐项在对应类里按模式落地，不擅自换实现路径。
+7. **Framework 改动专项**：规划 §3 末尾标"涉及 Framework：是"时，列出本次要改的 Framework 文件 + 规划 §11 六条设计原则（接口先行/向后兼容/职责单一/依赖方向单向/可池化可关闭/注册顺序），写代码时逐条对照。规划 §3 标"否"时此项空。
 
 把展开后的清单用一段话回报用户，让 ta 确认无误后再开工。**用户不确认前不要写任何代码**。
 
@@ -67,9 +69,9 @@ C:\UnityProject\YFramework\client\Assets\Scripts\GamePlay\Scene\GameSceneTypes.c
 
 ### 2.1 路径与命名
 
-- 所有新增文件落在 `client/Assets/Scripts/GamePlay/<子目录>/<ClassName>.cs`。**禁止**写到 `Framework/` 任何子目录。
+- 所有新增/修改文件**严格按规划 §3 文件清单的落点**：业务文件落 `client/Assets/Scripts/GamePlay/<子目录>/`；框架文件落 `client/Assets/Scripts/Framework/<子目录>/`。规划没列的路径不许动。
 - 文件名 == 主类名（含大小写）。一个 `.cs` 一个 public 类型；紧密耦合的小类型可同文件（参考 `SoundTypes.cs`）。
-- 类名前缀按代码规范 §1.2：业务类 **无前缀**（`CombatManager`、`CombatEntity`、`CombatPanel`），不要给业务类加 `Y` / `YOTO` / `Got`。
+- 类名前缀按代码规范 §1.2：业务类 **无前缀**（`CombatManager`、`CombatEntity`、`CombatPanel`）；框架类按现有约定（`YXxx` / `YOTOXxx` / `XxxMgr`），参考同目录相邻文件。
 - 枚举值：`PascalCase`；常量：`PascalCase`；私有字段：`camelCase` 或 `_camelCase`，**同一文件保持一致**（看相邻文件）。
 
 ### 2.2 必须遵守的 Framework 调用模式
@@ -344,7 +346,45 @@ public class CombatDataContainer : DataContaner<CombatData>
 
 `SaveKey` 后缀 `_v1` 便于将来版本迁移。Bind 与 Load 在使用方（通常是 Manager.Init）：`var c = new CombatDataContainer(); c.BindStore(ctx.Get<StoreMgr>()); c.Load(() => {...});`
 
-### 3.8 修改 GameProjectBootstrapper.cs
+### 3.8 Framework 改动（仅当规划 §3 涉及 Framework）
+
+按规划 §3 的 `Framework/` 段与 §11 设计原则落地。**只动规划列明的文件**，不顺手改邻居。
+
+**新增 Framework 服务**（典型骨架）：
+
+```csharp
+// Framework/<NewMgr>/IYXxxMgr.cs —— 接口先行
+namespace YOTO
+{
+    public interface IYXxxMgr : IGameService
+    {
+        void DoSomething(int id);
+    }
+}
+
+// Framework/<NewMgr>/YXxxMgr.cs —— 实现
+namespace YOTO
+{
+    public class YXxxMgr : IYXxxMgr
+    {
+        public void Init(GameContext ctx) { /* 缓存依赖 */ }
+        public void Shutdown() { /* 反订阅、清字段 */ }
+        public void DoSomething(int id) { /* ... */ }
+    }
+}
+```
+
+调用方依赖 `IYXxxMgr` 而非 `YXxxMgr`（接口先行）；如果只有一个实现且无替换计划，直接用具体类也可——以规划 §11 的判断为准。
+
+**修改既有 Framework 服务**（如给 `EventMgr` 加重载）：
+
+- 在原文件追加新重载，**保留旧重载签名不变**（向后兼容）。
+- 新参数走默认值或新签名，不动旧方法的方法体（除非规划明确要求修改实现）。
+- 涉及行为变化的，在方法上方加一行注释说明新旧差异。
+
+**框架级注册入口**：如果新服务是框架默认服务，按规划 §7 指示的位置（通常是 `Framework/Bootstrap/*.cs` 里的 partial 方法）追加；如果只是项目级使用，仍走 `GamePlay/GameProjectBootstrapper.cs` 注册。
+
+### 3.9 修改 GameProjectBootstrapper.cs
 
 `GameProjectBootstrapper.cs` 是 `static partial class GameBootstrapper`。**不要新建文件**，直接 Edit 现有文件。在对应 partial 方法里追加注册行：
 
@@ -366,7 +406,7 @@ uiConfig.Register<CombatPanel>(UIEnum.CombatPanel, UILayerEnum.Normal, "UI/Comba
 - 多个新增按规划的"依赖顺序"插入。Manager 之间依赖时，被依赖的先注册。
 - `RegisterScene` 与 `Register<TPanel>` 的 path 字符串严格按规划填写，路径错一个字符就加载失败。
 
-### 3.9 关于 .meta 文件、prefab、配表、音频资源
+### 3.10 关于 .meta 文件、prefab、配表、音频资源
 
 **本 skill 不创建以下产物**：
 
@@ -382,9 +422,10 @@ uiConfig.Register<CombatPanel>(UIEnum.CombatPanel, UILayerEnum.Normal, "UI/Comba
 ### 4.1 文件层面
 
 - [ ] 每个新增 `.cs` 文件的 **类名 == 文件名**（去 `.cs`）。
-- [ ] 每个新增文件都在 `Assets/Scripts/GamePlay/` 下；**未写入 `Framework/`**（用 Glob 验证：`Framework/**/<新增类名>.cs` 应无结果）。
+- [ ] 每个新增文件的落点与规划 §3 文件清单**完全一致**（Glob 验证：清单里每条路径都能 Read 到、并且**没有**写到清单外的位置）。
 - [ ] 每个新增 Manager 实现 `IGameService` 且有 `Init` 与 `Shutdown`。
 - [ ] 每个新增 Panel 继承 `UIPageBase` 并 override 全部四个 abstract 方法（`OnLoad/OnShow/OnHide/OnResize`）。
+- [ ] 若涉及 Framework 改动：每个新增 Framework 服务都有对应 `IYXxxMgr` 接口（除非规划 §11 明确豁免）。
 
 ### 4.2 调用模式（用 Grep 实际扫描新增文件）
 
@@ -424,13 +465,13 @@ Read 回 `GameProjectBootstrapper.cs`，确认：
 - 新增的 `uiConfig.Register<TPanel>` 在 `ConfigureProjectUi` 内，path 与规划 §6 资源清单一致。
 - 现有的注册行**未被误删或重排**（用 git diff 校验：`git diff -- client/Assets/Scripts/GamePlay/GameProjectBootstrapper.cs`）。
 
-### 4.6 依赖方向
+### 4.6 依赖方向与改动范围
 
-- Grep 新增 / 修改的 `Framework/` 文件——应当 **零修改**：
-  ```
-  git diff --name-only -- client/Assets/Scripts/Framework/
-  ```
-  非空 → 立即回滚那些文件，提示用户"框架修改不在本 skill 职责，需要 framework-extension"。
+- **依赖方向**：Grep 新增/修改的 `Framework/` 文件，**不能** `using` 或引用任何 `GamePlay/` 命名空间的类。出现 → 立即修正（业务依赖移到 GamePlay 侧，框架侧只暴露接口/事件）。
+- **改动范围**：用 `git diff --name-only -- client/Assets/Scripts/Framework/` 列出本次 Framework 改动文件，与规划 §3 `Framework/` 段对账：
+  - 多出来的文件 → 不在规划内，立即回滚或追问用户。
+  - 缺少的文件 → 规划要求改但忘了写，回 Step 3 补。
+- **向后兼容**：对修改过的既有 Framework 服务，Grep 一次原方法签名是否仍存在；丢失 → 视规划 §11"向后兼容"项决定是否回退。
 
 ## Step 5 · 局部自测（在不打开 Unity 的前提下）
 
@@ -463,9 +504,22 @@ Read 回 `GameProjectBootstrapper.cs`，确认：
 
 每条验收都应能在代码里追到一条调用链。**追不到 = 没实现**，回 Step 3。
 
-### 5.3 与 §11 风险闭合
+### 5.3 与 §10 风险闭合
 
-规划 §11 列出的"规划层未决"如果在 Step 1.3 已经让用户拍板，写代码时按拍板方案；自测时确认拍板方向落到代码里，未拍板的不留 TODO 散落，集中放交付报告。
+规划 §10 列出的"规划层未决"如果在 Step 1.3 已经让用户拍板，写代码时按拍板方案；自测时确认拍板方向落到代码里，未拍板的不留 TODO 散落，集中放交付报告。
+
+### 5.4 Framework 设计原则回扫（仅当涉及 Framework 改动）
+
+规划 §11 的六条原则逐条回扫一遍代码：
+
+- [ ] 接口先行：新服务都有 `IYXxxMgr.cs`（或规划豁免）
+- [ ] 向后兼容：修改过的既有 Framework 服务，原方法签名仍在
+- [ ] 职责单一：新服务的字段/方法都围绕单一职责，没有顺手塞业务逻辑
+- [ ] 依赖方向单向：`Framework/` 文件无 `using <业务命名空间>`
+- [ ] 可池化可关闭：新服务有 `Init` 与 `Shutdown`，订阅与字段在 `Shutdown` 全清
+- [ ] 注册顺序：被依赖者先注册（Read 注册入口文件确认）
+
+任一项不通过 → 回 Step 3 修，再回 Step 4/5 重检。
 
 ## Step 6 · 交付报告
 
@@ -476,15 +530,24 @@ Read 回 `GameProjectBootstrapper.cs`，确认：
 
 ### 改动统计
 - 新增文件 N 个：
-  - GamePlay/Combat/CombatManager.cs
-  - GamePlay/Combat/CombatEntity.cs
-  - GamePlay/UI/CombatPanel.cs
-  - ...
+  GamePlay/
+    - GamePlay/Combat/CombatManager.cs
+    - GamePlay/Combat/CombatEntity.cs
+    - GamePlay/UI/CombatPanel.cs
+  Framework/  (仅当本次涉及 Framework)
+    - Framework/CombatCore/IYCombatCoreMgr.cs
+    - Framework/CombatCore/YCombatCoreMgr.cs
 - 修改文件 M 个：
-  - GamePlay/GameProjectBootstrapper.cs        (+3 行注册)
-  - GamePlay/Event/GameEventTypes.cs           (+2 枚举值: SkillCast, HpChanged)
-  - GamePlay/UI/GameUIEnum.cs                  (+1: CombatPanel)
-  - GamePlay/Scene/GameSceneTypes.cs           (+1: Combat)
+  GamePlay/
+    - GamePlay/GameProjectBootstrapper.cs        (+3 行注册)
+    - GamePlay/Event/GameEventTypes.cs           (+2 枚举值: SkillCast, HpChanged)
+    - GamePlay/UI/GameUIEnum.cs                  (+1: CombatPanel)
+    - GamePlay/Scene/GameSceneTypes.cs           (+1: Combat)
+  Framework/  (仅当本次涉及)
+    - Framework/EventMgr/EventMgr.cs             (+1 重载: Add 支持 priority，旧重载保留)
+
+### 本次是否涉及 Framework 改动
+- 是 / 否；为是时一句话概述影响（新增了 X 服务 / 给 Y 加了向后兼容重载）。
 
 ### 本 skill 不能完成、需要人工的工序
 - [ ] 在 Unity Editor 打开工程一次，让其生成 .meta（项目规范 §1.4）
@@ -501,7 +564,8 @@ Read 回 `GameProjectBootstrapper.cs`，确认：
 - 生命周期对称 ........ ✅
 - 命名空间引用 ........ ✅
 - Bootstrapper 一致性 . ✅
-- 依赖方向 ............ ✅（未修改 Framework/）
+- 改动范围对账 ........ ✅（Framework 改动文件与规划 §3 一致）
+- Framework 设计原则 .. ✅（六条全过 / 本次未改 Framework，跳过）
 
 ### §9 验收对齐核对
 - 主流程 5 条 → 全部追到调用链
@@ -516,11 +580,13 @@ Read 回 `GameProjectBootstrapper.cs`，确认：
 
 ## 严守红线
 
-- **不写 `Framework/`**。哪怕一行注释、一处 typo 修复都不行。框架问题 → 用户调 framework-extension skill。
+- **GamePlay 与 Framework 都可写，但只写规划 §3 列明的文件**。规划没列的文件一律不动；规划列了但你没写 = 漏；写了但规划没列 = 越界。两者都要回 Step 3 修。
+- **改 Framework 必须过六条原则**。规划 §11 的接口先行 / 向后兼容 / 职责单一 / 依赖方向单向 / 可池化可关闭 / 注册顺序，逐条对照；过不了的回 `/code-planning` 调整设计，不擅自妥协。
 - **不超规划范围**。规划没列的类不写、规划没列的方法不加、规划没列的事件不抛。**多写 = 错**。
-- **不发明 API**。所有 Framework 调用从模块规范或源码可查；不确定 → Read 框架源码一次再用。
+- **不发明 API**。已有 Framework 调用从模块规范或源码可查；新规划的 API 严格按规划 §3 定义实现。不确定 → Read 框架源码一次再用。
 - **不跳过自检**。Step 4 与 Step 5 完整执行；任何一项不通过 → 修；修不动 → 退回 Step 3 或停下问用户。
-- **不擅自修复规划缺陷**。规划矛盾、缺章节、§10 非空 → 停，让用户回 `/code-planning` 修订（升版到 v2）。
+- **不擅自修复规划缺陷**。规划矛盾、缺关键章节（§3 / §6 / §7 / §9 / §11 涉及 Framework 时）→ 停，让用户回 `/code-planning` 修订（升版到 v2）。
+- **不破坏 Framework 向后兼容**。修改既有 Framework 服务时保留原方法签名；要破坏兼容必须规划 §11 明确说明并列出全部已知调用点的同步改动。
 - **不创建 prefab / 场景 / xlsx / 音频文件**。只生成 `.cs`。其他资产在交付报告里清晰列出"需要谁来提供"。
 - **不省略 OnHide 反订阅 / Shutdown 字段清空 / BeforeRecover 清理**。每一处 `Add` 都必须有 `Remove`。
 - **始终中文回报**，但代码中的标识符、注释、日志按代码规范用 PascalCase / camelCase（中文只在 Debug.LogError 描述、TODO 备注里出现）。
