@@ -20,7 +20,7 @@ C:\UnityProject\YFramework\Docs\代码规范.md
 重点掌握：
 
 - **项目规范 §1.1** 分层（`Framework/` ↔ `GamePlay/` 严格依赖方向）、§3 资源约定、§4 场景规范、§5 配表流程。
-- **模块规范** 全文：13 个 Framework 服务的对外 API、注册顺序、扩展约定。**附录 A 服务依赖图** 与 **附录 B 常用扩展场景** 是规划落点的快速索引。
+- **模块规范** 全文：§1-§15 全部 Framework 服务的对外 API、注册顺序、扩展约定（GameContext / GameLoop / CoroutineRunner / EventMgr / ResMgr / UI / 场景 / 对象池 / SoundMgr / StoreMgr / CameraMgr / 寻路 / 状态机 / Timers / ConfigManager）。**附录 A 服务依赖图** 与 **附录 B 常用扩展场景** 是规划落点的快速索引。
 - **代码规范 §1** 命名前缀（`Y` / `YOTO` / `Mgr` / 业务无前缀）、§2 文件结构、§4 服务/生命周期模式、§7 UI 模式、§9 性能、§10 Unity 约定。
 
 如果用户没有提供任何描述（直接 `/code-planning` 无参数），先开放式询问"要规划什么功能？给一段需求描述，或一份 `策划案/` 下的 id/路径都行。"
@@ -48,7 +48,7 @@ C:\UnityProject\YFramework\Docs\代码规范.md
 找到后只做"软校验"：
 
 - 读完整文档，按"需要落到代码的维度"重组信息（同 §1.C）。
-- 缺章节不停步，**只在交付报告里提醒**："源文档缺 §7 验收标准 / 缺 §4 数据等，规划已按合理默认补齐，请回头补文档"。
+- 缺章节不停步，**只在交付报告里提醒**："源文档缺验收标准 / 缺数据章节等（按策划案章节号通常是 §7 / §4），规划已按合理默认补齐，请回头补文档"。
 - 不再校验 frontmatter / status 字段。
 
 找不到匹配文件时：要么改走 §1.A 当成自由文本处理，要么让用户给一段描述，不要硬停。
@@ -77,7 +77,7 @@ C:\UnityProject\YFramework\Docs\代码规范.md
 | 需求里的能力 | 用哪个 Framework 模块 | 具体 API |
 |---|---|---|
 | 弹/关 UI | `UIMgr` | `Show<TPage>(param)` / `Hide<T>` / `ShowLoading` / `IsShown` |
-| 全局通知 | `EventMgr` | `Add<T1..T4>(GameEventTypes.X, cb)` / `Trigger<T1..T4>(...)` |
+| 全局通知 | `EventMgr` | `Add<T1..T4>(YOTOEventType.X, cb)` / `Trigger<T1..T4>(...)`（**类型名 `YOTOEventType`**，文件 `GameEventTypes.cs`）|
 | 资源加载 | `ResMgr` | `LoadHandleAsync<T>(path, cb)`（首选）/ `LoadHandle<T>` |
 | 配表读取 | `ConfigManager` | `ctx.Get<ConfigManager>().<x>Config.Get(id)` |
 | 存档 | `StoreMgr` + `DataContaner<T>` | `BindStore(StoreMgr)` → `Load(cb)` / `Save()` |
@@ -91,7 +91,7 @@ C:\UnityProject\YFramework\Docs\代码规范.md
 | 协程 | `ICoroutineRunner` | `Run(IEnumerator)` / `Stop(co)` |
 | GameObject 池 | `ObjectPool` + `ObjectBase, PoolItem<TData>` | `SetPrefabBundlePath` + `InstanceGObj` |
 | 数据池 | `DataObjPool<T,S>` | `GetItem(data)` / `RecoverItem` |
-| 场景引用 | `SceneReferenceService` | `TryGetTransform(key, out t)`，框架键见 `SceneRefKeys`，业务键见 `GameSceneRefKeys` |
+| 场景引用 | `SceneReferenceService` | `TryGetTransform(key, out t)`。键常量分两处：框架键 `Framework/Scene/SceneRefKeys.cs` 的 `SceneRefKeys` 类（`MainCamera/MainLight/AStarRoot` 等），业务键 `GamePlay/Scene/GameSceneReferenceKeys.cs` 的 `GameSceneRefKeys` 类（`PlayerSpawn/Spline` 等）。新业务键加到 `GameSceneRefKeys`。 |
 | 场景交互（点击/悬停/拖拽） | `SceneInteractionService` + `IClickable/IHoverable/IDraggable` | 在 `ObjectBase` 子类实现接口即可 |
 
 **Framework 改动**：如果需求点找不到对应已有 API，可以在本规划中扩展现有服务或新增服务；扩展项要在 §2.2 文件清单的 `Framework/` 段列出，并在 §2.10 设计原则那一节逐条自检。涉及修改既有公共 API 时，§10 风险表里写一句影响面（哪些已知 GamePlay 调用点会受影响、是否需要同步改）。
@@ -115,7 +115,7 @@ GamePlay/
 │   │   └── XxxActiveState.cs
 │   └── XxxCondition.cs                      # 新增 ITaskCondition 等可插拔逻辑
 ├── Event/
-│   └── GameEventTypes.cs                    # 修改：补充枚举值（不重命名文件）
+│   └── GameEventTypes.cs                    # 修改：补充 `YOTOEventType` 枚举值（文件名与类型名不一致是历史遗留）
 └── GameProjectBootstrapper.*.cs             # 修改：注册新 Service / Scene / UI / 启动逻辑
 
 Framework/                                    # 仅当本规划需要扩展框架时才出现
@@ -194,7 +194,7 @@ classDiagram
   → ScriptGenerated/Config/SkillConfig.cs    (重发布后自动生成)
 
 [事件]
-- GameEventTypes.SkillCast(int skillId, int casterId)   (新增，文件 GamePlay/Event/GameEventTypes.cs)
+- YOTOEventType.SkillCast(int skillId, int casterId)   (新增，文件 GamePlay/Event/GameEventTypes.cs)
 
 [存档]
 - PlayerDataContainer + PlayerData           (复用)
@@ -226,10 +226,10 @@ uiConfig.Register<CombatPanel>(UIEnum.CombatPanel, UILayerEnum.Normal, "UI/Comba
 
 | 类 | 阶段 | 动作 |
 |---|---|---|
-| `CombatManager` | `Init` | `ctx.Get<EventMgr>()` / 订阅 `GameEventTypes.SkillCast` 并缓存依赖字段 |
+| `CombatManager` | `Init` | `ctx.Get<EventMgr>()` / 订阅 `YOTOEventType.SkillCast` 并缓存依赖字段 |
 | `CombatManager` | `Shutdown` | `EventMgr.Remove(...)`、字段置空 |
 | `CombatPanel` | `OnLoad` | `Button.onClick.AddListener` 一次性绑定 |
-| `CombatPanel` | `OnShow` | 订阅 `GameEventTypes.HpChanged`、刷新 UI |
+| `CombatPanel` | `OnShow` | 订阅 `YOTOEventType.HpChanged`、刷新 UI |
 | `CombatPanel` | `OnHide` | 反订阅、停 Tween |
 | `CombatEntity` | `AfterIntoObjectPool` | 重置 HP、停定时器 |
 | `CombatEntity` | `BeforeRecover(isDelete)` | 反订阅事件、释放 handle |

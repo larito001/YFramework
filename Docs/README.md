@@ -6,6 +6,21 @@
 2. [代码规范](./代码规范.md) — 命名、文件组织、注释、错误处理、性能、Unity 特定约定。
 3. [模块规范](./模块规范.md) — 框架各模块的职责、对外 API、扩展约定、典型用法。
 
+## Skill 工作流
+
+规范是死的，落地靠 `.claude/skills/` 下的 skill 链。当前两环：
+
+| Skill | 触发 | 输入 | 输出 |
+|---|---|---|---|
+| `code-planning` | `/code-planning <需求描述或策划案 id>` | 自由文本需求 / `策划案/...md` | `代码规划/.../GP-Xxx-Plan-v1.md` |
+| `code-generation` | `/code-generation <Plan id>` | `代码规划/...md` | `client/Assets/Scripts/` 下的 `.cs` 文件 |
+
+约束要点：
+
+- **Framework 改动**：两个 skill 都允许写 `Framework/` 代码，但必须先经 `code-planning` 出规划且过其 §2.10 六条 Framework 设计原则（接口先行 / 向后兼容 / 职责单一 / 依赖方向单向 / 可池化可关闭 / 注册顺序）。直接修改 Framework 不走规划 = 违规。
+- **依赖方向**：仍然严格 `Editor → GamePlay → Framework → Unity`，详见项目规范 §1.1。
+- **代码评审**：见代码规范 §13；Framework 改动评审参考 code-planning skill §2.10。
+
 ## 文档生成时的清理与重构
 
 生成本规范的过程中，对一批无引用的死代码做了删除，并按规范执行了一轮结构整改：
