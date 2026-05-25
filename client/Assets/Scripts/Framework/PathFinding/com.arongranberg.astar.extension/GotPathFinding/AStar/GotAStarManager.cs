@@ -5,19 +5,20 @@ using UnityEngine.Events;
 using YOTO;
 
 [HelpURL("https://arongranberg.com/astar/documentation/stable/changelog.html")]
-public class YAStarManager : IYPathFindingManager
+public class YAStarManager : MonoBehaviour, IYPathFindingManager
 {
     public const string fullPath = "Assets/Resources/Config/Astar/";
     public const string keyPointPath = "Assets/Script/Editor/PathFinding/linePoints";
     public const string basePath = "Config/Astar/";
 
-    private readonly SceneReferenceService sceneReferenceService;
-    private readonly ResMgr resMgr;
+    private SceneReferenceService sceneReferenceService;
+    private ResMgr resMgr;
 
-    public YAStarManager(SceneReferenceService referenceService, ResMgr resourceManager)
+    private void Awake()
     {
-        sceneReferenceService = referenceService;
-        resMgr = resourceManager;
+        var ctx = GameLoop.Instance.Ctx;
+        sceneReferenceService = ctx.Get<SceneReferenceService>();
+        resMgr = ctx.Get<ResMgr>();
     }
 
     public void Unload()

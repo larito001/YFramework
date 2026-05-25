@@ -121,7 +121,7 @@ namespace YOTO
         }
     }
 
-    public class StoreMgr : IGameService
+    public class StoreMgr : MonoBehaviour
     {
         private ISaveStrategy _strategy;
         private IStorageDriver _storage;
@@ -148,14 +148,14 @@ namespace YOTO
             _storage.Delete(key);
         }
 
-        public void Init(GameContext ctx)
+        private void Awake()
         {
             _strategy = new JsonSaveStrategy();
             _storage = new FileStorageDriver();
-            _coroutineRunner = ctx.Get<ICoroutineRunner>();
+            _coroutineRunner = GameLoop.Instance.Ctx.Get<ICoroutineRunner>();
         }
 
-        public void Shutdown()
+        private void OnDestroy()
         {
             _strategy = null;
             _storage = null;

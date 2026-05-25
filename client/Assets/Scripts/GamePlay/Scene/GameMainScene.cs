@@ -1,29 +1,17 @@
 using UnityEngine;
-using YOTO;
 
-public class GameMainScene : YSceneBase
+/// <summary>
+/// 挂在 GameMainScene.unity 根节点上的引导脚本。
+/// 玩法场景的初始化（UI 显示、敌人生成等）放在此处的 Start。
+/// </summary>
+public class GameMainScene : MonoBehaviour
 {
-    public override YSceneType SceneType => YSceneType.GamePlay;
-
-    public override string SceneName => "GameMainScene";
-
-    protected override void OnLoadingEnd()
+    private void Start()
     {
-        base.OnLoadingEnd();
-        // UI.Show<GameMainPanel>();
-        // UI.Hide<StartPanel>();
-        
-        // Res.LoadAsync<GameObject>();
-        
-    }
-
-    protected override void OnEnterScene()
-    {
-        EnterSceneComplete();
-    }
-
-    protected override void OnLeaveScene()
-    {
-        LeaveSceneComplete();
+        var ctx = GameLoop.Instance != null ? GameLoop.Instance.Ctx : null;
+        if (ctx == null)
+        {
+            return;
+        }
     }
 }

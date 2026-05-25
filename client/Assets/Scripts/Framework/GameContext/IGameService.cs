@@ -1,28 +1,8 @@
 using UnityEngine;
 
-/// <summary>
-/// 任何需要 Update 的系统，显式实现这些接口，GameLoop 统一调度。
-/// </summary>
-public interface IGameService
-{
-    void Init(GameContext ctx);
-    void Shutdown();
-}
-
-public interface ITickable
-{
-    void Tick(float dt);
-}
-
-public interface IFixedTickable
-{
-    void FixedTick(float fdt);
-}
-
-public interface ILateTickable
-{
-    void LateTick(float dt);
-}
+// 生命周期接口（IGameService / ITickable / IFixedTickable / ILateTickable）已退役
+// —— 各 Mgr 直接继承 MonoBehaviour，由 Unity 原生 Awake / Update / FixedUpdate /
+// LateUpdate / OnDestroy 驱动。本文件保留交互/业务标记接口供场景实体实现。
 
 public interface IAnimatorIK
 {
@@ -41,7 +21,6 @@ public interface I2DTriggerHandler
     void On2DTriggerExit(Collider2D other);
 }
 
-//3d碰撞
 public interface I3DColliderHandler
 {
     void On3DColliderEnter(Collision other);

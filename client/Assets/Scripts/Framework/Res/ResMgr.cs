@@ -39,7 +39,7 @@ namespace YOTO
         }
     }
 
-    public class ResMgr : IGameService
+    public class ResMgr : UnityEngine.MonoBehaviour
     {
         private readonly struct ResourceCacheKey : IEquatable<ResourceCacheKey>
         {
@@ -302,12 +302,12 @@ namespace YOTO
             callback?.Invoke();
         }
 
-        public void Init(GameContext ctx)
+        private void Awake()
         {
-            runner = ctx.Get<ICoroutineRunner>();
+            runner = GameLoop.Instance.Ctx.Get<ICoroutineRunner>();
         }
 
-        public void Shutdown()
+        private void OnDestroy()
         {
             foreach (var entry in cache.Values)
             {

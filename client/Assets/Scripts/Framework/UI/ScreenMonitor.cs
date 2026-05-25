@@ -1,38 +1,30 @@
-
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
-    public class ScreenMonitor:IGameService, ITickable
+public class ScreenMonitor : MonoBehaviour
+{
+    public delegate void ScreenResizeDelegate(int width, int height);
+    public event ScreenResizeDelegate OnScreenResize;
+
+    private int mLastWidth;
+    private int mLastHeight;
+
+    private void ResetScreen()
     {
-        public delegate void ScreenResizeDelegate(int width, int height);
-        public event ScreenResizeDelegate OnScreenResize;
+        mLastWidth = Screen.width;
+        mLastHeight = Screen.height;
+    }
 
-        private int mLastWidth;
-        private int mLastHeight;
-        
-        private void ResetScreen()
-        {
-            mLastWidth = Screen.width;
-            mLastHeight = Screen.height;
-        }
+    private void Awake()
+    {
+        ResetScreen();
+    }
 
-        public void Init(GameContext ctx)
+    private void Update()
+    {
+        if (mLastWidth != Screen.width || mLastHeight != Screen.height)
         {
+            OnScreenResize?.Invoke(Screen.width, Screen.height);
             ResetScreen();
         }
-
-        public void Shutdown()
-        {
-        }
-
-        public void Tick(float dt)
-        {
-            if (mLastWidth != Screen.width || mLastHeight != Screen.height)
-            {
-                if (OnScreenResize != null)
-                    OnScreenResize(Screen.width, Screen.height);
-                ResetScreen();
-            }
-        }
     }
+}

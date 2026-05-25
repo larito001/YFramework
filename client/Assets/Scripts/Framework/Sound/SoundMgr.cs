@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using YOTO;
 
-public class SoundMgr : IGameService
+public class SoundMgr : MonoBehaviour
 {
     private const int MaxSfxEmitters = 16;
 
@@ -277,8 +277,9 @@ public class SoundMgr : IGameService
         SaveSettings();
     }
 
-    public void Init(GameContext ctx)
+    private void Awake()
     {
+        var ctx = GameLoop.Instance.Ctx;
         resMgr = ctx.Get<ResMgr>();
         storeMgr = ctx.Get<StoreMgr>();
         coroutineRunner = ctx.Get<ICoroutineRunner>();
@@ -301,7 +302,7 @@ public class SoundMgr : IGameService
         });
     }
 
-    public void Shutdown()
+    private void OnDestroy()
     {
         StopMusicTransition();
         if (musicEmitter != null)

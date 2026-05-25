@@ -4,6 +4,7 @@ using DG.Tweening;
 using Steamworks;
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using YOTO;
 
@@ -26,7 +27,7 @@ public class StartPanel : UIPageBase
 
     private void OnNewClick()
     {
-        GetService<YSceneManager>().SwitchScene(YSceneType.Home);
+        SceneManager.LoadScene(YSceneNames.Main);
     }
 
     public override void OnShow()

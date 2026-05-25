@@ -8,12 +8,6 @@ public static partial class GameBootstrapper
         // ctx.Register(new SceneResManager());
     }
 
-    static partial void ConfigureProjectScenes(YSceneManager sceneManager)
-    {
-        sceneManager.RegisterScene<GameMainScene>();
-        sceneManager.RegisterScene<GameStartScene>();
-    }
-
     static partial void ConfigureProjectUi(UIConfig uiConfig)
     {
         uiConfig.RegisterLoading<LoadingPanel>(UIEnum.LoadingPanel, UILayerEnum.RayCast, "UI/Boot/LoadingPanel", 0f);

@@ -7,7 +7,7 @@ using YOTO;
 /// 纯相机管理服务：主相机查找、Cinemachine 虚拟相机管理、相机震屏。
 /// 场景交互（点击/拖拽/悬停）已拆分至 <see cref="SceneInteractionService"/>。
 /// </summary>
-public class CameraMgr : IGameService
+public class CameraMgr : MonoBehaviour
 {
     private readonly Dictionary<string, CinemachineVirtualCamera> virtualCameras =
         new Dictionary<string, CinemachineVirtualCamera>(2);
@@ -77,9 +77,9 @@ public class CameraMgr : IGameService
         return GetOrCreateCachedCamera(name, freeLookCameras);
     }
 
-    public void Init(GameContext ctx)
+    private void Awake()
     {
-        sceneReferenceService = ctx.Get<SceneReferenceService>();
+        sceneReferenceService = GameLoop.Instance.Ctx.Get<SceneReferenceService>();
         if (!TryResolveMainCamera(out var mainCamera))
         {
             Debug.LogError($"{SceneRefKeys.MainCamera} was not found or does not have a Camera component.");
@@ -94,7 +94,7 @@ public class CameraMgr : IGameService
         }
     }
 
-    public void Shutdown()
+    private void OnDestroy()
     {
         if (isShaking && cameraTransform != null)
         {

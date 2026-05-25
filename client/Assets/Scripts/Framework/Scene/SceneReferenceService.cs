@@ -1,7 +1,8 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
-public class SceneReferenceService : IGameService
+public class SceneReferenceService : MonoBehaviour
 {
     private readonly Dictionary<string, Transform> _explicitTransforms = new Dictionary<string, Transform>();
     private readonly Dictionary<string, Transform> _transformCache = new Dictionary<string, Transform>();
@@ -65,12 +66,19 @@ public class SceneReferenceService : IGameService
         _explicitReferencesLoaded = false;
     }
 
-    public void Init(GameContext ctx)
+    private void Awake()
     {
+        InvalidateCache();
+        SceneManager.sceneLoaded += OnSceneLoaded;
+    }
+
+    private void OnDestroy()
+    {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
         InvalidateCache();
     }
 
-    public void Shutdown()
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
         InvalidateCache();
     }

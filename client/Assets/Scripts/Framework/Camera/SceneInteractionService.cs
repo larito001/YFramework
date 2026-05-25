@@ -5,90 +5,80 @@ using YOTO;
 /// <summary>
 /// 场景交互服务：处理场景中物体的点击、拖拽、悬停检测。
 /// 每帧只做一次 Raycast，缓存 LayerMask，拖拽使用平面投射以避免鼠标移出碰撞体时中断。
+/// 命中物上的 IClickable / IHoverable / IDraggable 接口由 GetComponentInParent 直接查找，
+/// 不再走 SceneModelBase 转发。
 /// </summary>
-public class SceneInteractionService : IGameService, ITickable
+public class SceneInteractionService : MonoBehaviour
 {
     private const float SceneClickDistance = 1000f;
     private const float DragStartThresholdSqr = 1f;
 
     private CameraMgr cameraMgr;
 
-    // 缓存 LayerMask，避免每帧字符串查找
     private int cachedLayerMask;
     private bool layerMaskCached;
 
-    // 每帧 Raycast 缓存
-    private SceneModelBase frameHitModel;
-    private RaycastHit frameHit;
     private bool frameHasHit;
-    private Vector3 lastRaycastPosition;
+    private RaycastHit frameHit;
+    private IClickable frameClickable;
+    private IHoverable frameHoverable;
+    private IDraggable frameDraggable;
 
-    // 交互状态
-    private SceneModelBase hoveredSceneModel;
-    private SceneModelBase activeSceneModel;
+    private IHoverable hoveredHoverable;
+    private IClickable activeClickable;
+    private IDraggable activeDraggable;
     private bool isDragging;
     private Vector3 pressScreenPosition;
-
-    // 拖拽平面：按下时记录，拖拽过程中用平面投射
     private Plane dragPlane;
 
-    public void Init(GameContext ctx)
+    private void Awake()
     {
-        cameraMgr = ctx.Get<CameraMgr>();
+        cameraMgr = GameLoop.Instance.Ctx.Get<CameraMgr>();
     }
 
-    public void Shutdown()
+    private void OnDestroy()
     {
-        ClearHoveredSceneModel();
-        activeSceneModel = null;
+        ClearHover();
+        activeClickable = null;
+        activeDraggable = null;
         cameraMgr = null;
         layerMaskCached = false;
     }
 
-    public void Tick(float dt)
+    private void Update()
     {
+        float dt = Time.deltaTime;
         Camera cam = cameraMgr?.MainCamera;
         if (cam == null) return;
 
-        // 每帧缓存震屏更新
         cameraMgr.UpdateShake(dt);
-
         Vector3 mousePos = Input.mousePosition;
 
-        // 每帧只做一次 Raycast
         UpdateFrameRaycast(cam, mousePos);
-
         UpdateHover();
 
-        if (Input.GetMouseButtonDown(0))
-        {
-            BeginPointerInteraction(cam, mousePos);
-        }
-
-        if (Input.GetMouseButton(0))
-        {
-            UpdatePointerInteraction(cam, mousePos);
-        }
-
-        if (Input.GetMouseButtonUp(0))
-        {
-            EndPointerInteraction();
-        }
+        if (Input.GetMouseButtonDown(0)) BeginPointerInteraction(cam, mousePos);
+        if (Input.GetMouseButton(0))      UpdatePointerInteraction(cam, mousePos);
+        if (Input.GetMouseButtonUp(0))    EndPointerInteraction();
     }
 
     private void UpdateFrameRaycast(Camera cam, Vector3 pointerPosition)
     {
-        frameHitModel = null;
         frameHasHit = false;
-        lastRaycastPosition = pointerPosition;
+        frameClickable = null;
+        frameHoverable = null;
+        frameDraggable = null;
 
         if (IsPointerOverUi()) return;
 
         Ray ray = cam.ScreenPointToRay(pointerPosition);
         if (Physics.Raycast(ray, out frameHit, SceneClickDistance, GetLayerMask()))
         {
-            frameHitModel = frameHit.collider.GetComponentInParent<SceneModelBase>();
-            frameHasHit = frameHitModel != null;
+            var collider = frameHit.collider;
+            frameClickable = collider.GetComponentInParent<IClickable>();
+            frameHoverable = collider.GetComponentInParent<IHoverable>();
+            frameDraggable = collider.GetComponentInParent<IDraggable>();
+            frameHasHit = frameClickable != null || frameHoverable != null || frameDraggable != null;
         }
     }
 
@@ -96,82 +86,73 @@ public class SceneInteractionService : IGameService, ITickable
     {
         if (!frameHasHit) return;
 
-        activeSceneModel = frameHitModel;
+        activeClickable = frameClickable;
+        activeDraggable = frameDraggable;
         isDragging = false;
         pressScreenPosition = pointerPosition;
 
-        if (activeSceneModel.IsDraggable())
+        if (activeDraggable != null)
         {
-            // 记录拖拽平面：过命中点，朝向相机
             dragPlane = new Plane(-cam.transform.forward, frameHit.point);
-            activeSceneModel.OnMouseDown();
+            activeDraggable.OnMouseDown();
         }
     }
 
     private void UpdatePointerInteraction(Camera cam, Vector3 pointerPosition)
     {
-        if (activeSceneModel == null || !activeSceneModel.IsDraggable()) return;
+        if (activeDraggable == null) return;
 
         if (!isDragging && !HasExceededDragThreshold(pointerPosition)) return;
 
-        // 用拖拽平面投射，而非重新 Raycast 对象碰撞体
         Ray ray = cam.ScreenPointToRay(pointerPosition);
         if (!dragPlane.Raycast(ray, out float enter)) return;
 
         isDragging = true;
         Vector3 worldPoint = ray.GetPoint(enter);
-        activeSceneModel.OnMouseDraging(worldPoint);
+        activeDraggable.OnMouseDrag(worldPoint);
     }
 
     private void EndPointerInteraction()
     {
-        if (activeSceneModel == null) return;
+        if (activeClickable == null && activeDraggable == null) return;
 
-        var releasedModel = activeSceneModel;
         bool wasDragging = isDragging;
 
-        if (releasedModel.IsDraggable())
+        if (activeDraggable != null)
         {
-            releasedModel.OnMouseUp();
+            activeDraggable.OnMouseUp();
         }
 
-        if (!wasDragging && releasedModel.IsClickable())
+        if (!wasDragging && activeClickable != null)
         {
-            releasedModel.OnMouseClick();
+            activeClickable.OnClick();
         }
 
-        activeSceneModel = null;
+        activeClickable = null;
+        activeDraggable = null;
         isDragging = false;
     }
 
     private void UpdateHover()
     {
-        if (!frameHasHit)
+        if (!frameHasHit || frameHoverable == null)
         {
-            ClearHoveredSceneModel();
+            ClearHover();
             return;
         }
 
-        if (frameHitModel == hoveredSceneModel) return;
+        if (frameHoverable == hoveredHoverable) return;
 
-        ClearHoveredSceneModel();
-        hoveredSceneModel = frameHitModel;
-        if (hoveredSceneModel.IsHoverable())
-        {
-            hoveredSceneModel.OnHover();
-        }
+        ClearHover();
+        hoveredHoverable = frameHoverable;
+        hoveredHoverable.OnHover();
     }
 
-    private void ClearHoveredSceneModel()
+    private void ClearHover()
     {
-        if (hoveredSceneModel == null) return;
-
-        if (hoveredSceneModel.IsHoverable())
-        {
-            hoveredSceneModel.OnHoverExit();
-        }
-
-        hoveredSceneModel = null;
+        if (hoveredHoverable == null) return;
+        hoveredHoverable.OnHoverExit();
+        hoveredHoverable = null;
     }
 
     private int GetLayerMask()

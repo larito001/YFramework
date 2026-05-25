@@ -1,51 +1,41 @@
-using YFramework.Config;
-using HotUpdate.Scripts.Framework.Pool.newPool;
-using Unity.VisualScripting;
 using UnityEngine;
+using YFramework.Config;
 using YOTO;
 
 /// <summary>
-/// Composition root for framework and gameplay services.
-/// Framework registrations stay here; gameplay-specific registrations are delegated
-/// through partial methods implemented in the gameplay layer.
+/// 组装入口。各 Mgr 已是 MonoBehaviour，通过在 GameLoop 同一个 GameObject 上
+/// AddComponent 顺序保证 Awake 顺序（被依赖者在前）。
 /// </summary>
 public static partial class GameBootstrapper
 {
-    public static GameContext BuildContext()
+    public static void BuildContext(GameLoop loop, GameContext ctx)
     {
-        var ctx = new GameContext();
-        ctx.Register(new ConfigManager());
-        // Framework services only. Project-specific services are injected via partial methods.
-        ctx.Register(new ObjectPool());
-        ctx.Register(new ScreenMonitor());
-        ctx.Register(new EventMgr());
-        ctx.Register(new StoreMgr());
-        ctx.Register(new ResMgr());
-        ctx.Register(new SceneReferenceService());
-        ctx.Register(new CameraMgr());
-        ctx.Register(new SceneInteractionService());
-        ctx.Register(new UIMgr(BuildUiConfig()));
-        ctx.Register(new SoundMgr());
-        ctx.Register(new TaskManager());
-        
-        var sceneManager = new YSceneManager();
-        ConfigureProjectScenes(sceneManager);
-        ctx.Register(sceneManager);
+        var go = loop.gameObject;
 
-        ctx.Register(new FlyTextMgr());
-        var runner = GameLoop.Instance.GetComponent<CoroutineRunner>();
-        if (runner == null)
-        {
-            runner = GameLoop.Instance.AddComponent<CoroutineRunner>();
-        }
+        ctx.Register(go.AddComponent<ConfigManager>());
+        ctx.Register(go.AddComponent<ScreenMonitor>());
+        ctx.Register(go.AddComponent<EventMgr>());
+        ctx.Register(go.AddComponent<StoreMgr>());
+        ctx.Register(go.AddComponent<ResMgr>());
+        ctx.Register(go.AddComponent<SceneReferenceService>());
+        ctx.Register(go.AddComponent<CameraMgr>());
+        ctx.Register(go.AddComponent<SceneInteractionService>());
 
+        var uiMgr = go.AddComponent<UIMgr>();
+        ctx.Register(uiMgr);
+        uiMgr.Initialize(BuildUiConfig());
+
+        ctx.Register(go.AddComponent<SoundMgr>());
+        ctx.Register(go.AddComponent<TaskManager>());
+        ctx.Register(go.AddComponent<FlyTextMgr>());
+
+        var runner = loop.GetComponent<CoroutineRunner>();
+        if (runner == null) runner = go.AddComponent<CoroutineRunner>();
         ctx.Register<ICoroutineRunner>(runner);
-        var aStarManager = new YAStarManager(ctx.Get<SceneReferenceService>(), ctx.Get<ResMgr>());
-        ctx.Register(aStarManager);
+
+        ctx.Register(go.AddComponent<YAStarManager>());
+
         RegisterProjectServices(ctx);
-        Debug.Log(ctx.Get<ConfigManager>().heroConfig.Get(1001).HeroName);
- 
-        return ctx;
     }
 
     public static void RunStartup(GameContext ctx)
@@ -53,7 +43,7 @@ public static partial class GameBootstrapper
         RunProjectStartup(ctx);
     }
 
-    private static UIConfig BuildUiConfig()
+    public static UIConfig BuildUiConfig()
     {
         var uiConfig = new UIConfig();
         ConfigureProjectUi(uiConfig);
@@ -61,7 +51,6 @@ public static partial class GameBootstrapper
     }
 
     static partial void RegisterProjectServices(GameContext ctx);
-    static partial void ConfigureProjectScenes(YSceneManager sceneManager);
     static partial void ConfigureProjectUi(UIConfig uiConfig);
     static partial void RunProjectStartup(GameContext ctx);
 }

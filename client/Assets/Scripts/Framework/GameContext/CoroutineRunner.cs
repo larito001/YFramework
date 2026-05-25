@@ -7,14 +7,17 @@ public interface ICoroutineRunner
     void Stop(Coroutine coroutine);
 }
 
-public sealed class CoroutineRunner : MonoBehaviour, IGameService, ICoroutineRunner
+public sealed class CoroutineRunner : MonoBehaviour, ICoroutineRunner
 {
-    public void Init(GameContext ctx) { }
-    public void Shutdown() { StopAllCoroutines(); }
-
     public Coroutine Run(IEnumerator routine) => StartCoroutine(routine);
+
     public void Stop(Coroutine coroutine)
     {
         if (coroutine != null) StopCoroutine(coroutine);
+    }
+
+    private void OnDestroy()
+    {
+        StopAllCoroutines();
     }
 }

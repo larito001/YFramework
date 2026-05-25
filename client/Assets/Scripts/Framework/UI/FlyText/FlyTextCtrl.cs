@@ -1,82 +1,75 @@
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using DG.Tweening;
 using TMPro;
 using UnityEngine;
-using YOTO;
 using Random = UnityEngine.Random;
 
-
-public class FlyTextCtrl : ObjectBase, PoolItem<Transform>
+/// <summary>
+/// 单条飘字实体。挂在 UI/FlyText/FlyTextPrefab 上。
+/// 创建后由 FlyTextMgr 通过 Bind 注入回收回调，动画结束自动回池。
+/// </summary>
+[RequireComponent(typeof(RectTransform))]
+public class FlyTextCtrl : MonoBehaviour
 {
-    public static DataObjPool<FlyTextCtrl, Transform> pool = new DataObjPool<FlyTextCtrl, Transform>("FlyTextCtrl", 40);
-    float speed;
-    float time = 0;
-    public TextMeshProUGUI tmp;
-    private bool isInit = false;
-    private Transform root;
-    private FlyTextData data;
+    [SerializeField] private TextMeshProUGUI tmp;
+
     private RectTransform rct;
-    private bool isFly = false;
+    private CanvasGroup cg;
+    private Action<FlyTextCtrl> recycleCallback;
     private Vector3 currentPos;
+
+    private void Awake()
+    {
+        rct = GetComponent<RectTransform>();
+        cg = GetComponent<CanvasGroup>();
+        if (cg == null)
+        {
+            cg = gameObject.AddComponent<CanvasGroup>();
+        }
+        if (tmp == null)
+        {
+            tmp = GetComponent<TextMeshProUGUI>();
+        }
+    }
+
+    public void Bind(Action<FlyTextCtrl> onRecycle)
+    {
+        recycleCallback = onRecycle;
+    }
 
     public void Fly(FlyTextData data)
     {
         currentPos = data.pos;
-        if (!isInit)
-        {
-            this.data = data;
-            isFly = true;
-            return;
-        }
-
-        tmp = objTrans.GetComponent<TextMeshProUGUI>();
         tmp.text = data.text;
 
-
-        if (data.flyTextType == FlyTextType.Normal)
+        switch (data.flyTextType)
         {
-            tmp.color = Color.white;
-
-            StartAnim(0.5f, 1.2f, 1.0f, 0.4f, 0.1f, 1, 1, Ease.OutQuad, Ease.InOutQuad,false);
+            case FlyTextType.Normal:
+                tmp.color = Color.white;
+                StartAnim(0.5f, 1.2f, 1.0f, 0.4f, 0.1f, 1, 1, Ease.OutQuad, Ease.InOutQuad, false);
+                break;
+            case FlyTextType.Quick:
+                tmp.color = Color.red;
+                StartAnim(0.3f, 1.5f, 1.5f, 0.3f, 0.1f, 0.6f, 0.2f, Ease.OutElastic, Ease.OutBack, true);
+                break;
+            case FlyTextType.PlayerHurt:
+                tmp.color = Color.red;
+                StartAnim(0.5f, 1.2f, 1.0f, 0.4f, 0.1f, 1, 1, Ease.OutQuad, Ease.InOutQuad, true);
+                break;
+            case FlyTextType.AddHP:
+                tmp.color = new Color(0.5f, 1, 0);
+                StartAnim(0.5f, 1.2f, 1.0f, 0.4f, 0.1f, 1, 1, Ease.OutQuad, Ease.InOutQuad, true);
+                break;
         }
-        else if (data.flyTextType == FlyTextType.Quick)
-        {
-            tmp.color = Color.red;
-            StartAnim(0.3f, 1.5f, 1.5f, 0.3f, 0.1f, 0.6f, 0.2f, Ease.OutElastic, Ease.OutBack,true);
-        }
-
-        if (data.flyTextType == FlyTextType.PlayerHurt)
-        {
-              tmp.color = Color.red;
-
-            StartAnim(0.5f, 1.2f, 1.0f, 0.4f, 0.1f, 1, 1, Ease.OutQuad, Ease.InOutQuad,true);
-        }
-
-        if (data.flyTextType == FlyTextType.AddHP)
-        {
-            //todo:绿色
-            tmp.color = new Color(0.5f, 1, 0);
-            StartAnim(0.5f, 1.2f, 1.0f, 0.4f, 0.1f, 1, 1, Ease.OutQuad, Ease.InOutQuad,true);  
-        }
-    
     }
-    
-    public void StartAnim(float startScale, float MaxScale, float lastScale,
+
+    private void StartAnim(float startScale, float maxScale, float lastScale,
         float toMaxDuration, float toLastDuration,
         float upTime, float fadeTime,
-        Ease upAnim, Ease downAnim,bool uesBurst)
+        Ease upAnim, Ease downAnim, bool useBurst)
     {
-        rct.transform.position = currentPos;
+        rct.position = currentPos;
         rct.localScale = Vector3.one * startScale;
-
-        CanvasGroup cg = rct.GetComponent<CanvasGroup>();
-        if (cg == null)
-        {
-            cg = rct.gameObject.AddComponent<CanvasGroup>();
-        }
-
         cg.alpha = 1f;
 
         DOTween.Kill(rct);
@@ -84,80 +77,30 @@ public class FlyTextCtrl : ObjectBase, PoolItem<Transform>
 
         Sequence seq = DOTween.Sequence();
 
-    
-        // 🔥 生成随机爆发方向偏移
         Vector2 burstDir = Random.insideUnitCircle.normalized;
-        burstDir.y = Mathf.Abs(burstDir.y); // 保证向上
-        Vector3 burstOffset =Vector3.zero;
-        if (uesBurst)
+        burstDir.y = Mathf.Abs(burstDir.y);
+        Vector3 burstOffset = Vector3.zero;
+        if (useBurst)
         {
-             burstOffset = new Vector3(burstDir.x, burstDir.y, 0) * Random.Range(40f, 80f); 
+            burstOffset = new Vector3(burstDir.x, burstDir.y, 0) * Random.Range(40f, 80f);
         }
 
         Vector3 burstTarget = currentPos + burstOffset;
-
-        // 🔥 最终位置（在爆发基础上再往上漂）
         Vector3 finalTarget = burstTarget + new Vector3(0, Random.Range(40f, 80f), 0);
 
-        float burstTime = toMaxDuration; // 第段时间同步于缩放最大阶段
-        float floatTime = upTime - burstTime; // 后续慢漂浮时间
+        float burstTime = toMaxDuration;
+        float floatTime = upTime - burstTime;
 
-        // ✅ 同时做：初始爆发缩放 + 位移
-        seq.Join(rct.DOScale(MaxScale, burstTime).SetEase(upAnim)); // 放大
-        seq.Join(rct.DOMove(burstTarget, burstTime).SetEase(Ease.OutCubic)); // 爆发
-
-        // ✅ 同时做：缩回 + 向上漂浮
-        seq.Append(rct.DOScale(lastScale, toLastDuration).SetEase(downAnim)); // 回弹缩放
-        seq.Join(rct.DOMove(finalTarget, floatTime).SetEase(Ease.OutSine)); // 上漂
-
-        // ✅ 同步淡出
+        seq.Join(rct.DOScale(maxScale, burstTime).SetEase(upAnim));
+        seq.Join(rct.DOMove(burstTarget, burstTime).SetEase(Ease.OutCubic));
+        seq.Append(rct.DOScale(lastScale, toLastDuration).SetEase(downAnim));
+        seq.Join(rct.DOMove(finalTarget, floatTime).SetEase(Ease.OutSine));
         seq.Join(cg.DOFade(0f, fadeTime).SetEase(Ease.InQuad));
         seq.OnComplete(AnimComplete);
     }
 
     private void AnimComplete()
     {
-        RecoverObject();
-        pool.RecoverItem(this);
-    }
-    
-
-    //
-    // public override string GetModelLayer()
-    // {
-    //     return "UI";
-    // }
-
-    protected override void AfterInstanceGObj()
-    {
-        speed = 10;
-        isInit = true;
-        rct = objTrans.GetComponent<RectTransform>();
-        rct.SetParent(root, false);
-        rct.transform.position = new Vector3(9999, 9999, 9999);
-        tmp = objTrans.GetComponent<TextMeshProUGUI>();
-        tmp.text = data.text;
-        if (isFly)
-        {
-            Fly(this.data);
-            isFly = false;
-        }
-    }
-
-    protected override void BeforeRecover(bool isDelete)
-    {
-        
-    }
-
-    public void AfterIntoObjectPool()
-    {
-        isInit = false;
-    }
-
-    public void SetData(Transform serverData)
-    {
-        SetInVision(true);
-        SetPrefabBundlePath("UI/FlyText/FlyTextPrefab");
-        root = serverData;
+        recycleCallback?.Invoke(this);
     }
 }

@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class TaskManager : IGameService
+public class TaskManager : MonoBehaviour
 {
     public List<TaskDefinition> allTaskDefinitions = new List<TaskDefinition>();
 
@@ -140,13 +140,13 @@ public class TaskManager : IGameService
         }
     }
 
-    public void Init(GameContext ctx)
+    private void Awake()
     {
         RegisterConditionHandler(new SimpleKillCondition(this));
         LoadAll();
     }
 
-    public void Shutdown()
+    private void OnDestroy()
     {
         SaveAll();
         conditionHandlers.Clear();

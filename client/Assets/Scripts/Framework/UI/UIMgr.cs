@@ -110,9 +110,9 @@ public class UILayer
     }
 }
 
-public class UIMgr : IGameService, IUIService
+public class UIMgr : MonoBehaviour, IUIService
 {
-    private readonly UIConfig uiConfig;
+    private UIConfig uiConfig;
     private readonly Dictionary<UILayerEnum, UILayer> uiLayers = new Dictionary<UILayerEnum, UILayer>();
 
     private GameContext context;
@@ -120,11 +120,6 @@ public class UIMgr : IGameService, IUIService
     private CameraMgr cameraMgr;
 
     public GameObject UIRoot { get; private set; }
-
-    public UIMgr(UIConfig config = null)
-    {
-        uiConfig = config ?? new UIConfig();
-    }
 
     public UILayer GetLayer(UILayerEnum layerEnum)
     {
@@ -256,11 +251,12 @@ public class UIMgr : IGameService, IUIService
         return GetLayer(layerEnum)?.layerRoot?.transform;
     }
 
-    public void Init(GameContext ctx)
+    public void Initialize(UIConfig config)
     {
-        context = ctx;
-        resMgr = ctx.Get<ResMgr>();
-        cameraMgr = ctx.Get<CameraMgr>();
+        uiConfig = config ?? new UIConfig();
+        context = GameLoop.Instance.Ctx;
+        resMgr = context.Get<ResMgr>();
+        cameraMgr = context.Get<CameraMgr>();
         uiConfig.Init();
 
         UIRoot = new GameObject("UIRoot");
@@ -273,11 +269,9 @@ public class UIMgr : IGameService, IUIService
             layer.Init(UIRoot);
             uiLayers.Add(layerEnum, layer);
         }
-
-        InjectSceneModels();
     }
 
-    public void Shutdown()
+    private void OnDestroy()
     {
         foreach (var layer in uiLayers.Values)
         {
@@ -291,15 +285,6 @@ public class UIMgr : IGameService, IUIService
         }
 
         uiLayers.Clear();
-    }
-
-    public void InjectSceneModels()
-    {
-        var models = Object.FindObjectsOfType<SceneModelBase>(true);
-        for (int i = 0; i < models.Length; i++)
-        {
-            models[i].Inject(this);
-        }
     }
 
     private void SetUILayerRecursively(GameObject obj)

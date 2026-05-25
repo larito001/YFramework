@@ -9,7 +9,7 @@ namespace YOTO
     /// <c>YOTOEventType</c> 在 GamePlay/Event/GameEventTypes.cs）。
     /// 同一个事件键一旦关联了某个委托签名，后续订阅必须保持一致。
     /// </summary>
-    public class EventMgr : IGameService
+    public class EventMgr : UnityEngine.MonoBehaviour
     {
         private interface IEventSlot
         {
@@ -140,12 +140,12 @@ namespace YOTO
             events.Clear();
         }
 
-        public void Init(GameContext ctx)
+        private void Awake()
         {
             Clear();
         }
 
-        public void Shutdown()
+        private void OnDestroy()
         {
             Clear();
         }

@@ -1,32 +1,20 @@
-
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
+using YOTO;
 
-public class GameStartScene : YSceneBase
+/// <summary>
+/// 挂在 GameStartScene.unity 根节点上的引导脚本。
+/// Start 阶段所有 Awake 已结束，GameLoop.Ctx 必已就绪。
+/// </summary>
+public class GameStartScene : MonoBehaviour
 {
-    public override YSceneType SceneType
+    private void Start()
     {
-        get { return YSceneType.Home; }
-    }
+        var ctx = GameLoop.Instance != null ? GameLoop.Instance.Ctx : null;
+        if (ctx == null)
+        {
+            return;
+        }
 
-    public override string SceneName
-    {
-        get { return "GameStartScene"; }
-    }
-
-    protected override void OnLoadingEnd()
-    {
-        base.OnLoadingEnd();
-        UI.Hide<StartPanel>();
-    }
-
-    protected override void OnEnterScene()
-    {  
-        EnterSceneComplete();
-    }
-    protected override void OnLeaveScene()
-    {
-        LeaveSceneComplete();
+        ctx.Get<UIMgr>().Hide<StartPanel>();
     }
 }
