@@ -11,8 +11,9 @@ using Steamworks;
 namespace YOTO.Net
 {
     /// <summary>
-    /// Steam 大厅管理：创建 / 加入 / 查找。
-    /// 完成事件统一由 <see cref="Entered"/> / <see cref="Failed"/> / <see cref="Found"/> 上抛。
+    /// Steam 大厅管理：创建 / 加入 / 查找 / 离开。
+    /// 异步结果统一上抛：<see cref="Entered"/> 成功，<see cref="Failed"/> 失败，<see cref="Found"/> 列表回来。
+    /// 资源生命周期：调 <see cref="Shutdown"/> 释放 CallResult / Callback；忘了释放也有 GC finalizer 兜底。
     /// </summary>
     public sealed class LobbyManager
     {
@@ -41,9 +42,13 @@ namespace YOTO.Net
         private CallResult<LobbyMatchList_t> _crFind;
         private Callback<LobbyChatUpdate_t> _cbChat;
 
+        /// <summary>Leave 之后是否忽略仍未回来的 pending callresult。防止离开后又收到 Entered 把状态写脏。</summary>
+        private bool _ignorePending;
+
         public void CreateLobby(int maxMembers = 8, ELobbyType type = ELobbyType.k_ELobbyTypePublic)
         {
             EnsureCallbacks();
+            _ignorePending = false;
             var h = SteamMatchmaking.CreateLobby(type, maxMembers);
             (_crCreate ??= CallResult<LobbyCreated_t>.Create()).Set(h, OnLobbyCreated);
         }
@@ -51,6 +56,7 @@ namespace YOTO.Net
         public void JoinLobby(CSteamID lobbyId)
         {
             EnsureCallbacks();
+            _ignorePending = false;
             var h = SteamMatchmaking.JoinLobby(lobbyId);
             (_crJoin ??= CallResult<LobbyEnter_t>.Create()).Set(h, OnLobbyEntered);
         }
@@ -69,9 +75,21 @@ namespace YOTO.Net
 
         public void Leave()
         {
+            // 之前发出但还没回来的 Create / Join 异步结果作废，回来时直接丢
+            _ignorePending = true;
             if (CurrentLobby == CSteamID.Nil) return;
             SteamMatchmaking.LeaveLobby(CurrentLobby);
             CurrentLobby = CSteamID.Nil;
+        }
+
+        /// <summary>显式释放 Steam 侧 Callback / CallResult。不调也有 finalizer，但显式更干净。</summary>
+        public void Shutdown()
+        {
+            _ignorePending = true;
+            _crCreate?.Dispose(); _crCreate = null;
+            _crJoin?.Dispose();   _crJoin = null;
+            _crFind?.Dispose();   _crFind = null;
+            _cbChat?.Dispose();   _cbChat = null;
         }
 
         private void EnsureCallbacks()
@@ -81,6 +99,7 @@ namespace YOTO.Net
 
         private void OnLobbyCreated(LobbyCreated_t r, bool ioFailure)
         {
+            if (_ignorePending) return;
             if (ioFailure || r.m_eResult != EResult.k_EResultOK)
             {
                 Failed?.Invoke(ioFailure ? EResult.k_EResultIOFailure : r.m_eResult);
@@ -94,9 +113,12 @@ namespace YOTO.Net
 
         private void OnLobbyEntered(LobbyEnter_t r, bool ioFailure)
         {
+            if (_ignorePending) return;
             var resp = (EChatRoomEnterResponse)r.m_EChatRoomEnterResponse;
             if (ioFailure || resp != EChatRoomEnterResponse.k_EChatRoomEnterResponseSuccess)
             {
+                // 把 EChatRoomEnterResponse 编进 EResult 之外更具体的位段，业务可对 resp 单独再 log
+                if (!ioFailure) Debug.LogWarning($"[Lobby] JoinLobby failed: EChatRoomEnterResponse={resp}");
                 Failed?.Invoke(ioFailure ? EResult.k_EResultIOFailure : EResult.k_EResultFail);
                 return;
             }
@@ -106,6 +128,7 @@ namespace YOTO.Net
 
         private void OnLobbyList(LobbyMatchList_t r, bool ioFailure)
         {
+            if (_ignorePending) return;
             if (ioFailure) { Found?.Invoke(Array.Empty<CSteamID>()); return; }
             int n = (int)r.m_nLobbiesMatching;
             var list = new CSteamID[n];
@@ -141,6 +164,7 @@ namespace YOTO.Net
         public void JoinLobby(object lobbyId) { }
         public void FindLobby() { }
         public void Leave() { }
+        public void Shutdown() { }
 #endif
     }
 }

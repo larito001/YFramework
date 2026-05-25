@@ -54,7 +54,7 @@ namespace YOTO.Net
         private readonly Dictionary<CSteamID, HSteamNetConnection> _peerToConn = new();
         private readonly Dictionary<HSteamNetConnection, CSteamID> _connToPeer = new();
 
-        /// <summary>NetKey(int) → 类型化分发槽。注册时按 Enum 转 int 存放，分发时按 int 查找。</summary>
+        /// <summary>NetKey(int) → 类型化分发槽。Subscribe 时以 key 为索引建槽，OnTransportMessage 读出 key 后查表。</summary>
         private readonly Dictionary<int, INetSlot> _slots = new();
 
         private const int RawKey = 0;
@@ -92,6 +92,7 @@ namespace YOTO.Net
             Transport.Connected -= OnPeerConnected;
             Transport.Disconnected -= OnPeerDisconnected;
             Transport.MessageReceived -= OnTransportMessage;
+            Lobby.Shutdown();
             _slots.Clear();
 #endif
         }
@@ -189,7 +190,7 @@ namespace YOTO.Net
         /// <summary>原始字节通道：发送时打上 key=0 头，对端从 <see cref="MessageReceived"/> 收到内层 payload。</summary>
         public bool Send(CSteamID target, byte[] data, int offset, int length, bool reliable, int lane = 0)
         {
-            if (data == null || length < 0) return false;
+            if (data == null || offset < 0 || length < 0 || offset + length > data.Length) return false;
             if (!_peerToConn.TryGetValue(target, out var conn)) return false;
 
             int total = HeaderSize + length;
@@ -272,9 +273,9 @@ namespace YOTO.Net
         private void OnTransportMessage(HSteamNetConnection conn, ArraySegment<byte> data)
         {
             if (!_connToPeer.TryGetValue(conn, out var peer)) return;
-            if (data.Count < HeaderSize)
+            if (data.Array == null || data.Count < HeaderSize)
             {
-                Debug.LogWarning($"[Net] packet too small ({data.Count}B) from {peer}");
+                Debug.LogWarning($"[Net] packet malformed ({data.Count}B) from {peer}");
                 return;
             }
 
@@ -359,7 +360,12 @@ namespace YOTO.Net
             }
         }
 #else
-        public bool Send(object target, byte[] data, int offset, int length, bool reliable) => false;
+        // ───────── DISABLESTEAMWORKS 平台 stubs（保留 API 表面让业务代码可编译）─────────
+        public bool Send<T>(object target, int key, T message, bool reliable = true, int lane = 0) where T : IMessage<T> => false;
+        public int Broadcast<T>(int key, T message, bool reliable = true, int lane = 0) where T : IMessage<T> => 0;
+        public bool Send(object target, byte[] data, int offset, int length, bool reliable, int lane = 0) => false;
+        public void Subscribe<T>(int key, Action<object, T> handler) where T : IMessage<T>, new() { }
+        public void Unsubscribe<T>(int key, Action<object, T> handler) where T : IMessage<T>, new() { }
 #endif
     }
 }

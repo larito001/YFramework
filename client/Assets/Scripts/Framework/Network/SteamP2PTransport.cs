@@ -25,6 +25,9 @@ namespace YOTO.Net
     /// </summary>
     public sealed class SteamP2PTransport
     {
+        /// <summary>状态变更日志开关。生产关掉减少噪声；排错时打开。</summary>
+        public bool VerboseLog = false;
+
 #if !DISABLESTEAMWORKS
         public event Action<HSteamNetConnection, CSteamID> Connected;
         public event Action<HSteamNetConnection, CSteamID> Disconnected;
@@ -33,7 +36,8 @@ namespace YOTO.Net
         private readonly IntPtr[] _recvBuf = new IntPtr[64];
         private readonly Dictionary<HSteamNetConnection, CSteamID> _peers = new();
 
-        // SendMessages 复用的单条数组，避免每次发包都新建
+        // SendMessages 复用的单条数组，避免每次发包都新建。
+        // 非线程安全：所有 Send 调用必须在主线程，与 Steam callback 串行。
         private readonly IntPtr[] _sendMsgs = new IntPtr[1];
         private readonly long[]   _sendResults = new long[1];
 
@@ -63,7 +67,11 @@ namespace YOTO.Net
         public void Host(int virtualPort = 0)
         {
             EnsureInfra();
-            if (_listen != HSteamListenSocket.Invalid) return;
+            if (_listen != HSteamListenSocket.Invalid)
+            {
+                Debug.LogWarning($"[Transport] Host called but already listening on {(ulong)_listen}; ignored");
+                return;
+            }
             SteamNetworkingUtils.InitRelayNetworkAccess();
             _listen = SteamNetworkingSockets.CreateListenSocketP2P(virtualPort, 0, null);
             Debug.Log($"[Transport] Host → listen={(ulong)_listen} vport={virtualPort}");
@@ -99,6 +107,11 @@ namespace YOTO.Net
         {
             if (data == null || offset < 0 || length < 0 || offset + length > data.Length) return false;
             if (!_peers.ContainsKey(conn)) return false;
+            if (lane < 0 || lane >= _laneCount)
+            {
+                Debug.LogError($"[Transport] lane {lane} out of range (LaneCount={_laneCount})");
+                return false;
+            }
 
             int flags = reliable
                 ? Constants.k_nSteamNetworkingSend_Reliable
@@ -205,9 +218,12 @@ namespace YOTO.Net
             bool isOurListen = _listen != HSteamListenSocket.Invalid
                                && cb.m_info.m_hListenSocket == _listen;
 
-            Debug.Log($"[Transport] OnStatus conn={(uint)conn} {cb.m_eOldState}→{state} " +
-                      $"isOurListen={isOurListen} peer={(ulong)cb.m_info.m_identityRemote.GetSteamID()} " +
-                      $"endReason={cb.m_info.m_eEndReason} debug={cb.m_info.m_szEndDebug}");
+            if (VerboseLog || state == ESteamNetworkingConnectionState.k_ESteamNetworkingConnectionState_ProblemDetectedLocally)
+            {
+                Debug.Log($"[Transport] OnStatus conn={(uint)conn} {cb.m_eOldState}→{state} " +
+                          $"isOurListen={isOurListen} peer={(ulong)cb.m_info.m_identityRemote.GetSteamID()} " +
+                          $"endReason={cb.m_info.m_eEndReason} debug={cb.m_info.m_szEndDebug}");
+            }
 
             switch (state)
             {

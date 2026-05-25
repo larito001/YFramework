@@ -151,7 +151,12 @@ namespace YOTO.Net
         //   事件回调
         // ═════════════════════════════════════════════════════════════════
 
-        private void OnRoomJoined() => Log($"[Room] joined. host={_net.IsHost} lobby={(ulong)_net.Lobby.CurrentLobby}");
+        private void OnRoomJoined()
+        {
+            // 入房后清掉旧的 Find 结果，避免列表里还显示退房前查到的
+            _foundLobbies.Clear();
+            Log($"[Room] joined. host={_net.IsHost} lobby={(ulong)_net.Lobby.CurrentLobby}");
+        }
 
         private void OnRoomLeft()
         {
@@ -295,18 +300,24 @@ namespace YOTO.Net
 
             // Join by ID：对方 Invite 时把 lobby id 复制到剪贴板，这里粘贴即可加入，覆盖 overlay 不可用的环境
             GUILayout.BeginHorizontal();
-            GUILayout.Label("Join by ID", GUILayout.Width(80));
-            _editJoinId = GUILayout.TextField(_editJoinId ?? "");
-            GUI.enabled = !string.IsNullOrEmpty(_editJoinId);
-            if (GUILayout.Button("Join", GUILayout.Width(60)))
+            try
             {
-                if (ulong.TryParse(_editJoinId.Trim(), out var raw))
-                    _net.JoinRoom(new CSteamID(raw));
-                else
-                    Log("invalid lobby id");
+                GUILayout.Label("Join by ID", GUILayout.Width(80));
+                _editJoinId = GUILayout.TextField(_editJoinId ?? "");
+                GUI.enabled = !string.IsNullOrEmpty(_editJoinId);
+                if (GUILayout.Button("Join", GUILayout.Width(60)))
+                {
+                    if (ulong.TryParse(_editJoinId.Trim(), out var raw))
+                        _net.JoinRoom(new CSteamID(raw));
+                    else
+                        Log("invalid lobby id");
+                }
             }
-            GUI.enabled = true;
-            GUILayout.EndHorizontal();
+            finally
+            {
+                GUI.enabled = true;
+                GUILayout.EndHorizontal();
+            }
         }
 
         /// <summary>入房后的成员区域标题；具体列表在 <see cref="DrawMembers"/>。</summary>
@@ -316,46 +327,58 @@ namespace YOTO.Net
                             $"transport: {_connectedPeers.Count})");
         }
 
-        /// <summary>主要按钮区：Create / Find / Leave / Invite / Broadcast。各按钮按当前 InRoom 状态启停。</summary>
+        /// <summary>主要按钮区：Create / Find / Leave / Invite / Broadcast。各按钮按当前 InRoom 状态启停。
+        /// 用 try/finally 包裹 GUI.enabled 的多段切换，保证任何路径都恢复到 true。</summary>
         private void DrawActions()
         {
             // 第一行：房间生命周期
             GUILayout.BeginHorizontal();
+            try
+            {
+                GUI.enabled = !_net.InRoom && SteamManager.Initialized;
+                if (GUILayout.Button("Create"))
+                {
+                    _net.Lobby.GameTag = string.IsNullOrEmpty(_editTag) ? "" : _editTag;
+                    int max = int.TryParse(_editMaxMembers, out var v) && v > 0 ? v : 4;
+                    _net.Lobby.CreateLobby(max, LobbyTypes[_typeIdx]);
+                }
+                if (GUILayout.Button("Find"))
+                {
+                    _net.Lobby.GameTag = string.IsNullOrEmpty(_editTag) ? "" : _editTag;
+                    _net.Lobby.FindLobby();
+                }
 
-            GUI.enabled = !_net.InRoom && SteamManager.Initialized;
-            if (GUILayout.Button("Create"))
-            {
-                _net.Lobby.GameTag = string.IsNullOrEmpty(_editTag) ? "" : _editTag;
-                int max = int.TryParse(_editMaxMembers, out var v) && v > 0 ? v : 4;
-                _net.Lobby.CreateLobby(max, LobbyTypes[_typeIdx]);
+                GUI.enabled = _net.InRoom;
+                if (GUILayout.Button("Leave")) _net.LeaveRoom();
+                if (GUILayout.Button("Invite"))
+                {
+                    // Steam overlay 只对从 Steam 启动的进程注入；Editor / 直接双击 .exe 时不弹也属正常。
+                    // fallback：把 lobby id 写入剪贴板，对端用 Join by ID 粘贴加入。
+                    SteamFriends.ActivateGameOverlayInviteDialog(_net.Lobby.CurrentLobby);
+                    var id = ((ulong)_net.Lobby.CurrentLobby).ToString();
+                    GUIUtility.systemCopyBuffer = id;
+                    Log($"[Invite] overlay called; lobby id {id} copied to clipboard");
+                }
             }
-            if (GUILayout.Button("Find"))
+            finally
             {
-                _net.Lobby.GameTag = string.IsNullOrEmpty(_editTag) ? "" : _editTag;
-                _net.Lobby.FindLobby();
+                GUI.enabled = true;
+                GUILayout.EndHorizontal();
             }
-
-            GUI.enabled = _net.InRoom;
-            if (GUILayout.Button("Leave")) _net.LeaveRoom();
-            if (GUILayout.Button("Invite"))
-            {
-                // Steam overlay 只对从 Steam 启动的进程注入；Editor / 直接双击 .exe 时不弹也属正常。
-                // fallback：把 lobby id 写入剪贴板，对端用 Join by ID 粘贴加入。
-                SteamFriends.ActivateGameOverlayInviteDialog(_net.Lobby.CurrentLobby);
-                var id = ((ulong)_net.Lobby.CurrentLobby).ToString();
-                GUIUtility.systemCopyBuffer = id;
-                Log($"[Invite] overlay called; lobby id {id} copied to clipboard");
-            }
-            GUI.enabled = true;
-            GUILayout.EndHorizontal();
 
             // 第二行：传输测试
             GUILayout.BeginHorizontal();
-            GUI.enabled = _net.InRoom && _connectedPeers.Count > 0;
-            if (GUILayout.Button("Broadcast Ping (R)")) Broadcast(reliable: true);
-            if (GUILayout.Button("Broadcast Ping (U)")) Broadcast(reliable: false);
-            GUI.enabled = true;
-            GUILayout.EndHorizontal();
+            try
+            {
+                GUI.enabled = _net.InRoom && _connectedPeers.Count > 0;
+                if (GUILayout.Button("Broadcast Ping (R)")) Broadcast(reliable: true);
+                if (GUILayout.Button("Broadcast Ping (U)")) Broadcast(reliable: false);
+            }
+            finally
+            {
+                GUI.enabled = true;
+                GUILayout.EndHorizontal();
+            }
         }
 
         /// <summary>Find 结果列表，每行可单点 Join。</summary>
@@ -386,15 +409,21 @@ namespace YOTO.Net
             foreach (var m in CurrentMembers())
             {
                 GUILayout.BeginHorizontal();
-                string flag = m == self ? "[me]"
-                    : (_connectedPeers.Contains(m) ? "[T]" : "[ ]");
-                GUILayout.Label($"{flag} {Name(m)}");
+                try
+                {
+                    string flag = m == self ? "[me]"
+                        : (_connectedPeers.Contains(m) ? "[T]" : "[ ]");
+                    GUILayout.Label($"{flag} {Name(m)}");
 
-                GUI.enabled = m != self && _connectedPeers.Contains(m);
-                if (GUILayout.Button("R", GUILayout.Width(28))) SendDirect(m, reliable: true);
-                if (GUILayout.Button("U", GUILayout.Width(28))) SendDirect(m, reliable: false);
-                GUI.enabled = true;
-                GUILayout.EndHorizontal();
+                    GUI.enabled = m != self && _connectedPeers.Contains(m);
+                    if (GUILayout.Button("R", GUILayout.Width(28))) SendDirect(m, reliable: true);
+                    if (GUILayout.Button("U", GUILayout.Width(28))) SendDirect(m, reliable: false);
+                }
+                finally
+                {
+                    GUI.enabled = true;
+                    GUILayout.EndHorizontal();
+                }
             }
             GUILayout.EndScrollView();
         }
@@ -444,10 +473,11 @@ namespace YOTO.Net
         }
 #endif
 
-        /// <summary>同时写到面板日志和 Unity Console。日志最多保留 200 行。</summary>
+        /// <summary>同时写到面板日志和 Unity Console。日志最多保留 200 行。
+        /// 时间戳用 realtimeSinceStartup，避免 Editor 暂停时序错乱。</summary>
         private void Log(string s)
         {
-            var line = $"{Time.time:F2}  {s}";
+            var line = $"{Time.realtimeSinceStartup:F2}  {s}";
             _log.Add(line);
             if (_log.Count > 200) _log.RemoveAt(0);
             Debug.Log("[NetTest] " + s);
