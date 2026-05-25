@@ -13,7 +13,7 @@ public class GameMainScene : YSceneBase
         // UI.Show<GameMainPanel>();
         // UI.Hide<StartPanel>();
         
-        Res.LoadAsync<GameObject>();
+        // Res.LoadAsync<GameObject>();
         
     }
 
