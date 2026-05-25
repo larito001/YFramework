@@ -136,6 +136,7 @@ namespace YOTO.Net
         public event Action<object[]> Found;
         public event Action<object> MemberJoined;
         public event Action<object> MemberLeft;
+        public string GameTag { get; set; } = "yfw";
         public void CreateLobby(int maxMembers = 8) { }
         public void JoinLobby(object lobbyId) { }
         public void FindLobby() { }

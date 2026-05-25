@@ -3,6 +3,7 @@
 #endif
 
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using UnityEngine;
@@ -15,6 +16,12 @@ namespace YOTO.Net
     /// <summary>
     /// Steam P2P 传输（基于 SteamNetworkingSockets + Steam relay）。
     /// 前置：SteamManager 已 Init，SteamAPI.RunCallbacks 每帧被驱动。
+    ///
+    /// 多路复用（lane）：
+    ///   - 设置 <see cref="LaneCount"/> &gt; 1 后，新建/已有连接都会 ConfigureConnectionLanes。
+    ///   - <see cref="Send"/> 的 lane=0 走 SendMessageToConnection 快路径（默认）。
+    ///   - lane &gt; 0 走 SendMessages，配合 SteamNetworkingMessage_t.m_idxLane。
+    ///     不同 lane 的 reliable 消息互不阻塞，可分别配置优先级 / 带宽权重。
     /// </summary>
     public sealed class SteamP2PTransport
     {
@@ -25,9 +32,33 @@ namespace YOTO.Net
 
         private readonly IntPtr[] _recvBuf = new IntPtr[64];
         private readonly Dictionary<HSteamNetConnection, CSteamID> _peers = new();
+
+        // SendMessages 复用的单条数组，避免每次发包都新建
+        private readonly IntPtr[] _sendMsgs = new IntPtr[1];
+        private readonly long[]   _sendResults = new long[1];
+
         private Callback<SteamNetConnectionStatusChangedCallback_t> _statusCb;
         private HSteamListenSocket _listen = HSteamListenSocket.Invalid;
         private HSteamNetPollGroup _pollGroup = HSteamNetPollGroup.Invalid;
+
+        private int _laneCount = 1;
+
+        /// <summary>
+        /// 通道数（&gt;= 1）。改变时会立即对所有现存连接应用 ConfigureConnectionLanes，
+        /// 新连接在 Connect/Accept 后也会自动应用。优先级/权重用 Steam 默认值。
+        /// </summary>
+        public int LaneCount
+        {
+            get => _laneCount;
+            set
+            {
+                int v = Math.Max(1, value);
+                if (v == _laneCount) return;
+                _laneCount = v;
+                foreach (var conn in _peers.Keys)
+                    SteamNetworkingSockets.ConfigureConnectionLanes(conn, _laneCount, null, null);
+            }
+        }
 
         public void Host(int virtualPort = 0)
         {
@@ -53,11 +84,18 @@ namespace YOTO.Net
             }
             Debug.Log($"[Transport] ConnectP2P → peer={(ulong)peer} conn={(uint)conn}");
             SteamNetworkingSockets.SetConnectionPollGroup(conn, _pollGroup);
+            if (_laneCount > 1)
+                SteamNetworkingSockets.ConfigureConnectionLanes(conn, _laneCount, null, null);
             _peers[conn] = peer;
             return conn;
         }
 
-        public bool Send(HSteamNetConnection conn, byte[] data, int offset, int length, bool reliable)
+        /// <summary>
+        /// 发送字节。lane=0（默认）走 SendMessageToConnection，零额外分配（GCHandle pin 即用）。
+        /// lane&gt;0 走 SendMessages，会额外用 SteamNetworkingUtils.AllocateMessage 拿一段非托管内存
+        /// 并 Marshal.Copy 进去（Steam 自己负责释放）。
+        /// </summary>
+        public bool Send(HSteamNetConnection conn, byte[] data, int offset, int length, bool reliable, int lane = 0)
         {
             if (data == null || offset < 0 || length < 0 || offset + length > data.Length) return false;
             if (!_peers.ContainsKey(conn)) return false;
@@ -66,6 +104,12 @@ namespace YOTO.Net
                 ? Constants.k_nSteamNetworkingSend_Reliable
                 : Constants.k_nSteamNetworkingSend_Unreliable;
 
+            if (lane == 0) return SendOnLane0(conn, data, offset, length, flags);
+            return SendOnLaneN(conn, data, offset, length, flags, lane);
+        }
+
+        private static bool SendOnLane0(HSteamNetConnection conn, byte[] data, int offset, int length, int flags)
+        {
             var gch = GCHandle.Alloc(data, GCHandleType.Pinned);
             try
             {
@@ -74,6 +118,29 @@ namespace YOTO.Net
                     conn, ptr, (uint)length, flags, out _) == EResult.k_EResultOK;
             }
             finally { gch.Free(); }
+        }
+
+        private bool SendOnLaneN(HSteamNetConnection conn, byte[] data, int offset, int length, int flags, int lane)
+        {
+            IntPtr msgPtr = SteamNetworkingUtils.AllocateMessage(length);
+            if (msgPtr == IntPtr.Zero) return false;
+
+            // 取出预分配好的 message 头（含已指向缓冲区的 m_pData 与析构函数指针），写入数据后整体写回
+            var m = SteamNetworkingMessage_t.FromIntPtr(msgPtr);
+            Marshal.Copy(data, offset, m.m_pData, length);
+            m.m_conn = conn;
+            m.m_nFlags = flags;
+            m.m_idxLane = (ushort)lane;
+            Marshal.StructureToPtr(m, msgPtr, false);
+
+            _sendMsgs[0] = msgPtr;
+            _sendResults[0] = 0;
+            SteamNetworkingSockets.SendMessages(1, _sendMsgs, _sendResults);
+            // 失败时 results[0] = -EResult，所有权回到调用方，必须 Release 否则泄漏；
+            // 成功时是 message number（>0），Steam 接管所有权。
+            if (_sendResults[0] > 0) return true;
+            SteamNetworkingMessage_t.Release(msgPtr);
+            return false;
         }
 
         public void Poll()
@@ -88,10 +155,16 @@ namespace YOTO.Net
                     var msg = SteamNetworkingMessage_t.FromIntPtr(ptr);
                     if (msg.m_cbSize <= 0 || !_peers.ContainsKey(msg.m_conn)) continue;
 
-                    var buf = new byte[msg.m_cbSize];
-                    Marshal.Copy(msg.m_pData, buf, 0, msg.m_cbSize);
-                    try { MessageReceived?.Invoke(msg.m_conn, new ArraySegment<byte>(buf)); }
-                    catch (Exception ex) { Debug.LogException(ex); }
+                    // ArrayPool 替代 new byte[] —— 上层 MessageReceived 同步处理完即归还，
+                    // 文档已要求 segment 仅回调期间有效。
+                    var buf = ArrayPool<byte>.Shared.Rent(msg.m_cbSize);
+                    try
+                    {
+                        Marshal.Copy(msg.m_pData, buf, 0, msg.m_cbSize);
+                        try { MessageReceived?.Invoke(msg.m_conn, new ArraySegment<byte>(buf, 0, msg.m_cbSize)); }
+                        catch (Exception ex) { Debug.LogException(ex); }
+                    }
+                    finally { ArrayPool<byte>.Shared.Return(buf); }
                 }
                 finally { SteamNetworkingMessage_t.Release(ptr); }
             }
@@ -147,6 +220,8 @@ namespace YOTO.Net
                             return;
                         }
                         SteamNetworkingSockets.SetConnectionPollGroup(conn, _pollGroup);
+                        if (_laneCount > 1)
+                            SteamNetworkingSockets.ConfigureConnectionLanes(conn, _laneCount, null, null);
                         _peers[conn] = cb.m_info.m_identityRemote.GetSteamID();
                     }
                     break;
@@ -175,9 +250,10 @@ namespace YOTO.Net
         public event Action<object, object> Connected;
         public event Action<object, object> Disconnected;
         public event Action<object, ArraySegment<byte>> MessageReceived;
+        public int LaneCount { get; set; } = 1;
         public void Host(int virtualPort = 0) { }
         public object Connect(object peer, int virtualPort = 0) => null;
-        public bool Send(object conn, byte[] data, int offset, int length, bool reliable) => false;
+        public bool Send(object conn, byte[] data, int offset, int length, bool reliable, int lane = 0) => false;
         public void Poll() { }
         public void Close() { }
 #endif
