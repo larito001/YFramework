@@ -8,7 +8,10 @@
       "Bash(mkdir -p Assets/Art/Animations Assets/Art/Audio/BGM Assets/Art/Audio/SFX Assets/Art/Characters Assets/Art/Environments Assets/Art/Props Assets/Art/Shaders Assets/Art/ThirdParty Assets/Art/VFX Assets/Art/UI/Atlas Assets/Art/UI/Icons Assets/Art/UI/Panels)",
       "Bash(touch Assets/Art/__TRACKED_VAR__/.gitkeep)",
       "Bash(mkdir -p Assets/Art/Environments/Test/Materials Assets/Art/Environments/Test/Textures Assets/Art/Environments/Test/Meshes Assets/Art/Environments/_Shared/Materials Assets/Art/Environments/_Shared/Textures)",
-      "Bash(touch Assets/Art/Environments/__TRACKED_VAR__/.gitkeep)"
+      "Bash(touch Assets/Art/Environments/__TRACKED_VAR__/.gitkeep)",
+      "Bash(cmd *)",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\UnityProject\\\\YFramework\\\\client\\\\Assets\\\\Plugins\" -Recurse -Directory | Where-Object { $_.Name -match \"Steam\" } | Select-Object -ExpandProperty FullName)",
+      "mcp__ide__getDiagnostics"
     ]
   }
 }
