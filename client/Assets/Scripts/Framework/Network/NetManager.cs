@@ -356,7 +356,14 @@ namespace YOTO.Net
             public void Dispatch(CSteamID from, byte[] buffer, int offset, int count)
             {
                 var msg = Parser.ParseFrom(buffer, offset, count);
-                _h?.Invoke(from, msg);
+                var h = _h;
+                if (h == null) return;
+                // foreach + 单独 try/catch，避免某个 handler 抛异常导致后续 handler 被跳过
+                foreach (var d in h.GetInvocationList())
+                {
+                    try { ((Action<CSteamID, T>)d)(from, msg); }
+                    catch (Exception ex) { Debug.LogException(ex); }
+                }
             }
         }
 #else

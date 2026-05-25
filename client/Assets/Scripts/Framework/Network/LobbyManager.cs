@@ -64,6 +64,7 @@ namespace YOTO.Net
         public void FindLobby()
         {
             EnsureCallbacks();
+            _ignorePending = false;
             // Worldwide distance + 大上限，避免默认地区过滤把自己刚建的 lobby 漏掉
             SteamMatchmaking.AddRequestLobbyListDistanceFilter(ELobbyDistanceFilter.k_ELobbyDistanceFilterWorldwide);
             SteamMatchmaking.AddRequestLobbyListResultCountFilter(50);
