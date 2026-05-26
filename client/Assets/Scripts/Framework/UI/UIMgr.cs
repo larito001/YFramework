@@ -117,7 +117,7 @@ public class UIMgr : IGameService, IUIService
 
     private GameContext context;
     private ResMgr resMgr;
-    private CameraMgr cameraMgr;
+    private CameraManager cameraMgr;
 
     public GameObject UIRoot { get; private set; }
 
@@ -260,7 +260,7 @@ public class UIMgr : IGameService, IUIService
     {
         context = ctx;
         resMgr = ctx.Get<ResMgr>();
-        cameraMgr = ctx.Get<CameraMgr>();
+        cameraMgr = ctx.Get<CameraManager>();
         uiConfig.Init();
 
         UIRoot = new GameObject("UIRoot");

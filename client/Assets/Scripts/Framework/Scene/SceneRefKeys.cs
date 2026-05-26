@@ -4,7 +4,8 @@
 public static class SceneRefKeys
 {
     public const string MainCamera = "MainCamera";
-    public const string MainCameraVirtual = "MainCameraVirtual";
+    public const string MainCameraFreeLook = "MainCameraFreeLook";
+    public const string MainCameraAim = "MainCameraAim";
     public const string MainLight = "MainLight";
     public const string AStarRoot = "A*";
 }

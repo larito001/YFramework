@@ -112,7 +112,7 @@ Material:
     - _GlossMapScale: 0
     - _Glossiness: 0
     - _GlossyReflections: 0
-    - _LineWidth: 1.5
+    - _LineWidth: 0.54
     - _MainSize: 1
     - _Metallic: 0
     - _OcclusionStrength: 1
@@ -132,10 +132,10 @@ Material:
     - _ZWrite: 1
     m_Colors:
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
-    - _BgColor: {r: 0.4716981, g: 0.4716981, b: 0.4716981, a: 1}
+    - _BgColor: {r: 0.16037738, g: 0.16037738, b: 0.16037738, a: 1}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
-    - _GridColor: {r: 0.20754719, g: 0.20754719, b: 0.20754719, a: 1}
+    - _GridColor: {r: 0.4811321, g: 0.4811321, b: 0.4811321, a: 1}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
     - _SubColor: {r: 0.39999998, g: 0.39999998, b: 0.39999998, a: 1}
   m_BuildTextureStacks: []

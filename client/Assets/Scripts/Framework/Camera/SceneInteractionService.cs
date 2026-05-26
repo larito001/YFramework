@@ -11,7 +11,7 @@ public class SceneInteractionService : IGameService, ITickable
     private const float SceneClickDistance = 1000f;
     private const float DragStartThresholdSqr = 1f;
 
-    private CameraMgr cameraMgr;
+    private CameraManager cameraMgr;
 
     // 缓存 LayerMask，避免每帧字符串查找
     private int cachedLayerMask;
@@ -34,7 +34,7 @@ public class SceneInteractionService : IGameService, ITickable
 
     public void Init(GameContext ctx)
     {
-        cameraMgr = ctx.Get<CameraMgr>();
+        cameraMgr = ctx.Get<CameraManager>();
     }
 
     public void Shutdown()
@@ -49,9 +49,6 @@ public class SceneInteractionService : IGameService, ITickable
     {
         Camera cam = cameraMgr?.MainCamera;
         if (cam == null) return;
-
-        // 每帧缓存震屏更新
-        cameraMgr.UpdateShake(dt);
 
         Vector3 mousePos = Input.mousePosition;
 

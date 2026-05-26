@@ -55,7 +55,7 @@ public class FlyTextMgr : IGameService, ITickable
 
     public void Init(GameContext ctx)
     {
-        cam = ctx.Get<CameraMgr>().MainCamera;
+        cam = ctx.Get<CameraManager>().MainCamera;
         uiMgr = ctx.Get<UIMgr>();
     }
 

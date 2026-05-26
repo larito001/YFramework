@@ -24,7 +24,14 @@ Shader "Custom/WorldGridUnlit"
             #pragma vertex   vert
             #pragma fragment frag
 
+            #pragma multi_compile _ _MAIN_LIGHT_SHADOWS
+            #pragma multi_compile _ _MAIN_LIGHT_SHADOWS_CASCADE
+            #pragma multi_compile _ _MAIN_LIGHT_SHADOWS_SCREEN
+            #pragma multi_compile _ _SHADOWS_SOFT
+            #pragma multi_compile_fragment _ _SCREEN_SPACE_OCCLUSION
+
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 
             CBUFFER_START(UnityPerMaterial)
                 float4 _BgColor;
@@ -89,8 +96,136 @@ Shader "Custom/WorldGridUnlit"
                 mask *= fade;
 
                 half3 col = lerp(_BgColor.rgb, _GridColor.rgb, mask);
+
+                // 采样主光阴影
+                #if defined(_MAIN_LIGHT_SHADOWS_SCREEN)
+                    float4 shadowCoord = ComputeScreenPos(IN.positionHCS);
+                #else
+                    float4 shadowCoord = TransformWorldToShadowCoord(IN.positionWS);
+                #endif
+                Light mainLight = GetMainLight(shadowCoord);
+                half shadow = mainLight.shadowAttenuation;
+
+                // 阴影只压暗，不染色；0.5 是最暗到原色 50%，按需调
+                col *= lerp(0.5, 1.0, shadow);
+
                 return half4(col, 1);
             }
+            ENDHLSL
+        }
+
+        Pass
+        {
+            Name "ShadowCaster"
+            Tags { "LightMode"="ShadowCaster" }
+
+            ZWrite On
+            ZTest LEqual
+            ColorMask 0
+            Cull Off
+
+            HLSLPROGRAM
+            #pragma vertex   ShadowPassVertex
+            #pragma fragment ShadowPassFragment
+
+            #pragma multi_compile_vertex _ _CASTING_PUNCTUAL_LIGHT_SHADOW
+
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Shadows.hlsl"
+
+            CBUFFER_START(UnityPerMaterial)
+                float4 _BgColor;
+                float4 _GridColor;
+                float  _MainSize;
+                float  _LineWidth;
+                float  _Plane;
+            CBUFFER_END
+
+            struct ShadowAttrs
+            {
+                float4 positionOS : POSITION;
+                float3 normalOS   : NORMAL;
+            };
+
+            struct ShadowVaryings
+            {
+                float4 positionCS : SV_POSITION;
+            };
+
+            float3 _LightDirection;
+            float3 _LightPosition;
+
+            float4 GetShadowPositionHClip(ShadowAttrs IN)
+            {
+                float3 positionWS = TransformObjectToWorld(IN.positionOS.xyz);
+                float3 normalWS   = TransformObjectToWorldNormal(IN.normalOS);
+
+                #if _CASTING_PUNCTUAL_LIGHT_SHADOW
+                    float3 lightDirectionWS = normalize(_LightPosition - positionWS);
+                #else
+                    float3 lightDirectionWS = _LightDirection;
+                #endif
+
+                float4 positionCS = TransformWorldToHClip(ApplyShadowBias(positionWS, normalWS, lightDirectionWS));
+
+                #if UNITY_REVERSED_Z
+                    positionCS.z = min(positionCS.z, UNITY_NEAR_CLIP_VALUE);
+                #else
+                    positionCS.z = max(positionCS.z, UNITY_NEAR_CLIP_VALUE);
+                #endif
+
+                return positionCS;
+            }
+
+            ShadowVaryings ShadowPassVertex(ShadowAttrs IN)
+            {
+                ShadowVaryings OUT;
+                OUT.positionCS = GetShadowPositionHClip(IN);
+                return OUT;
+            }
+
+            half4 ShadowPassFragment(ShadowVaryings IN) : SV_Target
+            {
+                return 0;
+            }
+            ENDHLSL
+        }
+
+        Pass
+        {
+            Name "DepthOnly"
+            Tags { "LightMode"="DepthOnly" }
+
+            ZWrite On
+            ColorMask 0
+            Cull Off
+
+            HLSLPROGRAM
+            #pragma vertex   DepthVert
+            #pragma fragment DepthFrag
+
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+
+            CBUFFER_START(UnityPerMaterial)
+                float4 _BgColor;
+                float4 _GridColor;
+                float  _MainSize;
+                float  _LineWidth;
+                float  _Plane;
+            CBUFFER_END
+
+            struct DepthAttrs { float4 positionOS : POSITION; };
+            struct DepthVaryings { float4 positionCS : SV_POSITION; };
+
+            DepthVaryings DepthVert(DepthAttrs IN)
+            {
+                DepthVaryings OUT;
+                OUT.positionCS = TransformObjectToHClip(IN.positionOS.xyz);
+                return OUT;
+            }
+
+            half4 DepthFrag(DepthVaryings IN) : SV_Target { return 0; }
             ENDHLSL
         }
     }
