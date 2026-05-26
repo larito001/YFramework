@@ -1,9 +1,6 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-
 /// <summary>
-/// 创建角色，绑定view和Character：Character player = factory.Create();
+/// 创建 Character：new Character + 让 ViewManager 完成 prefab 加载/实例化/Bind/注册。
+/// 不直接持有 CharacterManager，避免反向依赖；ViewManager 抽象足以满足创建需求。
 /// </summary>
 public class CharacterFactory
 {
@@ -17,8 +14,7 @@ public class CharacterFactory
     public Character CreateCharacter()
     {
         var character = new Character();
-        var Obj = manager.LoadBaseView("playerPath").GetComponent<CharacterView>();
-        Obj.Bind(character,character.ID);
+        manager.LoadBaseView<CharacterView>("Player/Player", character);
         return character;
     }
 }
