@@ -39,6 +39,8 @@ namespace YOTO.Network
         {
             _transport.Connected += HandleConnected;
             _transport.Disconnected += HandleDisconnected;
+            _transport.StartFailed += HandleStartFailed;
+            _transport.ConnectFailed += HandleConnectFailed;
             _mainThread.SetHandler(OnIncoming);
         }
 
@@ -46,19 +48,28 @@ namespace YOTO.Network
         {
             _transport.Connected -= HandleConnected;
             _transport.Disconnected -= HandleDisconnected;
+            _transport.StartFailed -= HandleStartFailed;
+            _transport.ConnectFailed -= HandleConnectFailed;
             _mainThread.SetHandler(null);
         }
 
         public void StartServer()
         {
-            SetState(ConnectionState.Connected);
-            _transport.StartServer();
+            // Host 没有自己的 Connected 回调；socket 一旦建好就视为可服务，否则保持 Disconnected。
+            if (_transport.StartServer())
+                SetState(ConnectionState.Connected);
+            else
+                SetState(ConnectionState.Disconnected);
         }
 
         public void Connect(in SessionInfo info)
         {
-            SetState(ConnectionState.Connecting);
-            _transport.Connect(info.HostPeer);
+            // transport 可能告诉我们“已经连着同一 host”，此时别把状态倒退回 Connecting。
+            bool wasConnected = _transport.IsConnected;
+            if (_transport.Connect(info.HostPeer))
+                SetState(wasConnected ? ConnectionState.Connected : ConnectionState.Connecting);
+            else if (!wasConnected)
+                SetState(ConnectionState.Disconnected);
         }
 
         public void Disconnect()
@@ -86,8 +97,8 @@ namespace YOTO.Network
         public void Subscribe<T>(Action<NetworkContext, T> handler) where T : IMessage<T>, new()
             => _dispatcher.Subscribe(handler);
 
-        public void Unsubscribe<T>() where T : IMessage<T>
-            => _dispatcher.Unsubscribe<T>();
+        public void Unsubscribe<T>(Action<NetworkContext, T> handler) where T : IMessage<T>
+            => _dispatcher.Unsubscribe(handler);
 
         /// 出站 buffer 走精确长度的 byte[]：Facepunch.SendMessage(byte[]) 发的是 buffer.Length，
         /// 不要让池里的 slack 跟着上线。入站才用 PacketBufferPool。
@@ -119,6 +130,18 @@ namespace YOTO.Network
         private void HandleDisconnected(PeerId peer)
         {
             if (!_transport.IsServer) SetState(ConnectionState.Disconnected);
+        }
+
+        private void HandleStartFailed(string reason)
+        {
+            Debug.LogError("[Net] session: StartServer failed — " + reason);
+            SetState(ConnectionState.Disconnected);
+        }
+
+        private void HandleConnectFailed(string reason)
+        {
+            Debug.LogError("[Net] session: Connect failed — " + reason);
+            SetState(ConnectionState.Disconnected);
         }
 
         private void SetState(ConnectionState s)

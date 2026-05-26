@@ -10,6 +10,9 @@ namespace YOTO.Network
     {
         public delegate void IncomingHandler(in IncomingPacket packet);
 
+        /// 每帧最多处理多少条入站包，避免突发流量把单帧打爆。剩余的留到下一帧。
+        public int MaxPacketsPerFrame = 256;
+
         private readonly ConcurrentQueue<IncomingPacket> _queue = new();
         private IncomingHandler _handler;
 
@@ -26,7 +29,8 @@ namespace YOTO.Network
                 return;
             }
 
-            while (_queue.TryDequeue(out var pkt))
+            int budget = MaxPacketsPerFrame;
+            while (budget-- > 0 && _queue.TryDequeue(out var pkt))
             {
                 try { handler(in pkt); }
                 catch (Exception e) { UnityEngine.Debug.LogError($"[Net] dispatcher: {e}"); }

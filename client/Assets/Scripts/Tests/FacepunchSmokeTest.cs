@@ -102,7 +102,7 @@ namespace YOTO.Tests
             if (_session != null)
             {
                 _session.StateChanged -= OnSessionStateChanged;
-                _session.Unsubscribe<ChatMessage>();
+                _session.Unsubscribe<ChatMessage>(OnChatReceived);
             }
         }
 
