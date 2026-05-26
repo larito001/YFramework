@@ -55,6 +55,13 @@ namespace YOTO.Network
         {
 #if !DISABLESTEAMWORKS
             if (_host != null) return true;
+            // host 和 client 在同一 transport 上共存会让 Send/Broadcast 行为不确定（当前实现 host 分支优先），
+            // 也容易在 Steam 邀请 / 自动 join 切房时静默叠加角色。先强制要求 Disconnect。
+            if (_client != null)
+            {
+                RaiseStartFailed("transport already in client role; Disconnect() before StartServer()");
+                return false;
+            }
             if (!_platform.IsValid)
             {
                 RaiseStartFailed("SteamPlatform not valid");
@@ -87,6 +94,12 @@ namespace YOTO.Network
         public bool Connect(PeerId hostPeer)
         {
 #if !DISABLESTEAMWORKS
+            // 与 StartServer 对称：禁止 host/client 角色叠加。
+            if (_host != null)
+            {
+                RaiseConnectFailed("transport already in host role; Disconnect() before Connect()");
+                return false;
+            }
             if (_client != null)
             {
                 // 已连接到同一 host：什么都不做，告诉调用方 “已就绪”。

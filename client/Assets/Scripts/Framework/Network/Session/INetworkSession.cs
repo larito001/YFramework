@@ -23,6 +23,6 @@ namespace YOTO.Network
             where T : IMessage<T>;
 
         void Subscribe<T>(Action<NetworkContext, T> handler) where T : IMessage<T>, new();
-        void Unsubscribe<T>(Action<NetworkContext, T> handler) where T : IMessage<T>;
+        void Unsubscribe<T>(Action<NetworkContext, T> handler) where T : IMessage<T>, new();
     }
 }

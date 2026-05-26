@@ -79,6 +79,10 @@ namespace YOTO.Tests
             _session.Subscribe<ChatMessage>(OnChatReceived);
 
             Log($"Smoke test ready. Me: {_platform.LocalName} ({_platform.LocalPeer})");
+
+            // 命令行 +connect_lobby 解析出的 pending 现在订阅完成才消费，避免错过 Joined 事件。
+            if (_lobby.TryConsumePendingAutoJoin())
+                Log("[Lobby] consumed pending auto-join from command line");
         }
 
         private void Update()

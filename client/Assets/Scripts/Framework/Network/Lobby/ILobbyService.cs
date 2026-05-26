@@ -28,5 +28,10 @@ namespace YOTO.Network
         void Join(ulong lobbyId);
         void Leave();
         bool OpenInviteOverlay();
+
+        /// 命令行 / Steam 自动入房（"+connect_lobby <id>"）解析出的 pending lobby id。
+        /// gameplay 启动完成、订阅好 Joined/JoinFailed 之后调一次 TryConsumePendingAutoJoin 来触发 Join。
+        /// 没有 pending 时返回 false，不做任何事。
+        bool TryConsumePendingAutoJoin();
     }
 }

@@ -97,7 +97,7 @@ namespace YOTO.Network
         public void Subscribe<T>(Action<NetworkContext, T> handler) where T : IMessage<T>, new()
             => _dispatcher.Subscribe(handler);
 
-        public void Unsubscribe<T>(Action<NetworkContext, T> handler) where T : IMessage<T>
+        public void Unsubscribe<T>(Action<NetworkContext, T> handler) where T : IMessage<T>, new()
             => _dispatcher.Unsubscribe(handler);
 
         /// 出站 buffer 走精确长度的 byte[]：Facepunch.SendMessage(byte[]) 发的是 buffer.Length，

@@ -67,7 +67,7 @@ namespace YOTO.Network
             _handlers[id] = new Entry<T> { Handler = handler, Serializer = _serializer };
         }
 
-        public void Unsubscribe<T>(Action<NetworkContext, T> handler) where T : IMessage<T>
+        public void Unsubscribe<T>(Action<NetworkContext, T> handler) where T : IMessage<T>, new()
         {
             if (handler == null) return;
             var id = _registry.GetId<T>();

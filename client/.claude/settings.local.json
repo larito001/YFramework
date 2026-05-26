@@ -11,7 +11,10 @@
       "Bash(touch Assets/Art/Environments/__TRACKED_VAR__/.gitkeep)",
       "Bash(cmd *)",
       "PowerShell(Get-ChildItem -Path \"C:\\\\UnityProject\\\\YFramework\\\\client\\\\Assets\\\\Plugins\" -Recurse -Directory | Where-Object { $_.Name -match \"Steam\" } | Select-Object -ExpandProperty FullName)",
-      "mcp__ide__getDiagnostics"
+      "mcp__ide__getDiagnostics",
+      "Bash(grep -E \"^[A-Za-z]{4,}\")",
+      "Bash(grep -E \"^[A-Za-z<>0-9_]{3,}\")",
+      "Bash(xargs wc -l)"
     ]
   }
 }

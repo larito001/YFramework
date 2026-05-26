@@ -32,6 +32,8 @@ namespace YOTO.Network
         public LobbyInfo? Current => _current;
         public IReadOnlyList<LobbyMember> Members => _members;
 
+        private ulong? _pendingAutoJoinLobbyId;
+
         public event Action<LobbyInfo> Created;
         public event Action<LobbyInfo> Joined;
         public event Action<LobbyJoinFailure> JoinFailed;
@@ -55,7 +57,9 @@ namespace YOTO.Network
             SteamMatchmaking.OnLobbyMemberLeave += HandleLobbyMemberLeave;
             SteamMatchmaking.OnLobbyInvite += HandleLobbyInvite;
             SteamFriends.OnGameLobbyJoinRequested += HandleGameLobbyJoinRequested;
-            TryAutoJoinFromCommandLine();
+            // 仅解析命令行，不在 Init 里直接 Join：那时 gameplay/UI 还没订阅 Joined / JoinFailed，
+            // 自动入房如果很快完成，事件会被丢掉。gameplay 启动后调 TryConsumePendingAutoJoin 触发。
+            ParsePendingAutoJoinFromCommandLine();
 #endif
         }
 
@@ -161,6 +165,19 @@ namespace YOTO.Network
 #endif
         }
 
+        public bool TryConsumePendingAutoJoin()
+        {
+#if !DISABLESTEAMWORKS
+            if (!_pendingAutoJoinLobbyId.HasValue) return false;
+            var id = _pendingAutoJoinLobbyId.Value;
+            _pendingAutoJoinLobbyId = null;
+            Join(id);
+            return true;
+#else
+            return false;
+#endif
+        }
+
 #if !DISABLESTEAMWORKS
         private LobbyInfo ToInfo(Lobby lobby)
         {
@@ -223,7 +240,7 @@ namespace YOTO.Network
             Join(lobby.Id.Value);
         }
 
-        private void TryAutoJoinFromCommandLine()
+        private void ParsePendingAutoJoinFromCommandLine()
         {
             var args = Environment.GetCommandLineArgs();
             for (int i = 0; i < args.Length - 1; i++)
@@ -231,7 +248,8 @@ namespace YOTO.Network
                 if (string.Equals(args[i], "+connect_lobby", StringComparison.OrdinalIgnoreCase) &&
                     ulong.TryParse(args[i + 1], out var raw))
                 {
-                    Join(raw);
+                    _pendingAutoJoinLobbyId = raw;
+                    Debug.Log($"[Net] auto-join pending: lobby {raw} — call TryConsumePendingAutoJoin after subscribing Joined");
                     return;
                 }
             }
