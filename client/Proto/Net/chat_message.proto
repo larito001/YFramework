@@ -1,0 +1,11 @@
+syntax = "proto3";
+package yoto.net;
+option csharp_namespace = "YOTO.Gameplay.Net";
+
+// 房间内广播的纯文本聊天消息。
+// id 已经在 NetKey.ChatMessage / MessageRegistry 里固定（300），不要改字段号。
+message ChatMessage {
+  string sender = 1;
+  string text = 2;
+  int64 timestamp = 3; // unix milliseconds
+}
