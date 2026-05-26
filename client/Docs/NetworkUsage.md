@@ -45,10 +45,37 @@ public static partial class GameBootstrapper
 
 - 每个消息类型必须有稳定且唯一的 `ushort` id。
 - 已上线的消息 id 不要随意改动。
-- 消息类型由 `client/Proto/Net/*.proto` 生成（运行 `client/Proto/gen_net_proto.bat`），输出落到 `Assets/Scripts/GamePlay/Network/Messages/`；不要手改生成文件。新增消息：加 `.proto` → 跑脚本 → 在 `NetKey` 加 id → 在 `ConfigureProjectNetwork` 里 `Register<T>(id)`。
+- 消息类型由 `.proto` 生成，不要手改生成出来的 `.cs`。
 - 业务层只注册玩法消息，不需要关心底层传输实现。
 
-protoc 由仓库自带的 `tools/3rdparty/protobuf/protoc.exe`（libprotoc 3.6.1）提供，对齐 `Assets/Plugins/Google.Protobuf/Google.Protobuf.dll` (3.21.12)；外部 PATH 上的 protoc 不参与。
+### 定义和生成消息
+
+1. 在 `client/Proto/Net/` 下加 `.proto`，例如 `chat_message.proto`：
+
+   ```proto
+   syntax = "proto3";
+   package yoto.net;
+   option csharp_namespace = "YOTO.Gameplay.Net";
+
+   message ChatMessage {
+     string sender = 1;
+     string text = 2;
+     int64 timestamp = 3;
+   }
+   ```
+
+2. 触发代码生成（任选其一）：
+   - Unity Editor 菜单：**Tools → Network → Generate Proto**（推荐，跑完会自动 `AssetDatabase.Refresh`）
+   - 命令行 / 双击：`client/Proto/gen_net_proto.bat`
+
+3. 生成的 `.cs` 落到 `client/Assets/Scripts/GamePlay/Network/Messages/`，文件名是 `.proto` 文件名的 PascalCase（`chat_message.proto` → `ChatMessage.cs`）。
+
+4. 在 `NetKey` 里加一个 `const int`；在 `GameProjectBootstrapper.ConfigureProjectNetwork` 里 `registry.Register<T>((ushort)NetKey.Xxx)`。
+
+工具链：
+- protoc 用仓库自带的 `tools/3rdparty/protobuf/protoc.exe`（libprotoc 3.6.1），对齐 `Assets/Plugins/Google.Protobuf/Google.Protobuf.dll` (3.21.12)；不走外部 PATH 上的 protoc。
+- 升级时 protoc 和 runtime dll 必须一起换，否则生成代码可能引用新 runtime 才有的 API。
+- 生成器仅 Windows Editor 支持（调 `.bat`）。
 
 ## Lobby 流程
 
