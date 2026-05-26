@@ -10,11 +10,8 @@ public class GameMainScene : YSceneBase
     protected override void OnLoadingEnd()
     {
         base.OnLoadingEnd();
-        // UI.Show<GameMainPanel>();
-        // UI.Hide<StartPanel>();
-        
-        // Res.LoadAsync<GameObject>();
-        
+        var manager = Context.Get<CharacterManager>();
+        manager.GenneratePlayer();
     }
 
     protected override void OnEnterScene()

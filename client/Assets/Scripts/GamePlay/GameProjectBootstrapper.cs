@@ -43,6 +43,7 @@ public static partial class GameBootstrapper
 {
     static partial void RegisterProjectServices(GameContext ctx)
     {
+        ctx.Register(new InputService());
         // ctx.Register(new EnemiesManager());
         // ctx.Register(new SceneResManager());
     }
