@@ -1,4 +1,6 @@
 using YOTO;
+using YOTO.Gameplay.Net;
+using YOTO.Network;
 
 /// <summary>
 /// 网络消息 key。与 <see cref="YOTOEventType"/> 完全独立——
@@ -63,5 +65,11 @@ public static partial class GameBootstrapper
     static partial void RunProjectStartup(GameContext ctx)
     {
         ctx.Get<UIMgr>().Show<StartPanel>();
+    }
+
+    static partial void ConfigureProjectNetwork(MessageRegistry registry)
+    {
+        // 协议号取自 NetKey；新增消息时在 NetKey 加 const，然后在这里登记一次。
+        registry.Register<ChatMessage>((ushort)NetKey.ChatMessage);
     }
 }
