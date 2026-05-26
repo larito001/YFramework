@@ -8,9 +8,9 @@ using YOTO;
 using Random = UnityEngine.Random;
 
 
-public class FlyTextCtrl : ObjectBase, PoolItem<Transform>
+public class FlyTextCtrl : AsyncPooledObject, PoolItem<Transform>
 {
-    public static DataObjPool<FlyTextCtrl, Transform> pool = new DataObjPool<FlyTextCtrl, Transform>("FlyTextCtrl", 40);
+    public static DataObjectPool<FlyTextCtrl, Transform> pool = new DataObjectPool<FlyTextCtrl, Transform>("FlyTextCtrl", 40);
     float speed;
     float time = 0;
     public TextMeshProUGUI tmp;

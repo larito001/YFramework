@@ -23,7 +23,7 @@ public interface PoolItem<S>
 /// </summary>
 /// <typeparam name="T"></typeparam>
 /// <typeparam name="S"></typeparam>
-public class DataObjPool<T, S> where T : class, PoolItem<S>, new()
+public class DataObjectPool<T, S> where T : class, PoolItem<S>, new()
 {
     private string name;
     private Stack<T> pool;
@@ -58,7 +58,7 @@ public class DataObjPool<T, S> where T : class, PoolItem<S>, new()
         }
     }
 
-    public DataObjPool(string poolName, int capcity = 10)
+    public DataObjectPool(string poolName, int capcity = 10)
     {
         name = poolName;
         pool = new Stack<T>(capcity);
@@ -71,11 +71,7 @@ public class DataObjPool<T, S> where T : class, PoolItem<S>, new()
         pool.Push(item);
         if (_usingList.Contains(item))
         {
-            if (item is BaseEntity)
-            {
-                (item as BaseEntity).RemoveThis();
-            }
-
+   
             _usingList.Remove(item);
         }
     }
@@ -94,10 +90,6 @@ public class DataObjPool<T, S> where T : class, PoolItem<S>, new()
             returnData = new T();
         }
 
-        if (returnData is BaseEntity)
-        {
-            (returnData as BaseEntity).Init();
-        }
 
         returnData.SetData(serverData);
         _usingList.Add(returnData);
@@ -109,10 +101,6 @@ public class DataObjPool<T, S> where T : class, PoolItem<S>, new()
         for (int i = 0; i < _usingList.Count; i++)
         {
             _usingList[i].AfterIntoObjectPool();
-            if (_usingList[i] is BaseEntity)
-            {
-                (_usingList[i] as BaseEntity).RemoveThis();
-            }
         }
 
         pool.Clear();

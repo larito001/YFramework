@@ -11,8 +11,8 @@ using YOTO;
 [HelpURL("https://arongranberg.com/astar/documentation/stable/changelog.html")]
 public class YAStarSeeker : IYSeeker, PoolItem<object>
 {
-    public static DataObjPool<YAStarSeeker, object> pool =
-        new DataObjPool<YAStarSeeker, object>("YAStarSeeker", 50);
+    public static DataObjectPool<YAStarSeeker, object> pool =
+        new DataObjectPool<YAStarSeeker, object>("YAStarSeeker", 50);
 
     private static long staticId = 0;
     public long id = 0;

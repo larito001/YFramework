@@ -12,10 +12,10 @@ public struct ParticleEntityData
 
 }
 
-public class ParticleEntity : ObjectBase, PoolItem<ParticleEntityData>
+public class ParticleEntity : AsyncPooledObject, PoolItem<ParticleEntityData>
 {
-    public static DataObjPool<ParticleEntity, ParticleEntityData> pool =
-        new DataObjPool<ParticleEntity, ParticleEntityData>("ParticleEntity", 4);
+    public static DataObjectPool<ParticleEntity, ParticleEntityData> pool =
+        new DataObjectPool<ParticleEntity, ParticleEntityData>("ParticleEntity", 4);
 
     private ParticleEntityData _data;
     private bool needPlay = false;

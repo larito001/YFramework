@@ -1,13 +1,13 @@
-using HotUpdate.Scripts.Framework.Pool.newPool;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
 /// <summary>
-/// Base class for pooled scene objects. It handles async loading, activation, and recovery.
+/// AsyncPrefabPool 中被池化对象的基类：封装异步加载、激活、回收。
+/// 仅用于 AsyncPrefabPool 体系（飘字、低频特效、拾取物等）；TPS hot path 请用 PrefabPool&lt;T&gt;。
 /// </summary>
-public abstract class ObjectBase
+public abstract class AsyncPooledObject
 {
-    private static ObjectPool sharedObjectPool;
+    private static AsyncPrefabPool sharedObjectPool;
 
     private string prefabPath;
     private bool isVisible;
@@ -17,11 +17,10 @@ public abstract class ObjectBase
 
     protected Transform objTrans;
 
-    private ObjectPool.PoolBuffer poolBuffer;
+    private AsyncPrefabPool.PoolBuffer poolBuffer;
     private Vector3 location;
     private Quaternion rotation;
     private Transform parent;
-    private SceneModelBase modelBase;
 
     public bool HaveObj => hasObject;
     public Transform ObjTrans => objTrans;
@@ -124,7 +123,7 @@ public abstract class ObjectBase
     protected abstract void AfterInstanceGObj();
     protected abstract void BeforeRecover(bool isDelete);
 
-    public static void Configure(ObjectPool objectPool)
+    public static void Configure(AsyncPrefabPool objectPool)
     {
         sharedObjectPool = objectPool;
     }
@@ -160,20 +159,9 @@ public abstract class ObjectBase
             return;
         }
 
-        BindSceneModel();
         objTrans.gameObject.SetActive(isVisible);
         ApplyTransform();
         AfterInstanceGObj();
-    }
-
-    private void BindSceneModel()
-    {
-        if (!objTrans.TryGetComponent(out modelBase))
-        {
-            modelBase = objTrans.gameObject.AddComponent<SceneModelBase>();
-        }
-
-        modelBase.Init(this);
     }
 
     private void ApplyTransform()
@@ -186,12 +174,6 @@ public abstract class ObjectBase
     private void RecoverLoadedObject()
     {
         hasObject = false;
-
-        if (objTrans != null && modelBase != null)
-        {
-            modelBase.BeforeRemove();
-            modelBase = null;
-        }
 
         if (poolBuffer != null)
         {

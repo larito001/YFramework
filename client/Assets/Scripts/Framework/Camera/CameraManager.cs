@@ -3,7 +3,6 @@ using UnityEngine;
 /// <summary>
 /// 相机服务：组合 Rig / Shake / FreeLook / Aim 四个子模块。
 /// Rig 负责主相机与 CinemachineBrain；Shake 负责震屏；FreeLook 与 Aim 负责两套 Cinemachine 虚拟相机。
-/// 场景交互（点击/拖拽/悬停）见 <see cref="SceneInteractionService"/>。
 /// </summary>
 public class CameraManager : IGameService, ITickable
 {

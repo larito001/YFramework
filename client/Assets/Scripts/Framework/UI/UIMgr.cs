@@ -273,8 +273,6 @@ public class UIMgr : IGameService, IUIService
             layer.Init(UIRoot);
             uiLayers.Add(layerEnum, layer);
         }
-
-        InjectSceneModels();
     }
 
     public void Shutdown()
@@ -291,15 +289,6 @@ public class UIMgr : IGameService, IUIService
         }
 
         uiLayers.Clear();
-    }
-
-    public void InjectSceneModels()
-    {
-        var models = Object.FindObjectsOfType<SceneModelBase>(true);
-        for (int i = 0; i < models.Length; i++)
-        {
-            models[i].Inject(this);
-        }
     }
 
     private void SetUILayerRecursively(GameObject obj)

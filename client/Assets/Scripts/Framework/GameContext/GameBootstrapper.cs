@@ -1,5 +1,4 @@
 using YFramework.Config;
-using HotUpdate.Scripts.Framework.Pool.newPool;
 using Unity.VisualScripting;
 using UnityEngine;
 using YOTO;
@@ -17,14 +16,13 @@ public static partial class GameBootstrapper
         var ctx = new GameContext();
         ctx.Register(new ConfigManager());
         // Framework services only. Project-specific services are injected via partial methods.
-        ctx.Register(new ObjectPool());
+        ctx.Register(new AsyncPrefabPool());
         ctx.Register(new ScreenMonitor());
         ctx.Register(new EventMgr());
         ctx.Register(new StoreMgr());
         ctx.Register(new ResMgr());
         ctx.Register(new SceneReferenceService());
         ctx.Register(new CameraManager());
-        ctx.Register(new SceneInteractionService());
         ctx.Register(new UIMgr(BuildUiConfig()));
         ctx.Register(new SoundMgr());
         ctx.Register(new TaskManager());

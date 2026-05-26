@@ -6,8 +6,8 @@ using UnityEngine;
 
 public class YAStarObstacle : IYObstacle, PoolItem<object>
 {
-    public static DataObjPool<YAStarObstacle, object> pool =
-        new DataObjPool<YAStarObstacle, object>("YAStarObstacle", 50);
+    public static DataObjectPool<YAStarObstacle, object> pool =
+        new DataObjectPool<YAStarObstacle, object>("YAStarObstacle", 50);
 
     List<NavmeshCut> cutters = new List<NavmeshCut>();
     private PathFindingObstacleConfig _config = null;

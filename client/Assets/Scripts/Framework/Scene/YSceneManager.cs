@@ -263,7 +263,6 @@ public class YSceneManager : IGameService
     private void EnterSceneComplete()
     {
         sceneReferenceService.InvalidateCache();
-        uiMgr.InjectSceneModels();
         CurrentScene?.LoadingEnd();
         uiMgr.HideLoading();
         SwitchSceneComplete = true;

@@ -5,8 +5,8 @@ using UnityEngine;
 
 public class YAStarLinker : IYLinker, PoolItem<object>
 {
-    public static DataObjPool<YAStarLinker, object> pool =
-        new DataObjPool<YAStarLinker, object>("YAStarLinker", 50);
+    public static DataObjectPool<YAStarLinker, object> pool =
+        new DataObjectPool<YAStarLinker, object>("YAStarLinker", 50);
 
     private PathFindingLinkerConfig _config;
     private bool isInPool = true;
