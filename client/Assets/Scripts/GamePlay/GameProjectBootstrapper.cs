@@ -1,5 +1,4 @@
 using YOTO;
-using YOTO.Net;
 
 /// <summary>
 /// 网络消息 key。与 <see cref="YOTOEventType"/> 完全独立——
@@ -63,17 +62,6 @@ public static partial class GameBootstrapper
 
     static partial void RunProjectStartup(GameContext ctx)
     {
-        // ── 网络配置 ─────────────────────────────────────────
-        // LaneCount = 4 对应 NetKey 注释里的分组建议：
-        //   lane 0 杂项 / 聊天 / 默认
-        //   lane 1 帧同步 / 状态
-        //   lane 2 关键 cmd（spawn / damage 等）
-        //   lane 3 大数据传输
-        // 双方对称配置最稳。改大改小看业务，最低 1（不走多通道）。
-        var net = ctx.Get<NetManager>();
-        net.Transport.LaneCount = 4;
-        net.Lobby.GameTag = "yfw";  // FindLobby 过滤值，与对端保持一致
-
         ctx.Get<UIMgr>().Show<StartPanel>();
     }
 }

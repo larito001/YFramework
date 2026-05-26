@@ -3,7 +3,6 @@ using HotUpdate.Scripts.Framework.Pool.newPool;
 using Unity.VisualScripting;
 using UnityEngine;
 using YOTO;
-using YOTO.Net;
 
 /// <summary>
 /// Composition root for framework and gameplay services.
@@ -20,7 +19,6 @@ public static partial class GameBootstrapper
         ctx.Register(new ObjectPool());
         ctx.Register(new ScreenMonitor());
         ctx.Register(new EventMgr());
-        ctx.Register(new NetManager());
         ctx.Register(new StoreMgr());
         ctx.Register(new ResMgr());
         ctx.Register(new SceneReferenceService());
