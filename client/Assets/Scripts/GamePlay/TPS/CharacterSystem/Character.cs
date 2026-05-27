@@ -43,11 +43,6 @@ public class Character : Actor
     /// <summary>瞄准点世界坐标。AimComponent 写入，射击/UI 用它做命中检测、画准星等。</summary>
     public Vector3 AimTargetWorldPos;
 
-    /// <summary>当前持有武器槽位。WeaponComponent 写入，业务/UI 读取。</summary>
+    /// <summary>当前持有武器槽位。WeaponComponent 写入，HUD/业务读取。实际武器模型挂载走 Weapon Actor + WeaponView。</summary>
     public int CurrentWeaponSlot;
-
-    /// <summary>当前武器模型 Resources 路径。null/空 = 卸下武器。view 检测变化时挂/卸右手 socket。</summary>
-    public string CurrentWeaponModelPath;
-    public Vector3 CurrentWeaponLocalPosition;
-    public Vector3 CurrentWeaponLocalEuler;
 }

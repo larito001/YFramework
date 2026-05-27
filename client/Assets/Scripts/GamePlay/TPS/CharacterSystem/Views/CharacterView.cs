@@ -2,10 +2,12 @@ using UnityEngine;
 using YOTO;
 
 /// <summary>
-/// 角色的 view：被动从 Character 读数据驱动 CC / Transform / Animator / 武器挂点。
+/// 角色的 view：被动从 Character 读数据驱动 CC / Transform / Animator。
 /// Character 不知道 view 存在，view 通过 Bind 拿到 Character 引用，只读意图、回写物理状态。
 /// 在 LateUpdate 跑：保证 GameLoop.Update 里所有组件 Tick 写完意图后再消费。
-/// 所有武器共用 prefab 上挂的默认 Animator Controller；切枪靠状态机 WeaponSwap trigger + 换模型。
+///
+/// 武器模型挂载不在这里 —— 由 Weapon Actor + WeaponView 各自处理，WeaponView 通过 ViewManager
+/// 反查本 CharacterView 的 socket 子物体来 reparent。
 /// </summary>
 [RequireComponent(typeof(CharacterController))]
 public class CharacterView : BaseView
@@ -13,20 +15,12 @@ public class CharacterView : BaseView
     public CharacterController Controller { get; private set; }
     public Animator Anim { get; private set; }
 
-    /// <summary>武器挂点骨骼名（RifleAnimsetPro 的 Dummy 用的是 RightHandProp）。</summary>
-    public string WeaponSocketName = "RightHandProp";
-
     /// <summary>BlendTree 方向参数 (MoveX/MoveY) 的平滑时间（秒）。Animator.SetFloat damp 版本用。
     /// MoveComponent 里方向是瞬切的（用户要求转弯无 lerp），但 BlendTree 视觉上需要软化，否则连续切方向时姿势会瞬移。
     /// 0.1 = 大约 6 帧内追上目标值，体感顺滑且不拖沓。</summary>
     public float AnimMoveDampTime = 0.1f;
 
     private Character character;
-
-    private Transform weaponSocket;
-    private GameObject spawnedWeapon;
-    private string spawnedWeaponPath;
-    private ResMgr resMgr;
 
     private static readonly int HashMoveX = Animator.StringToHash("MoveX");
     private static readonly int HashMoveY = Animator.StringToHash("MoveY");
@@ -45,9 +39,6 @@ public class CharacterView : BaseView
         Anim = GetComponentInChildren<Animator>();
         if (Anim == null)
             Debug.LogWarning($"[CharacterView] {name} 找不到 Animator");
-        weaponSocket = FindChildByName(transform, WeaponSocketName);
-        if (weaponSocket == null)
-            Debug.LogWarning($"[CharacterView] {name} 找不到骨骼 {WeaponSocketName}，武器挂载会失败");
     }
 
     public override void Bind(Actor actor, int id)
@@ -59,9 +50,6 @@ public class CharacterView : BaseView
         character.Position = transform.position;
         character.Rotation = transform.rotation;
         character.IsGrounded = Controller.isGrounded;
-
-        var ctx = GameLoop.Instance != null ? GameLoop.Instance.Ctx : null;
-        if (ctx != null) ctx.TryGet(out resMgr);
     }
 
     private void LateUpdate()
@@ -108,64 +96,5 @@ public class CharacterView : BaseView
                 character.WeaponSwap = false;
             }
         }
-
-        SyncWeaponModel();
-    }
-
-    /// 比较 Character.CurrentWeaponModelPath 和当前挂载，不一致才卸/挂，避免每帧拆装。
-    private void SyncWeaponModel()
-    {
-        if (weaponSocket == null) return;
-        var targetPath = character.CurrentWeaponModelPath;
-        if (targetPath == spawnedWeaponPath)
-        {
-            if (spawnedWeapon != null)
-            {
-                spawnedWeapon.transform.localPosition = character.CurrentWeaponLocalPosition;
-                spawnedWeapon.transform.localRotation = Quaternion.Euler(character.CurrentWeaponLocalEuler);
-            }
-            return;
-        }
-
-        if (spawnedWeapon != null) Destroy(spawnedWeapon);
-        if (!string.IsNullOrEmpty(spawnedWeaponPath) && resMgr != null)
-            resMgr.Release<GameObject>(spawnedWeaponPath);
-        spawnedWeapon = null;
-        spawnedWeaponPath = null;
-
-        if (!string.IsNullOrEmpty(targetPath))
-        {
-            var prefab = resMgr != null
-                ? resMgr.Load<GameObject>(targetPath)
-                : Resources.Load<GameObject>(targetPath);
-            if (prefab != null)
-            {
-                spawnedWeapon = Instantiate(prefab, weaponSocket);
-                spawnedWeapon.transform.localPosition = character.CurrentWeaponLocalPosition;
-                spawnedWeapon.transform.localRotation = Quaternion.Euler(character.CurrentWeaponLocalEuler);
-                spawnedWeaponPath = targetPath;
-            }
-            else
-            {
-                Debug.LogError($"[CharacterView] 加载武器模型失败: {targetPath}");
-            }
-        }
-    }
-
-    private void OnDestroy()
-    {
-        if (!string.IsNullOrEmpty(spawnedWeaponPath) && resMgr != null)
-            resMgr.Release<GameObject>(spawnedWeaponPath);
-    }
-
-    private static Transform FindChildByName(Transform root, string name)
-    {
-        if (root.name == name) return root;
-        for (int i = 0; i < root.childCount; i++)
-        {
-            var found = FindChildByName(root.GetChild(i), name);
-            if (found != null) return found;
-        }
-        return null;
     }
 }

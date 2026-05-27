@@ -1,0 +1,83 @@
+using UnityEngine;
+
+/// <summary>
+/// 武器 view：被动消费 Weapon 的装备态字段，决定挂到角色 socket / 隐藏。
+/// Weapon 完全不知道 view 存在；跨 actor 引用（找 owner 的 CharacterView）走 ViewManager.TryGetView。
+/// 没有"落地武器"功能前，未装备就 SetActive(false)，不让模型飘在世界原点。
+///
+/// 运行时 AddComponent 到 mesh-only 武器 prefab 实例上，prefab 本身不带任何 MonoBehaviour。
+/// </summary>
+public class WeaponView : BaseView
+{
+    private Weapon weapon;
+    private ViewManager viewMgr;
+
+    private int currentOwnerId = -2;
+    private string currentSocketName;
+    private bool currentEquipped;
+    private bool initialized;
+
+    public override void Bind(Actor actor, int id)
+    {
+        weapon = actor as Weapon;
+        ID = id;
+        var ctx = GameLoop.Instance != null ? GameLoop.Instance.Ctx : null;
+        if (ctx != null) ctx.TryGet(out viewMgr);
+    }
+
+    private void LateUpdate()
+    {
+        if (weapon == null) return;
+
+        bool changed = !initialized
+            || weapon.IsEquipped != currentEquipped
+            || weapon.OwnerCharacterId != currentOwnerId
+            || weapon.MountSocketName != currentSocketName;
+        if (!changed) return;
+
+        ApplyMount();
+        currentEquipped = weapon.IsEquipped;
+        currentOwnerId = weapon.OwnerCharacterId;
+        currentSocketName = weapon.MountSocketName;
+        initialized = true;
+    }
+
+    private void ApplyMount()
+    {
+        // 未装备：直接隐藏。等以后做掉落/拾取再扩展（写世界坐标 + 显形）
+        if (!weapon.IsEquipped || weapon.OwnerCharacterId < 0)
+        {
+            if (gameObject.activeSelf) gameObject.SetActive(false);
+            return;
+        }
+
+        if (viewMgr == null || !viewMgr.TryGetView(weapon.OwnerCharacterId, out var ownerView) || ownerView == null)
+        {
+            Debug.LogWarning($"[WeaponView] 找不到 owner view id={weapon.OwnerCharacterId}");
+            return;
+        }
+
+        var socket = FindChildByName(ownerView.transform, weapon.MountSocketName);
+        if (socket == null)
+        {
+            Debug.LogWarning($"[WeaponView] 找不到 socket '{weapon.MountSocketName}' on {ownerView.name}");
+            return;
+        }
+
+        transform.SetParent(socket, worldPositionStays: false);
+        transform.localPosition = weapon.LocalPosition;
+        transform.localRotation = Quaternion.Euler(weapon.LocalEuler);
+        if (!gameObject.activeSelf) gameObject.SetActive(true);
+    }
+
+    private static Transform FindChildByName(Transform root, string name)
+    {
+        if (root.name == name) return root;
+        for (int i = 0; i < root.childCount; i++)
+        {
+            var found = FindChildByName(root.GetChild(i), name);
+            if (found != null) return found;
+        }
+        return null;
+    }
+}

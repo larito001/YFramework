@@ -73,6 +73,7 @@ public static partial class GameBootstrapper
         Debug.Log(ctx.Get<ConfigManager>().heroConfig.Get(1001).HeroName);
         ctx.Register(new ActorWorld());
         ctx.Register(new ViewManager());
+        ctx.Register(new WeaponManager());
         ctx.Register(new CharacterManager());
 
         return ctx;

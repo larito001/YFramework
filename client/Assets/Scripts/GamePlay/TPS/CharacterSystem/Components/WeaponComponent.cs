@@ -2,16 +2,18 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// 武器组件（纯逻辑，不碰 view）：
-///   - 切枪：监听 InputService.OnWeaponSelect（1~9 数字键）→ Equip(slot)
-///   - 射击：每帧把 input.FireHeld 写到 Owner.IsShooting
-///   - 近战：监听 InputService.OnMeleeDown（V）→ 置 Owner.MeleeAttack + MeleeType
-/// 业务想程序式换武器调 Equip(slot)；想换 melee 类型改 MeleeTypeForKey。
+/// 持枪人组件（Character 侧，纯逻辑）：
+///   - 持有武器槽位 Weapon Actor 列表，Attach 时交给 WeaponManager 接管（注册 + 创建 view）
+///   - 切枪：监听 InputService.OnWeaponSelect（1~9 数字键）→ Equip(slot) → weaponMgr.Mount/Unmount
+///   - 射击：每帧把 input.FireHeld 写到 Owner.IsShooting（开火行为由 Weapon 的 FireComponent 自己消费，本类不管）
+///   - 近战：监听 InputService.OnMeleeDown（V）→ 置 Owner.MeleeAttack + MeleeType（后续可拆 MeleeComponent）
 /// </summary>
 public class WeaponComponent : ICharacterComponent
 {
     public List<Weapon> Weapons = new List<Weapon>();
     public int InitialSlot = 0;
+    /// <summary>武器挂载到角色的骨骼名。RifleAnimsetPro 是 RightHandProp。</summary>
+    public string SocketName = "RightHandProp";
     /// <summary>V 键触发的近战类型：0=Hard 枪托砸，1=Kick 前踢。</summary>
     public int MeleeTypeForKey = 0;
     /// <summary>近战锁位移时长（秒），近似匹配 Rifle_Melee_Hard / Kick 动画长度。</summary>
@@ -25,6 +27,8 @@ public class WeaponComponent : ICharacterComponent
     public float WeaponSwapDuration = 0.8f;
 
     private InputService input;
+    private WeaponManager weaponMgr;
+    private Weapon currentWeapon;
     private float meleeLockTimer;
     private float swapLockTimer;
     private Vector3 meleeForwardDir; // melee 触发瞬间锁定的水平前向
@@ -39,10 +43,17 @@ public class WeaponComponent : ICharacterComponent
             return;
         }
         ctx.TryGet(out input);
+        ctx.TryGet(out weaponMgr);
         if (input != null)
         {
             input.OnMeleeDown += HandleMelee;
             input.OnWeaponSelect += HandleWeaponSelect;
+        }
+        // 把配置中的 Weapon Actor 实例交给 WeaponManager（注册 + 创建 view）
+        if (weaponMgr != null)
+        {
+            for (int i = 0; i < Weapons.Count; i++)
+                if (Weapons[i] != null) weaponMgr.Adopt(Weapons[i]);
         }
         // 初始装备：不播切枪动画
         EquipInternal(InitialSlot, playAnim: false);
@@ -55,6 +66,13 @@ public class WeaponComponent : ICharacterComponent
             input.OnMeleeDown -= HandleMelee;
             input.OnWeaponSelect -= HandleWeaponSelect;
         }
+        // 武器随持枪人一起销毁
+        if (weaponMgr != null)
+        {
+            for (int i = 0; i < Weapons.Count; i++)
+                if (Weapons[i] != null) weaponMgr.Despawn(Weapons[i]);
+        }
+        currentWeapon = null;
         base.Detach();
     }
 
@@ -67,8 +85,6 @@ public class WeaponComponent : ICharacterComponent
         // 近战锁位移计时 + 前冲位移
         if (meleeLockTimer > 0f)
         {
-            // 前冲：melee 触发起算，前 MeleeForwardDuration 秒内沿 meleeForwardDir 推进
-            // speed 从 MeleeForwardSpeed 线性衰减到 0；超过这段时长就停在原地（由 MoveComponent 写的 0 水平速度）
             float elapsed = MeleeLockDuration - meleeLockTimer;
             if (elapsed < MeleeForwardDuration && MeleeForwardDuration > 0.001f)
             {
@@ -76,7 +92,7 @@ public class WeaponComponent : ICharacterComponent
                 float speed = MeleeForwardSpeed * (1f - pushT);
                 Owner.WishVelocity = new Vector3(
                     meleeForwardDir.x * speed,
-                    Owner.WishVelocity.y, // 保留重力
+                    Owner.WishVelocity.y,
                     meleeForwardDir.z * speed);
             }
 
@@ -92,8 +108,7 @@ public class WeaponComponent : ICharacterComponent
         }
     }
 
-    /// <summary>切到指定槽位。槽越界静默忽略，没有武器时也安全。
-    /// 实际换枪：只换模型 + 触发 Animator 的 Equipping 过场动画。不切 runtimeAnimatorController。</summary>
+    /// <summary>切到指定槽位。槽越界静默忽略。只走 WeaponManager Mount/Unmount，view 自己响应。</summary>
     public void Equip(int slot) => EquipInternal(slot, playAnim: true);
 
     private void EquipInternal(int slot, bool playAnim)
@@ -103,9 +118,14 @@ public class WeaponComponent : ICharacterComponent
         var w = Weapons[slot];
         bool slotChanged = Owner.CurrentWeaponSlot != slot;
         Owner.CurrentWeaponSlot = slot;
-        Owner.CurrentWeaponModelPath = w != null ? w.ModelPath : null;
-        Owner.CurrentWeaponLocalPosition = w != null ? w.LocalPosition : default;
-        Owner.CurrentWeaponLocalEuler = w != null ? w.LocalEuler : default;
+
+        if (weaponMgr != null)
+        {
+            if (currentWeapon != null && currentWeapon != w) weaponMgr.Unmount(currentWeapon);
+            if (w != null) weaponMgr.Mount(w, Owner, SocketName);
+        }
+        currentWeapon = w;
+
         if (playAnim && slotChanged)
         {
             Owner.WeaponSwap = true;
@@ -117,12 +137,11 @@ public class WeaponComponent : ICharacterComponent
     private void HandleMelee()
     {
         if (Owner == null) return;
-        if (Owner.IsMeleeing) return; // 已在近战中，忽略重复触发
+        if (Owner.IsMeleeing) return;
         Owner.MeleeAttack = true;
         Owner.MeleeType = MeleeTypeForKey;
         Owner.IsMeleeing = true;
         meleeLockTimer = MeleeLockDuration;
-        // 锁定前冲方向：用触发瞬间角色面朝的水平方向
         var fwd = Owner.Rotation * Vector3.forward;
         fwd.y = 0f;
         meleeForwardDir = fwd.sqrMagnitude > 1e-4f ? fwd.normalized : Vector3.forward;

@@ -48,8 +48,11 @@ public class ViewManager : IGameService
     /// <summary>
     /// 加载 prefab、实例化、Bind 到 owner、注册到 Views 字典。一次性完成。
     /// 返回类型化的 view 组件；失败返回 null（已记错）。
+    ///
+    /// addIfMissing=true：prefab 上没有 TView 组件时，运行时 AddComponent。
+    /// 用于 mesh-only prefab（如武器模型）共用一份 view 行为类，避免每个 prefab 手挂同样组件。
     /// </summary>
-    public TView LoadBaseView<TView>(string viewName, Actor owner) where TView : BaseView
+    public TView LoadBaseView<TView>(string viewName, Actor owner, bool addIfMissing = false) where TView : BaseView
     {
         if (resMgr == null)
         {
@@ -72,6 +75,8 @@ public class ViewManager : IGameService
 
         var go = Object.Instantiate(prefab);
         var view = go.GetComponent<TView>();
+        if (view == null && addIfMissing)
+            view = go.AddComponent<TView>();
         if (view == null)
         {
             Debug.LogError($"[ViewManager] prefab '{viewName}' 上找不到 {typeof(TView).Name}");
