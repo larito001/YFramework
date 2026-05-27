@@ -3,11 +3,12 @@ using UnityEngine;
 using YOTO;
 
 /// <summary>
-/// View 管理基类：同步加载 prefab、实例化、Bind Actor、注册到字典。
+/// View 管理服务：同步加载 prefab、实例化、Bind Actor、按 Actor.ID 注册到字典。
+/// 全局唯一 service，所有 Actor 的 view 都进这一个字典。Actor.ID 全局唯一（Actor 基类静态计数器）保证不冲突。
 /// 资源走 ResMgr.Load（同步，内部用 Resources.Load + 引用计数）。
 /// prefab 必须放在 Resources/ 下，路径不带扩展名。
 /// </summary>
-public abstract class ViewManager : IGameService
+public class ViewManager : IGameService
 {
     protected readonly Dictionary<int, BaseView> Views = new Dictionary<int, BaseView>();
 
@@ -91,6 +92,9 @@ public abstract class ViewManager : IGameService
         viewPaths[view.ID] = viewName;
         return view;
     }
+
+    /// <summary>按 Actor.ID 查 view。外部模块需要拿 view（如相机跟随、跨 actor reparent）走这里，不要持有 view 引用。</summary>
+    public bool TryGetView(int id, out BaseView view) => Views.TryGetValue(id, out view);
 
     public void RemoveBaseView(int id)
     {
