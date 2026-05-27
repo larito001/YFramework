@@ -1,6 +1,6 @@
 /// <summary>
-/// 创建 Character：new Character + 让 ViewManager 完成 prefab 加载/实例化/Bind/注册。
-/// 不直接持有 CharacterManager，避免反向依赖；ViewManager 抽象足以满足创建需求。
+/// 创建 Character：new Character + 装组件 + ViewManager 加载 prefab。
+/// view 被动消费 Character 数据，组件添加顺序与 LoadBaseView 无依赖关系。
 /// </summary>
 public class CharacterFactory
 {
@@ -14,6 +14,7 @@ public class CharacterFactory
     public Character CreateCharacter()
     {
         var character = new Character();
+        character.Add(new MoveComponent());
         manager.LoadBaseView<CharacterView>("Player/Player", character);
         return character;
     }

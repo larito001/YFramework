@@ -23,6 +23,8 @@ public class InputService : IGameService, ITickable
     public Vector2 Move { get; private set; }
     public Vector2 LookDelta { get; private set; }
     public float ScrollDelta { get; private set; }
+    /// <summary>鼠标屏幕坐标。光标锁定时 Unity 把它钉在屏幕中心，俯视角瞄准前先 SetCursorLocked(false)。</summary>
+    public Vector2 MousePosition { get; private set; }
 
     public bool FireHeld { get; private set; }
     public bool AimHeld { get; private set; }
@@ -86,6 +88,7 @@ public class InputService : IGameService, ITickable
             Move = Vector2.zero;
             LookDelta = Vector2.zero;
             ScrollDelta = 0f;
+            // MousePosition 不归零，UI/瞄准在 disable 时仍可能需要读光标位置
             FireHeld = false;
             AimHeld = false;
             SprintHeld = false;
@@ -97,6 +100,7 @@ public class InputService : IGameService, ITickable
         Move = new Vector2(Input.GetAxisRaw(AxisMoveX), Input.GetAxisRaw(AxisMoveY));
         LookDelta = new Vector2(Input.GetAxis(AxisLookX), Input.GetAxis(AxisLookY)) * LookSensitivity;
         ScrollDelta = Input.GetAxis(AxisScroll);
+        MousePosition = Input.mousePosition;
         if (ScrollDelta != 0f) OnScroll?.Invoke(ScrollDelta);
 
         FireHeld = Input.GetMouseButton(MouseFire);
