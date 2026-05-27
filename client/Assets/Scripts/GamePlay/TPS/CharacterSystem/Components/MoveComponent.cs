@@ -1,11 +1,11 @@
 using UnityEngine;
 
 /// <summary>
-/// 俯视角第三人称射击移动（纯逻辑组件，不碰 view）：
+/// 俯视角第三人称射击的**水平移动**（纯逻辑组件，不碰 view）：
 ///   - 基坐标：相机水平 forward / right
-///   - 输入直接转 WishVelocity（无加速度平滑）
-///   - 重力贴地，不跳
-///   - 输出 Owner.WishVelocity + AnimMoveX/Y（Walk BlendTree 用）+ AnimSpeedRatio（Sprint BlendTree 用）
+///   - 三档速度（Walk/Sprint/Aim）+ Acceleration 平滑 magnitude
+///   - 只写 Owner.WishVelocity 的 **x/z**，y 由 <see cref="GravityComponent"/> 负责
+///   - 同时写 AnimMoveX/Y（Walk BlendTree）+ AnimSpeedRatio（Sprint BlendTree）+ AnimPlaybackRate
 /// 朝向（Owner.Rotation）由 AimComponent 负责。
 /// </summary>
 public class MoveComponent : ICharacterComponent
@@ -25,12 +25,9 @@ public class MoveComponent : ICharacterComponent
     /// <summary>水平速度加速度 (m/s²)。只平滑 magnitude，方向瞬切——转弯不受影响。
     /// 25 = 0→8 m/s 用 0.32s，slight lerp 体感。</summary>
     public float Acceleration = 25f;
-    public float Gravity = -20f;
-    public float GroundStickVelocity = -2f;
 
     private InputService input;
     private CameraManager cameraMgr;
-    private float verticalVelocity;
     private Vector3 currentHorizontal; // 平滑后的水平速度
 
     public override void Attach(Character owner)
@@ -42,10 +39,14 @@ public class MoveComponent : ICharacterComponent
 
     public override void Detach()
     {
-        // 清自己写过的 Owner 字段，view 离场后停止位移和动画驱动
+        // 清自己写过的 Owner 字段，view 离场后停止位移和动画驱动。
+        // 只清 x/z（y 由 GravityComponent 管），动画字段全清。
         if (Owner != null)
         {
-            Owner.WishVelocity = Vector3.zero;
+            var v = Owner.WishVelocity;
+            v.x = 0f;
+            v.z = 0f;
+            Owner.WishVelocity = v;
             Owner.AnimMoveX = 0f;
             Owner.AnimMoveY = 0f;
             Owner.AnimSpeedRatio = 0f;
@@ -53,7 +54,6 @@ public class MoveComponent : ICharacterComponent
         }
         input = null;
         cameraMgr = null;
-        verticalVelocity = 0f;
         currentHorizontal = Vector3.zero;
         base.Detach();
     }
@@ -96,17 +96,11 @@ public class MoveComponent : ICharacterComponent
             : (curMag > 0.01f ? currentHorizontal / curMag : Vector3.zero);
         currentHorizontal = dir * newMag;
 
-        // 3. 重力
-        if (Owner.IsGrounded)
-        {
-            if (verticalVelocity < 0f) verticalVelocity = GroundStickVelocity;
-        }
-        else
-        {
-            verticalVelocity += Gravity * dt;
-        }
-
-        Owner.WishVelocity = new Vector3(currentHorizontal.x, verticalVelocity, currentHorizontal.z);
+        // 3. 写 x/z 到 WishVelocity，保留 y 不动（y 由 GravityComponent 管）
+        var v = Owner.WishVelocity;
+        v.x = currentHorizontal.x;
+        v.z = currentHorizontal.z;
+        Owner.WishVelocity = v;
 
         // 4. 动画参数（用平滑后的 currentHorizontal，BlendTree 跟随真实速度衰减/爬升）
         //    Walk（瞄准 2D）：localMove / aim 最大速度，全速 = 单位向量

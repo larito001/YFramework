@@ -5,11 +5,14 @@ using UnityEngine;
 /// 创建 Character：new Character + 装组件 + ViewManager 加载 prefab。
 /// 同时按"配方"造 Weapon Actor（数据 + FireComponent 组合），交给 WeaponComponent 持有。
 ///
-/// 组件 Add 顺序（= Tick 顺序）固定为 Aim → Move → Weapon → Melee → Health，原因：
+/// 组件 Add 顺序（= Tick 顺序）固定为 Aim → Move → Weapon → Melee → Gravity → Health，原因：
 ///   - Aim 在 Move 之前：Move 用 Aim 写入的 Rotation 反算 local 动画方向
-///   - Weapon 在 Move 之后：Weapon 在事件回调里设 IsMeleeing，Move 下帧用到
-///   - Melee 在 Move 之后：Melee 在前冲窗内覆写 WishVelocity，Move 在后会抹掉
+///   - Melee 在 Move 之后：Melee 在前冲窗内覆写 WishVelocity.x/z，Move 在后会抹掉
+///   - Gravity 在 Move/Melee 之后：x/z 由前面写完，Gravity 最后一锤定 y
 ///   - Health 顺序无所谓（不 Tick），放最后避免影响其他依赖
+///
+/// Dummy 配方只装 HealthComponent + GravityComponent，靠 Gravity 让 CC 落地，否则 spawn 在 Y=0
+/// 不一定贴着地面（取决于场景地形 / 模型 pivot）。
 /// </summary>
 public class CharacterFactory
 {
@@ -53,6 +56,8 @@ public class CharacterFactory
             ForwardDuration = 2f,   // 配合 SwingDuration=1.2，总位移 ~2.5m
             // HitLayers 默认全开。生产期建议改成只含敌人层。
         });
+        // 重力 + 贴地。写 WishVelocity.y，放在所有写 x/z 的组件之后
+        character.Add(new GravityComponent());
         character.Add(new HealthComponent
         {
             InitialMaxHealth = 100f,
@@ -76,6 +81,8 @@ public class CharacterFactory
     public Character CreateDummy(Vector3 position, float maxHealth = 100f)
     {
         var character = new Character();
+        // 给 Dummy 也装重力，spawn 后会被 Gravity + CC 一起拉到地面，避免悬空或半身埋在地形里
+        character.Add(new GravityComponent());
         character.Add(new HealthComponent
         {
             InitialMaxHealth = maxHealth,
