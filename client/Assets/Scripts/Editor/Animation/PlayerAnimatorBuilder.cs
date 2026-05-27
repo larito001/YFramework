@@ -11,6 +11,7 @@ using UnityEngine;
 ///     MeleeHard / MeleeKick                              近战，AnyState 触发
 ///     IsAiming 切换 Walk ↔ Sprint
 ///     MeleeAttack + MeleeType → AnyState → MeleeHard / MeleeKick
+///     Die + DeathVariant → AnyState → DeathL / DeathR（终态，停在末帧倒地姿势）
 ///   Upper Body Equip Layer：UpperBodyMask + Override，Idle 空 motion ↔ Equipping(EquipRifle)
 ///     切枪只动上半身，下半身继续走/跑
 ///   Upper Body Recoil Layer：UpperBodyMask + Override，Shoot trigger 触发单次 ShootOnce/ShootGrenade（HeavyRecoil 选），
@@ -39,9 +40,13 @@ public static class PlayerAnimatorBuilder
     private const string ParamShoot = "Shoot";
     private const string ParamHeavyRecoil = "HeavyRecoil";
     private const string ParamRecoilSpeed = "RecoilSpeed";
+    private const string ParamDie = "Die";
+    private const string ParamDeathVariant = "DeathVariant";
 
     private const int MeleeTypeHard = 0;
     private const int MeleeTypeKick = 1;
+    private const int DeathVariantL = 0;
+    private const int DeathVariantR = 1;
 
     private const float Diag = 0.70710677f;
 
@@ -75,10 +80,13 @@ public static class PlayerAnimatorBuilder
         var meleeKick = Require(clips, "Rifle_Melee_Kick");
         var equip = Require(clips, "EquipRifle");
         var reload = Require(clips, "Rifle_Reload_2");
+        var deathL = Require(clips, "Rifle_Death_L");
+        var deathR = Require(clips, "Rifle_Death_R");
         if (idle == null || wFwd == null || wBwd == null || wLeft == null || wRight == null ||
             wFwdL == null || wFwdR == null || wBwdL == null || wBwdR == null ||
             idleDown == null || sprintLoop == null ||
-            shootLight == null || shootHeavy == null || meleeHard == null || meleeKick == null || equip == null || reload == null)
+            shootLight == null || shootHeavy == null || meleeHard == null || meleeKick == null ||
+            equip == null || reload == null || deathL == null || deathR == null)
             return;
 
         var mask = AssetDatabase.LoadAssetAtPath<AvatarMask>(UpperBodyMaskPath);
@@ -115,9 +123,11 @@ public static class PlayerAnimatorBuilder
             defaultFloat = 1f,
         };
         controller.AddParameter(recoilSpeedParam);
+        controller.AddParameter(ParamDie, AnimatorControllerParameterType.Trigger);
+        controller.AddParameter(ParamDeathVariant, AnimatorControllerParameterType.Int);
 
         BuildBaseLayer(controller, idle, wFwd, wBwd, wLeft, wRight, wFwdL, wFwdR, wBwdL, wBwdR,
-            idleDown, sprintLoop, meleeHard, meleeKick);
+            idleDown, sprintLoop, meleeHard, meleeKick, deathL, deathR);
         BuildEquipLayer(controller, equip, mask);
         BuildRecoilLayer(controller, shootLight, shootHeavy, mask);
         BuildReloadLayer(controller, reload, mask);
@@ -164,7 +174,8 @@ public static class PlayerAnimatorBuilder
         AnimationClip idle, AnimationClip wFwd, AnimationClip wBwd, AnimationClip wLeft, AnimationClip wRight,
         AnimationClip wFwdL, AnimationClip wFwdR, AnimationClip wBwdL, AnimationClip wBwdR,
         AnimationClip idleDown, AnimationClip sprintLoop,
-        AnimationClip meleeHard, AnimationClip meleeKick)
+        AnimationClip meleeHard, AnimationClip meleeKick,
+        AnimationClip deathL, AnimationClip deathR)
     {
         var sm = controller.layers[0].stateMachine;
 
@@ -237,6 +248,20 @@ public static class PlayerAnimatorBuilder
             (AnimatorConditionMode.Equals, MeleeTypeKick, ParamMeleeType));
         AddReturnToLocomotion(hard, walk, sprint);
         AddReturnToLocomotion(kick, walk, sprint);
+
+        // ── 死亡（终态）──
+        // HealthComponent 在 CurHealth<=0 时随机置 DeathVariant=0/1 + Die trigger，
+        // AnyState 转移按 DeathVariant 分流到 DeathL / DeathR。两个状态都没有出向转移：
+        // 非循环 clip 播完会停在末帧（倒地姿势），character 维持在死亡状态。
+        var dL = sm.AddState("DeathL", new Vector3(560, 220, 0));
+        dL.motion = deathL;
+        var dR = sm.AddState("DeathR", new Vector3(560, 320, 0));
+        dR.motion = deathR;
+
+        AddAnyStateTransition(sm, dL, ParamDie,
+            (AnimatorConditionMode.Equals, DeathVariantL, ParamDeathVariant));
+        AddAnyStateTransition(sm, dR, ParamDie,
+            (AnimatorConditionMode.Equals, DeathVariantR, ParamDeathVariant));
     }
 
     /// 上半身切枪层（Override + UpperBodyMask）：Idle 空 motion 让下半身和 Base 的上半身原样透出，

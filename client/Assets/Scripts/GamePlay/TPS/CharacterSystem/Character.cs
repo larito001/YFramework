@@ -56,6 +56,12 @@ public class Character : Actor
     /// <summary>射击一次性 trigger：FireComponent 每次成功开火 → WeaponComponent 镜像写入 → view 消费 SetTrigger("Shoot") 后清回。
     /// 用于驱动 Recoil 层的 ShootLight/ShootHeavy 单次动画（每发重新播放，节奏跟随实际开火）。</summary>
     public bool Shoot;
+
+    /// <summary>死亡一次性 trigger：HealthComponent 在 CurHealth&lt;=0 时置 true（和 IsDead 同帧），
+    /// view 消费 SetTrigger("Die") 后清回，由 DeathVariant 选择具体动画。</summary>
+    public bool Die;
+    /// <summary>死亡动画变体：HealthComponent 在置 Die 时随机选（0=DeathL，1=DeathR），view 写到 Animator Int。</summary>
+    public int DeathVariant;
     /// <summary>当前装备武器是否用大后坐力动画。WeaponComponent 在 Equip 时从 currentWeapon.HeavyRecoil 写入。</summary>
     public bool HeavyRecoil;
     /// <summary>后坐力动画播放速度倍率。WeaponComponent 在 Equip 时从 currentWeapon.RecoilAnimSpeed 写入，

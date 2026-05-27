@@ -85,6 +85,19 @@ public class WeaponComponent : ICharacterComponent
     public override void Tick(float dt)
     {
         if (input == null || Owner == null) return;
+        // 死亡时立刻清掉换弹/射击连续态，让 Recoil/Reload 上半身层有条件退回 Idle，
+        // 避免倒地动画播的同时上半身还在做换弹/后坐力动作
+        if (Owner.IsDead)
+        {
+            if (Owner.IsReloading)
+            {
+                reloadTimer = 0f;
+                if (currentWeapon != null) currentWeapon.IsReloading = false;
+                Owner.IsReloading = false;
+            }
+            Owner.IsShooting = false;
+            return;
+        }
 
         // 换弹倒计时：只对 currentWeapon 跑。到点回填弹匣 + 清状态。
         if (reloadTimer > 0f)

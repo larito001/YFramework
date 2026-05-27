@@ -53,7 +53,10 @@ public class HealthComponent : ICharacterComponent
         if (Owner.CurHealth <= 0f && !Owner.IsDead)
         {
             Owner.IsDead = true;
-            Debug.Log($"[Health] actor={Owner.ID} died by {attackerId}");
+            // 死亡动画 trigger + 随机变体（0=DeathL，1=DeathR）。和 IsDead 同帧写出，view 下一次 LateUpdate 消费。
+            Owner.DeathVariant = UnityEngine.Random.Range(0, 2);
+            Owner.Die = true;
+            Debug.Log($"[Health] actor={Owner.ID} died by {attackerId} (variant={Owner.DeathVariant})");
             OnDied?.Invoke(attackerId);
         }
     }

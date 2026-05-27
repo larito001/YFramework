@@ -46,6 +46,8 @@ public class CharacterView : BaseView
     private static readonly int HashShoot = Animator.StringToHash("Shoot");
     private static readonly int HashHeavyRecoil = Animator.StringToHash("HeavyRecoil");
     private static readonly int HashRecoilSpeed = Animator.StringToHash("RecoilSpeed");
+    private static readonly int HashDie = Animator.StringToHash("Die");
+    private static readonly int HashDeathVariant = Animator.StringToHash("DeathVariant");
 
     private void Awake()
     {
@@ -166,6 +168,13 @@ public class CharacterView : BaseView
             {
                 Anim.SetTrigger(HashShoot);
                 character.Shoot = false;
+            }
+            // 死亡：DeathVariant 在 SetTrigger 前写好，AnyState 转移用变体条件分流到 DeathL / DeathR
+            if (character.Die)
+            {
+                Anim.SetInteger(HashDeathVariant, character.DeathVariant);
+                Anim.SetTrigger(HashDie);
+                character.Die = false;
             }
         }
 

@@ -61,6 +61,16 @@ public class MoveComponent : ICharacterComponent
     public override void Tick(float dt)
     {
         if (input == null || Owner == null) return;
+        // 死亡时停止任何水平/动画意图写入，让角色定在死亡位置播倒地动画，不被 WASD 滑动
+        if (Owner.IsDead)
+        {
+            Owner.WishVelocity = Vector3.zero;
+            Owner.AnimMoveX = 0f;
+            Owner.AnimMoveY = 0f;
+            Owner.AnimSpeedRatio = 0f;
+            Owner.AnimPlaybackRate = 1f;
+            return;
+        }
 
         // 1. WASD → 期望水平速度（相机基坐标）
         // 近战中锁水平位移：wishHorizontal=0，重力仍照常，currentHorizontal 自然衰减
