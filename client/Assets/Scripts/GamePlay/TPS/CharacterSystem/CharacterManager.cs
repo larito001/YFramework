@@ -7,8 +7,9 @@ public class CharacterManager : ViewManager
     CharacterFactory factory;
     List<Character> characters;
 
-    public void Init(GameContext ctx)
+    public override void Init(GameContext ctx)
     {
+        base.Init(ctx);
         base.Init(ctx);
         factory = new CharacterFactory();
         factory.BindViewManager(this);

@@ -10,8 +10,7 @@ public class GameMainScene : YSceneBase
     protected override void OnLoadingEnd()
     {
         base.OnLoadingEnd();
-        var manager = Context.Get<CharacterManager>();
-        manager.GenneratePlayer();
+ 
     }
 
     protected override void OnEnterScene()

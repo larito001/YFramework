@@ -18,7 +18,9 @@ public class GameStartScene : YSceneBase
     protected override void OnLoadingEnd()
     {
         base.OnLoadingEnd();
-        UI.Hide<StartPanel>();
+        UI.Hide<StartPanel>();      
+        var manager = Context.Get<CharacterManager>();
+        manager.GenneratePlayer();
     }
 
     protected override void OnEnterScene()
