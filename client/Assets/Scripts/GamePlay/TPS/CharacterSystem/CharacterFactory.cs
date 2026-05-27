@@ -4,7 +4,12 @@ using UnityEngine;
 /// <summary>
 /// 创建 Character：new Character + 装组件 + ViewManager 加载 prefab。
 /// 同时按"配方"造 Weapon Actor（数据 + FireComponent 组合），交给 WeaponComponent 持有。
-/// 组件 Tick 顺序按 Add 顺序：Aim 在 Move 之前（Move 反算 local 动画依赖 Aim 写入的 Rotation）。
+///
+/// 组件 Add 顺序（= Tick 顺序）固定为 Aim → Move → Weapon → Melee → Health，原因：
+///   - Aim 在 Move 之前：Move 用 Aim 写入的 Rotation 反算 local 动画方向
+///   - Weapon 在 Move 之后：Weapon 在事件回调里设 IsMeleeing，Move 下帧用到
+///   - Melee 在 Move 之后：Melee 在前冲窗内覆写 WishVelocity，Move 在后会抹掉
+///   - Health 顺序无所谓（不 Tick），放最后避免影响其他依赖
 /// </summary>
 public class CharacterFactory
 {
@@ -31,6 +36,26 @@ public class CharacterFactory
                 // 弹道立刻变成贝塞尔曲线导弹，点哪飞哪。这就是组件替换的典型用法。
                 BuildMissileLauncher(),
             },
+        });
+        // 近战自包含：V 键订阅 / swing 时长 / 命中窗 / 前冲 / hitbox 都在这里。
+        // 默认 hitbox 是球，前方 0.8m 半径 1m，命中窗 0.25-0.55s 内做 OverlapSphere。
+        character.Add(new MeleeComponent
+        {
+            MeleeType = 0,          // 0=Hard 枪托砸，1=Kick 前踢
+            SwingDuration = 1.2f,
+            HitStartTime = 0.25f,
+            HitEndTime = 0.55f,
+            HitRadius = 1.0f,
+            HitForwardOffset = 0.8f,
+            HitHeight = 1.0f,
+            Damage = 30f,
+            ForwardSpeed = 3f,
+            ForwardDuration = 2f,   // 配合 SwingDuration=1.2，总位移 ~2.5m
+            // HitLayers 默认全开。生产期建议改成只含敌人层。
+        });
+        character.Add(new HealthComponent
+        {
+            InitialMaxHealth = 100f,
         });
         manager.LoadBaseView<CharacterView>("Player/Player", character);
         return character;

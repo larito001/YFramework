@@ -17,6 +17,14 @@ public class Character : Actor
     public Vector3 Position;
     public bool IsGrounded;
 
+    // ── 生命值（HealthComponent 写，UI / 死亡逻辑读）──
+    /// <summary>最大生命值。HealthComponent.Attach 时从配置写入；后续可被增益/装备改动。</summary>
+    public float MaxHealth = 100f;
+    /// <summary>当前生命值，HealthComponent.ApplyDamage / Heal 修改。</summary>
+    public float CurHealth = 100f;
+    /// <summary>死亡标志位。HealthComponent 在 CurHealth&lt;=0 时置 true；其他组件按需 Tick 头部早退。</summary>
+    public bool IsDead;
+
     // ── 意图（组件写，view 读取/应用） ──
     public Quaternion Rotation = Quaternion.identity;
     public Vector3 WishVelocity;
