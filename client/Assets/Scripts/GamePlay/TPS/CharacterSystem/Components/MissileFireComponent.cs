@@ -25,18 +25,25 @@ public class MissileFireComponent : IWeaponComponent
     public float ArcHeight = 4f;
     /// <summary>子弹寿命兜底（秒）。一般用 FlightDuration + 余量，超过时间强制 Despawn 防止永驻。</summary>
     public float LifetimeSlack = 0.5f;
+    /// <summary>每发开火的相机抖动强度。0 = 不抖（默认，给 NPC 武器用）；导弹这种大武器可调到 0.25~0.4。</summary>
+    public float RecoilShakeIntensity = 0f;
+    /// <summary>每发开火的相机抖动衰减时长（秒）。导弹之类的大震一般 0.15~0.25。</summary>
+    public float RecoilShakeDuration = 0.15f;
 
     private float cooldown;
     private BulletManager bulletMgr;
+    private CameraManager cameraMgr;
 
     public override void Attach(Weapon owner)
     {
         Ctx?.TryGet(out bulletMgr);
+        Ctx?.TryGet(out cameraMgr);
     }
 
     public override void Detach()
     {
         bulletMgr = null;
+        cameraMgr = null;
         cooldown = 0f;
         base.Detach();
     }
@@ -66,5 +73,8 @@ public class MissileFireComponent : IWeaponComponent
             End = p3,
             Duration = FlightDuration,
         });
+
+        if (RecoilShakeIntensity > 0f && cameraMgr?.Shake != null)
+            cameraMgr.Shake.Shake(RecoilShakeDuration, RecoilShakeIntensity);
     }
 }

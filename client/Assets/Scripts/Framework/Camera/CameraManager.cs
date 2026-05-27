@@ -46,6 +46,7 @@ public class CameraManager : IGameService, ITickable
     }
 
     private SceneReferenceService sceneReferenceService;
+    private Vector3 baseFollowPosition; // 跟随平滑出的"基准位置"，不含 Shake 偏移
 
     public CameraManager()
     {
@@ -89,7 +90,8 @@ public class CameraManager : IGameService, ITickable
         var t = Rig != null ? Rig.Transform : null;
         if (target != null && t != null)
         {
-            t.position = target.position + FollowOffset;
+            baseFollowPosition = target.position + FollowOffset;
+            t.position = baseFollowPosition;
             t.LookAt(target.position, Vector3.up);
         }
     }
@@ -103,8 +105,28 @@ public class CameraManager : IGameService, ITickable
 
         var desired = FollowTarget.position + FollowOffset;
         var k = 1f - Mathf.Exp(-FollowSmoothing * dt); // 指数平滑，与帧率无关
-        t.position = Vector3.Lerp(t.position, desired, k);
+        baseFollowPosition = Vector3.Lerp(baseFollowPosition, desired, k);
+
+        // 1. 先用未抖动的 base 位置确定朝向：LookAt 看角色 → 朝向稳定，不会绕角色旋转
+        t.position = baseFollowPosition;
         t.LookAt(FollowTarget.position, Vector3.up);
+
+        // 2. 再沿相机水平 right 方向叠加 1D 抖动偏移。
+        //    只动位置不动 rotation，且只在水平面（y=0），所以视觉是相机左右"滑动"，不是绕角色旋转。
+        //    取 Shake.CurrentOffset.x 作 1D 振幅（符号已经是 random ±intensity，自带方向）。
+        if (Shake != null)
+        {
+            float horizontal = Shake.CurrentOffset.x;
+            if (horizontal != 0f)
+            {
+                var right = t.right; right.y = 0f;
+                if (right.sqrMagnitude > 1e-4f)
+                {
+                    right.Normalize();
+                    t.position = baseFollowPosition + right * horizontal;
+                }
+            }
+        }
     }
 
     public void Shutdown()

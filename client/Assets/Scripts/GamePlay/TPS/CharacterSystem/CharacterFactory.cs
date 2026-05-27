@@ -124,7 +124,8 @@ public class CharacterFactory
         };
         w.Add(new ProjectileFireComponent
         {
-            FireInterval = 0.1f, Damage = 25f, BulletSpeed = 80f, BulletLifetime = 2f
+            FireInterval = 0.1f, Damage = 25f, BulletSpeed = 80f, BulletLifetime = 2f,
+            RecoilShakeIntensity = 0.08f, RecoilShakeDuration = 0.06f,  // 全自动小抖
         });
         return w;
     }
@@ -141,7 +142,8 @@ public class CharacterFactory
         };
         w.Add(new ProjectileFireComponent
         {
-            FireInterval = 0.3f, Damage = 40f, BulletSpeed = 60f, BulletLifetime = 2f
+            FireInterval = 0.3f, Damage = 40f, BulletSpeed = 60f, BulletLifetime = 2f,
+            RecoilShakeIntensity = 0.18f, RecoilShakeDuration = 0.12f,  // 半自动单发大抖
         });
         return w;
     }
@@ -164,6 +166,7 @@ public class CharacterFactory
             FlightDuration = 1.0f,
             ForwardPushDist = 2f,
             ArcHeight = 4f,
+            RecoilShakeIntensity = 0.35f, RecoilShakeDuration = 0.2f,  // 重武器大震
         });
         return w;
     }

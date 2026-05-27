@@ -18,18 +18,25 @@ public class HitscanFireComponent : IWeaponComponent
     public LayerMask HitLayers = ~0;
     /// <summary>Debug 线显示时长（秒）。</summary>
     public float DebugDrawSeconds = 0.1f;
+    /// <summary>每发开火的相机抖动强度。0 = 不抖（默认，给 NPC 武器用）；玩家武器一般 0.1~0.2。</summary>
+    public float RecoilShakeIntensity = 0f;
+    /// <summary>每发开火的相机抖动衰减时长（秒）。</summary>
+    public float RecoilShakeDuration = 0.08f;
 
     private float cooldown;
     private ActorWorld world;
+    private CameraManager cameraMgr;
 
     public override void Attach(Weapon owner)
     {
         Ctx?.TryGet(out world);
+        Ctx?.TryGet(out cameraMgr);
     }
 
     public override void Detach()
     {
         world = null;
+        cameraMgr = null;
         cooldown = 0f;
         base.Detach();
     }
@@ -53,5 +60,8 @@ public class HitscanFireComponent : IWeaponComponent
         {
             Debug.DrawRay(Owner.FireOrigin, Owner.FireDirection * Range, Color.yellow, DebugDrawSeconds);
         }
+
+        if (RecoilShakeIntensity > 0f && cameraMgr?.Shake != null)
+            cameraMgr.Shake.Shake(RecoilShakeDuration, RecoilShakeIntensity);
     }
 }
