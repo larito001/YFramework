@@ -124,6 +124,8 @@ public class CharacterFactory
             MagCapacity = 30,
             CurrentAmmo = 30,
             ReloadDuration = 1.5f,
+            HeavyRecoil = false,        // 小后坐力：ShootOnce
+            RecoilAnimSpeed = 3.5f,     // 0.1s FireInterval，clip ~0.35s，加速到 ~0.1s 播完
         };
         w.Add(new ProjectileFireComponent
         {
@@ -145,6 +147,8 @@ public class CharacterFactory
             MagCapacity = 12,
             CurrentAmmo = 12,
             ReloadDuration = 1.0f,
+            HeavyRecoil = false,        // 小后坐力：ShootOnce
+            RecoilAnimSpeed = 1.2f,     // 0.3s FireInterval，clip ~0.35s，略加速
         };
         w.Add(new ProjectileFireComponent
         {
@@ -167,6 +171,8 @@ public class CharacterFactory
             MagCapacity = 4,
             CurrentAmmo = 4,
             ReloadDuration = 2.5f,
+            HeavyRecoil = true,         // 大后坐力：ShootGrenade
+            RecoilAnimSpeed = 1.0f,     // 0.6s FireInterval > clip 长度，原速即可
         };
         w.Add(new MissileFireComponent
         {

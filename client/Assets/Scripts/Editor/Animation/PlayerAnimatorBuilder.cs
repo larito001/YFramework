@@ -13,7 +13,8 @@ using UnityEngine;
 ///     MeleeAttack + MeleeType → AnyState → MeleeHard / MeleeKick
 ///   Upper Body Equip Layer：UpperBodyMask + Override，Idle 空 motion ↔ Equipping(EquipRifle)
 ///     切枪只动上半身，下半身继续走/跑
-///   Upper Body Recoil Layer：UpperBodyMask + Additive，IsShooting=true 切到 ShootLoop_Additive
+///   Upper Body Recoil Layer：UpperBodyMask + Override，Shoot trigger 触发单次 ShootOnce/ShootGrenade（HeavyRecoil 选），
+///     RecoilSpeed 驱动 state.speed 让单发在 FireInterval 内播完，canSelf=true 让连发每发重播
 ///   Upper Body Reload Layer：UpperBodyMask + Override，Reload trigger 切到 Reloading，IsReloading=false 回 Idle
 public static class PlayerAnimatorBuilder
 {
@@ -35,6 +36,9 @@ public static class PlayerAnimatorBuilder
     private const string ParamWeaponSwap = "WeaponSwap";
     private const string ParamReload = "Reload";
     private const string ParamIsReloading = "IsReloading";
+    private const string ParamShoot = "Shoot";
+    private const string ParamHeavyRecoil = "HeavyRecoil";
+    private const string ParamRecoilSpeed = "RecoilSpeed";
 
     private const int MeleeTypeHard = 0;
     private const int MeleeTypeKick = 1;
@@ -65,7 +69,8 @@ public static class PlayerAnimatorBuilder
         var idleDown = Require(clips, "Rifle_Idle_GunDown");
         var sprintLoop = Require(clips, "Rifle_SprintLoop");
         // 其他
-        var shootAdd = Require(clips, "Rifle_ShootLoop_Additive");
+        var shootLight = Require(clips, "Rifle_ShootOnce");      // 单次轻后坐力，全自动 / 半自动通用
+        var shootHeavy = Require(clips, "Rifle_ShootGrenade");   // 单次重后坐力，导弹/榴弹之类
         var meleeHard = Require(clips, "Rifle_Melee_Hard");
         var meleeKick = Require(clips, "Rifle_Melee_Kick");
         var equip = Require(clips, "EquipRifle");
@@ -73,7 +78,7 @@ public static class PlayerAnimatorBuilder
         if (idle == null || wFwd == null || wBwd == null || wLeft == null || wRight == null ||
             wFwdL == null || wFwdR == null || wBwdL == null || wBwdR == null ||
             idleDown == null || sprintLoop == null ||
-            shootAdd == null || meleeHard == null || meleeKick == null || equip == null || reload == null)
+            shootLight == null || shootHeavy == null || meleeHard == null || meleeKick == null || equip == null || reload == null)
             return;
 
         var mask = AssetDatabase.LoadAssetAtPath<AvatarMask>(UpperBodyMaskPath);
@@ -100,11 +105,21 @@ public static class PlayerAnimatorBuilder
         controller.AddParameter(ParamWeaponSwap, AnimatorControllerParameterType.Trigger);
         controller.AddParameter(ParamReload, AnimatorControllerParameterType.Trigger);
         controller.AddParameter(ParamIsReloading, AnimatorControllerParameterType.Bool);
+        controller.AddParameter(ParamShoot, AnimatorControllerParameterType.Trigger);
+        controller.AddParameter(ParamHeavyRecoil, AnimatorControllerParameterType.Bool);
+        // RecoilSpeed 默认 1：未由 view 写过时 Recoil 状态以原始速度播放，不卡帧
+        var recoilSpeedParam = new AnimatorControllerParameter
+        {
+            name = ParamRecoilSpeed,
+            type = AnimatorControllerParameterType.Float,
+            defaultFloat = 1f,
+        };
+        controller.AddParameter(recoilSpeedParam);
 
         BuildBaseLayer(controller, idle, wFwd, wBwd, wLeft, wRight, wFwdL, wFwdR, wBwdL, wBwdR,
             idleDown, sprintLoop, meleeHard, meleeKick);
         BuildEquipLayer(controller, equip, mask);
-        BuildRecoilLayer(controller, shootAdd, mask);
+        BuildRecoilLayer(controller, shootLight, shootHeavy, mask);
         BuildReloadLayer(controller, reload, mask);
 
         EditorUtility.SetDirty(controller);
@@ -344,7 +359,15 @@ public static class PlayerAnimatorBuilder
         controller.AddLayer(layer);
     }
 
-    private static void BuildRecoilLayer(AnimatorController controller, AnimationClip shootAdd, AvatarMask mask)
+    /// 上半身后坐力层（Override + UpperBodyMask）：每次开火 FireComponent 发 Shoot trigger，
+    /// 由 HeavyRecoil 选择 ShootLight(Rifle_ShootOnce) / ShootHeavy(Rifle_ShootGrenade)。
+    /// 用 Override 而非 Additive：ShootOnce/ShootGrenade 是绝对姿势（不是 _Additive 那种 delta clip），
+    /// 走 Additive 会把整段动画 delta 叠到 Base 上，姿势会扭曲。Override + 上半身 Mask 直接把上半身切到 recoil 姿势，
+    /// Idle 状态 motion=null 时不 override，Base 的瞄准姿势透出。
+    /// 状态用 RecoilSpeed Float 驱动 speed，让单次动画在 FireInterval 内播完。
+    /// canTransitionToSelf=true 让连续开火每发都从头重播动画（节奏跟随实际射速）。
+    private static void BuildRecoilLayer(AnimatorController controller,
+        AnimationClip shootLight, AnimationClip shootHeavy, AvatarMask mask)
     {
         var sm = new AnimatorStateMachine
         {
@@ -354,27 +377,52 @@ public static class PlayerAnimatorBuilder
         AssetDatabase.AddObjectToAsset(sm, controller);
 
         var idle = sm.AddState("Idle", new Vector3(260, 120, 0));
+        // motion=null：Additive 层下空 motion 不叠加任何骨骼偏移
 
-        var recoil = sm.AddState("Recoil", new Vector3(460, 120, 0));
-        recoil.motion = shootAdd;
+        var light = sm.AddState("ShootLight", new Vector3(460, 60, 0));
+        light.motion = shootLight;
+        light.speedParameterActive = true;
+        light.speedParameter = ParamRecoilSpeed;
+
+        var heavy = sm.AddState("ShootHeavy", new Vector3(460, 180, 0));
+        heavy.motion = shootHeavy;
+        heavy.speedParameterActive = true;
+        heavy.speedParameter = ParamRecoilSpeed;
 
         sm.defaultState = idle;
 
-        var toRecoil = idle.AddTransition(recoil);
-        toRecoil.hasExitTime = false;
-        toRecoil.duration = 0.05f;
-        toRecoil.AddCondition(AnimatorConditionMode.If, 0f, ParamIsShooting);
+        // AnyState → ShootLight：Shoot trigger + HeavyRecoil=false，canSelf=true 让每发重播
+        var toLight = sm.AddAnyStateTransition(light);
+        toLight.hasExitTime = false;
+        toLight.duration = 0.02f;
+        toLight.canTransitionToSelf = true;
+        toLight.AddCondition(AnimatorConditionMode.If, 0f, ParamShoot);
+        toLight.AddCondition(AnimatorConditionMode.IfNot, 0f, ParamHeavyRecoil);
 
-        var toIdle = recoil.AddTransition(idle);
-        toIdle.hasExitTime = false;
-        toIdle.duration = 0.15f;
-        toIdle.AddCondition(AnimatorConditionMode.IfNot, 0f, ParamIsShooting);
+        // AnyState → ShootHeavy：Shoot trigger + HeavyRecoil=true，canSelf=true
+        var toHeavy = sm.AddAnyStateTransition(heavy);
+        toHeavy.hasExitTime = false;
+        toHeavy.duration = 0.02f;
+        toHeavy.canTransitionToSelf = true;
+        toHeavy.AddCondition(AnimatorConditionMode.If, 0f, ParamShoot);
+        toHeavy.AddCondition(AnimatorConditionMode.If, 0f, ParamHeavyRecoil);
+
+        // 单次动画播完回 Idle（用 exit time，因为 ShootEvent 已经是脉冲，没有 IsShooting 持续态可读）
+        var lightToIdle = light.AddTransition(idle);
+        lightToIdle.hasExitTime = true;
+        lightToIdle.exitTime = 0.9f;
+        lightToIdle.duration = 0.1f;
+
+        var heavyToIdle = heavy.AddTransition(idle);
+        heavyToIdle.hasExitTime = true;
+        heavyToIdle.exitTime = 0.9f;
+        heavyToIdle.duration = 0.1f;
 
         var layer = new AnimatorControllerLayer
         {
             name = "Upper Body Recoil",
             defaultWeight = 1f,
-            blendingMode = AnimatorLayerBlendingMode.Additive,
+            blendingMode = AnimatorLayerBlendingMode.Override,
             avatarMask = mask,
             stateMachine = sm,
         };

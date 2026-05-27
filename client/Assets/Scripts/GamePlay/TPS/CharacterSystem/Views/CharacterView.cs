@@ -43,6 +43,9 @@ public class CharacterView : BaseView
     private static readonly int HashWeaponSwap = Animator.StringToHash("WeaponSwap");
     private static readonly int HashReload = Animator.StringToHash("Reload");
     private static readonly int HashIsReloading = Animator.StringToHash("IsReloading");
+    private static readonly int HashShoot = Animator.StringToHash("Shoot");
+    private static readonly int HashHeavyRecoil = Animator.StringToHash("HeavyRecoil");
+    private static readonly int HashRecoilSpeed = Animator.StringToHash("RecoilSpeed");
 
     private void Awake()
     {
@@ -155,6 +158,14 @@ public class CharacterView : BaseView
             {
                 Anim.SetTrigger(HashReload);
                 character.Reload = false;
+            }
+            // Recoil 层：HeavyRecoil 选 ShootLight / ShootHeavy；RecoilSpeed 让单次动画在 FireInterval 内播完
+            Anim.SetBool(HashHeavyRecoil, character.HeavyRecoil);
+            Anim.SetFloat(HashRecoilSpeed, character.RecoilAnimSpeed);
+            if (character.Shoot)
+            {
+                Anim.SetTrigger(HashShoot);
+                character.Shoot = false;
             }
         }
 

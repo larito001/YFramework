@@ -53,6 +53,15 @@ public class Character : Actor
     /// <summary>换弹一次性 trigger：IsReloading 上升沿时 WeaponComponent 置 true，view 消费 SetTrigger("Reload") 后清回。</summary>
     public bool Reload;
 
+    /// <summary>射击一次性 trigger：FireComponent 每次成功开火 → WeaponComponent 镜像写入 → view 消费 SetTrigger("Shoot") 后清回。
+    /// 用于驱动 Recoil 层的 ShootLight/ShootHeavy 单次动画（每发重新播放，节奏跟随实际开火）。</summary>
+    public bool Shoot;
+    /// <summary>当前装备武器是否用大后坐力动画。WeaponComponent 在 Equip 时从 currentWeapon.HeavyRecoil 写入。</summary>
+    public bool HeavyRecoil;
+    /// <summary>后坐力动画播放速度倍率。WeaponComponent 在 Equip 时从 currentWeapon.RecoilAnimSpeed 写入，
+    /// view 写到 Animator Float 参数 RecoilSpeed，Recoil 层的 Shoot 状态 speedParameter 引用它。</summary>
+    public float RecoilAnimSpeed = 1f;
+
     /// <summary>瞄准点世界坐标。AimComponent 写入，射击/UI 用它做命中检测、画准星等。</summary>
     public Vector3 AimTargetWorldPos;
 

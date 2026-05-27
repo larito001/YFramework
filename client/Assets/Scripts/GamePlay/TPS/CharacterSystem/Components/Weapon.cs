@@ -41,4 +41,14 @@ public class Weapon : Actor
     public float ReloadDuration = 1.5f;
     /// <summary>换弹进行中。WeaponComponent 唯一 writer；FireComponent 当作"禁火"读。</summary>
     public bool IsReloading;
+
+    // ── 后坐力动画 ──
+    /// <summary>是否用大后坐力动画（Rifle_ShootGrenade）。false=小后坐力(Rifle_ShootOnce)。</summary>
+    public bool HeavyRecoil;
+    /// <summary>后坐力动画播放速度倍率（Animator state.speed via RecoilSpeed param）。
+    /// 应配成 clipDuration / FireInterval 量级，让单次动画能在两次开火之间播完。</summary>
+    public float RecoilAnimSpeed = 1f;
+    /// <summary>一次性 trigger：FireComponent 在一次成功射击后置 true，
+    /// WeaponComponent 消费并清回，转写到 Owner.Shoot 喂动画 trigger。</summary>
+    public bool ShootEvent;
 }

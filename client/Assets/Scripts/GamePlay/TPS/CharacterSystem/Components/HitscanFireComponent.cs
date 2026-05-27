@@ -51,6 +51,7 @@ public class HitscanFireComponent : IWeaponComponent
 
         cooldown = FireInterval;
         if (Owner.MagCapacity > 0) Owner.CurrentAmmo--;
+        Owner.ShootEvent = true; // 喂 WeaponComponent，下一帧转写 Owner(Character).Shoot 给 view SetTrigger
 
         if (Physics.Raycast(Owner.FireOrigin, Owner.FireDirection, out var hit, Range, HitLayers))
         {

@@ -59,6 +59,7 @@ public class MissileFireComponent : IWeaponComponent
 
         cooldown = FireInterval;
         if (Owner.MagCapacity > 0) Owner.CurrentAmmo--;
+        Owner.ShootEvent = true; // 喂 WeaponComponent，下一帧转写 Owner(Character).Shoot 给 view SetTrigger
 
         // 控制点：P0=枪口、P1=朝前推、P2=目标上方、P3=目标点
         var p0 = Owner.FireOrigin;

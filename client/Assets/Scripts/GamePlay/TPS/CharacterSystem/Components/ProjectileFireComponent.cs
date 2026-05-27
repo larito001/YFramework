@@ -54,6 +54,7 @@ public class ProjectileFireComponent : IWeaponComponent
         if (Owner.MagCapacity > 0) Owner.CurrentAmmo--;
         var velocity = Owner.FireDirection * BulletSpeed;
         bulletMgr.Spawn(Owner.FireOrigin, velocity, BulletLifetime, Damage, Owner.OwnerCharacterId);
+        Owner.ShootEvent = true; // 喂 WeaponComponent，下一帧转写 Owner(Character).Shoot 给 view SetTrigger
 
         if (RecoilShakeIntensity > 0f && cameraMgr?.Shake != null)
             cameraMgr.Shake.Shake(RecoilShakeDuration, RecoilShakeIntensity);

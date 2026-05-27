@@ -14,7 +14,7 @@ using UnityEngine;
 /// 不写入也不清除近战字段。
 ///
 /// 字段写入：FireOrigin / FireDirection / FireTarget / FireIntent / IsReloading / CurrentAmmo → currentWeapon。
-/// IsShooting / IsSwapping / WeaponSwap / CurrentWeaponSlot / IsReloading / Reload → Owner。
+/// IsShooting / IsSwapping / WeaponSwap / CurrentWeaponSlot / IsReloading / Reload / Shoot / HeavyRecoil / RecoilAnimSpeed → Owner。
 /// </summary>
 public class WeaponComponent : ICharacterComponent
 {
@@ -72,6 +72,7 @@ public class WeaponComponent : ICharacterComponent
             Owner.WeaponSwap = false;
             Owner.IsReloading = false;
             Owner.Reload = false;
+            Owner.Shoot = false;
         }
         currentWeapon = null;
         input = null;
@@ -101,8 +102,16 @@ public class WeaponComponent : ICharacterComponent
             }
         }
 
-        // 开火条件：瞄准 + 没在切枪 + 没在近战 + 没在换弹 + 没死
-        Owner.IsShooting = input.FireHeld && Owner.IsAiming && !Owner.IsSwapping && !Owner.IsMeleeing && !Owner.IsReloading && !Owner.IsDead;
+        // 开火条件：瞄准 + 没在切枪 + 没在近战 + 没在换弹 + 没死 + 有弹（MagCapacity=0 是无限弹药武器，跳过弹药门控）
+        bool hasAmmo = currentWeapon == null || currentWeapon.MagCapacity <= 0 || currentWeapon.CurrentAmmo > 0;
+        Owner.IsShooting = input.FireHeld && Owner.IsAiming && !Owner.IsSwapping && !Owner.IsMeleeing && !Owner.IsReloading && !Owner.IsDead && hasAmmo;
+
+        // 射击一次性 trigger 镜像：FireComponent 每发射成功置 ShootEvent，view 端 SetTrigger("Shoot") 重启 Recoil 动画
+        if (currentWeapon != null && currentWeapon.ShootEvent)
+        {
+            currentWeapon.ShootEvent = false;
+            Owner.Shoot = true;
+        }
 
         // 当前武器的开火意图 + 弹道源：FireComponent 自己消费（射速/弹夹/扩散在子组件里再叠）
         // origin 沿角色朝前推 0.6m + 枪口高度（避开自己的 CharacterController capsule）
@@ -153,6 +162,13 @@ public class WeaponComponent : ICharacterComponent
             if (w != null) weaponMgr.Mount(w, Owner, SocketName);
         }
         currentWeapon = w;
+
+        // 把新武器的后坐力动画参数推给 Owner，view 每帧 SetBool/SetFloat 给 Animator
+        if (currentWeapon != null)
+        {
+            Owner.HeavyRecoil = currentWeapon.HeavyRecoil;
+            Owner.RecoilAnimSpeed = currentWeapon.RecoilAnimSpeed;
+        }
 
         if (playAnim && slotChanged)
         {
