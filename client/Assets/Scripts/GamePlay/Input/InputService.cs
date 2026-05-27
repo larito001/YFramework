@@ -43,6 +43,9 @@ public class InputService : IGameService, ITickable
     public event Action OnJumpDown;
     public event Action OnReloadDown;
     public event Action OnInteractDown;
+    public event Action OnMeleeDown;
+    /// <summary>数字键 1~9 选择武器槽位，参数为 slot 索引（0..8）。</summary>
+    public event Action<int> OnWeaponSelect;
     public event Action<float> OnScroll;
 
     // 按键绑定：后续接 Settings/Remap 时把这些挪到配置层
@@ -60,6 +63,8 @@ public class InputService : IGameService, ITickable
     private const KeyCode KeyJump = KeyCode.Space;
     private const KeyCode KeyReload = KeyCode.R;
     private const KeyCode KeyInteract = KeyCode.E;
+    private const KeyCode KeyMelee = KeyCode.V;
+    private const int WeaponSlotCount = 9;
 
     public void Init(GameContext ctx)
     {
@@ -78,6 +83,8 @@ public class InputService : IGameService, ITickable
         OnJumpDown = null;
         OnReloadDown = null;
         OnInteractDown = null;
+        OnMeleeDown = null;
+        OnWeaponSelect = null;
         OnScroll = null;
     }
 
@@ -124,6 +131,13 @@ public class InputService : IGameService, ITickable
 
         if (Input.GetKeyDown(KeyReload)) OnReloadDown?.Invoke();
         if (Input.GetKeyDown(KeyInteract)) OnInteractDown?.Invoke();
+        if (Input.GetKeyDown(KeyMelee)) OnMeleeDown?.Invoke();
+
+        for (int i = 0; i < WeaponSlotCount; i++)
+        {
+            if (Input.GetKeyDown(KeyCode.Alpha1 + i))
+                OnWeaponSelect?.Invoke(i);
+        }
     }
 
     /// <summary>

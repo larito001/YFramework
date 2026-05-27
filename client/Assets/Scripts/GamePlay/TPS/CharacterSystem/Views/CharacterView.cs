@@ -1,7 +1,8 @@
 using UnityEngine;
+using YOTO;
 
 /// <summary>
-/// 角色的 view：被动从 Character 读数据驱动 CC / Transform / Animator。
+/// 角色的 view：被动从 Character 读数据驱动 CC / Transform / Animator / 武器挂点。
 /// Character 不知道 view 存在，view 通过 Bind 拿到 Character 引用，只读意图、回写物理状态。
 /// 在 LateUpdate 跑：保证 GameLoop.Update 里所有组件 Tick 写完意图后再消费。
 /// </summary>
@@ -11,12 +12,20 @@ public class CharacterView : BaseView
     public CharacterController Controller { get; private set; }
     public Animator Anim { get; private set; }
 
-    /// <summary>反滑步参考：BlendTree walk clip 的内禀位移速度（m/s）。
-    /// 角色实际水平速度除以这个值放缩 Animator.speed，让脚步对齐位移。
-    /// Rifle_WalkFwdLoop 实测约 1.6 m/s，加 sprint 也只到 2~3，刚好范围。</summary>
+    /// <summary>反滑步参考：BlendTree walk clip 的内禀位移速度（m/s）。</summary>
     public float ReferenceWalkSpeed = 1.6f;
 
+    /// <summary>武器挂点骨骼名（RifleAnimsetPro 的 Dummy 用的是 RightHandProp）。</summary>
+    public string WeaponSocketName = "RightHandProp";
+
     private Character character;
+    private RuntimeAnimatorController defaultAnimController;
+    private RuntimeAnimatorController appliedAnimController;
+
+    private Transform weaponSocket;
+    private GameObject spawnedWeapon;
+    private string spawnedWeaponPath;
+    private ResMgr resMgr;
 
     private static readonly int HashMoveX = Animator.StringToHash("MoveX");
     private static readonly int HashMoveY = Animator.StringToHash("MoveY");
@@ -32,6 +41,14 @@ public class CharacterView : BaseView
         Anim = GetComponentInChildren<Animator>();
         if (Anim == null)
             Debug.LogWarning($"[CharacterView] {name} 找不到 Animator");
+        else
+        {
+            defaultAnimController = Anim.runtimeAnimatorController;
+            appliedAnimController = defaultAnimController;
+        }
+        weaponSocket = FindChildByName(transform, WeaponSocketName);
+        if (weaponSocket == null)
+            Debug.LogWarning($"[CharacterView] {name} 找不到骨骼 {WeaponSocketName}，武器挂载会失败");
     }
 
     public override void Bind(Actor actor, int id)
@@ -40,31 +57,35 @@ public class CharacterView : BaseView
         ID = id;
         if (character == null) return;
 
-        // 给逻辑层初值：transform 当前位置/朝向就是出生点
         character.Position = transform.position;
         character.Rotation = transform.rotation;
         character.IsGrounded = Controller.isGrounded;
+
+        var ctx = GameLoop.Instance != null ? GameLoop.Instance.Ctx : null;
+        if (ctx != null) ctx.TryGet(out resMgr);
     }
 
     private void LateUpdate()
     {
         if (character == null) return;
 
-        // 1. 应用速度意图（包含重力 y 分量）
         Controller.Move(character.WishVelocity * Time.deltaTime);
-
-        // 2. 应用朝向意图（旋转平滑由组件做完，view 直接套用）
         transform.rotation = character.Rotation;
-
-        // 3. 物理状态回写
         character.Position = transform.position;
         character.IsGrounded = Controller.isGrounded;
 
-        // 4. 驱动动画
         if (Anim != null)
         {
+            var targetCtl = character.CurrentAnimController != null
+                ? character.CurrentAnimController
+                : defaultAnimController;
+            if (targetCtl != appliedAnimController)
+            {
+                Anim.runtimeAnimatorController = targetCtl;
+                appliedAnimController = targetCtl;
+            }
+
             // 反滑步：locomotion 速率按真实水平速度比例放缩
-            // 静止时回 1（idle 不会滑），低速时不降速以免动作过慢，高速时按比例放快
             var horiz = new Vector2(character.WishVelocity.x, character.WishVelocity.z).magnitude;
             Anim.speed = horiz > 0.05f && ReferenceWalkSpeed > 0.01f
                 ? Mathf.Max(1f, horiz / ReferenceWalkSpeed)
@@ -77,8 +98,70 @@ public class CharacterView : BaseView
             {
                 Anim.SetInteger(HashMeleeType, character.MeleeType);
                 Anim.SetTrigger(HashMeleeAttack);
-                character.MeleeAttack = false; // 消费 trigger
+                character.MeleeAttack = false;
             }
         }
+
+        SyncWeaponModel();
+    }
+
+    /// 比较 Character.CurrentWeaponModelPath 和当前挂载，不一致才卸/挂，避免每帧拆装。
+    private void SyncWeaponModel()
+    {
+        if (weaponSocket == null) return;
+        var targetPath = character.CurrentWeaponModelPath;
+        if (targetPath == spawnedWeaponPath)
+        {
+            // path 没变，但 offset 可能改了——同步一下
+            if (spawnedWeapon != null)
+            {
+                spawnedWeapon.transform.localPosition = character.CurrentWeaponLocalPosition;
+                spawnedWeapon.transform.localRotation = Quaternion.Euler(character.CurrentWeaponLocalEuler);
+            }
+            return;
+        }
+
+        // 卸旧
+        if (spawnedWeapon != null) Destroy(spawnedWeapon);
+        if (!string.IsNullOrEmpty(spawnedWeaponPath) && resMgr != null)
+            resMgr.Release<GameObject>(spawnedWeaponPath);
+        spawnedWeapon = null;
+        spawnedWeaponPath = null;
+
+        // 挂新
+        if (!string.IsNullOrEmpty(targetPath))
+        {
+            var prefab = resMgr != null
+                ? resMgr.Load<GameObject>(targetPath)
+                : Resources.Load<GameObject>(targetPath);
+            if (prefab != null)
+            {
+                spawnedWeapon = Instantiate(prefab, weaponSocket);
+                spawnedWeapon.transform.localPosition = character.CurrentWeaponLocalPosition;
+                spawnedWeapon.transform.localRotation = Quaternion.Euler(character.CurrentWeaponLocalEuler);
+                spawnedWeaponPath = targetPath;
+            }
+            else
+            {
+                Debug.LogError($"[CharacterView] 加载武器模型失败: {targetPath}");
+            }
+        }
+    }
+
+    private void OnDestroy()
+    {
+        if (!string.IsNullOrEmpty(spawnedWeaponPath) && resMgr != null)
+            resMgr.Release<GameObject>(spawnedWeaponPath);
+    }
+
+    private static Transform FindChildByName(Transform root, string name)
+    {
+        if (root.name == name) return root;
+        for (int i = 0; i < root.childCount; i++)
+        {
+            var found = FindChildByName(root.GetChild(i), name);
+            if (found != null) return found;
+        }
+        return null;
     }
 }

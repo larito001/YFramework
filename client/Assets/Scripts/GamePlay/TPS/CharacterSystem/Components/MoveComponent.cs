@@ -2,17 +2,17 @@ using UnityEngine;
 
 /// <summary>
 /// 俯视角第三人称射击移动（纯逻辑组件，不碰 view）：
-///   - 基坐标：相机水平 forward / right。WASD 含义随相机偏航自动变化。
-///   - 重力贴地，不跳。落差靠重力自由下落，地面贴附用小负向速度抑制 isGrounded 抖动。
-///   - 朝向：鼠标 → 主相机射线 → 与角色等高水平面投射 → LookAt 那个点。
-///   - 输出全部写到 Character：WishVelocity、Rotation（已平滑）、AnimMoveX/Y。
+///   - 基坐标：相机水平 forward / right，WASD 含义随相机偏航自动变化
+///   - 重力贴地，不跳。落差靠重力自由下落
+///   - 输出 Owner.WishVelocity + 用最新 Owner.Rotation 算 AnimMoveX/Y
+/// 朝向（Owner.Rotation）由 AimComponent 负责。本组件只读它来反算 local 动画参数。
+/// 没挂 AimComponent 时 Rotation 保持 identity，AnimMoveX/Y 退化成世界 XZ。
 /// </summary>
 public class MoveComponent : ICharacterComponent
 {
     public float WalkSpeed = 3f;
     public float SprintMultiplier = 1.6f;
     public float Gravity = -20f;
-    public float RotateSpeed = 1080f; // deg/s，俯视角瞄准要跟手
     public float GroundStickVelocity = -2f;
 
     private InputService input;
@@ -61,35 +61,10 @@ public class MoveComponent : ICharacterComponent
 
         Owner.WishVelocity = new Vector3(horizontal.x, verticalVelocity, horizontal.z);
 
-        // 3. 朝向：LookAt 鼠标在地面投射点
-        var aimDir = CalcAimDirection();
-        if (aimDir.sqrMagnitude > 1e-4f)
-        {
-            var targetRot = Quaternion.LookRotation(aimDir, Vector3.up);
-            Owner.Rotation = Quaternion.RotateTowards(Owner.Rotation, targetRot, RotateSpeed * dt);
-        }
-
-        // 4. 动画参数：horizontal → Owner.Rotation local 空间 → 归一化 [-1, 1]
+        // 3. 动画参数：用当前 Owner.Rotation（AimComponent 已写入）反算 local 速度
         var localMove = Quaternion.Inverse(Owner.Rotation) * horizontal;
         float invSpeed = speed > 0.01f ? 1f / speed : 0f;
         Owner.AnimMoveX = localMove.x * invSpeed;
         Owner.AnimMoveY = localMove.z * invSpeed;
-    }
-
-    /// 鼠标 → 主相机射线 → 与角色等高水平面求交。
-    /// 找不到相机或射线打不到平面就返回零向量，朝向沿用上一帧。
-    private Vector3 CalcAimDirection()
-    {
-        var cam = cameraMgr != null ? cameraMgr.MainCamera : Camera.main;
-        if (cam == null) return Vector3.zero;
-
-        var ray = cam.ScreenPointToRay(input.MousePosition);
-        var plane = new Plane(Vector3.up, new Vector3(0f, Owner.Position.y, 0f));
-        if (!plane.Raycast(ray, out float enter)) return Vector3.zero;
-
-        var hit = ray.GetPoint(enter);
-        var dir = hit - Owner.Position;
-        dir.y = 0f;
-        return dir;
     }
 }

@@ -26,6 +26,21 @@ public class Character : Actor
     public bool MeleeAttack;
     public int MeleeType;
 
+    /// <summary>瞄准点世界坐标。AimComponent 写入，射击/UI 用它做命中检测、画准星等。</summary>
+    public Vector3 AimTargetWorldPos;
+
+    /// <summary>当前持有武器槽位。WeaponComponent 写入，业务/UI 读取。</summary>
+    public int CurrentWeaponSlot;
+
+    /// <summary>当前武器的 animator override。null = 用 Animator 上挂的默认 playerController。
+    /// view 检测变化时切 Animator.runtimeAnimatorController；切换会重置状态机，瞄准/移动参数不变。</summary>
+    public RuntimeAnimatorController CurrentAnimController;
+
+    /// <summary>当前武器模型 Resources 路径。null/空 = 卸下武器。view 检测变化时挂/卸右手 socket。</summary>
+    public string CurrentWeaponModelPath;
+    public Vector3 CurrentWeaponLocalPosition;
+    public Vector3 CurrentWeaponLocalEuler;
+
     private readonly List<ICharacterComponent> components = new List<ICharacterComponent>();
 
     public T Add<T>(T comp) where T : ICharacterComponent
