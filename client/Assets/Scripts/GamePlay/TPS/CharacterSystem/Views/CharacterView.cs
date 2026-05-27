@@ -16,6 +16,11 @@ public class CharacterView : BaseView
     /// <summary>武器挂点骨骼名（RifleAnimsetPro 的 Dummy 用的是 RightHandProp）。</summary>
     public string WeaponSocketName = "RightHandProp";
 
+    /// <summary>BlendTree 方向参数 (MoveX/MoveY) 的平滑时间（秒）。Animator.SetFloat damp 版本用。
+    /// MoveComponent 里方向是瞬切的（用户要求转弯无 lerp），但 BlendTree 视觉上需要软化，否则连续切方向时姿势会瞬移。
+    /// 0.1 = 大约 6 帧内追上目标值，体感顺滑且不拖沓。</summary>
+    public float AnimMoveDampTime = 0.1f;
+
     private Character character;
 
     private Transform weaponSocket;
@@ -84,8 +89,10 @@ public class CharacterView : BaseView
                 Anim.speed = 1f;
             }
 
-            Anim.SetFloat(HashMoveX, character.AnimMoveX);
-            Anim.SetFloat(HashMoveY, character.AnimMoveY);
+            // MoveX/MoveY 用 damp 版本平滑：连续切 WASD 方向时 BlendTree 姿势不瞬移
+            // Speed 已被 MoveComponent 的 Acceleration 平滑，view 端不再二次 damp
+            Anim.SetFloat(HashMoveX, character.AnimMoveX, AnimMoveDampTime, Time.deltaTime);
+            Anim.SetFloat(HashMoveY, character.AnimMoveY, AnimMoveDampTime, Time.deltaTime);
             Anim.SetFloat(HashSpeed, character.AnimSpeedRatio);
             Anim.SetBool(HashIsShooting, character.IsShooting);
             Anim.SetBool(HashIsAiming, character.IsAiming);
