@@ -20,9 +20,14 @@ public class ProjectileFireComponent : IWeaponComponent
 
     public override void Attach(Weapon owner)
     {
-        base.Attach(owner);
-        var ctx = GameLoop.Instance != null ? GameLoop.Instance.Ctx : null;
-        if (ctx != null) ctx.TryGet(out bulletMgr);
+        Ctx?.TryGet(out bulletMgr);
+    }
+
+    public override void Detach()
+    {
+        bulletMgr = null;
+        cooldown = 0f;
+        base.Detach();
     }
 
     public override void Tick(float dt)

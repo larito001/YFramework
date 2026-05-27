@@ -17,9 +17,13 @@ public class BulletMoveComponent : IBulletComponent
 
     public override void Attach(Bullet owner)
     {
-        base.Attach(owner);
-        var ctx = GameLoop.Instance != null ? GameLoop.Instance.Ctx : null;
-        if (ctx != null) ctx.TryGet(out bulletMgr);
+        Ctx?.TryGet(out bulletMgr);
+    }
+
+    public override void Detach()
+    {
+        bulletMgr = null;
+        base.Detach();
     }
 
     public override void Tick(float dt)

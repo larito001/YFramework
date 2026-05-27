@@ -60,12 +60,41 @@ TPS/
 
 ## 4. Component 规则
 
-- 继承对应的 `I<Type>Component` 基类，重写 `Attach(Owner)` / `Tick(dt)` / `Detach()`。
-- `Attach` 里通过 `GameLoop.Instance.Ctx.TryGet(out service)` 拿依赖（`InputService` / `CameraManager` / `BulletManager` 等）。**不要**自己缓存单例。
+### 4.1 基本
+
+- 继承对应的 `I<Type>Component` 基类，override **强类型** `Attach(Owner)` / `Tick(dt)` / `Detach()`。**不要** override `Attach(Actor)`（已被基类 sealed）。
+- 依赖服务通过基类提供的 `Ctx` 拿：`Ctx?.TryGet(out service)`。**不要**自己写 `GameLoop.Instance.Ctx` 链 —— `IActorComponent.Attach` 已经统一拉好，Detach 时也会自动清。
 - `Tick` 第一行做空保护：`if (input == null || Owner == null) return;`。
 - **只读写 Owner 字段**。要影响别的 Actor，写自己 Owner 的字段让对方组件下一帧读，或通过 service 接口（如 `BulletManager.Spawn`）。
-- 组件 Add 顺序就是 Tick 顺序，依赖关系靠顺序保证（如 `Aim → Move → Weapon`）。新增组件要明确写注释说"为什么必须在 X 之前/之后"。
 - 组件之间**不互相引用**。要共享中间结果就经 Owner 字段中转。
+
+### 4.2 Tick 顺序与依赖
+
+- 组件 Add 顺序 = Tick 顺序。Factory 是唯一约定 Add 顺序的地方。
+- 运行时插组件用 `Owner.AddBefore<TAnchor>(comp)` / `AddAfter<TAnchor>(comp)`，不要用裸 `Add` —— 那会强制 append，可能违反顺序约束。
+- 新增组件如果对前后顺序有要求，**必须在类注释里写明** "必须在 X 之前/之后"，并说明原因（参考 `AimComponent` / `WeaponComponent` 的注释模板）。
+
+### 4.3 动态增减契约（重要）
+
+- `Owner.Remove<T>()` / `Owner.Remove(comp)` 可在任意时刻调用。Tick 期间调用会延迟到 Tick 末执行，**不会**导致迭代失稳。
+- **Detach 必须把自己写过的 Owner 字段清回默认值**。这是动态移除场景下避免 reader 读到死值的关键。模板：
+
+  ```csharp
+  public override void Detach()
+  {
+      if (Owner != null)
+      {
+          Owner.MyFieldA = default;
+          Owner.MyFieldB = ...;
+      }
+      cachedService = null;     // 清服务引用
+      // 退订事件：input.OnXxx -= Handler;
+      base.Detach();            // 末尾调 base，base 会清 Owner 和 Ctx
+  }
+  ```
+
+- **`base.Detach()` 必须在末尾调用**，因为 base 会把 `Owner = null`、`Ctx = null`，提前调就用不到 Owner 了。
+- 同类型多实例（Buff 叠加等）用 `Owner.GetAll<T>(buffer)` 写入外部 list 遍历，避免 enumerator GC。`Get<T>()` 只返回第一个。
 
 ---
 

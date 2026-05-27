@@ -35,15 +35,27 @@ public class MoveComponent : ICharacterComponent
 
     public override void Attach(Character owner)
     {
-        base.Attach(owner);
-        var ctx = GameLoop.Instance != null ? GameLoop.Instance.Ctx : null;
-        if (ctx == null)
+        if (Ctx == null) { Debug.LogError("[MoveComponent] GameLoop.Ctx 未就绪"); return; }
+        Ctx.TryGet(out input);
+        Ctx.TryGet(out cameraMgr);
+    }
+
+    public override void Detach()
+    {
+        // 清自己写过的 Owner 字段，view 离场后停止位移和动画驱动
+        if (Owner != null)
         {
-            Debug.LogError("[MoveComponent] GameLoop.Ctx 未就绪");
-            return;
+            Owner.WishVelocity = Vector3.zero;
+            Owner.AnimMoveX = 0f;
+            Owner.AnimMoveY = 0f;
+            Owner.AnimSpeedRatio = 0f;
+            Owner.AnimPlaybackRate = 1f;
         }
-        ctx.TryGet(out input);
-        ctx.TryGet(out cameraMgr);
+        input = null;
+        cameraMgr = null;
+        verticalVelocity = 0f;
+        currentHorizontal = Vector3.zero;
+        base.Detach();
     }
 
     public override void Tick(float dt)

@@ -17,15 +17,22 @@ public class AimComponent : ICharacterComponent
 
     public override void Attach(Character owner)
     {
-        base.Attach(owner);
-        var ctx = GameLoop.Instance != null ? GameLoop.Instance.Ctx : null;
-        if (ctx == null)
+        if (Ctx == null) { Debug.LogError("[AimComponent] GameLoop.Ctx 未就绪"); return; }
+        Ctx.TryGet(out input);
+        Ctx.TryGet(out cameraMgr);
+    }
+
+    public override void Detach()
+    {
+        // 清自己写过的 Owner 字段，避免 view 在本组件离场后继续读到死值
+        if (Owner != null)
         {
-            Debug.LogError("[AimComponent] GameLoop.Ctx 未就绪");
-            return;
+            Owner.IsAiming = false;
+            Owner.AimTargetWorldPos = Vector3.zero;
         }
-        ctx.TryGet(out input);
-        ctx.TryGet(out cameraMgr);
+        input = null;
+        cameraMgr = null;
+        base.Detach();
     }
 
     public override void Tick(float dt)

@@ -39,15 +39,9 @@ public class WeaponComponent : ICharacterComponent
 
     public override void Attach(Character owner)
     {
-        base.Attach(owner);
-        var ctx = GameLoop.Instance != null ? GameLoop.Instance.Ctx : null;
-        if (ctx == null)
-        {
-            Debug.LogError("[WeaponComponent] GameLoop.Ctx 未就绪");
-            return;
-        }
-        ctx.TryGet(out input);
-        ctx.TryGet(out weaponMgr);
+        if (Ctx == null) { Debug.LogError("[WeaponComponent] GameLoop.Ctx 未就绪"); return; }
+        Ctx.TryGet(out input);
+        Ctx.TryGet(out weaponMgr);
         if (input != null)
         {
             input.OnMeleeDown += HandleMelee;
@@ -76,7 +70,22 @@ public class WeaponComponent : ICharacterComponent
             for (int i = 0; i < Weapons.Count; i++)
                 if (Weapons[i] != null) weaponMgr.Despawn(Weapons[i]);
         }
+        // 清自己写过的 Owner 状态字段，避免组件离场后 view / MoveComponent 读到死值
+        // （典型：IsMeleeing=true 时被移走会让 Move 永远锁位移）
+        if (Owner != null)
+        {
+            Owner.IsShooting = false;
+            Owner.IsSwapping = false;
+            Owner.IsMeleeing = false;
+            Owner.MeleeAttack = false;
+            Owner.WeaponSwap = false;
+            Owner.MeleeType = 0;
+        }
         currentWeapon = null;
+        input = null;
+        weaponMgr = null;
+        meleeLockTimer = 0f;
+        swapLockTimer = 0f;
         base.Detach();
     }
 
