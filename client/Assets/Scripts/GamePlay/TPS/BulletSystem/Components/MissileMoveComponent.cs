@@ -27,15 +27,18 @@ public class MissileMoveComponent : IBulletComponent
 
     private float elapsed;
     private BulletManager bulletMgr;
+    private ActorWorld world;
 
     public override void Attach(Bullet owner)
     {
         Ctx?.TryGet(out bulletMgr);
+        Ctx?.TryGet(out world);
     }
 
     public override void Detach()
     {
         bulletMgr = null;
+        world = null;
         elapsed = 0f;
         base.Detach();
     }
@@ -51,11 +54,13 @@ public class MissileMoveComponent : IBulletComponent
         float t = Duration > 0.001f ? elapsed / Duration : 1f;
         if (t >= 1f)
         {
-            // 段尾再做一次 Raycast，确保末段也覆盖到（防止落点附近的近距离命中被跳过）
-            CastAndHit(Owner.Position, End);
-            Owner.Position = End;
-            Debug.Log($"[Missile] arrived @ End, dmg={Owner.Damage}");
-            bulletMgr?.Despawn(Owner);
+            // 段尾再做一次 Raycast，覆盖落点附近近距离命中。已 hit 则 CastAndHit 内部已 Despawn + 设位置，直接返回。
+            if (!CastAndHit(Owner.Position, End))
+            {
+                Owner.Position = End;
+                Debug.Log($"[Missile] arrived @ End, dmg={Owner.Damage}");
+                bulletMgr?.Despawn(Owner);
+            }
             return;
         }
 
@@ -78,6 +83,7 @@ public class MissileMoveComponent : IBulletComponent
         if (Physics.Raycast(from, dir, out var hit, dist, HitLayers))
         {
             Debug.Log($"[Missile] hit {hit.collider.name} @ {hit.distance:F2}m, dmg={Owner.Damage}");
+            DamageRouter.TryHitAndDamage(hit.collider, world, Owner.OwnerCharacterId, Owner.Damage);
             Owner.Position = hit.point;
             bulletMgr?.Despawn(Owner);
             return true;

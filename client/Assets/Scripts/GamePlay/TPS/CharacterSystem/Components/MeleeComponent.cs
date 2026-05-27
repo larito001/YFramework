@@ -161,19 +161,11 @@ public class MeleeComponent : ICharacterComponent
         int count = Physics.OverlapSphereNonAlloc(center, HitRadius, overlapBuf, HitLayers);
         for (int i = 0; i < count; i++)
         {
-            var col = overlapBuf[i];
-            if (col == null) continue;
-            // 通过 view 反查 Actor.ID。CharacterView 自带 ID（BaseView.ID 在 Bind 时设）。
-            var view = col.GetComponentInParent<BaseView>();
-            if (view == null || view.ID < 0) continue;
-            if (view.ID == Owner.ID) continue;             // 不打自己
-            if (hitThisSwing.Contains(view.ID)) continue;  // 单击只命中一次
-            hitThisSwing.Add(view.ID);
-
-            if (world.TryGet(view.ID, out var actor) && actor is Character target)
-            {
-                target.Get<HealthComponent>()?.ApplyDamage(Damage, Owner.ID);
-            }
+            // 两步式：ResolveActorId 拿 id → 自己去重 → ApplyToActor 扣血
+            int id = DamageRouter.ResolveActorId(overlapBuf[i], Owner.ID);
+            if (id < 0 || hitThisSwing.Contains(id)) continue;
+            hitThisSwing.Add(id);
+            DamageRouter.ApplyToActor(world, id, Owner.ID, Damage);
         }
     }
 }

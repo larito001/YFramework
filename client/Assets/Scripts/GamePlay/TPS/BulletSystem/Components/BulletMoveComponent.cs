@@ -14,15 +14,18 @@ public class BulletMoveComponent : IBulletComponent
     public LayerMask HitLayers = ~0;
 
     private BulletManager bulletMgr;
+    private ActorWorld world;
 
     public override void Attach(Bullet owner)
     {
         Ctx?.TryGet(out bulletMgr);
+        Ctx?.TryGet(out world);
     }
 
     public override void Detach()
     {
         bulletMgr = null;
+        world = null;
         base.Detach();
     }
 
@@ -45,7 +48,7 @@ public class BulletMoveComponent : IBulletComponent
         if (Physics.Raycast(Owner.Position, dir, out var hit, dist, HitLayers))
         {
             Debug.Log($"[Bullet] hit {hit.collider.name} @ {hit.distance:F2}m, dmg={Owner.Damage}");
-            // TODO: 命中 actor 时 ActorWorld.Get<Character>(...) 找到目标 → HealthComponent 扣血
+            DamageRouter.TryHitAndDamage(hit.collider, world, Owner.OwnerCharacterId, Owner.Damage);
             Owner.Position = hit.point;
             bulletMgr?.Despawn(Owner);
             return;
