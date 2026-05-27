@@ -12,6 +12,8 @@ public class MoveComponent : ICharacterComponent
 {
     public float WalkSpeed = 3f;
     public float SprintMultiplier = 1.6f;
+    /// <summary>瞄准时减速倍率（ADS 标准做法）。0.5 = 瞄准 1.5 m/s 慢走，松开 3 m/s 跑。同时让 walk anim 不被加速到像 sprint。</summary>
+    public float AimWalkMultiplier = 0.5f;
     public float Gravity = -20f;
     public float GroundStickVelocity = -2f;
 
@@ -47,6 +49,7 @@ public class MoveComponent : ICharacterComponent
             if (horizontal.sqrMagnitude > 1f) horizontal.Normalize();
         }
         float speed = WalkSpeed * (input.SprintHeld ? SprintMultiplier : 1f);
+        if (Owner.IsAiming) speed *= AimWalkMultiplier; // 瞄准时降速
         horizontal *= speed;
 
         // 2. 重力（贴地，不跳）
@@ -61,10 +64,13 @@ public class MoveComponent : ICharacterComponent
 
         Owner.WishVelocity = new Vector3(horizontal.x, verticalVelocity, horizontal.z);
 
-        // 3. 动画参数：用当前 Owner.Rotation（AimComponent 已写入）反算 local 速度
+        // 3. 动画参数
+        //    Walk（瞄准时 2D BlendTree）：用 Owner.Rotation 反算 local 单位向量喂 MoveX/Y
+        //    Run（不瞄准时 1D BlendTree）：用 AnimSpeedRatio 控制 Idle ↔ Run 插值
         var localMove = Quaternion.Inverse(Owner.Rotation) * horizontal;
         float invSpeed = speed > 0.01f ? 1f / speed : 0f;
         Owner.AnimMoveX = localMove.x * invSpeed;
         Owner.AnimMoveY = localMove.z * invSpeed;
+        Owner.AnimSpeedRatio = Mathf.Clamp01(horizontal.magnitude / WalkSpeed);
     }
 }

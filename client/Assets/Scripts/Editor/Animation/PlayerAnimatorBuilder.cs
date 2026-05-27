@@ -4,31 +4,43 @@ using UnityEditor.Animations;
 using UnityEngine;
 
 /// 菜单：Tools/TPS/Build Player Animator Controller
-/// 重新生成 Assets/Art/Animations/playerController.controller：
-///   Base Layer（全身）：Locomotion BlendTree + 近战 AnyState 触发
-///     BlendTree: 2D Freeform Cartesian，参数 MoveX / MoveY，9 采样点
-///     AnyState → MeleeHard / MeleeKick: MeleeAttack 触发 + MeleeType 选型，播完回 Locomotion
+/// 重新生成 Assets/Resources/Animations/playerController.controller：
+///   Base Layer（全身）：
+///     Walk (state, 2D Freeform Cartesian, MoveX/MoveY)    瞄准时，举枪 + 8 方向 strafe
+///     Sprint (sub-SM)                                     不瞄准时
+///       Idle (default, Rifle_Idle_GunDown)
+///       Start (Rifle_SprintStart)        Idle  →[Speed>0.1]→ Start
+///       Loop  (Rifle_SprintLoop)         Start →[exitTime]→ Loop
+///       Stop  (Rifle_SprintStop_RU)      Loop  →[Speed<0.1]→ Stop  →[exitTime]→ Idle
+///       AnyState →[IsAiming]→ Walk (跨 SM 出口)
+///     Equipping (EquipRifle)                              切枪过场
+///     MeleeHard / MeleeKick                               近战
+///     IsAiming 切换 Walk ↔ Sprint(sub-SM Entry → Idle)
+///     WeaponSwap trigger → AnyState → Equipping
+///     MeleeAttack trigger + MeleeType → AnyState → MeleeHard / MeleeKick
 ///   Upper Body Recoil Layer：UpperBodyMask + Additive，IsShooting=true 切到 ShootLoop_Additive
-///     Idle 状态空 motion；Recoil 状态叠加后坐力偏移
-/// 多武器扩展：本 controller 状态命名武器无关，用 AnimatorOverrideController 换 clip 即可。
-/// 重跑会删除旧 controller 重建（meta guid 会变）。
 public static class PlayerAnimatorBuilder
 {
-    private const string ControllerPath = "Assets/Art/Animations/playerController.controller";
+    private const string ControllerPath = "Assets/Resources/Animations/playerController.controller";
     private const string RifleFbxPath = "Assets/Art/Animations/RifleAnimsetPro.fbx";
     private const string DiagonalsFbxPath = "Assets/Art/Animations/RifleAnimsetPro_Diagonals.fbx";
+    private const string AdditionalsFbxPath = "Assets/Art/Animations/RifleAnimsetPro_Additionals.fbx";
+    private const string EquipsFbxPath = "Assets/Art/Animations/RifleAnimsetPro_Equips.fbx";
+    private const string SprintFbxPath = "Assets/Art/Animations/RifleAnimsetPro_Sprint.fbx";
     private const string UpperBodyMaskPath = "Assets/Art/Characters/UpperBodyMask.mask";
 
     private const string ParamMoveX = "MoveX";
     private const string ParamMoveY = "MoveY";
+    private const string ParamSpeed = "Speed";
     private const string ParamIsShooting = "IsShooting";
+    private const string ParamIsAiming = "IsAiming";
     private const string ParamMeleeAttack = "MeleeAttack";
     private const string ParamMeleeType = "MeleeType";
+    private const string ParamWeaponSwap = "WeaponSwap";
 
     private const int MeleeTypeHard = 0;
     private const int MeleeTypeKick = 1;
 
-    // 45° 方向归一化分量
     private const float Diag = 0.70710677f;
 
     [MenuItem("Tools/TPS/Build Player Animator Controller")]
@@ -37,22 +49,34 @@ public static class PlayerAnimatorBuilder
         var clips = new Dictionary<string, AnimationClip>();
         if (!LoadClipsInto(clips, RifleFbxPath)) return;
         if (!LoadClipsInto(clips, DiagonalsFbxPath)) return;
+        if (!LoadClipsInto(clips, AdditionalsFbxPath)) return;
+        if (!LoadClipsInto(clips, EquipsFbxPath)) return;
+        if (!LoadClipsInto(clips, SprintFbxPath)) return;
 
+        // Walk BlendTree clips
         var idle = Require(clips, "Rifle_Idle");
-        var fwd = Require(clips, "Rifle_WalkFwdLoop");
-        var bwd = Require(clips, "Rifle_WalkBwdLoop");
-        var left = Require(clips, "Rifle_StrafeLeftLoop");
-        var right = Require(clips, "Rifle_StrafeRightLoop");
-        var fwdL = Require(clips, "Rifle_StrafeLeft45Loop");
-        var fwdR = Require(clips, "Rifle_StrafeRight45Loop");
-        var bwdL = Require(clips, "Rifle_StrafeLeft135Loop");
-        var bwdR = Require(clips, "Rifle_StrafeRight135Loop");
+        var wFwd = Require(clips, "Rifle_WalkFwdLoop");
+        var wBwd = Require(clips, "Rifle_WalkBwdLoop");
+        var wLeft = Require(clips, "Rifle_StrafeLeftLoop");
+        var wRight = Require(clips, "Rifle_StrafeRightLoop");
+        var wFwdL = Require(clips, "Rifle_StrafeLeft45Loop");
+        var wFwdR = Require(clips, "Rifle_StrafeRight45Loop");
+        var wBwdL = Require(clips, "Rifle_StrafeLeft135Loop");
+        var wBwdR = Require(clips, "Rifle_StrafeRight135Loop");
+        // Sprint sub-SM clips（不瞄准时角色总是面向移动方向）
+        var idleDown = Require(clips, "Rifle_Idle_GunDown");
+        var sprintStart = Require(clips, "Rifle_SprintStart");
+        var sprintLoop = Require(clips, "Rifle_SprintLoop");
+        var sprintStop = Require(clips, "Rifle_SprintStop_RU");
+        // 其他
         var shootAdd = Require(clips, "Rifle_ShootLoop_Additive");
         var meleeHard = Require(clips, "Rifle_Melee_Hard");
         var meleeKick = Require(clips, "Rifle_Melee_Kick");
-        if (idle == null || fwd == null || bwd == null || left == null || right == null ||
-            fwdL == null || fwdR == null || bwdL == null || bwdR == null || shootAdd == null ||
-            meleeHard == null || meleeKick == null)
+        var equip = Require(clips, "EquipRifle");
+        if (idle == null || wFwd == null || wBwd == null || wLeft == null || wRight == null ||
+            wFwdL == null || wFwdR == null || wBwdL == null || wBwdR == null ||
+            idleDown == null || sprintStart == null || sprintLoop == null || sprintStop == null ||
+            shootAdd == null || meleeHard == null || meleeKick == null || equip == null)
             return;
 
         var mask = AssetDatabase.LoadAssetAtPath<AvatarMask>(UpperBodyMaskPath);
@@ -62,18 +86,24 @@ public static class PlayerAnimatorBuilder
             return;
         }
 
+        EnsureFolder("Assets/Resources");
+        EnsureFolder("Assets/Resources/Animations");
+
         if (AssetDatabase.LoadAssetAtPath<AnimatorController>(ControllerPath) != null)
             AssetDatabase.DeleteAsset(ControllerPath);
 
         var controller = AnimatorController.CreateAnimatorControllerAtPath(ControllerPath);
         controller.AddParameter(ParamMoveX, AnimatorControllerParameterType.Float);
         controller.AddParameter(ParamMoveY, AnimatorControllerParameterType.Float);
+        controller.AddParameter(ParamSpeed, AnimatorControllerParameterType.Float);
         controller.AddParameter(ParamIsShooting, AnimatorControllerParameterType.Bool);
+        controller.AddParameter(ParamIsAiming, AnimatorControllerParameterType.Bool);
         controller.AddParameter(ParamMeleeAttack, AnimatorControllerParameterType.Trigger);
         controller.AddParameter(ParamMeleeType, AnimatorControllerParameterType.Int);
+        controller.AddParameter(ParamWeaponSwap, AnimatorControllerParameterType.Trigger);
 
-        BuildBaseLayer(controller, idle, fwd, bwd, left, right, fwdL, fwdR, bwdL, bwdR,
-            meleeHard, meleeKick);
+        BuildBaseLayer(controller, idle, wFwd, wBwd, wLeft, wRight, wFwdL, wFwdR, wBwdL, wBwdR,
+            idleDown, sprintStart, sprintLoop, sprintStop, meleeHard, meleeKick, equip);
         BuildRecoilLayer(controller, shootAdd, mask);
 
         EditorUtility.SetDirty(controller);
@@ -92,7 +122,6 @@ public static class PlayerAnimatorBuilder
         }
         foreach (var obj in all)
         {
-            // FBX 导入会附带名为 __preview__XXX 的临时 clip，跳过
             if (obj is AnimationClip clip && !clip.name.StartsWith("__preview__"))
                 dict[clip.name] = clip;
         }
@@ -106,69 +135,180 @@ public static class PlayerAnimatorBuilder
         return null;
     }
 
-    private static void BuildBaseLayer(AnimatorController controller, AnimationClip idle,
-        AnimationClip fwd, AnimationClip bwd, AnimationClip left, AnimationClip right,
-        AnimationClip fwdL, AnimationClip fwdR, AnimationClip bwdL, AnimationClip bwdR,
-        AnimationClip meleeHard, AnimationClip meleeKick)
+    private static void EnsureFolder(string folderPath)
     {
-        // CreateAnimatorControllerAtPath 已建好 Base Layer 和它的 StateMachine 子资源
+        if (AssetDatabase.IsValidFolder(folderPath)) return;
+        var parent = System.IO.Path.GetDirectoryName(folderPath).Replace('\\', '/');
+        var leaf = System.IO.Path.GetFileName(folderPath);
+        if (!AssetDatabase.IsValidFolder(parent)) EnsureFolder(parent);
+        AssetDatabase.CreateFolder(parent, leaf);
+    }
+
+    private static void BuildBaseLayer(AnimatorController controller,
+        AnimationClip idle, AnimationClip wFwd, AnimationClip wBwd, AnimationClip wLeft, AnimationClip wRight,
+        AnimationClip wFwdL, AnimationClip wFwdR, AnimationClip wBwdL, AnimationClip wBwdR,
+        AnimationClip idleDown, AnimationClip sprintStart, AnimationClip sprintLoop, AnimationClip sprintStop,
+        AnimationClip meleeHard, AnimationClip meleeKick, AnimationClip equip)
+    {
         var sm = controller.layers[0].stateMachine;
 
-        var tree = new BlendTree
+        // ── Walk BlendTree（瞄准时，8 方向）──
+        var walkTree = new BlendTree
         {
-            name = "Locomotion",
+            name = "WalkTree",
             blendType = BlendTreeType.FreeformCartesian2D,
             blendParameter = ParamMoveX,
             blendParameterY = ParamMoveY,
             hideFlags = HideFlags.HideInHierarchy,
         };
-        AssetDatabase.AddObjectToAsset(tree, controller);
+        AssetDatabase.AddObjectToAsset(walkTree, controller);
+        walkTree.AddChild(idle, new Vector2(0f, 0f));
+        walkTree.AddChild(wFwd, new Vector2(0f, 1f));
+        walkTree.AddChild(wBwd, new Vector2(0f, -1f));
+        walkTree.AddChild(wLeft, new Vector2(-1f, 0f));
+        walkTree.AddChild(wRight, new Vector2(1f, 0f));
+        walkTree.AddChild(wFwdL, new Vector2(-Diag, Diag));
+        walkTree.AddChild(wFwdR, new Vector2(Diag, Diag));
+        walkTree.AddChild(wBwdL, new Vector2(-Diag, -Diag));
+        walkTree.AddChild(wBwdR, new Vector2(Diag, -Diag));
 
-        tree.AddChild(idle, new Vector2(0f, 0f));
-        tree.AddChild(fwd, new Vector2(0f, 1f));
-        tree.AddChild(bwd, new Vector2(0f, -1f));
-        tree.AddChild(left, new Vector2(-1f, 0f));
-        tree.AddChild(right, new Vector2(1f, 0f));
-        tree.AddChild(fwdL, new Vector2(-Diag, Diag));
-        tree.AddChild(fwdR, new Vector2(Diag, Diag));
-        tree.AddChild(bwdL, new Vector2(-Diag, -Diag));
-        tree.AddChild(bwdR, new Vector2(Diag, -Diag));
+        // ── 顶层 states ──
+        var walk = sm.AddState("Walk", new Vector3(280, 60, 0));
+        walk.motion = walkTree;
 
-        var loco = sm.AddState("Locomotion", new Vector3(260, 120, 0));
-        loco.motion = tree;
-        sm.defaultState = loco;
-
-        var hard = sm.AddState("MeleeHard", new Vector3(560, 60, 0));
+        var hard = sm.AddState("MeleeHard", new Vector3(560, 0, 0));
         hard.motion = meleeHard;
 
-        var kick = sm.AddState("MeleeKick", new Vector3(560, 180, 0));
+        var kick = sm.AddState("MeleeKick", new Vector3(560, 100, 0));
         kick.motion = meleeKick;
 
-        // AnyState 触发近战：MeleeAttack trigger + MeleeType 选型
-        AddMeleeAnyTransition(sm, hard, MeleeTypeHard);
-        AddMeleeAnyTransition(sm, kick, MeleeTypeKick);
+        var equipping = sm.AddState("Equipping", new Vector3(560, 200, 0));
+        equipping.motion = equip;
 
-        // 近战播完回 Locomotion
-        AddMeleeExitTransition(hard, loco);
-        AddMeleeExitTransition(kick, loco);
+        // ── Sprint sub-state machine（不瞄准时进入）──
+        var sprintSM = BuildSprintSubSM(sm, walk, idleDown, sprintStart, sprintLoop, sprintStop);
+
+        sm.defaultState = walk; // 任意默认都行，AnyState 会立即按 IsAiming 修正
+
+        // Walk ↔ Sprint（IsAiming 切换）。Walk → Sprint 目标 sub-SM Entry，Sprint → Walk 由 sub-SM 内 AnyState 处理
+        var w2s = walk.AddTransition(sprintSM);
+        w2s.hasExitTime = false;
+        w2s.duration = 0.15f;
+        w2s.AddCondition(AnimatorConditionMode.IfNot, 0f, ParamIsAiming);
+
+        // 近战：AnyState → MeleeHard/Kick，播完按 IsAiming 回 Walk 或 Sprint
+        AddAnyStateTransition(sm, hard, ParamMeleeAttack,
+            (AnimatorConditionMode.Equals, MeleeTypeHard, ParamMeleeType));
+        AddAnyStateTransition(sm, kick, ParamMeleeAttack,
+            (AnimatorConditionMode.Equals, MeleeTypeKick, ParamMeleeType));
+        AddReturnToLocomotion(hard, walk, sprintSM);
+        AddReturnToLocomotion(kick, walk, sprintSM);
+
+        // 切枪：AnyState → Equipping，播完按 IsAiming 回 Walk 或 Sprint
+        AddAnyStateTransition(sm, equipping, ParamWeaponSwap);
+        AddReturnToLocomotion(equipping, walk, sprintSM);
     }
 
-    private static void AddMeleeAnyTransition(AnimatorStateMachine sm, AnimatorState dst, int meleeType)
+    /// Sprint sub-SM：Idle (default) → Start → Loop → Stop → Idle。
+    /// AnyState 内 → Walk on IsAiming=true（跨 SM 出口）。
+    private static AnimatorStateMachine BuildSprintSubSM(AnimatorStateMachine parent, AnimatorState walk,
+        AnimationClip idleDown, AnimationClip sprintStart, AnimationClip sprintLoop, AnimationClip sprintStop)
+    {
+        var sprintSM = parent.AddStateMachine("Sprint", new Vector3(280, 180, 0));
+
+        var sIdle = sprintSM.AddState("Idle", new Vector3(280, 60, 0));
+        sIdle.motion = idleDown;
+
+        var sStart = sprintSM.AddState("Start", new Vector3(280, 160, 0));
+        sStart.motion = sprintStart;
+
+        var sLoop = sprintSM.AddState("Loop", new Vector3(280, 260, 0));
+        sLoop.motion = sprintLoop;
+
+        var sStop = sprintSM.AddState("Stop", new Vector3(280, 360, 0));
+        sStop.motion = sprintStop;
+        sStop.speed = 1.8f; // sprintStop clip 偏长，加速到 1.8x 让急停干脆
+
+        sprintSM.defaultState = sIdle;
+
+        // Idle → Start：Speed 越过阈值
+        var i2s = sIdle.AddTransition(sStart);
+        i2s.hasExitTime = false;
+        i2s.duration = 0.05f;
+        i2s.AddCondition(AnimatorConditionMode.Greater, 0.1f, ParamSpeed);
+
+        // Start → Loop：播到末尾自动接 Loop
+        var s2l = sStart.AddTransition(sLoop);
+        s2l.hasExitTime = true;
+        s2l.exitTime = 0.85f;
+        s2l.duration = 0.1f;
+
+        // Loop → Stop：Speed 掉到阈值下
+        var l2s = sLoop.AddTransition(sStop);
+        l2s.hasExitTime = false;
+        l2s.duration = 0.05f;
+        l2s.AddCondition(AnimatorConditionMode.Less, 0.1f, ParamSpeed);
+
+        // 急加速：Stop 期间又踩动方向键，跳回 Start
+        var stop2start = sStop.AddTransition(sStart);
+        stop2start.hasExitTime = false;
+        stop2start.duration = 0.05f;
+        stop2start.AddCondition(AnimatorConditionMode.Greater, 0.1f, ParamSpeed);
+
+        // Stop → Idle：播一半就接 Idle（配合 sStop.speed=1.8 总停步约 0.4s）
+        var stop2idle = sStop.AddTransition(sIdle);
+        stop2idle.hasExitTime = true;
+        stop2idle.exitTime = 0.5f;
+        stop2idle.duration = 0.1f;
+
+        // 每个 sub-state 各自挂一条退出到 Walk 的转换（IsAiming=true 立刻退出 Sprint）
+        // 用 per-state exits 而不是 sub-SM AnyState：跨 SM 的 AnyState 在某些 Unity 版本行为不稳
+        AddAimExit(sIdle, walk);
+        AddAimExit(sStart, walk);
+        AddAimExit(sLoop, walk);
+        AddAimExit(sStop, walk);
+
+        return sprintSM;
+    }
+
+    private static void AddAimExit(AnimatorState src, AnimatorState walk)
+    {
+        var t = src.AddTransition(walk);
+        t.hasExitTime = false;
+        t.duration = 0.15f;
+        t.AddCondition(AnimatorConditionMode.If, 0f, ParamIsAiming);
+    }
+
+    /// AnyState → dst：trigger 触发，可选附加条件，canTransitionToSelf=false。
+    private static void AddAnyStateTransition(AnimatorStateMachine sm, AnimatorState dst, string trigger,
+        (AnimatorConditionMode mode, float threshold, string param)? extraCond = null)
     {
         var t = sm.AddAnyStateTransition(dst);
         t.hasExitTime = false;
         t.duration = 0.1f;
         t.canTransitionToSelf = false;
-        t.AddCondition(AnimatorConditionMode.If, 0f, ParamMeleeAttack);
-        t.AddCondition(AnimatorConditionMode.Equals, meleeType, ParamMeleeType);
+        t.AddCondition(AnimatorConditionMode.If, 0f, trigger);
+        if (extraCond.HasValue)
+        {
+            var e = extraCond.Value;
+            t.AddCondition(e.mode, e.threshold, e.param);
+        }
     }
 
-    private static void AddMeleeExitTransition(AnimatorState src, AnimatorState dst)
+    /// src 播完按 IsAiming 选择回 walk（state）或 sprint（sub-SM Entry → Idle）。
+    private static void AddReturnToLocomotion(AnimatorState src, AnimatorState walk, AnimatorStateMachine sprintSM)
     {
-        var t = src.AddTransition(dst);
-        t.hasExitTime = true;
-        t.exitTime = 0.9f;
-        t.duration = 0.15f;
+        var toWalk = src.AddTransition(walk);
+        toWalk.hasExitTime = true;
+        toWalk.exitTime = 0.85f;
+        toWalk.duration = 0.15f;
+        toWalk.AddCondition(AnimatorConditionMode.If, 0f, ParamIsAiming);
+
+        var toSprint = src.AddTransition(sprintSM);
+        toSprint.hasExitTime = true;
+        toSprint.exitTime = 0.85f;
+        toSprint.duration = 0.15f;
+        toSprint.AddCondition(AnimatorConditionMode.IfNot, 0f, ParamIsAiming);
     }
 
     private static void BuildRecoilLayer(AnimatorController controller, AnimationClip shootAdd, AvatarMask mask)
@@ -180,7 +320,6 @@ public static class PlayerAnimatorBuilder
         };
         AssetDatabase.AddObjectToAsset(sm, controller);
 
-        // 空 motion 状态：Additive 层不施加任何偏移，让 Base Layer 的上半身原样呈现
         var idle = sm.AddState("Idle", new Vector3(260, 120, 0));
 
         var recoil = sm.AddState("Recoil", new Vector3(460, 120, 0));

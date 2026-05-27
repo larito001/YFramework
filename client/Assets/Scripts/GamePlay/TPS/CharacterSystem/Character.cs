@@ -22,19 +22,21 @@ public class Character : Actor
     public float AnimMoveX;
     public float AnimMoveY;
     public bool IsShooting;
+    /// <summary>右键按住=瞄准=抬枪。AimComponent 写，view 喂 Animator IsAiming，WeaponComponent 用它门控 IsShooting。</summary>
+    public bool IsAiming;
+    /// <summary>归一化水平速度（horizontal speed / WalkSpeed，clamp[0,1]）。Run 1D BlendTree 用。</summary>
+    public float AnimSpeedRatio;
     /// <summary>一次性 trigger：组件置 true，view 消费后清回 false</summary>
     public bool MeleeAttack;
     public int MeleeType;
+    /// <summary>切枪一次性 trigger：WeaponComponent 切槽时置 true，view 消费 SetTrigger 后清回。</summary>
+    public bool WeaponSwap;
 
     /// <summary>瞄准点世界坐标。AimComponent 写入，射击/UI 用它做命中检测、画准星等。</summary>
     public Vector3 AimTargetWorldPos;
 
     /// <summary>当前持有武器槽位。WeaponComponent 写入，业务/UI 读取。</summary>
     public int CurrentWeaponSlot;
-
-    /// <summary>当前武器的 animator override。null = 用 Animator 上挂的默认 playerController。
-    /// view 检测变化时切 Animator.runtimeAnimatorController；切换会重置状态机，瞄准/移动参数不变。</summary>
-    public RuntimeAnimatorController CurrentAnimController;
 
     /// <summary>当前武器模型 Resources 路径。null/空 = 卸下武器。view 检测变化时挂/卸右手 socket。</summary>
     public string CurrentWeaponModelPath;

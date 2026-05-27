@@ -5,6 +5,7 @@ using YOTO;
 /// 角色的 view：被动从 Character 读数据驱动 CC / Transform / Animator / 武器挂点。
 /// Character 不知道 view 存在，view 通过 Bind 拿到 Character 引用，只读意图、回写物理状态。
 /// 在 LateUpdate 跑：保证 GameLoop.Update 里所有组件 Tick 写完意图后再消费。
+/// 所有武器共用 prefab 上挂的默认 Animator Controller；切枪靠状态机 WeaponSwap trigger + 换模型。
 /// </summary>
 [RequireComponent(typeof(CharacterController))]
 public class CharacterView : BaseView
@@ -12,15 +13,16 @@ public class CharacterView : BaseView
     public CharacterController Controller { get; private set; }
     public Animator Anim { get; private set; }
 
-    /// <summary>反滑步参考：BlendTree walk clip 的内禀位移速度（m/s）。</summary>
+    /// <summary>反滑步参考：Walk clip 的内禀位移速度（m/s），瞄准时用。</summary>
     public float ReferenceWalkSpeed = 1.6f;
+
+    /// <summary>反滑步参考：Sprint clip 的内禀位移速度（m/s），不瞄准时用。Rifle_SprintLoop 大致 4 m/s。</summary>
+    public float ReferenceSprintSpeed = 4.0f;
 
     /// <summary>武器挂点骨骼名（RifleAnimsetPro 的 Dummy 用的是 RightHandProp）。</summary>
     public string WeaponSocketName = "RightHandProp";
 
     private Character character;
-    private RuntimeAnimatorController defaultAnimController;
-    private RuntimeAnimatorController appliedAnimController;
 
     private Transform weaponSocket;
     private GameObject spawnedWeapon;
@@ -29,9 +31,12 @@ public class CharacterView : BaseView
 
     private static readonly int HashMoveX = Animator.StringToHash("MoveX");
     private static readonly int HashMoveY = Animator.StringToHash("MoveY");
+    private static readonly int HashSpeed = Animator.StringToHash("Speed");
     private static readonly int HashIsShooting = Animator.StringToHash("IsShooting");
+    private static readonly int HashIsAiming = Animator.StringToHash("IsAiming");
     private static readonly int HashMeleeAttack = Animator.StringToHash("MeleeAttack");
     private static readonly int HashMeleeType = Animator.StringToHash("MeleeType");
+    private static readonly int HashWeaponSwap = Animator.StringToHash("WeaponSwap");
 
     private void Awake()
     {
@@ -41,11 +46,6 @@ public class CharacterView : BaseView
         Anim = GetComponentInChildren<Animator>();
         if (Anim == null)
             Debug.LogWarning($"[CharacterView] {name} 找不到 Animator");
-        else
-        {
-            defaultAnimController = Anim.runtimeAnimatorController;
-            appliedAnimController = defaultAnimController;
-        }
         weaponSocket = FindChildByName(transform, WeaponSocketName);
         if (weaponSocket == null)
             Debug.LogWarning($"[CharacterView] {name} 找不到骨骼 {WeaponSocketName}，武器挂载会失败");
@@ -76,29 +76,30 @@ public class CharacterView : BaseView
 
         if (Anim != null)
         {
-            var targetCtl = character.CurrentAnimController != null
-                ? character.CurrentAnimController
-                : defaultAnimController;
-            if (targetCtl != appliedAnimController)
-            {
-                Anim.runtimeAnimatorController = targetCtl;
-                appliedAnimController = targetCtl;
-            }
-
-            // 反滑步：locomotion 速率按真实水平速度比例放缩
+            // 反滑步：按真实水平速度对动画播放速率做反向匹配
+            // 瞄准时参考 walk 内禀速度，不瞄准时参考 sprint 内禀速度
+            // 不再 Max(1, ...) 钳制——允许放慢，避免 sprint anim 总是过快导致反向滑步
             var horiz = new Vector2(character.WishVelocity.x, character.WishVelocity.z).magnitude;
-            Anim.speed = horiz > 0.05f && ReferenceWalkSpeed > 0.01f
-                ? Mathf.Max(1f, horiz / ReferenceWalkSpeed)
+            float refSpeed = character.IsAiming ? ReferenceWalkSpeed : ReferenceSprintSpeed;
+            Anim.speed = horiz > 0.05f && refSpeed > 0.01f
+                ? horiz / refSpeed
                 : 1f;
 
             Anim.SetFloat(HashMoveX, character.AnimMoveX);
             Anim.SetFloat(HashMoveY, character.AnimMoveY);
+            Anim.SetFloat(HashSpeed, character.AnimSpeedRatio);
             Anim.SetBool(HashIsShooting, character.IsShooting);
+            Anim.SetBool(HashIsAiming, character.IsAiming);
             if (character.MeleeAttack)
             {
                 Anim.SetInteger(HashMeleeType, character.MeleeType);
                 Anim.SetTrigger(HashMeleeAttack);
                 character.MeleeAttack = false;
+            }
+            if (character.WeaponSwap)
+            {
+                Anim.SetTrigger(HashWeaponSwap);
+                character.WeaponSwap = false;
             }
         }
 
@@ -112,7 +113,6 @@ public class CharacterView : BaseView
         var targetPath = character.CurrentWeaponModelPath;
         if (targetPath == spawnedWeaponPath)
         {
-            // path 没变，但 offset 可能改了——同步一下
             if (spawnedWeapon != null)
             {
                 spawnedWeapon.transform.localPosition = character.CurrentWeaponLocalPosition;
@@ -121,14 +121,12 @@ public class CharacterView : BaseView
             return;
         }
 
-        // 卸旧
         if (spawnedWeapon != null) Destroy(spawnedWeapon);
         if (!string.IsNullOrEmpty(spawnedWeaponPath) && resMgr != null)
             resMgr.Release<GameObject>(spawnedWeaponPath);
         spawnedWeapon = null;
         spawnedWeaponPath = null;
 
-        // 挂新
         if (!string.IsNullOrEmpty(targetPath))
         {
             var prefab = resMgr != null
