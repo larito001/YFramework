@@ -1,0 +1,52 @@
+using UnityEngine;
+
+/// <summary>
+/// 子弹移动 + 段内命中检测 + 寿命管理。
+///
+/// 每帧把 Velocity*dt 当成一段线段做 Physics.Raycast：
+///   - 命中：log + Position 设到 hit.point + Despawn。后续接 HealthComponent 在这里扣血。
+///   - 未命中：Position += step，继续飞。
+/// 寿命到 → Despawn。
+/// 起点已经被持枪人推到 capsule 外（FireOrigin + 0.6m forward），正常飞不会打到自己。
+/// </summary>
+public class BulletMoveComponent : IBulletComponent
+{
+    public LayerMask HitLayers = ~0;
+
+    private BulletManager bulletMgr;
+
+    public override void Attach(Bullet owner)
+    {
+        base.Attach(owner);
+        var ctx = GameLoop.Instance != null ? GameLoop.Instance.Ctx : null;
+        if (ctx != null) ctx.TryGet(out bulletMgr);
+    }
+
+    public override void Tick(float dt)
+    {
+        if (Owner == null) return;
+
+        Owner.LifetimeRemaining -= dt;
+        if (Owner.LifetimeRemaining <= 0f)
+        {
+            bulletMgr?.Despawn(Owner);
+            return;
+        }
+
+        var step = Owner.Velocity * dt;
+        var dist = step.magnitude;
+        if (dist < 1e-4f) return;
+        var dir = step / dist;
+
+        if (Physics.Raycast(Owner.Position, dir, out var hit, dist, HitLayers))
+        {
+            Debug.Log($"[Bullet] hit {hit.collider.name} @ {hit.distance:F2}m, dmg={Owner.Damage}");
+            // TODO: 命中 actor 时 ActorWorld.Get<Character>(...) 找到目标 → HealthComponent 扣血
+            Owner.Position = hit.point;
+            bulletMgr?.Despawn(Owner);
+            return;
+        }
+
+        Owner.Position += step;
+    }
+}

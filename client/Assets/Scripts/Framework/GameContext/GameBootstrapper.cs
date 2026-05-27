@@ -73,10 +73,11 @@ public static partial class GameBootstrapper
         Debug.Log(ctx.Get<ConfigManager>().heroConfig.Get(1001).HeroName);
         ctx.Register(new ActorWorld());
         ctx.Register(new ViewManager());
-        // Tick 顺序：CharacterManager 先（WeaponComponent 写 currentWeapon.FireIntent/Origin/Direction），
-        // 然后 WeaponManager（HitscanFireComponent 同帧消费，避免 1 帧延迟）
+        // Tick 顺序：Character → Weapon → Bullet，保证同帧链：
+        //   WeaponComponent 写 FireIntent → ProjectileFireComponent 读并 Spawn 子弹 → BulletMoveComponent 推进 + 命中
         ctx.Register(new CharacterManager());
         ctx.Register(new WeaponManager());
+        ctx.Register(new BulletManager());
 
         return ctx;
     }

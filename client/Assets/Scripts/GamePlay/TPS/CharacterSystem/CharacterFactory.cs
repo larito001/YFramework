@@ -33,7 +33,7 @@ public class CharacterFactory
         return character;
     }
 
-    /// <summary>步枪：全自动 600 RPM，单发 25 伤。</summary>
+    /// <summary>步枪：全自动 600 RPM，单发 25 伤，子弹 80 m/s。</summary>
     private static Weapon BuildRifleA()
     {
         var w = new Weapon
@@ -43,11 +43,14 @@ public class CharacterFactory
             LocalPosition = Vector3.zero,
             LocalEuler = Vector3.zero,
         };
-        w.Add(new HitscanFireComponent { FireInterval = 0.1f, Damage = 25f, Range = 100f });
+        w.Add(new ProjectileFireComponent
+        {
+            FireInterval = 0.1f, Damage = 25f, BulletSpeed = 80f, BulletLifetime = 2f
+        });
         return w;
     }
 
-    /// <summary>手枪占位：半自动手感（0.3s 间隔），单发 40 伤。</summary>
+    /// <summary>手枪占位：半自动手感（0.3s 间隔），单发 40 伤，子弹 60 m/s。</summary>
     private static Weapon BuildRifleB()
     {
         var w = new Weapon
@@ -57,7 +60,10 @@ public class CharacterFactory
             LocalPosition = Vector3.zero,
             LocalEuler = Vector3.zero,
         };
-        w.Add(new HitscanFireComponent { FireInterval = 0.3f, Damage = 40f, Range = 80f });
+        w.Add(new ProjectileFireComponent
+        {
+            FireInterval = 0.3f, Damage = 40f, BulletSpeed = 60f, BulletLifetime = 2f
+        });
         return w;
     }
 }
