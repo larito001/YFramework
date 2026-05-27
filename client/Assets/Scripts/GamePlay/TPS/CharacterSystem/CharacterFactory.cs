@@ -27,6 +27,9 @@ public class CharacterFactory
                 // 没有 Pistol 动画，两个槽都用同一份 Animator Controller，只换模型 + 播切枪过场
                 BuildRifleA(),
                 BuildRifleB(),
+                // 第三槽：模型/控制器复用 Rifle，把 ProjectileFireComponent 换成 MissileFireComponent，
+                // 弹道立刻变成贝塞尔曲线导弹，点哪飞哪。这就是组件替换的典型用法。
+                BuildMissileLauncher(),
             },
         });
         manager.LoadBaseView<CharacterView>("Player/Player", character);
@@ -63,6 +66,28 @@ public class CharacterFactory
         w.Add(new ProjectileFireComponent
         {
             FireInterval = 0.3f, Damage = 40f, BulletSpeed = 60f, BulletLifetime = 2f
+        });
+        return w;
+    }
+
+    /// <summary>导弹发射器：模型 + Mount socket 完全复用 Rifle，行为换 MissileFireComponent。
+    /// 弧线飞行 1s，点哪飞哪；命中沿途碰撞或到点引爆。</summary>
+    private static Weapon BuildMissileLauncher()
+    {
+        var w = new Weapon
+        {
+            Name = "Missile Launcher",
+            ModelPath = "Weapon/RiflePlaceholder",
+            LocalPosition = Vector3.zero,
+            LocalEuler = Vector3.zero,
+        };
+        w.Add(new MissileFireComponent
+        {
+            FireInterval = 0.6f,
+            Damage = 80f,
+            FlightDuration = 1.0f,
+            ForwardPushDist = 2f,
+            ArcHeight = 4f,
         });
         return w;
     }

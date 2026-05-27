@@ -73,22 +73,33 @@ public class BulletManager : IGameService, ITickable
         }
     }
 
+    /// <summary>直线弹道便捷 API：创建 Bullet + 自动 Add <see cref="BulletMoveComponent"/>。</summary>
     public Bullet Spawn(Vector3 position, Vector3 velocity, float lifetime, float damage, int ownerCharacterId)
+    {
+        var b = SpawnBullet(position, lifetime, damage, ownerCharacterId, velocity);
+        b.Add(new BulletMoveComponent());
+        return b;
+    }
+
+    /// <summary>裸 Spawn：注册 Bullet + 创建 view，但**不挂任何移动组件**。
+    /// 调用方自己 Add 想要的 IBulletComponent（例如 <see cref="BulletMoveComponent"/> 直线、
+    /// 或贝塞尔曲线/制导/抛物线等自定义实现）。
+    /// initialVelocity 仅用于 view 初始朝向；后续每帧由移动组件写 Owner.Velocity 决定显示朝向。</summary>
+    public Bullet SpawnBullet(Vector3 position, float lifetime, float damage, int ownerCharacterId, Vector3 initialVelocity = default)
     {
         var b = new Bullet
         {
             Position = position,
-            Velocity = velocity,
+            Velocity = initialVelocity,
             LifetimeRemaining = lifetime,
             Damage = damage,
             OwnerCharacterId = ownerCharacterId,
         };
-        b.Add(new BulletMoveComponent());
 
         bullets.Add(b);
         world.Register(b);
 
-        var rot = velocity.sqrMagnitude > 1e-4f ? Quaternion.LookRotation(velocity) : Quaternion.identity;
+        var rot = initialVelocity.sqrMagnitude > 1e-4f ? Quaternion.LookRotation(initialVelocity) : Quaternion.identity;
         var view = viewPool.Get(position, rot);
         view.Bind(b, b.ID);
         activeViews[b.ID] = view;

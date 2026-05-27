@@ -28,4 +28,7 @@ public class Weapon : Actor
     public Vector3 FireOrigin;
     /// <summary>射击方向（单位向量，世界坐标）。持枪人按准星算。</summary>
     public Vector3 FireDirection;
+    /// <summary>瞄准目标点（世界坐标）= AimComponent 投影到枪口高度平面的鼠标点。
+    /// 直线武器用 Origin+Direction 即可；曲线/制导武器（导弹）需要精确目标点，用此字段。</summary>
+    public Vector3 FireTarget;
 }

@@ -107,6 +107,7 @@ public class WeaponComponent : ICharacterComponent
             else dir = Owner.Rotation * Vector3.forward;
             currentWeapon.FireOrigin = origin;
             currentWeapon.FireDirection = dir;
+            currentWeapon.FireTarget = Owner.AimTargetWorldPos;
         }
 
         // 近战锁位移计时 + 前冲位移
