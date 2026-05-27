@@ -71,6 +71,7 @@ public static partial class GameBootstrapper
         ctx.Register(aStarManager);
         RegisterProjectServices(ctx);
         Debug.Log(ctx.Get<ConfigManager>().heroConfig.Get(1001).HeroName);
+        ctx.Register(new ActorWorld());
         ctx.Register(new ViewManager());
         ctx.Register(new CharacterManager());
 

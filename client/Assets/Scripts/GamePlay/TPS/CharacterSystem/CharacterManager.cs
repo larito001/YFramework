@@ -8,6 +8,7 @@ public class CharacterManager : IGameService, ITickable
 {
     private GameContext ctx;
     private ViewManager viewMgr;
+    private ActorWorld world;
     private CharacterFactory factory;
     private readonly List<Character> characters = new List<Character>();
 
@@ -15,6 +16,7 @@ public class CharacterManager : IGameService, ITickable
     {
         ctx = context;
         viewMgr = context.Get<ViewManager>();
+        world = context.Get<ActorWorld>();
         factory = new CharacterFactory();
         factory.BindViewManager(viewMgr);
     }
@@ -23,8 +25,10 @@ public class CharacterManager : IGameService, ITickable
     {
         for (int i = characters.Count - 1; i >= 0; i--)
         {
-            viewMgr.RemoveBaseView(characters[i].ID);
-            characters[i].Dispose();
+            var c = characters[i];
+            world.Unregister(c.ID);
+            viewMgr.RemoveBaseView(c.ID);
+            c.Dispose();
         }
         characters.Clear();
     }
@@ -39,6 +43,7 @@ public class CharacterManager : IGameService, ITickable
     {
         var c = factory.CreateCharacter();
         characters.Add(c);
+        world.Register(c);
 
         // 让相机跟随玩家。view 由 LoadBaseView 在 factory 内同步创建，这里能拿到。
         if (viewMgr.TryGetView(c.ID, out var view) && view != null)
@@ -51,7 +56,8 @@ public class CharacterManager : IGameService, ITickable
     public void RemoveCharacter(Character character)
     {
         characters.Remove(character);
-        character.Dispose();
+        world.Unregister(character.ID);
         viewMgr.RemoveBaseView(character.ID);
+        character.Dispose();
     }
 }
