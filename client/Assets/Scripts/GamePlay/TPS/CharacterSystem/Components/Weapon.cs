@@ -14,8 +14,17 @@ public class Weapon : Actor
 {
     public string Name;
     public string ModelPath;
+    /// <summary>当前挂载的 localPosition（view 读）。Mount/MountOnBack 写入对应的 Hand/Back 配置值。</summary>
     public Vector3 LocalPosition;
+    /// <summary>当前挂载的 localEuler（view 读）。Mount/MountOnBack 写入对应的 Hand/Back 配置值。</summary>
     public Vector3 LocalEuler;
+
+    /// <summary>挂到手部 socket 时使用的 local pose（Factory 配，等同旧的 LocalPosition 默认值）。</summary>
+    public Vector3 HandLocalPosition;
+    public Vector3 HandLocalEuler;
+    /// <summary>挂到背部 socket 时使用的 local pose。Factory 按武器形状/朝向各自调。</summary>
+    public Vector3 BackLocalPosition;
+    public Vector3 BackLocalEuler;
 
     public bool IsEquipped;
     public int OwnerCharacterId = -1;

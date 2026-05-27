@@ -20,16 +20,30 @@ public class WeaponComponent : ICharacterComponent
 {
     public List<Weapon> Weapons = new List<Weapon>();
     public int InitialSlot = 0;
-    /// <summary>武器挂载到角色的骨骼名。RifleAnimsetPro 是 RightHandProp。</summary>
+    /// <summary>武器挂手部 socket 的骨骼名。RifleAnimsetPro 是 RightHandProp。</summary>
     public string SocketName = "RightHandProp";
-    /// <summary>切枪锁开火时长（秒），近似匹配 EquipRifle 动画长度。</summary>
+    /// <summary>武器挂背部 socket 的骨骼名。空字符串 = 切枪过场期间不挂背（武器会因 IsEquipped 切换瞬间不可见，
+    /// 等 MountToHandDelay 到点直接出现在手里）。RifleAnimsetPro 默认 rig 没有专门的"背"骨，
+    /// 用 Spine1 凑（位置/朝向需要每把武器在 Factory 里调 BackLocalPosition/BackLocalEuler）。</summary>
+    public string BackSocketName = "Spine1";
+    /// <summary>Equip（取出新枪）阶段时长（秒），近似匹配 EquipRifle 动画长度。</summary>
     public float WeaponSwapDuration = 1.3f;
+    /// <summary>Holster（收回旧枪）阶段时长（秒），近似匹配 HolsterRifle 动画长度。
+    /// 切枪总锁开火时长 = HolsterDuration + WeaponSwapDuration。Holster 阶段结束后才把新武器挂到背上并触发 Equip 动画。</summary>
+    public float HolsterDuration = 0.7f;
+    /// <summary>Equip 阶段开始后多少秒把新武器 reparent 到手（"抽枪到位"那一刻）。
+    /// 默认 0.5s = EquipRifle 大约一半的时长。&lt;=0 立即挂手（关闭过场效果）。</summary>
+    public float MountToHandDelay = 0.5f;
 
     private InputService input;
     private WeaponManager weaponMgr;
     private Weapon currentWeapon;
     private float swapLockTimer;
     private float reloadTimer; // >0 表示 currentWeapon 正在换弹倒计时
+    private float mountToHandTimer; // >0 时 currentWeapon 还挂在背上，到点 Mount 到手部
+    private Weapon pendingHandMount; // mountToHandTimer 到点时要挂手的武器（= currentWeapon，但显式存避免误读）
+    private float holsterTimer;     // >0 时 Holster 阶段进行中，旧武器还在手里、播放 HolsterRifle
+    private int pendingSwapSlot = -1; // holsterTimer 到点时要切到的新武器槽
 
     public override void Attach(Character owner)
     {
@@ -70,15 +84,20 @@ public class WeaponComponent : ICharacterComponent
             Owner.IsShooting = false;
             Owner.IsSwapping = false;
             Owner.WeaponSwap = false;
+            Owner.WeaponHolster = false;
             Owner.IsReloading = false;
             Owner.Reload = false;
             Owner.Shoot = false;
         }
         currentWeapon = null;
+        pendingHandMount = null;
         input = null;
         weaponMgr = null;
         swapLockTimer = 0f;
         reloadTimer = 0f;
+        mountToHandTimer = 0f;
+        holsterTimer = 0f;
+        pendingSwapSlot = -1;
         base.Detach();
     }
 
@@ -147,12 +166,70 @@ public class WeaponComponent : ICharacterComponent
             swapLockTimer -= dt;
             if (swapLockTimer <= 0f) Owner.IsSwapping = false;
         }
+
+        // Holster 阶段倒计时：旧武器还挂在手里播 HolsterRifle，到点真正执行 swap（unmount 旧 + 挂背新 + 播 EquipRifle）
+        if (holsterTimer > 0f)
+        {
+            holsterTimer -= dt;
+            if (holsterTimer <= 0f)
+            {
+                holsterTimer = 0f;
+                bool mountToBack = MountToHandDelay > 0f && !string.IsNullOrEmpty(BackSocketName);
+                ApplySwap(pendingSwapSlot, playEquipAnim: true, mountToBack: mountToBack);
+                pendingSwapSlot = -1;
+            }
+        }
+
+        // "枪从背切到手"倒计时：Equip 阶段开始时枪挂在背上（或隐藏），动画播一半到点再 reparent 到手部 socket。
+        if (mountToHandTimer > 0f)
+        {
+            mountToHandTimer -= dt;
+            if (mountToHandTimer <= 0f)
+            {
+                mountToHandTimer = 0f;
+                if (pendingHandMount != null && weaponMgr != null)
+                    weaponMgr.Mount(pendingHandMount, Owner, SocketName);
+                pendingHandMount = null;
+            }
+        }
     }
 
     /// <summary>切到指定槽位。槽越界静默忽略。只走 WeaponManager Mount/Unmount，view 自己响应。</summary>
     public void Equip(int slot) => EquipInternal(slot, playAnim: true);
 
+    /// <summary>切槽入口。playAnim=true 走 Holster→Equip 两阶段过场（旧枪先收回背，新枪再抽出来）；
+    /// playAnim=false 或没有 currentWeapon 可收，跳过过场直接挂手（用于初始装备 / 直接强制切换）。
+    /// 切枪期间二次调用会被忽略，防止 mid-swap 状态错乱。</summary>
     private void EquipInternal(int slot, bool playAnim)
+    {
+        if (Owner == null) return;
+        if (Weapons == null || slot < 0 || slot >= Weapons.Count) return;
+
+        // mid-swap 守卫：动画切枪期间禁止再切。用 Owner.IsSwapping（由 swapLockTimer 覆盖全 Holster+Equip 时长驱动）
+        // 比 holsterTimer/mountToHandTimer 更严密 —— 当 BackSocketName 空或 MountToHandDelay<=0 时两个 timer 可能没启动，
+        // 但 IsSwapping 始终覆盖整段过场。
+        if (playAnim && Owner.IsSwapping) return;
+
+        bool slotChanged = Owner.CurrentWeaponSlot != slot;
+
+        // 需要过场动画：playAnim + slotChanged + 有当前武器可 holster
+        if (playAnim && slotChanged && currentWeapon != null)
+        {
+            pendingSwapSlot = slot;
+            Owner.WeaponHolster = true;
+            Owner.IsSwapping = true;
+            holsterTimer = HolsterDuration;
+            swapLockTimer = HolsterDuration + WeaponSwapDuration;
+            return;
+        }
+
+        // 不走过场：直接挂手（initial spawn / 强制 / 无旧枪可收）
+        ApplySwap(slot, playEquipAnim: false, mountToBack: false);
+    }
+
+    /// <summary>实际切枪动作：unmount 旧武器 + 挂新武器（到背或到手）+ 写后坐力参数 + 可选触发 Equip 动画。
+    /// 被 EquipInternal 的"无过场"分支直接调；被 Tick 里 Holster 倒计时到点调（开 Equip 阶段）。</summary>
+    private void ApplySwap(int slot, bool playEquipAnim, bool mountToBack)
     {
         if (Owner == null) return;
         if (Weapons == null || slot < 0 || slot >= Weapons.Count) return;
@@ -160,8 +237,7 @@ public class WeaponComponent : ICharacterComponent
         bool slotChanged = Owner.CurrentWeaponSlot != slot;
         Owner.CurrentWeaponSlot = slot;
 
-        // 换枪打断换弹：reloadTimer 是绑定 currentWeapon 跑的，换枪后必须清掉，
-        // 否则到点会回填到新武器弹匣里
+        // 换枪打断换弹：reloadTimer 绑定 currentWeapon，换枪后必须清，否则到点会回填到新武器弹匣里
         if (slotChanged && reloadTimer > 0f)
         {
             reloadTimer = 0f;
@@ -172,7 +248,11 @@ public class WeaponComponent : ICharacterComponent
         if (weaponMgr != null)
         {
             if (currentWeapon != null && currentWeapon != w) weaponMgr.Unmount(currentWeapon);
-            if (w != null) weaponMgr.Mount(w, Owner, SocketName);
+            if (w != null)
+            {
+                if (mountToBack) weaponMgr.MountOnBack(w, Owner, BackSocketName);
+                else weaponMgr.Mount(w, Owner, SocketName);
+            }
         }
         currentWeapon = w;
 
@@ -183,12 +263,16 @@ public class WeaponComponent : ICharacterComponent
             Owner.RecoilAnimSpeed = currentWeapon.RecoilAnimSpeed;
         }
 
-        if (playAnim && slotChanged)
+        if (playEquipAnim)
         {
             Owner.WeaponSwap = true;
-            Owner.IsSwapping = true;
-            swapLockTimer = WeaponSwapDuration;
+            if (mountToBack && MountToHandDelay > 0f)
+            {
+                pendingHandMount = currentWeapon;
+                mountToHandTimer = MountToHandDelay;
+            }
         }
+        // 注：IsSwapping / swapLockTimer 在 EquipInternal 启动阶段就设好覆盖 Holster+Equip 总时长，这里不重写
     }
 
     private void HandleWeaponSelect(int slot) => Equip(slot);

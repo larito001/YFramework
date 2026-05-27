@@ -17,6 +17,12 @@ public class HealthComponent : ICharacterComponent
     public float InitialMaxHealth = 100f;
     /// <summary>Attach 时是否把 Owner.CurHealth 重置为满血。false 用于"切换持有者保留 HP"等场景。</summary>
     public bool ResetOnAttach = true;
+    /// <summary>死亡后多久自动删除 Character（秒）。&lt;=0 关闭自动清理（适合留尸体的场景）。
+    /// 默认 3s = 倒地动画播完 + 留个停顿让玩家看清。</summary>
+    public float AutoRemoveDelay = 3f;
+
+    private CharacterManager characterMgr;
+    private float removeTimer;
 
     /// <summary>受伤事件 (amount, attackerId)。HUD / 飞字 / 受击反馈在这订阅。</summary>
     public event Action<float, int> OnDamaged;
@@ -29,6 +35,7 @@ public class HealthComponent : ICharacterComponent
         owner.MaxHealth = InitialMaxHealth;
         if (ResetOnAttach) owner.CurHealth = InitialMaxHealth;
         owner.IsDead = false;
+        Ctx?.TryGet(out characterMgr);
     }
 
     public override void Detach()
@@ -36,8 +43,23 @@ public class HealthComponent : ICharacterComponent
         // 清订阅，防止 GC 拖延导致旧订阅者被回调
         OnDamaged = null;
         OnDied = null;
+        characterMgr = null;
+        removeTimer = 0f;
         // 不清 HP/IsDead：那是 Character 持久状态，不是组件"写过的意图字段"
         base.Detach();
+    }
+
+    /// <summary>死亡后倒计时清理。挂在 Character.Tick 里跑，到点叫 CharacterManager 走 deferred remove。</summary>
+    public override void Tick(float dt)
+    {
+        if (Owner == null || !Owner.IsDead || AutoRemoveDelay <= 0f) return;
+        if (removeTimer <= 0f) return; // 没在跑（死亡瞬间会被 ApplyDamage 启动）
+        removeTimer -= dt;
+        if (removeTimer <= 0f)
+        {
+            removeTimer = 0f;
+            characterMgr?.RemoveCharacter(Owner);
+        }
     }
 
     /// <summary>受到伤害。已死 / 非正数伤害直接忽略。amount 大于剩余 HP 时夹到 0。</summary>
@@ -56,6 +78,7 @@ public class HealthComponent : ICharacterComponent
             // 死亡动画 trigger + 随机变体（0=DeathL，1=DeathR）。和 IsDead 同帧写出，view 下一次 LateUpdate 消费。
             Owner.DeathVariant = UnityEngine.Random.Range(0, 2);
             Owner.Die = true;
+            if (AutoRemoveDelay > 0f) removeTimer = AutoRemoveDelay; // 启动倒计时清理
             Debug.Log($"[Health] actor={Owner.ID} died by {attackerId} (variant={Owner.DeathVariant})");
             OnDied?.Invoke(attackerId);
         }

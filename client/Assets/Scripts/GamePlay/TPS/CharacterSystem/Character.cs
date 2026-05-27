@@ -43,10 +43,12 @@ public class Character : Actor
     /// <summary>近战进行中，MoveComponent 锁水平位移。WeaponComponent 在 melee 触发时置 true，计时器到期清零。</summary>
     public bool IsMeleeing;
 
-    /// <summary>切枪进行中，WeaponComponent 用它门控开火。计时器到期自动清零。</summary>
+    /// <summary>切枪进行中，WeaponComponent 用它门控开火。计时器到期自动清零（覆盖 Holster + Equip 两阶段）。</summary>
     public bool IsSwapping;
-    /// <summary>切枪一次性 trigger：WeaponComponent 切槽时置 true，view 消费 SetTrigger 后清回。</summary>
+    /// <summary>取出新枪的一次性 trigger（Equip 阶段开始）：WeaponComponent 在 Holster 阶段结束时置 true，view 消费 SetTrigger("WeaponSwap") 后清回。</summary>
     public bool WeaponSwap;
+    /// <summary>收回旧枪的一次性 trigger（Holster 阶段开始）：WeaponComponent 按数字键瞬间置 true，view 消费 SetTrigger("WeaponHolster") 后清回。</summary>
+    public bool WeaponHolster;
 
     /// <summary>换弹进行中。WeaponComponent 从 currentWeapon.IsReloading 镜像写入，用于动画 + 开火/近战门控。</summary>
     public bool IsReloading;

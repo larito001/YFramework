@@ -119,8 +119,12 @@ public class CharacterFactory
         {
             Name = "Rifle A",
             ModelPath = "Weapon/RiflePlaceholder",
-            LocalPosition = Vector3.zero,
-            LocalEuler = Vector3.zero,
+            HandLocalPosition = Vector3.zero,
+            HandLocalEuler = Vector3.zero,
+            // 背挂位置/朝向占位：Spine1 是默认背骨，pose 全 0 大概率会穿模/方向不对，
+            // 需要每把武器进 Unity 手调（先看到大致位置再细调）。
+            BackLocalPosition = new Vector3(0f, 0.15f, -0.2f),
+            BackLocalEuler = new Vector3(0f, 90f, 0f),
             MagCapacity = 30,
             CurrentAmmo = 30,
             ReloadDuration = 1.5f,
@@ -143,8 +147,12 @@ public class CharacterFactory
         {
             Name = "Rifle B",
             ModelPath = "Weapon/PistolPlaceholder",
-            LocalPosition = Vector3.zero,
-            LocalEuler = Vector3.zero,
+            HandLocalPosition = Vector3.zero,
+            HandLocalEuler = Vector3.zero,
+            // 背挂位置/朝向占位：Spine1 是默认背骨，pose 全 0 大概率会穿模/方向不对，
+            // 需要每把武器进 Unity 手调（先看到大致位置再细调）。
+            BackLocalPosition = new Vector3(0f, 0.15f, -0.2f),
+            BackLocalEuler = new Vector3(0f, 90f, 0f),
             MagCapacity = 12,
             CurrentAmmo = 12,
             ReloadDuration = 1.0f,
@@ -168,8 +176,12 @@ public class CharacterFactory
         {
             Name = "Missile Launcher",
             ModelPath = "Weapon/RiflePlaceholder",
-            LocalPosition = Vector3.zero,
-            LocalEuler = Vector3.zero,
+            HandLocalPosition = Vector3.zero,
+            HandLocalEuler = Vector3.zero,
+            // 背挂位置/朝向占位：Spine1 是默认背骨，pose 全 0 大概率会穿模/方向不对，
+            // 需要每把武器进 Unity 手调（先看到大致位置再细调）。
+            BackLocalPosition = new Vector3(0f, 0.15f, -0.2f),
+            BackLocalEuler = new Vector3(0f, 90f, 0f),
             MagCapacity = 4,
             CurrentAmmo = 4,
             ReloadDuration = 2.5f,

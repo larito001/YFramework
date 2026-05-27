@@ -7,12 +7,37 @@ Shader "Custom/CharacterHitFlash"
         _FlashColor              ("Flash Color",   Color)         = (1, 1, 1, 1)
         _FlashAmount             ("Flash Amount",  Range(0, 1))   = 0
         _AmbientStrength         ("Ambient",       Range(0, 1))   = 1
+
+        // ── Dissolve（死亡溶解）──
+        // 0=完整可见，1=完全消失。中间值：基于 worldspace hash 噪声 clip 像素，边缘附近用 _DissolveEdgeColor 高亮。
+        _DissolveAmount          ("Dissolve Amount",    Range(0, 1))  = 0
+        _DissolveEdgeColor       ("Dissolve Edge Color", Color)       = (1, 0.4, 0, 1)
+        _DissolveEdgeWidth       ("Dissolve Edge Width", Range(0, 0.5)) = 0.05
+        _DissolveScale           ("Dissolve Scale",     Float)        = 8.0
+        _DissolveEdgeEmission    ("Dissolve Edge Emission", Range(0, 10)) = 3.0
     }
 
     SubShader
     {
         Tags { "RenderType"="Opaque" "RenderPipeline"="UniversalPipeline" "Queue"="Geometry" }
         LOD 200
+
+        HLSLINCLUDE
+        // 共用：worldspace hash 噪声 + 溶解 clip。用 hash3 是为了避免依赖外部 noise texture。
+        // 缺点：完全随机分布，没有大尺度结构；如果想要"火焰边缘前沿"风格，后续可换 Voronoi/Worley
+        float Hash3(float3 p)
+        {
+            p = frac(p * float3(0.1031, 0.1030, 0.0973));
+            p += dot(p, p.yxz + 33.33);
+            return frac((p.x + p.y) * p.z);
+        }
+
+        // 返回 noise 值；调用方自己做 clip 和 edge 判定（避免 ForwardLit 之外的 pass 在编辑器报变量未引用）
+        float DissolveNoise(float3 positionWS, float scale)
+        {
+            return Hash3(positionWS * scale);
+        }
+        ENDHLSL
 
         Pass
         {
@@ -39,6 +64,11 @@ Shader "Custom/CharacterHitFlash"
                 float4 _FlashColor;
                 float  _FlashAmount;
                 float  _AmbientStrength;
+                float  _DissolveAmount;
+                float4 _DissolveEdgeColor;
+                float  _DissolveEdgeWidth;
+                float  _DissolveScale;
+                float  _DissolveEdgeEmission;
             CBUFFER_END
 
             TEXTURE2D(_BaseMap);
@@ -74,6 +104,11 @@ Shader "Custom/CharacterHitFlash"
 
             half4 frag(Varyings IN) : SV_Target
             {
+                // 溶解 clip：noise<threshold 的像素直接丢弃，边缘窄带切到 _DissolveEdgeColor 当余辉
+                float noise = DissolveNoise(IN.positionWS, _DissolveScale);
+                float thr = _DissolveAmount;
+                clip(noise - thr);
+
                 half4 baseTex = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, IN.uv) * _BaseColor;
                 float3 n = normalize(IN.normalWS);
 
@@ -93,6 +128,13 @@ Shader "Custom/CharacterHitFlash"
                 // _FlashAmount=0 渲染正常，=1 全身被 _FlashColor 覆盖；中间值线性过渡
                 // 注意是叠加在 lit 之后，避免阴影/光照"吞掉"闪光
                 half3 outCol = lerp(lit, _FlashColor.rgb, saturate(_FlashAmount));
+
+                // 溶解边缘高亮：clip 之后仍存活的像素，越靠近 threshold 越像火焰边
+                // edge=1 在边缘最近处，0 在远离阈值的"完整身体"区域
+                float edge = saturate(1.0 - (noise - thr) / max(_DissolveEdgeWidth, 1e-4));
+                // _DissolveAmount=0 时强制 edge=0，避免静态下也看到一圈橙边
+                edge *= step(0.0001, _DissolveAmount);
+                outCol = lerp(outCol, _DissolveEdgeColor.rgb * _DissolveEdgeEmission, edge);
 
                 outCol = MixFog(outCol, IN.fogCoord);
                 return half4(outCol, baseTex.a);
@@ -125,6 +167,11 @@ Shader "Custom/CharacterHitFlash"
                 float4 _FlashColor;
                 float  _FlashAmount;
                 float  _AmbientStrength;
+                float  _DissolveAmount;
+                float4 _DissolveEdgeColor;
+                float  _DissolveEdgeWidth;
+                float  _DissolveScale;
+                float  _DissolveEdgeEmission;
             CBUFFER_END
 
             struct ShadowAttrs
@@ -136,15 +183,16 @@ Shader "Custom/CharacterHitFlash"
             struct ShadowVaryings
             {
                 float4 positionCS : SV_POSITION;
+                float3 positionWS : TEXCOORD0;
             };
 
             float3 _LightDirection;
             float3 _LightPosition;
 
-            float4 GetShadowPositionHClip(ShadowAttrs IN)
+            float4 GetShadowPositionHClip(ShadowAttrs IN, out float3 positionWS)
             {
-                float3 positionWS = TransformObjectToWorld(IN.positionOS.xyz);
-                float3 normalWS   = TransformObjectToWorldNormal(IN.normalOS);
+                positionWS = TransformObjectToWorld(IN.positionOS.xyz);
+                float3 normalWS = TransformObjectToWorldNormal(IN.normalOS);
 
                 #if _CASTING_PUNCTUAL_LIGHT_SHADOW
                     float3 lightDirectionWS = normalize(_LightPosition - positionWS);
@@ -166,11 +214,19 @@ Shader "Custom/CharacterHitFlash"
             ShadowVaryings ShadowPassVertex(ShadowAttrs IN)
             {
                 ShadowVaryings OUT;
-                OUT.positionCS = GetShadowPositionHClip(IN);
+                float3 positionWS;
+                OUT.positionCS = GetShadowPositionHClip(IN, positionWS);
+                OUT.positionWS = positionWS;
                 return OUT;
             }
 
-            half4 ShadowPassFragment(ShadowVaryings IN) : SV_Target { return 0; }
+            // 阴影 pass 也要 clip，否则身体溶解了影子还完整
+            half4 ShadowPassFragment(ShadowVaryings IN) : SV_Target
+            {
+                float noise = DissolveNoise(IN.positionWS, _DissolveScale);
+                clip(noise - _DissolveAmount);
+                return 0;
+            }
             ENDHLSL
         }
 
@@ -194,19 +250,34 @@ Shader "Custom/CharacterHitFlash"
                 float4 _FlashColor;
                 float  _FlashAmount;
                 float  _AmbientStrength;
+                float  _DissolveAmount;
+                float4 _DissolveEdgeColor;
+                float  _DissolveEdgeWidth;
+                float  _DissolveScale;
+                float  _DissolveEdgeEmission;
             CBUFFER_END
 
             struct DepthAttrs   { float4 positionOS : POSITION; };
-            struct DepthVaryings{ float4 positionCS : SV_POSITION; };
+            struct DepthVaryings
+            {
+                float4 positionCS : SV_POSITION;
+                float3 positionWS : TEXCOORD0;
+            };
 
             DepthVaryings DepthVert(DepthAttrs IN)
             {
                 DepthVaryings OUT;
+                OUT.positionWS = TransformObjectToWorld(IN.positionOS.xyz);
                 OUT.positionCS = TransformObjectToHClip(IN.positionOS.xyz);
                 return OUT;
             }
 
-            half4 DepthFrag(DepthVaryings IN) : SV_Target { return 0; }
+            half4 DepthFrag(DepthVaryings IN) : SV_Target
+            {
+                float noise = DissolveNoise(IN.positionWS, _DissolveScale);
+                clip(noise - _DissolveAmount);
+                return 0;
+            }
             ENDHLSL
         }
     }

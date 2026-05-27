@@ -12,8 +12,8 @@ using UnityEngine;
 ///     IsAiming 切换 Walk ↔ Sprint
 ///     MeleeAttack + MeleeType → AnyState → MeleeHard / MeleeKick
 ///     Die + DeathVariant → AnyState → DeathL / DeathR（终态，停在末帧倒地姿势）
-///   Upper Body Equip Layer：UpperBodyMask + Override，Idle 空 motion ↔ Equipping(EquipRifle)
-///     切枪只动上半身，下半身继续走/跑
+///   Upper Body Equip Layer：UpperBodyMask + Override，Idle 空 motion ↔ Holstering(HolsterRifle) → Equipping(EquipRifle)
+///     切枪只动上半身，下半身继续走/跑。两阶段：先收回旧枪，再取出新枪（WeaponComponent 用 holsterTimer 驱动顺序）
 ///   Upper Body Recoil Layer：UpperBodyMask + Override，Shoot trigger 触发单次 ShootOnce/ShootGrenade（HeavyRecoil 选），
 ///     RecoilSpeed 驱动 state.speed 让单发在 FireInterval 内播完，canSelf=true 让连发每发重播
 ///   Upper Body Reload Layer：UpperBodyMask + Override，Reload trigger 切到 Reloading，IsReloading=false 回 Idle
@@ -35,6 +35,7 @@ public static class PlayerAnimatorBuilder
     private const string ParamMeleeAttack = "MeleeAttack";
     private const string ParamMeleeType = "MeleeType";
     private const string ParamWeaponSwap = "WeaponSwap";
+    private const string ParamWeaponHolster = "WeaponHolster";
     private const string ParamReload = "Reload";
     private const string ParamIsReloading = "IsReloading";
     private const string ParamShoot = "Shoot";
@@ -79,6 +80,7 @@ public static class PlayerAnimatorBuilder
         var meleeHard = Require(clips, "Rifle_Melee_Hard");
         var meleeKick = Require(clips, "Rifle_Melee_Kick");
         var equip = Require(clips, "EquipRifle");
+        var holster = Require(clips, "HolsterRifle");
         var reload = Require(clips, "Rifle_Reload_2");
         var deathL = Require(clips, "Rifle_Death_L");
         var deathR = Require(clips, "Rifle_Death_R");
@@ -86,7 +88,7 @@ public static class PlayerAnimatorBuilder
             wFwdL == null || wFwdR == null || wBwdL == null || wBwdR == null ||
             idleDown == null || sprintLoop == null ||
             shootLight == null || shootHeavy == null || meleeHard == null || meleeKick == null ||
-            equip == null || reload == null || deathL == null || deathR == null)
+            equip == null || holster == null || reload == null || deathL == null || deathR == null)
             return;
 
         var mask = AssetDatabase.LoadAssetAtPath<AvatarMask>(UpperBodyMaskPath);
@@ -111,6 +113,7 @@ public static class PlayerAnimatorBuilder
         controller.AddParameter(ParamMeleeAttack, AnimatorControllerParameterType.Trigger);
         controller.AddParameter(ParamMeleeType, AnimatorControllerParameterType.Int);
         controller.AddParameter(ParamWeaponSwap, AnimatorControllerParameterType.Trigger);
+        controller.AddParameter(ParamWeaponHolster, AnimatorControllerParameterType.Trigger);
         controller.AddParameter(ParamReload, AnimatorControllerParameterType.Trigger);
         controller.AddParameter(ParamIsReloading, AnimatorControllerParameterType.Bool);
         controller.AddParameter(ParamShoot, AnimatorControllerParameterType.Trigger);
@@ -128,7 +131,7 @@ public static class PlayerAnimatorBuilder
 
         BuildBaseLayer(controller, idle, wFwd, wBwd, wLeft, wRight, wFwdL, wFwdR, wBwdL, wBwdR,
             idleDown, sprintLoop, meleeHard, meleeKick, deathL, deathR);
-        BuildEquipLayer(controller, equip, mask);
+        BuildEquipLayer(controller, equip, holster, mask);
         BuildRecoilLayer(controller, shootLight, shootHeavy, mask);
         BuildReloadLayer(controller, reload, mask);
 
@@ -264,9 +267,13 @@ public static class PlayerAnimatorBuilder
             (AnimatorConditionMode.Equals, DeathVariantR, ParamDeathVariant));
     }
 
-    /// 上半身切枪层（Override + UpperBodyMask）：Idle 空 motion 让下半身和 Base 的上半身原样透出，
-    /// WeaponSwap trigger 切到 Equipping(EquipRifle)，播完回 Idle。下半身全程不受影响。
-    private static void BuildEquipLayer(AnimatorController controller, AnimationClip equip, AvatarMask mask)
+    /// 上半身切枪层（Override + UpperBodyMask）：Idle 空 motion 让下半身和 Base 的上半身原样透出。
+    /// 两阶段切枪：
+    ///   按数字键 → WeaponComponent 置 WeaponHolster trigger → Holstering(HolsterRifle) 播旧枪收回
+    ///   Holster 时长到 → WeaponComponent 真正切武器 + 置 WeaponSwap trigger → Equipping(EquipRifle) 播新枪取出
+    ///   两个状态各自 exit time 回 Idle，互不依赖（trigger 由 WeaponComponent 计时驱动）。
+    /// 下半身全程不受影响。
+    private static void BuildEquipLayer(AnimatorController controller, AnimationClip equip, AnimationClip holster, AvatarMask mask)
     {
         var sm = new AnimatorStateMachine
         {
@@ -278,23 +285,39 @@ public static class PlayerAnimatorBuilder
         var idleState = sm.AddState("Idle", new Vector3(260, 120, 0));
         // motion=null：空 motion，Override 层下不动任何骨骼，Base 的上半身原样显示
 
-        var equippingState = sm.AddState("Equipping", new Vector3(460, 120, 0));
+        var holsteringState = sm.AddState("Holstering", new Vector3(460, 60, 0));
+        holsteringState.motion = holster;
+
+        var equippingState = sm.AddState("Equipping", new Vector3(460, 180, 0));
         equippingState.motion = equip;
 
         sm.defaultState = idleState;
 
-        // AnyState → Equipping on WeaponSwap trigger（canSelf=false，防止 trigger 期间自循环）
-        var t = sm.AddAnyStateTransition(equippingState);
-        t.hasExitTime = false;
-        t.duration = 0.1f;
-        t.canTransitionToSelf = false;
-        t.AddCondition(AnimatorConditionMode.If, 0f, ParamWeaponSwap);
+        // AnyState → Holstering on WeaponHolster trigger
+        var toHolster = sm.AddAnyStateTransition(holsteringState);
+        toHolster.hasExitTime = false;
+        toHolster.duration = 0.1f;
+        toHolster.canTransitionToSelf = false;
+        toHolster.AddCondition(AnimatorConditionMode.If, 0f, ParamWeaponHolster);
+
+        // AnyState → Equipping on WeaponSwap trigger（Holster 阶段结束后由 WeaponComponent 发）
+        var toEquip = sm.AddAnyStateTransition(equippingState);
+        toEquip.hasExitTime = false;
+        toEquip.duration = 0.1f;
+        toEquip.canTransitionToSelf = false;
+        toEquip.AddCondition(AnimatorConditionMode.If, 0f, ParamWeaponSwap);
+
+        // Holstering → Idle exit time（即使 WeaponSwap 没来也兜底回 Idle 不卡死）
+        var holsterBack = holsteringState.AddTransition(idleState);
+        holsterBack.hasExitTime = true;
+        holsterBack.exitTime = 0.85f;
+        holsterBack.duration = 0.15f;
 
         // Equipping → Idle exit time
-        var back = equippingState.AddTransition(idleState);
-        back.hasExitTime = true;
-        back.exitTime = 0.85f;
-        back.duration = 0.15f;
+        var equipBack = equippingState.AddTransition(idleState);
+        equipBack.hasExitTime = true;
+        equipBack.exitTime = 0.85f;
+        equipBack.duration = 0.15f;
 
         var layer = new AnimatorControllerLayer
         {

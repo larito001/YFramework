@@ -12,6 +12,9 @@ public class CharacterManager : IGameService, ITickable
     private ActorWorld world;
     private CharacterFactory factory;
     private readonly List<Character> characters = new List<Character>();
+    // Deferred removal queue：组件 Tick 期间调 RemoveCharacter 不会改正在遍历的 characters 列表，
+    // 攒到本帧 Tick 末尾统一清。和 BulletManager.toRemove 一个套路。
+    private readonly List<Character> toRemove = new List<Character>();
 
     public void Init(GameContext context)
     {
@@ -38,6 +41,12 @@ public class CharacterManager : IGameService, ITickable
     {
         for (int i = 0; i < characters.Count; i++)
             characters[i].Tick(dt);
+
+        if (toRemove.Count > 0)
+        {
+            for (int i = 0; i < toRemove.Count; i++) RemoveImmediate(toRemove[i]);
+            toRemove.Clear();
+        }
     }
 
     public void GenneratePlayer(Vector3 position = default)
@@ -69,8 +78,18 @@ public class CharacterManager : IGameService, ITickable
         return c;
     }
 
+    /// <summary>请求移除 Character（deferred）。组件 Tick 中调用安全；实际清理发生在本帧 Tick 末尾。
+    /// 已在队列里的请求会被去重，重复调用无副作用。</summary>
     public void RemoveCharacter(Character character)
     {
+        if (character == null) return;
+        if (toRemove.Contains(character)) return;
+        toRemove.Add(character);
+    }
+
+    private void RemoveImmediate(Character character)
+    {
+        if (character == null) return;
         characters.Remove(character);
         world.Unregister(character.ID);
         viewMgr.RemoveBaseView(character.ID);

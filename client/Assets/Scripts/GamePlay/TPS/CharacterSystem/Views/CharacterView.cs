@@ -25,13 +25,29 @@ public class CharacterView : BaseView
     /// <summary>受击闪烁时长（秒）。从 1 线性衰减回 0；过短不易察觉，过长拖尾感强。</summary>
     public float HitFlashDuration = 0.12f;
 
+    /// <summary>死亡溶解总时长（秒）。和 HealthComponent.AutoRemoveDelay 对齐，让"完全消失"刚好赶上 Despawn。
+    /// 越大效果越缓；shader 端用 _DissolveAmount 在这段时间内从 0 线性推到 1。</summary>
+    public float DissolveDuration = 3f;
+    /// <summary>溶解边缘高亮颜色（着火/魔法粉等）。和 shader 的 _DissolveEdgeColor 对应。</summary>
+    public Color DissolveEdgeColor = new Color(1f, 0.45f, 0.05f, 1f);
+    /// <summary>溶解边缘宽度（noise 单位）。和 shader 的 _DissolveEdgeWidth 对应，越大边带越粗。</summary>
+    public float DissolveEdgeWidth = 0.08f;
+    /// <summary>溶解边缘亮度（自发光强度）。&gt;1 让边缘超亮，配合后期 bloom 出火光感。</summary>
+    public float DissolveEdgeEmission = 3f;
+
     private Character character;
     private HealthComponent subscribedHealth;
     private Renderer[] flashRenderers;
     private MaterialPropertyBlock flashMpb;
     private float flashTimer;
+    private float dissolveTimer;   // 0 表示未死/未启动；>0 时每帧+=dt 推进到 DissolveDuration
+    private bool dissolving;
     private static readonly int HashFlashAmount = Shader.PropertyToID("_FlashAmount");
     private static readonly int HashFlashColor  = Shader.PropertyToID("_FlashColor");
+    private static readonly int HashDissolveAmount       = Shader.PropertyToID("_DissolveAmount");
+    private static readonly int HashDissolveEdgeColor    = Shader.PropertyToID("_DissolveEdgeColor");
+    private static readonly int HashDissolveEdgeWidth    = Shader.PropertyToID("_DissolveEdgeWidth");
+    private static readonly int HashDissolveEdgeEmission = Shader.PropertyToID("_DissolveEdgeEmission");
 
     private static readonly int HashMoveX = Animator.StringToHash("MoveX");
     private static readonly int HashMoveY = Animator.StringToHash("MoveY");
@@ -41,6 +57,7 @@ public class CharacterView : BaseView
     private static readonly int HashMeleeAttack = Animator.StringToHash("MeleeAttack");
     private static readonly int HashMeleeType = Animator.StringToHash("MeleeType");
     private static readonly int HashWeaponSwap = Animator.StringToHash("WeaponSwap");
+    private static readonly int HashWeaponHolster = Animator.StringToHash("WeaponHolster");
     private static readonly int HashReload = Animator.StringToHash("Reload");
     private static readonly int HashIsReloading = Animator.StringToHash("IsReloading");
     private static readonly int HashShoot = Animator.StringToHash("Shoot");
@@ -74,8 +91,13 @@ public class CharacterView : BaseView
         character.IsGrounded = Controller.isGrounded;
 
         // 订阅受击事件：HealthComponent 在 ApplyDamage 里触发 OnDamaged，view 拿来刷一发 _FlashAmount=1
+        // 死亡事件：OnDied 触发后启动溶解定时器，shader 的 _DissolveAmount 在 DissolveDuration 内 0→1
         subscribedHealth = character.Get<HealthComponent>();
-        if (subscribedHealth != null) subscribedHealth.OnDamaged += OnDamagedFlash;
+        if (subscribedHealth != null)
+        {
+            subscribedHealth.OnDamaged += OnDamagedFlash;
+            subscribedHealth.OnDied += OnDeathDissolve;
+        }
     }
 
     /// <summary>view 被 ViewManager.RemoveBaseView 销毁时清 Actor 引用，
@@ -86,6 +108,7 @@ public class CharacterView : BaseView
         if (subscribedHealth != null)
         {
             subscribedHealth.OnDamaged -= OnDamagedFlash;
+            subscribedHealth.OnDied -= OnDeathDissolve;
             subscribedHealth = null;
         }
         character = null;
@@ -97,15 +120,25 @@ public class CharacterView : BaseView
         flashTimer = HitFlashDuration;
     }
 
-    /// <summary>把当前 _FlashAmount 写到所有 renderer 的 MaterialPropertyBlock。
+    private void OnDeathDissolve(int attackerId)
+    {
+        dissolving = true;
+        dissolveTimer = 0f;
+    }
+
+    /// <summary>把当前的 flash + dissolve 参数一起写到所有 renderer 的 MaterialPropertyBlock 上。
     /// 用 MPB 而不是 material[] 是为了不打破 SRP Batcher / 不产生 material 实例 leak。
-    /// 材质 shader 必须暴露 _FlashAmount 和 _FlashColor，否则这步是 no-op，不会报错。</summary>
-    private void WriteFlash(float amount)
+    /// 材质 shader 必须暴露对应 _FlashAmount / _DissolveAmount 等 property，否则这一步是 no-op，不会报错。</summary>
+    private void WriteShaderState(float flashAmount, float dissolveAmount)
     {
         if (flashRenderers == null || flashRenderers.Length == 0) return;
         if (flashMpb == null) flashMpb = new MaterialPropertyBlock();
-        flashMpb.SetFloat(HashFlashAmount, amount);
+        flashMpb.SetFloat(HashFlashAmount, flashAmount);
         flashMpb.SetColor(HashFlashColor, HitFlashColor);
+        flashMpb.SetFloat(HashDissolveAmount, dissolveAmount);
+        flashMpb.SetColor(HashDissolveEdgeColor, DissolveEdgeColor);
+        flashMpb.SetFloat(HashDissolveEdgeWidth, DissolveEdgeWidth);
+        flashMpb.SetFloat(HashDissolveEdgeEmission, DissolveEdgeEmission);
         for (int i = 0; i < flashRenderers.Length; i++)
         {
             if (flashRenderers[i] != null) flashRenderers[i].SetPropertyBlock(flashMpb);
@@ -116,10 +149,14 @@ public class CharacterView : BaseView
     {
         if (character == null) return;
 
-        Controller.Move(character.WishVelocity * Time.deltaTime);
+        // Controller 死亡时被禁用以"删除碰撞"。disabled 状态下 Move/isGrounded 调用是 no-op 但有 Unity 警告，统一跳过。
+        if (Controller != null && Controller.enabled)
+        {
+            Controller.Move(character.WishVelocity * Time.deltaTime);
+            character.IsGrounded = Controller.isGrounded;
+        }
         transform.rotation = character.Rotation;
         character.Position = transform.position;
-        character.IsGrounded = Controller.isGrounded;
 
         if (Anim != null)
         {
@@ -150,6 +187,11 @@ public class CharacterView : BaseView
                 Anim.SetTrigger(HashMeleeAttack);
                 character.MeleeAttack = false;
             }
+            if (character.WeaponHolster)
+            {
+                Anim.SetTrigger(HashWeaponHolster);
+                character.WeaponHolster = false;
+            }
             if (character.WeaponSwap)
             {
                 Anim.SetTrigger(HashWeaponSwap);
@@ -175,16 +217,31 @@ public class CharacterView : BaseView
                 Anim.SetInteger(HashDeathVariant, character.DeathVariant);
                 Anim.SetTrigger(HashDie);
                 character.Die = false;
+                // 倒地后删除碰撞：CC disabled 让子弹/角色都穿过尸体。3s 后 HealthComponent 走 deferred remove 整个清掉。
+                if (Controller != null) Controller.enabled = false;
             }
         }
 
-        // 受击闪烁：从 HitFlashDuration 线性衰减到 0，过 0 后再写一帧 0 把 MPB 关掉
-        if (flashTimer > 0f)
+        // Flash 闪烁 + Death 溶解，合到同一份 MPB 一起写出（两个特效用同一个材质 shader）。
+        // 任一在跑就需要 SetPropertyBlock；都不跑时跳过，避免 idle 也每帧写一次 MPB。
+        bool flashActive = flashTimer > 0f;
+        bool needWrite = flashActive || dissolving;
+
+        float flashK = 0f;
+        if (flashActive)
         {
             flashTimer -= Time.deltaTime;
-            float k = HitFlashDuration > 0f ? Mathf.Clamp01(flashTimer / HitFlashDuration) : 0f;
-            if (flashTimer <= 0f) { flashTimer = 0f; k = 0f; }
-            WriteFlash(k);
+            flashK = HitFlashDuration > 0f ? Mathf.Clamp01(flashTimer / HitFlashDuration) : 0f;
+            if (flashTimer <= 0f) { flashTimer = 0f; flashK = 0f; }
         }
+
+        float dissolveK = 0f;
+        if (dissolving)
+        {
+            dissolveTimer += Time.deltaTime;
+            dissolveK = DissolveDuration > 0f ? Mathf.Clamp01(dissolveTimer / DissolveDuration) : 1f;
+        }
+
+        if (needWrite) WriteShaderState(flashK, dissolveK);
     }
 }

@@ -54,13 +54,26 @@ public class WeaponManager : IGameService, ITickable
         weapon.Dispose();
     }
 
-    /// <summary>装备：写 Weapon 装备态字段，WeaponView 下帧消费 reparent 到对应 socket。</summary>
+    /// <summary>挂到手部 socket：写装备态 + 把 HandLocalPosition/Euler 拷到 LocalPosition/Euler 供 view 读。</summary>
     public void Mount(Weapon weapon, Character owner, string socketName)
     {
         if (weapon == null || owner == null) return;
         weapon.IsEquipped = true;
         weapon.OwnerCharacterId = owner.ID;
         weapon.MountSocketName = socketName;
+        weapon.LocalPosition = weapon.HandLocalPosition;
+        weapon.LocalEuler = weapon.HandLocalEuler;
+    }
+
+    /// <summary>挂到背部 socket（切枪过场用）：同 Mount 但拷的是 BackLocalPosition/Euler。</summary>
+    public void MountOnBack(Weapon weapon, Character owner, string socketName)
+    {
+        if (weapon == null || owner == null) return;
+        weapon.IsEquipped = true;
+        weapon.OwnerCharacterId = owner.ID;
+        weapon.MountSocketName = socketName;
+        weapon.LocalPosition = weapon.BackLocalPosition;
+        weapon.LocalEuler = weapon.BackLocalEuler;
     }
 
     /// <summary>卸下：清装备态。WeaponView 检测 IsEquipped=false 后 SetActive(false)。
