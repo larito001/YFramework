@@ -8,7 +8,7 @@ using UnityEngine;
 /// 朝向：每帧把"本段位移/dt"写回 Owner.Velocity，BulletView 用这个值算 LookRotation，
 ///       看起来就是机头沿切线方向飞。
 ///
-/// 配方由 MissileFireComponent 在 Spawn 时填好；这个组件本身不算控制点。
+/// 配方由 <see cref="BezierMissileEffect"/> 在 spawn 时填好；这个组件本身不算控制点。
 /// </summary>
 public class MissileMoveComponent : IBulletComponent
 {

@@ -39,7 +39,7 @@ TPS/
 
 命名硬规则：
 - 组件基类前缀 `I`（`ICharacterComponent` / `IWeaponComponent` / `IBulletComponent`），尽管是 class 不是 interface —— 保持已有风格，全项目统一。
-- 具体组件后缀 `Component`（`AimComponent`、`ProjectileFireComponent`）。
+- 具体组件后缀 `Component`（`AimComponent`、`FireComponent`）。
 - view 后缀 `View`，挂在场景物体上的 MonoBehaviour。
 - Manager 后缀 `Manager`，service 后缀 `Service`。
 

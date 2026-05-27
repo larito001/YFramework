@@ -35,8 +35,8 @@ public class CharacterFactory
                 // 没有 Pistol 动画，两个槽都用同一份 Animator Controller，只换模型 + 播切枪过场
                 BuildRifleA(),
                 BuildRifleB(),
-                // 第三槽：模型/控制器复用 Rifle，把 ProjectileFireComponent 换成 MissileFireComponent，
-                // 弹道立刻变成贝塞尔曲线导弹，点哪飞哪。这就是组件替换的典型用法。
+                // 第三槽：模型/控制器复用 Rifle，把 FireComponent.Effect 从 LinearProjectileEffect 换成 BezierMissileEffect，
+                // 弹道立刻变成贝塞尔曲线导弹，点哪飞哪。这就是 effect 策略替换的典型用法。
                 BuildMissileLauncher(),
             },
         });
@@ -127,10 +127,11 @@ public class CharacterFactory
             HeavyRecoil = false,        // 小后坐力：ShootOnce
             RecoilAnimSpeed = 3.5f,     // 0.1s FireInterval，clip ~0.35s，加速到 ~0.1s 播完
         };
-        w.Add(new ProjectileFireComponent
+        w.Add(new FireComponent
         {
-            FireInterval = 0.1f, Damage = 25f, BulletSpeed = 80f, BulletLifetime = 2f,
+            FireInterval = 0.1f, Damage = 25f,
             RecoilShakeIntensity = 0.08f, RecoilShakeDuration = 0.06f,  // 全自动小抖
+            Effect = new LinearProjectileEffect { BulletSpeed = 80f, BulletLifetime = 2f },
         });
         return w;
     }
@@ -150,15 +151,16 @@ public class CharacterFactory
             HeavyRecoil = false,        // 小后坐力：ShootOnce
             RecoilAnimSpeed = 1.2f,     // 0.3s FireInterval，clip ~0.35s，略加速
         };
-        w.Add(new ProjectileFireComponent
+        w.Add(new FireComponent
         {
-            FireInterval = 0.3f, Damage = 40f, BulletSpeed = 60f, BulletLifetime = 2f,
+            FireInterval = 0.3f, Damage = 40f,
             RecoilShakeIntensity = 0.18f, RecoilShakeDuration = 0.12f,  // 半自动单发大抖
+            Effect = new LinearProjectileEffect { BulletSpeed = 60f, BulletLifetime = 2f },
         });
         return w;
     }
 
-    /// <summary>导弹发射器：模型 + Mount socket 完全复用 Rifle，行为换 MissileFireComponent。
+    /// <summary>导弹发射器：模型 + Mount socket 完全复用 Rifle，FireComponent.Effect 换成 BezierMissileEffect。
     /// 弧线飞行 1s，点哪飞哪；命中沿途碰撞或到点引爆。</summary>
     private static Weapon BuildMissileLauncher()
     {
@@ -174,14 +176,16 @@ public class CharacterFactory
             HeavyRecoil = true,         // 大后坐力：ShootGrenade
             RecoilAnimSpeed = 1.0f,     // 0.6s FireInterval > clip 长度，原速即可
         };
-        w.Add(new MissileFireComponent
+        w.Add(new FireComponent
         {
-            FireInterval = 0.6f,
-            Damage = 80f,
-            FlightDuration = 1.0f,
-            ForwardPushDist = 2f,
-            ArcHeight = 4f,
+            FireInterval = 0.6f, Damage = 80f,
             RecoilShakeIntensity = 0.35f, RecoilShakeDuration = 0.2f,  // 重武器大震
+            Effect = new BezierMissileEffect
+            {
+                FlightDuration = 1.0f,
+                ForwardPushDist = 2f,
+                ArcHeight = 4f,
+            },
         });
         return w;
     }

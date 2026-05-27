@@ -81,8 +81,8 @@ public static partial class GameBootstrapper
         //      └─ Aim → Move → Weapon（Add 序，CharacterFactory 固定）
         //         WeaponComponent 写 currentWeapon.FireIntent / FireOrigin / FireDirection
         //   2. WeaponManager.Tick
-        //      └─ ProjectileFireComponent / HitscanFireComponent 读上一行刚写的字段，按冷却开火
-        //         ProjectileFire 调 BulletManager.Spawn → 子弹本帧加入 BulletManager 列表
+        //      └─ FireComponent 读上一行刚写的字段，按冷却开火，调 Effect.Fire 走具体弹道
+        //         （LinearProjectileEffect 调 BulletManager.Spawn → 子弹本帧加入 BulletManager 列表）
         //   3. BulletManager.Tick
         //      └─ BulletMoveComponent 推进新生 + 已有子弹，做线段命中
         //
