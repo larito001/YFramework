@@ -26,6 +26,8 @@ public class Character : Actor
     public bool IsAiming;
     /// <summary>归一化水平速度（horizontal speed / WalkSpeed，clamp[0,1]）。Run 1D BlendTree 用。</summary>
     public float AnimSpeedRatio;
+    /// <summary>动画播放倍率（Animator.speed）。MoveComponent 按当前状态（walk/sprint/aim）写入，view 应用。</summary>
+    public float AnimPlaybackRate = 1f;
     /// <summary>一次性 trigger：组件置 true，view 消费后清回 false</summary>
     public bool MeleeAttack;
     public int MeleeType;

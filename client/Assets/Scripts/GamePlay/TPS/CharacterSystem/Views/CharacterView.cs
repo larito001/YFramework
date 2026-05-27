@@ -70,6 +70,20 @@ public class CharacterView : BaseView
 
         if (Anim != null)
         {
+            // 动画播放倍率：在 Locomotion tag 的状态用 Character.AnimPlaybackRate（MoveComponent 按 walk/sprint/aim 写入），
+            // 其他状态（Melee/Equipping/Idle 等）保持 1x 避免误缩
+            var stateInfo = Anim.GetCurrentAnimatorStateInfo(0);
+            if (stateInfo.IsTag("Locomotion"))
+            {
+                var horiz = new Vector2(character.WishVelocity.x, character.WishVelocity.z).magnitude;
+                // 几乎静止时回 1，避免 Idle 姿势被 walk/sprint 倍率扭曲
+                Anim.speed = horiz > 0.05f ? character.AnimPlaybackRate : 1f;
+            }
+            else
+            {
+                Anim.speed = 1f;
+            }
+
             Anim.SetFloat(HashMoveX, character.AnimMoveX);
             Anim.SetFloat(HashMoveY, character.AnimMoveY);
             Anim.SetFloat(HashSpeed, character.AnimSpeedRatio);

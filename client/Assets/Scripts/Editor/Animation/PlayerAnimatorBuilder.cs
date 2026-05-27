@@ -166,7 +166,9 @@ public static class PlayerAnimatorBuilder
         walkTree.AddChild(wBwdL, new Vector2(-Diag, -Diag));
         walkTree.AddChild(wBwdR, new Vector2(Diag, -Diag));
 
-        // ── Sprint BlendTree（不瞄准时，1D，Idle_GunDown ↔ SprintLoop）──
+        // ── Sprint BlendTree（不瞄准时，1D）──
+        // 2 采样点：0=Idle_GunDown，1=SprintLoop。Speed 参数范围 [0,1]
+        // 反滑步靠 view 端 Anim.speed = horiz / ReferenceMoveSpeed 全局缩放，不用 timeScale tricks
         var sprintTree = new BlendTree
         {
             name = "SprintTree",
@@ -181,9 +183,11 @@ public static class PlayerAnimatorBuilder
         // ── 顶层 states ──
         var walk = sm.AddState("Walk", new Vector3(280, 60, 0));
         walk.motion = walkTree;
+        walk.tag = "Locomotion"; // view 用此 tag 决定是否 Anim.speed 缩放
 
         var sprint = sm.AddState("Sprint", new Vector3(280, 180, 0));
         sprint.motion = sprintTree;
+        sprint.tag = "Locomotion";
 
         var hard = sm.AddState("MeleeHard", new Vector3(560, 0, 0));
         hard.motion = meleeHard;
