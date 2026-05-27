@@ -29,6 +29,11 @@ public class Character : Actor
     /// <summary>一次性 trigger：组件置 true，view 消费后清回 false</summary>
     public bool MeleeAttack;
     public int MeleeType;
+    /// <summary>近战进行中，MoveComponent 锁水平位移。WeaponComponent 在 melee 触发时置 true，计时器到期清零。</summary>
+    public bool IsMeleeing;
+
+    /// <summary>切枪进行中，WeaponComponent 用它门控开火。计时器到期自动清零。</summary>
+    public bool IsSwapping;
     /// <summary>切枪一次性 trigger：WeaponComponent 切槽时置 true，view 消费 SetTrigger 后清回。</summary>
     public bool WeaponSwap;
 

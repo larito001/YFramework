@@ -13,12 +13,6 @@ public class CharacterView : BaseView
     public CharacterController Controller { get; private set; }
     public Animator Anim { get; private set; }
 
-    /// <summary>反滑步参考：Walk clip 的内禀位移速度（m/s），瞄准时用。</summary>
-    public float ReferenceWalkSpeed = 1.6f;
-
-    /// <summary>反滑步参考：Sprint clip 的内禀位移速度（m/s），不瞄准时用。Rifle_SprintLoop 大致 4 m/s。</summary>
-    public float ReferenceSprintSpeed = 4.0f;
-
     /// <summary>武器挂点骨骼名（RifleAnimsetPro 的 Dummy 用的是 RightHandProp）。</summary>
     public string WeaponSocketName = "RightHandProp";
 
@@ -76,15 +70,6 @@ public class CharacterView : BaseView
 
         if (Anim != null)
         {
-            // 反滑步：按真实水平速度对动画播放速率做反向匹配
-            // 瞄准时参考 walk 内禀速度，不瞄准时参考 sprint 内禀速度
-            // 不再 Max(1, ...) 钳制——允许放慢，避免 sprint anim 总是过快导致反向滑步
-            var horiz = new Vector2(character.WishVelocity.x, character.WishVelocity.z).magnitude;
-            float refSpeed = character.IsAiming ? ReferenceWalkSpeed : ReferenceSprintSpeed;
-            Anim.speed = horiz > 0.05f && refSpeed > 0.01f
-                ? horiz / refSpeed
-                : 1f;
-
             Anim.SetFloat(HashMoveX, character.AnimMoveX);
             Anim.SetFloat(HashMoveY, character.AnimMoveY);
             Anim.SetFloat(HashSpeed, character.AnimSpeedRatio);

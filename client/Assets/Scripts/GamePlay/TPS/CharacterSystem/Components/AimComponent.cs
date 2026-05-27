@@ -8,7 +8,9 @@ using UnityEngine;
 /// </summary>
 public class AimComponent : ICharacterComponent
 {
-    public float RotateSpeed = 1080f; // deg/s，俯视角射击要跟手
+    /// <summary>旋转 lerp 速率（指数收敛）。值越大越紧跟，帧率无关。
+    /// 推荐 10~20：12 比较跟手又有缓动，5 偏软，25 接近瞬转。</summary>
+    public float RotateLerpRate = 12f;
 
     private InputService input;
     private CameraManager cameraMgr;
@@ -32,6 +34,9 @@ public class AimComponent : ICharacterComponent
 
         Owner.IsAiming = input.AimHeld;
 
+        // 近战中锁朝向：Owner.Rotation 保持触发瞬间的值，不被鼠标/键盘改变
+        if (Owner.IsMeleeing) return;
+
         Vector3 targetDir = Owner.IsAiming
             ? CalcAimDirection()
             : CalcMoveDirection();
@@ -39,7 +44,9 @@ public class AimComponent : ICharacterComponent
         if (targetDir.sqrMagnitude < 1e-4f) return; // 没有目标方向，朝向沿用上一帧
 
         var targetRot = Quaternion.LookRotation(targetDir, Vector3.up);
-        Owner.Rotation = Quaternion.RotateTowards(Owner.Rotation, targetRot, RotateSpeed * dt);
+        // 指数 lerp：每帧把当前朝向往目标朝向收 (1 - e^(-rate*dt))，帧率无关，自带 ease-out
+        float t = 1f - Mathf.Exp(-RotateLerpRate * dt);
+        Owner.Rotation = Quaternion.Slerp(Owner.Rotation, targetRot, t);
     }
 
     /// 鼠标 → 主相机射线 → 与角色等高水平面求交。同时写 Owner.AimTargetWorldPos 给射击/UI 用。
