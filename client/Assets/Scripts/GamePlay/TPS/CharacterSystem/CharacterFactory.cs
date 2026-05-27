@@ -20,7 +20,7 @@ public class CharacterFactory
         this.manager = manager;
     }
 
-    public Character CreateCharacter()
+    public Character CreateCharacter(Vector3 position = default)
     {
         var character = new Character();
         character.Add(new AimComponent());
@@ -57,8 +57,52 @@ public class CharacterFactory
         {
             InitialMaxHealth = 100f,
         });
-        manager.LoadBaseView<CharacterView>("Player/Player", character);
+        var view = manager.LoadBaseView<CharacterView>("Player/Player", character);
+        if (view != null && position != Vector3.zero)
+        {
+            TeleportTo(view, position);
+            character.Position = position;
+        }
         return character;
+    }
+
+    /// <summary>站桩敌人：只装 HealthComponent，没有 Aim/Move/Weapon/Melee。
+    /// view 复用 Player.prefab（Dummy.fbx 模型 + CharacterController 胶囊 collider 当 hitbox）。
+    /// 收到任意来源伤害（近战 / 子弹 / 射线 / 导弹）都会走 HealthComponent.ApplyDamage 扣血。
+    /// 死亡后 IsDead=true，HealthComponent 内部拦截后续伤害；模型停在原地（没有死亡动画，留给后续接）。
+    ///
+    /// 后续要做"会动 / 会还击"的敌人：在 CreateDummy 基础上 Add AI 组件（如 SimpleAIComponent
+    /// 写 WishVelocity / Rotation / IsShooting）+ MoveComponent + WeaponComponent，不需要造新 Actor 类。</summary>
+    public Character CreateDummy(Vector3 position, float maxHealth = 100f)
+    {
+        var character = new Character();
+        character.Add(new HealthComponent
+        {
+            InitialMaxHealth = maxHealth,
+        });
+
+        var view = manager.LoadBaseView<CharacterView>("Player/Player", character);
+        if (view != null)
+        {
+            view.gameObject.name = $"Dummy_{character.ID}";
+            TeleportTo(view, position);
+            // 同步 actor 状态：Bind 时已用 transform.position 写过一次，但是 instantiate 后我们才设位置，
+            // 这里再回写一遍保证 character.Position 与 view 一致。
+            character.Position = position;
+        }
+        return character;
+    }
+
+    /// <summary>把带 CharacterController 的 view 安全传送到目标位置。
+    /// 直接赋 transform.position 在 CC 启用时会被 CC 的内部物理 resolve 吞掉（表现为生成在原点），
+    /// 必须先 disable CC、设位置、再 enable，这是 Unity 文档推荐的 CC 传送做法。</summary>
+    private static void TeleportTo(CharacterView view, Vector3 position)
+    {
+        var cc = view.Controller;
+        bool wasEnabled = cc != null && cc.enabled;
+        if (cc != null) cc.enabled = false;
+        view.transform.position = position;
+        if (cc != null) cc.enabled = wasEnabled;
     }
 
     /// <summary>步枪：全自动 600 RPM，单发 25 伤，子弹 80 m/s。</summary>

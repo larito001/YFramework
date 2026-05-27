@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using UnityEngine;
 
 /// <summary>
 /// Character 集合 + 每帧驱动。所有 Character 的逻辑组件统一在这里 Tick。
@@ -39,9 +40,9 @@ public class CharacterManager : IGameService, ITickable
             characters[i].Tick(dt);
     }
 
-    public void GenneratePlayer()
+    public void GenneratePlayer(Vector3 position = default)
     {
-        var c = factory.CreateCharacter();
+        var c = factory.CreateCharacter(position);
         characters.Add(c);
         world.Register(c);
 
@@ -51,6 +52,21 @@ public class CharacterManager : IGameService, ITickable
             if (ctx != null && ctx.TryGet<CameraManager>(out var cam))
                 cam.SetFollow(view.transform);
         }
+
+        // 测试用：在玩家前方铺 3 个 Dummy 站桩靶，便于验证近战/子弹/导弹/射线四种伤害源都能扣血。
+        // 不想要就删这三行。
+        SpawnDummy(new Vector3(0f, 0f, 5f));
+        SpawnDummy(new Vector3(2f, 0f, 6f));
+        SpawnDummy(new Vector3(-2f, 0f, 6f));
+    }
+
+    /// <summary>生成一个站桩 Dummy 敌人在指定位置。返回 Character 实例供外部进一步配置（订阅 OnDied 等）。</summary>
+    public Character SpawnDummy(Vector3 position, float maxHealth = 100f)
+    {
+        var c = factory.CreateDummy(position, maxHealth);
+        characters.Add(c);
+        world.Register(c);
+        return c;
     }
 
     public void RemoveCharacter(Character character)
