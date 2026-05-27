@@ -47,8 +47,10 @@ public class HitscanFireComponent : IWeaponComponent
         if (cooldown > 0f) cooldown -= dt;
         if (!Owner.FireIntent) return;
         if (cooldown > 0f) return;
+        if (Owner.MagCapacity > 0 && Owner.CurrentAmmo <= 0) return;
 
         cooldown = FireInterval;
+        if (Owner.MagCapacity > 0) Owner.CurrentAmmo--;
 
         if (Physics.Raycast(Owner.FireOrigin, Owner.FireDirection, out var hit, Range, HitLayers))
         {

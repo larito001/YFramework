@@ -93,6 +93,7 @@ public class MeleeComponent : ICharacterComponent
     {
         if (Owner == null || Owner.IsDead) return;
         if (Owner.IsMeleeing) return;
+        if (Owner.IsReloading) return;  // 换弹中手是占用的，不响应近战
         Owner.MeleeAttack = true;
         Owner.MeleeType = MeleeType;
         Owner.IsMeleeing = true;

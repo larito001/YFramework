@@ -55,8 +55,10 @@ public class MissileFireComponent : IWeaponComponent
         if (!Owner.FireIntent) return;
         if (cooldown > 0f) return;
         if (bulletMgr == null) return;
+        if (Owner.MagCapacity > 0 && Owner.CurrentAmmo <= 0) return;
 
         cooldown = FireInterval;
+        if (Owner.MagCapacity > 0) Owner.CurrentAmmo--;
 
         // 控制点：P0=枪口、P1=朝前推、P2=目标上方、P3=目标点
         var p0 = Owner.FireOrigin;

@@ -14,6 +14,7 @@ using UnityEngine;
 ///   Upper Body Equip Layer：UpperBodyMask + Override，Idle 空 motion ↔ Equipping(EquipRifle)
 ///     切枪只动上半身，下半身继续走/跑
 ///   Upper Body Recoil Layer：UpperBodyMask + Additive，IsShooting=true 切到 ShootLoop_Additive
+///   Upper Body Reload Layer：UpperBodyMask + Override，Reload trigger 切到 Reloading，IsReloading=false 回 Idle
 public static class PlayerAnimatorBuilder
 {
     private const string ControllerPath = "Assets/Resources/Animations/playerController.controller";
@@ -32,6 +33,8 @@ public static class PlayerAnimatorBuilder
     private const string ParamMeleeAttack = "MeleeAttack";
     private const string ParamMeleeType = "MeleeType";
     private const string ParamWeaponSwap = "WeaponSwap";
+    private const string ParamReload = "Reload";
+    private const string ParamIsReloading = "IsReloading";
 
     private const int MeleeTypeHard = 0;
     private const int MeleeTypeKick = 1;
@@ -66,10 +69,11 @@ public static class PlayerAnimatorBuilder
         var meleeHard = Require(clips, "Rifle_Melee_Hard");
         var meleeKick = Require(clips, "Rifle_Melee_Kick");
         var equip = Require(clips, "EquipRifle");
+        var reload = Require(clips, "Rifle_Reload_2");
         if (idle == null || wFwd == null || wBwd == null || wLeft == null || wRight == null ||
             wFwdL == null || wFwdR == null || wBwdL == null || wBwdR == null ||
             idleDown == null || sprintLoop == null ||
-            shootAdd == null || meleeHard == null || meleeKick == null || equip == null)
+            shootAdd == null || meleeHard == null || meleeKick == null || equip == null || reload == null)
             return;
 
         var mask = AssetDatabase.LoadAssetAtPath<AvatarMask>(UpperBodyMaskPath);
@@ -94,11 +98,14 @@ public static class PlayerAnimatorBuilder
         controller.AddParameter(ParamMeleeAttack, AnimatorControllerParameterType.Trigger);
         controller.AddParameter(ParamMeleeType, AnimatorControllerParameterType.Int);
         controller.AddParameter(ParamWeaponSwap, AnimatorControllerParameterType.Trigger);
+        controller.AddParameter(ParamReload, AnimatorControllerParameterType.Trigger);
+        controller.AddParameter(ParamIsReloading, AnimatorControllerParameterType.Bool);
 
         BuildBaseLayer(controller, idle, wFwd, wBwd, wLeft, wRight, wFwdL, wFwdR, wBwdL, wBwdR,
             idleDown, sprintLoop, meleeHard, meleeKick);
         BuildEquipLayer(controller, equip, mask);
         BuildRecoilLayer(controller, shootAdd, mask);
+        BuildReloadLayer(controller, reload, mask);
 
         EditorUtility.SetDirty(controller);
         AssetDatabase.SaveAssets();
@@ -290,6 +297,51 @@ public static class PlayerAnimatorBuilder
         toSprint.exitTime = 0.85f;
         toSprint.duration = 0.15f;
         toSprint.AddCondition(AnimatorConditionMode.IfNot, 0f, ParamIsAiming);
+    }
+
+    /// 上半身换弹层（Override + UpperBodyMask）：Idle 空 motion 让 Base/Equip 的上半身原样透出，
+    /// Reload trigger 切到 Reloading(Rifle_Reload_2)，等 IsReloading=false 回 Idle。
+    /// 用 Bool 退出（而非 exit time）：和 WeaponComponent 的 reloadTimer 状态同步，换枪打断时动画立刻回 Idle。
+    /// 下半身全程不受影响。
+    private static void BuildReloadLayer(AnimatorController controller, AnimationClip reload, AvatarMask mask)
+    {
+        var sm = new AnimatorStateMachine
+        {
+            name = "Upper Body Reload",
+            hideFlags = HideFlags.HideInHierarchy,
+        };
+        AssetDatabase.AddObjectToAsset(sm, controller);
+
+        var idleState = sm.AddState("Idle", new Vector3(260, 120, 0));
+        // motion=null：空 motion，Override 层下不动任何骨骼
+
+        var reloadingState = sm.AddState("Reloading", new Vector3(460, 120, 0));
+        reloadingState.motion = reload;
+
+        sm.defaultState = idleState;
+
+        // AnyState → Reloading on Reload trigger（canSelf=false 防 trigger 期间自循环）
+        var t = sm.AddAnyStateTransition(reloadingState);
+        t.hasExitTime = false;
+        t.duration = 0.1f;
+        t.canTransitionToSelf = false;
+        t.AddCondition(AnimatorConditionMode.If, 0f, ParamReload);
+
+        // Reloading → Idle when IsReloading=false（由 WeaponComponent 计时器到点或换枪打断清零）
+        var back = reloadingState.AddTransition(idleState);
+        back.hasExitTime = false;
+        back.duration = 0.15f;
+        back.AddCondition(AnimatorConditionMode.IfNot, 0f, ParamIsReloading);
+
+        var layer = new AnimatorControllerLayer
+        {
+            name = "Upper Body Reload",
+            defaultWeight = 1f,
+            blendingMode = AnimatorLayerBlendingMode.Override,
+            avatarMask = mask,
+            stateMachine = sm,
+        };
+        controller.AddLayer(layer);
     }
 
     private static void BuildRecoilLayer(AnimatorController controller, AnimationClip shootAdd, AvatarMask mask)

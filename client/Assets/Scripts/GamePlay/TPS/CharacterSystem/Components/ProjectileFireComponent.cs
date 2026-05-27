@@ -47,8 +47,11 @@ public class ProjectileFireComponent : IWeaponComponent
         if (!Owner.FireIntent) return;
         if (cooldown > 0f) return;
         if (bulletMgr == null) return;
+        // 弹药检查：MagCapacity=0 表示无限弹药（不扣不查）。否则弹匣空就不开火。
+        if (Owner.MagCapacity > 0 && Owner.CurrentAmmo <= 0) return;
 
         cooldown = FireInterval;
+        if (Owner.MagCapacity > 0) Owner.CurrentAmmo--;
         var velocity = Owner.FireDirection * BulletSpeed;
         bulletMgr.Spawn(Owner.FireOrigin, velocity, BulletLifetime, Damage, Owner.OwnerCharacterId);
 

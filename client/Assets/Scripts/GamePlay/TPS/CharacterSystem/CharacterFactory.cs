@@ -112,7 +112,7 @@ public class CharacterFactory
         if (cc != null) cc.enabled = wasEnabled;
     }
 
-    /// <summary>步枪：全自动 600 RPM，单发 25 伤，子弹 80 m/s。</summary>
+    /// <summary>步枪：全自动 600 RPM，单发 25 伤，子弹 80 m/s，30 发弹匣。</summary>
     private static Weapon BuildRifleA()
     {
         var w = new Weapon
@@ -121,6 +121,9 @@ public class CharacterFactory
             ModelPath = "Weapon/RiflePlaceholder",
             LocalPosition = Vector3.zero,
             LocalEuler = Vector3.zero,
+            MagCapacity = 30,
+            CurrentAmmo = 30,
+            ReloadDuration = 1.5f,
         };
         w.Add(new ProjectileFireComponent
         {
@@ -130,7 +133,7 @@ public class CharacterFactory
         return w;
     }
 
-    /// <summary>手枪占位：半自动手感（0.3s 间隔），单发 40 伤，子弹 60 m/s。</summary>
+    /// <summary>手枪占位：半自动手感（0.3s 间隔），单发 40 伤，子弹 60 m/s，12 发弹匣。</summary>
     private static Weapon BuildRifleB()
     {
         var w = new Weapon
@@ -139,6 +142,9 @@ public class CharacterFactory
             ModelPath = "Weapon/PistolPlaceholder",
             LocalPosition = Vector3.zero,
             LocalEuler = Vector3.zero,
+            MagCapacity = 12,
+            CurrentAmmo = 12,
+            ReloadDuration = 1.0f,
         };
         w.Add(new ProjectileFireComponent
         {
@@ -158,6 +164,9 @@ public class CharacterFactory
             ModelPath = "Weapon/RiflePlaceholder",
             LocalPosition = Vector3.zero,
             LocalEuler = Vector3.zero,
+            MagCapacity = 4,
+            CurrentAmmo = 4,
+            ReloadDuration = 2.5f,
         };
         w.Add(new MissileFireComponent
         {

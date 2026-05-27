@@ -20,7 +20,18 @@ public class CharacterView : BaseView
     /// 0.1 = 大约 6 帧内追上目标值，体感顺滑且不拖沓。</summary>
     public float AnimMoveDampTime = 0.1f;
 
+    /// <summary>受击闪烁颜色。要求材质 shader 暴露 _FlashColor / _FlashAmount（如 Custom/CharacterHitFlash）。</summary>
+    public Color HitFlashColor = Color.white;
+    /// <summary>受击闪烁时长（秒）。从 1 线性衰减回 0；过短不易察觉，过长拖尾感强。</summary>
+    public float HitFlashDuration = 0.12f;
+
     private Character character;
+    private HealthComponent subscribedHealth;
+    private Renderer[] flashRenderers;
+    private MaterialPropertyBlock flashMpb;
+    private float flashTimer;
+    private static readonly int HashFlashAmount = Shader.PropertyToID("_FlashAmount");
+    private static readonly int HashFlashColor  = Shader.PropertyToID("_FlashColor");
 
     private static readonly int HashMoveX = Animator.StringToHash("MoveX");
     private static readonly int HashMoveY = Animator.StringToHash("MoveY");
@@ -30,6 +41,8 @@ public class CharacterView : BaseView
     private static readonly int HashMeleeAttack = Animator.StringToHash("MeleeAttack");
     private static readonly int HashMeleeType = Animator.StringToHash("MeleeType");
     private static readonly int HashWeaponSwap = Animator.StringToHash("WeaponSwap");
+    private static readonly int HashReload = Animator.StringToHash("Reload");
+    private static readonly int HashIsReloading = Animator.StringToHash("IsReloading");
 
     private void Awake()
     {
@@ -39,6 +52,10 @@ public class CharacterView : BaseView
         Anim = GetComponentInChildren<Animator>();
         if (Anim == null)
             Debug.LogWarning($"[CharacterView] {name} 找不到 Animator");
+
+        // 受击闪烁要驱动的所有 renderer：包含 SkinnedMeshRenderer + MeshRenderer，
+        // include inactive=true 兜底 prefab 里临时 disable 的部件（如不同武器槽 socket）。
+        flashRenderers = GetComponentsInChildren<Renderer>(true);
     }
 
     public override void Bind(Actor actor, int id)
@@ -50,6 +67,10 @@ public class CharacterView : BaseView
         character.Position = transform.position;
         character.Rotation = transform.rotation;
         character.IsGrounded = Controller.isGrounded;
+
+        // 订阅受击事件：HealthComponent 在 ApplyDamage 里触发 OnDamaged，view 拿来刷一发 _FlashAmount=1
+        subscribedHealth = character.Get<HealthComponent>();
+        if (subscribedHealth != null) subscribedHealth.OnDamaged += OnDamagedFlash;
     }
 
     /// <summary>view 被 ViewManager.RemoveBaseView 销毁时清 Actor 引用，
@@ -57,8 +78,33 @@ public class CharacterView : BaseView
     /// 命中已 Dispose 的 character 引用做出脏写。</summary>
     private void OnDestroy()
     {
+        if (subscribedHealth != null)
+        {
+            subscribedHealth.OnDamaged -= OnDamagedFlash;
+            subscribedHealth = null;
+        }
         character = null;
         ID = -1;
+    }
+
+    private void OnDamagedFlash(float amount, int attackerId)
+    {
+        flashTimer = HitFlashDuration;
+    }
+
+    /// <summary>把当前 _FlashAmount 写到所有 renderer 的 MaterialPropertyBlock。
+    /// 用 MPB 而不是 material[] 是为了不打破 SRP Batcher / 不产生 material 实例 leak。
+    /// 材质 shader 必须暴露 _FlashAmount 和 _FlashColor，否则这步是 no-op，不会报错。</summary>
+    private void WriteFlash(float amount)
+    {
+        if (flashRenderers == null || flashRenderers.Length == 0) return;
+        if (flashMpb == null) flashMpb = new MaterialPropertyBlock();
+        flashMpb.SetFloat(HashFlashAmount, amount);
+        flashMpb.SetColor(HashFlashColor, HitFlashColor);
+        for (int i = 0; i < flashRenderers.Length; i++)
+        {
+            if (flashRenderers[i] != null) flashRenderers[i].SetPropertyBlock(flashMpb);
+        }
     }
 
     private void LateUpdate()
@@ -104,6 +150,21 @@ public class CharacterView : BaseView
                 Anim.SetTrigger(HashWeaponSwap);
                 character.WeaponSwap = false;
             }
+            Anim.SetBool(HashIsReloading, character.IsReloading);
+            if (character.Reload)
+            {
+                Anim.SetTrigger(HashReload);
+                character.Reload = false;
+            }
+        }
+
+        // 受击闪烁：从 HitFlashDuration 线性衰减到 0，过 0 后再写一帧 0 把 MPB 关掉
+        if (flashTimer > 0f)
+        {
+            flashTimer -= Time.deltaTime;
+            float k = HitFlashDuration > 0f ? Mathf.Clamp01(flashTimer / HitFlashDuration) : 0f;
+            if (flashTimer <= 0f) { flashTimer = 0f; k = 0f; }
+            WriteFlash(k);
         }
     }
 }
