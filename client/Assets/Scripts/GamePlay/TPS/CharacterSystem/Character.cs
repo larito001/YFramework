@@ -45,4 +45,10 @@ public class Character : Actor
 
     /// <summary>当前持有武器槽位。WeaponComponent 写入，HUD/业务读取。实际武器模型挂载走 Weapon Actor + WeaponView。</summary>
     public int CurrentWeaponSlot;
+
+    /// <summary>枪口高度（相对角色脚下 Position.y 的偏移，米）。
+    /// AimComponent 用它做鼠标→世界射线相交平面（俯视角倾斜相机下，点哪打哪要靠这层平面）；
+    /// WeaponComponent 用它算 FireOrigin 的 Y。两边共用同一值才能保证准星和射线对齐。
+    /// 后续要做"蹲下/匍匐改变高度"就改这个字段。</summary>
+    public float MuzzleHeight = 1.2f;
 }

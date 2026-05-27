@@ -49,21 +49,23 @@ public class AimComponent : ICharacterComponent
         Owner.Rotation = Quaternion.Slerp(Owner.Rotation, targetRot, t);
     }
 
-    /// 鼠标 → 主相机射线 → 与角色等高水平面求交。同时写 Owner.AimTargetWorldPos 给射击/UI 用。
+    /// 鼠标 → 主相机射线 → 与枪口高度水平面求交。同时写 Owner.AimTargetWorldPos 给射击/UI 用。
+    /// 关键：平面在枪口高度（Position.y + MuzzleHeight），不是脚下。否则倾斜相机下鼠标看着指 A 实际打 B。
     private Vector3 CalcAimDirection()
     {
         var cam = cameraMgr != null ? cameraMgr.MainCamera : Camera.main;
         if (cam == null) return Vector3.zero;
 
         var ray = cam.ScreenPointToRay(input.MousePosition);
-        var plane = new Plane(Vector3.up, new Vector3(0f, Owner.Position.y, 0f));
+        var planeY = Owner.Position.y + Owner.MuzzleHeight;
+        var plane = new Plane(Vector3.up, new Vector3(0f, planeY, 0f));
         if (!plane.Raycast(ray, out float enter)) return Vector3.zero;
 
         var hit = ray.GetPoint(enter);
         Owner.AimTargetWorldPos = hit;
 
         var dir = hit - Owner.Position;
-        dir.y = 0f;
+        dir.y = 0f; // 朝向只用水平分量
         return dir;
     }
 
