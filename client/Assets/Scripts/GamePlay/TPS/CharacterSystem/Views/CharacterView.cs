@@ -52,6 +52,15 @@ public class CharacterView : BaseView
         character.IsGrounded = Controller.isGrounded;
     }
 
+    /// <summary>view 被 ViewManager.RemoveBaseView 销毁时清 Actor 引用，
+    /// 与 BulletView.OnDespawn 对齐：避免 Unity Destroy 排队期间 LateUpdate 还跑一帧
+    /// 命中已 Dispose 的 character 引用做出脏写。</summary>
+    private void OnDestroy()
+    {
+        character = null;
+        ID = -1;
+    }
+
     private void LateUpdate()
     {
         if (character == null) return;

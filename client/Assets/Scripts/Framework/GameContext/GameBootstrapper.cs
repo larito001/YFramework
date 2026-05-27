@@ -73,8 +73,20 @@ public static partial class GameBootstrapper
         Debug.Log(ctx.Get<ConfigManager>().heroConfig.Get(1001).HeroName);
         ctx.Register(new ActorWorld());
         ctx.Register(new ViewManager());
-        // Tick 顺序：Character → Weapon → Bullet，保证同帧链：
-        //   WeaponComponent 写 FireIntent → ProjectileFireComponent 读并 Spawn 子弹 → BulletMoveComponent 推进 + 命中
+        // ── TPS Manager Tick 顺序（不要随意调整）──
+        //   CharacterManager → WeaponManager → BulletManager
+        //
+        // 同帧数据链（依赖 Register 顺序 = Tick 顺序）：
+        //   1. CharacterManager.Tick
+        //      └─ Aim → Move → Weapon（Add 序，CharacterFactory 固定）
+        //         WeaponComponent 写 currentWeapon.FireIntent / FireOrigin / FireDirection
+        //   2. WeaponManager.Tick
+        //      └─ ProjectileFireComponent / HitscanFireComponent 读上一行刚写的字段，按冷却开火
+        //         ProjectileFire 调 BulletManager.Spawn → 子弹本帧加入 BulletManager 列表
+        //   3. BulletManager.Tick
+        //      └─ BulletMoveComponent 推进新生 + 已有子弹，做线段命中
+        //
+        // 反序会让开火延迟一帧、子弹起步少一帧推进。新增同类 Manager 按依赖方向插入。
         ctx.Register(new CharacterManager());
         ctx.Register(new WeaponManager());
         ctx.Register(new BulletManager());

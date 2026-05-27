@@ -7,6 +7,10 @@ using UnityEngine;
 ///   - 切枪：监听 InputService.OnWeaponSelect（1~9 数字键）→ Equip(slot) → weaponMgr.Mount/Unmount
 ///   - 射击：每帧把 input.FireHeld 写到 Owner.IsShooting（开火行为由 Weapon 的 FireComponent 自己消费，本类不管）
 ///   - 近战：监听 InputService.OnMeleeDown（V）→ 置 Owner.MeleeAttack + MeleeType（后续可拆 MeleeComponent）
+///
+/// Add 顺序约束：**必须在 MoveComponent 之后 Add**。
+///   近战前冲段 Tick 里直接覆写 Owner.WishVelocity（见下方 melee 锁位移块），如果 Move 在本组件之后 Tick，
+///   Move 会把 WishVelocity 再算一遍抹掉前冲位移。CharacterFactory 里固定为 Aim → Move → Weapon。
 /// </summary>
 public class WeaponComponent : ICharacterComponent
 {
@@ -24,7 +28,7 @@ public class WeaponComponent : ICharacterComponent
     /// 默认 0.3s + 峰值 3 → 位移约 0.45m，配合动画前段冲击。</summary>
     public float MeleeForwardDuration = 2f;
     /// <summary>切枪锁开火时长（秒），近似匹配 EquipRifle 动画长度。</summary>
-    public float WeaponSwapDuration = 0.8f;
+    public float WeaponSwapDuration = 1.3f;
 
     private InputService input;
     private WeaponManager weaponMgr;
