@@ -73,8 +73,10 @@ public static partial class GameBootstrapper
         Debug.Log(ctx.Get<ConfigManager>().heroConfig.Get(1001).HeroName);
         ctx.Register(new ActorWorld());
         ctx.Register(new ViewManager());
-        ctx.Register(new WeaponManager());
+        // Tick 顺序：CharacterManager 先（WeaponComponent 写 currentWeapon.FireIntent/Origin/Direction），
+        // 然后 WeaponManager（HitscanFireComponent 同帧消费，避免 1 帧延迟）
         ctx.Register(new CharacterManager());
+        ctx.Register(new WeaponManager());
 
         return ctx;
     }

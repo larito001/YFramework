@@ -82,6 +82,21 @@ public class WeaponComponent : ICharacterComponent
         // 开火条件：瞄准 + 没在切枪 + 没在近战
         Owner.IsShooting = input.FireHeld && Owner.IsAiming && !Owner.IsSwapping && !Owner.IsMeleeing;
 
+        // 当前武器的开火意图 + 弹道源：FireComponent 自己消费（射速/弹夹/扩散在子组件里再叠）
+        // origin 沿角色朝前推 0.6m + 胸高 1.2m，避开自己的 CharacterController capsule
+        // direction 用准星水平方向（俯视角下 AimTargetWorldPos 在角色脚下高度，抬到 origin 高度做平面射击）
+        if (currentWeapon != null)
+        {
+            currentWeapon.FireIntent = Owner.IsShooting;
+            var origin = Owner.Position + Owner.Rotation * Vector3.forward * 0.6f + Vector3.up * 1.2f;
+            var target = new Vector3(Owner.AimTargetWorldPos.x, origin.y, Owner.AimTargetWorldPos.z);
+            var dir = target - origin;
+            if (dir.sqrMagnitude > 1e-4f) dir.Normalize();
+            else dir = Owner.Rotation * Vector3.forward;
+            currentWeapon.FireOrigin = origin;
+            currentWeapon.FireDirection = dir;
+        }
+
         // 近战锁位移计时 + 前冲位移
         if (meleeLockTimer > 0f)
         {
