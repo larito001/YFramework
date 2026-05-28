@@ -152,9 +152,22 @@ public class WeaponComponent : ICharacterComponent
         {
             currentWeapon.FireIntent = Owner.IsShooting;
             var origin = Owner.Position + Owner.Rotation * Vector3.forward * 0.6f + Vector3.up * Owner.MuzzleHeight;
+            var characterForward = Owner.Rotation * Vector3.forward;
+
+            // 鼠标停在自己身上 / 离 muzzle 太近 / 落在角色背后时，aim-origin 会指向自己（甚至反向），
+            // 子弹会撞进自己 CharacterController。三道兜底：水平面化、距离阈值、与 forward 同向校验，
+            // 任一失败就回退到 character.forward。
             var dir = Owner.AimTargetWorldPos - origin;
-            if (dir.sqrMagnitude > 1e-4f) dir.Normalize();
-            else dir = Owner.Rotation * Vector3.forward;
+            dir.y = 0f;
+            const float minAimDistSqr = 0.25f; // 0.5m 之内的瞄准点忽略，强制 forward
+            if (dir.sqrMagnitude < minAimDistSqr || Vector3.Dot(dir, characterForward) <= 0f)
+            {
+                dir = characterForward;
+                dir.y = 0f;
+            }
+            if (dir.sqrMagnitude < 1e-4f) dir = Vector3.forward; // 极端情况兜底
+            dir.Normalize();
+
             currentWeapon.FireOrigin = origin;
             currentWeapon.FireDirection = dir;
             currentWeapon.FireTarget = Owner.AimTargetWorldPos;

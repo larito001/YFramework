@@ -28,6 +28,8 @@ public class MissileMoveComponent : IBulletComponent
     private float elapsed;
     private BulletManager bulletMgr;
     private ActorWorld world;
+    // RaycastNonAlloc buffer：复用避免每帧 alloc。
+    private static readonly RaycastHit[] raycastBuf = new RaycastHit[8];
 
     public override void Attach(Bullet owner)
     {
@@ -73,23 +75,36 @@ public class MissileMoveComponent : IBulletComponent
         Owner.Position = next;
     }
 
-    /// <summary>对 [from, to] 这段做 Raycast，撞到东西就引爆 + Despawn 并返回 true。</summary>
+    /// <summary>对 [from, to] 这段做 Raycast，撞到东西就引爆 + Despawn 并返回 true。
+    /// 自己（OwnerCharacterId）的 collider 被忽略，避免起飞早期撞自己。</summary>
     private bool CastAndHit(Vector3 from, Vector3 to)
     {
         var step = to - from;
         var dist = step.magnitude;
         if (dist < 1e-4f) return false;
         var dir = step / dist;
-        if (Physics.Raycast(from, dir, out var hit, dist, HitLayers))
+
+        int hitCount = Physics.RaycastNonAlloc(from, dir, raycastBuf, dist, HitLayers);
+        if (hitCount == 0) return false;
+
+        int bestIdx = -1;
+        float bestDist = float.MaxValue;
+        for (int i = 0; i < hitCount; i++)
         {
-            Debug.Log($"[Missile] hit {hit.collider.name} @ {hit.distance:F2}m, dmg={Owner.Damage}");
-            // 卡肉 tier 透传：默认用导弹自带的 HitstopTier（Factory/Effect 配的）
-            DamageRouter.TryHitAndDamage(hit.collider, world, Owner.OwnerCharacterId, Owner.Damage, Owner.HitstopTier);
-            Owner.Position = hit.point;
-            bulletMgr?.Despawn(Owner);
-            return true;
+            var h = raycastBuf[i];
+            var view = h.collider.GetComponentInParent<BaseView>();
+            if (view != null && view.ID == Owner.OwnerCharacterId) continue; // 跳过自身
+            if (h.distance < bestDist) { bestDist = h.distance; bestIdx = i; }
         }
-        return false;
+        if (bestIdx < 0) return false;
+
+        var hit = raycastBuf[bestIdx];
+        Debug.Log($"[Missile] hit {hit.collider.name} @ {hit.distance:F2}m, dmg={Owner.Damage}");
+        // 卡肉 tier 透传：默认用导弹自带的 HitstopTier（Factory/Effect 配的）
+        DamageRouter.TryHitAndDamage(hit.collider, world, Owner.OwnerCharacterId, Owner.Damage, Owner.HitstopTier);
+        Owner.Position = hit.point;
+        bulletMgr?.Despawn(Owner);
+        return true;
     }
 
     /// <summary>三阶贝塞尔 B(t) = (1-t)³P0 + 3(1-t)²t·P1 + 3(1-t)t²·P2 + t³P3</summary>

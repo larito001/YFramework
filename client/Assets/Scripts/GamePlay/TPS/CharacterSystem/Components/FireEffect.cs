@@ -79,10 +79,26 @@ public class HitscanEffect : FireEffect
     /// <summary>Debug 线显示时长（秒）。</summary>
     public float DebugDrawSeconds = 0.1f;
 
+    // RaycastNonAlloc buffer：复用避免每发开火 alloc。
+    private static readonly RaycastHit[] raycastBuf = new RaycastHit[8];
+
     public override void Fire(Weapon weapon, BulletManager bullets, ActorWorld world, float damage)
     {
-        if (Physics.Raycast(weapon.FireOrigin, weapon.FireDirection, out var hit, Range, HitLayers))
+        // 跳过发射者自身 collider：起点在 forward 0.6m 处但仍可能擦到 capsule 边缘
+        int hitCount = Physics.RaycastNonAlloc(weapon.FireOrigin, weapon.FireDirection, raycastBuf, Range, HitLayers);
+        int bestIdx = -1;
+        float bestDist = float.MaxValue;
+        for (int i = 0; i < hitCount; i++)
         {
+            var h = raycastBuf[i];
+            var view = h.collider.GetComponentInParent<BaseView>();
+            if (view != null && view.ID == weapon.OwnerCharacterId) continue;
+            if (h.distance < bestDist) { bestDist = h.distance; bestIdx = i; }
+        }
+
+        if (bestIdx >= 0)
+        {
+            var hit = raycastBuf[bestIdx];
             Debug.DrawLine(weapon.FireOrigin, hit.point, Color.red, DebugDrawSeconds);
             Debug.Log($"[Hitscan] {weapon.Name} hit {hit.collider.name} @ {hit.distance:F2}m, dmg={damage}");
             // hitscan 不经过 bullet，直接把 effect 自己的 HitstopTier 传给 DamageRouter
