@@ -25,7 +25,7 @@ public class CharacterFactory
 
     public Character CreateCharacter(Vector3 position = default)
     {
-        var character = new Character { TeamId = 1 };  // 玩家军（详见 ARCHITECTURE "阵营"）
+        var character = new Character { TeamId = 1, CurrentCharacterAnimSetPath = "Character/PlayerAnimSet" };
         character.Add(new AimComponent());
         character.Add(new MoveComponent());
         character.Add(new WeaponComponent
@@ -38,6 +38,8 @@ public class CharacterFactory
                 // 第三槽：模型/控制器复用 Rifle，把 FireComponent.Effect 从 LinearProjectileEffect 换成 BezierMissileEffect，
                 // 弹道立刻变成贝塞尔曲线导弹，点哪飞哪。这就是 effect 策略替换的典型用法。
                 BuildMissileLauncher(),
+                // 第四槽：突击步枪——示范不同 WeaponAnimSet。Shoot clip 用 Rifle_ShootBurst（连发风格）跟 Pistol 视觉明显不同
+                BuildBurstRifle(),
             },
         });
         // 近战自包含：V 键订阅 / swing 时长 / 命中窗 / 前冲 / hitbox 都在这里。
@@ -89,7 +91,7 @@ public class CharacterFactory
     /// 写 WishVelocity / Rotation / IsShooting）+ MoveComponent + WeaponComponent，不需要造新 Actor 类。</summary>
     public Character CreateDummy(Vector3 position, float maxHealth = 1000f)
     {
-        var character = new Character { TeamId = 2 };  // 敌军（详见 ARCHITECTURE "阵营"）
+        var character = new Character { TeamId = 2, CurrentCharacterAnimSetPath = "Character/PlayerAnimSet" };
         // 给 Dummy 也装重力，spawn 后会被 Gravity + CC 一起拉到地面，避免悬空或半身埋在地形里
         character.Add(new GravityComponent());
         character.Add(new HealthComponent
@@ -243,6 +245,42 @@ public class CharacterFactory
             },
         });
         w.Add(new ReloadComponent { ReloadDuration = 2.5f });
+        return w;
+    }
+
+    /// <summary>突击步枪：连发风格 400 RPM，单发 35 伤，24 发弹匣。
+    /// **示范多枪体系**：用独立 BurstRifle.asset（Shoot 用 Rifle_ShootBurst clip 跟 Pistol 的 ShootOnce 视觉明显不同）。
+    /// 切到这把枪 view 自动加载 BurstRifle.asset → 上半身播 burst 风格开火；下半身 locomotion 不被打断（CharacterAnimSet 保持）。</summary>
+    private static Weapon BuildBurstRifle()
+    {
+        var w = new Weapon
+        {
+            Name = "Burst Rifle",
+            ModelPath = "Weapon/RiflePlaceholder",
+            // 用专属 AnimSet——演示切武器时上半身动画切换（下半身保持 PlayerAnimSet locomotion）
+            AnimSetPath = "Weapon/Anim/BurstRifle",
+            HandLocalPosition = Vector3.zero,
+            HandLocalEuler = Vector3.zero,
+            MuzzleLocalOffset = new Vector3(0f, 1.2f, 0.6f),
+            BackLocalPosition = new Vector3(0f, 0.15f, -0.2f),
+            BackLocalEuler = new Vector3(0f, 90f, 0f),
+            MagCapacity = 24,
+            CurrentAmmo = 24,
+            HeavyRecoil = false,
+            RecoilAnimSpeed = 2f,        // ShootBurst clip 偏长，加速到 0.4s 内播完匹配 FireInterval
+        };
+        w.Add(new FireComponent
+        {
+            FireInterval = 0.4f,         // 400 RPM 连发
+            Damage = new DamageSpec
+            {
+                BaseDamage = 35f,
+                HitstopTier = HitstopTier.Long,  // 单发伤害高 → 长卡肉
+            },
+            RecoilShakeIntensity = 0.25f, RecoilShakeDuration = 0.15f,
+            Effect = new LinearProjectileEffect { BulletSpeed = 70f, BulletLifetime = 2f },
+        });
+        w.Add(new ReloadComponent { ReloadDuration = 1.8f });
         return w;
     }
 }

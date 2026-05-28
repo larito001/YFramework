@@ -302,13 +302,42 @@ CharacterView.LateUpdate
 Unity Animator / Animancer / 自研 Playables
 ```
 
-**view 内部可以用任何动画方案实现**——只要消费 Character 协议字段即可。**当前实现：Animancer + WeaponAnimSet ScriptableObject + LinearMixerState + Layer/AvatarMask 分上下身**：
-- Weapon 上配 `AnimSetPath`（指向 Resources 下的 .asset）
-- 武器切换时 view 加载 `WeaponAnimSet`（含 Idle/Walk/Run/Sprint/Aim*/Shoot/Reload/Equip/Holster/Melee/Die 各 AnimationClip + 阈值 + UpperBodyMask）
-- **Locomotion 用 `LinearMixerState` 平滑 blend**：4 child (Idle/Walk/Run/Sprint) 按 `IdleThreshold/WalkThreshold/RunThreshold/SprintThreshold` 平滑过渡；Aim 模式切到 aimLocomotionMixer（2 child）
-- **Combat 走 Layer 1 + AvatarMask 上下身分离**：UpperBodyMask 配了时上半身播 Shoot/Reload/Equip/Holster/Melee，下半身继续走 Locomotion mixer（边跑边射）；mask=null 时单层模式，Combat 覆盖 Locomotion
-- **状态优先级**：Die（Layer 0 全身覆盖 + Layer 1 fade out）&gt; Melee &gt; Holster &gt; Equip &gt; Reload &gt; Shoot
-- 一次性 state（双层模式）播完自动 fade out Layer 1 让 Locomotion 透回；单层模式走 IsPlaying 跟踪
+**view 内部可以用任何动画方案实现**——只要消费 Character 协议字段即可。**当前实现：Animancer + 双 AnimSet ScriptableObject，封装在 `CharacterAnimancerController`** 普通 class 里：
+
+### 双 AnimSet 分工
+
+| AnimSet | 字段 | 跟谁绑定 | 何时加载 |
+|---|---|---|---|
+| `CharacterAnimSet` | Locomotion (Idle/Walk/Run/Sprint) + 阈值 + Death(L/R) + UpperBodyMask + DefaultFade | **角色**（不同角色不同走路 / 死亡姿势） | view Bind 时**一次性**加载（`Character.CurrentCharacterAnimSetPath`，Factory 设） |
+| `WeaponAnimSet` | Aim 1D fallback (AimIdle/AimWalk) + 8 方向 strafe + Combat (Shoot/Reload/Equip/Holster/Melee) + aim 阈值 + ShootFade | **武器**（每把枪不同上半身姿势） | **切武器时**重新加载（`Weapon.AnimSetPath` → `Character.CurrentWeaponAnimSetPath` + `WeaponAnimDirty` trigger） |
+
+**关键收益**：切武器只重建 aim mixer，**非瞄准 locomotion mixer 保持连续**——下半身走路不被打断。每把枪只需要配上半身相关 clip，不需要复制 locomotion。
+
+
+
+```
+CharacterView.LateUpdate
+  ├─ CC.Move 物理 + transform 同步
+  ├─ animController.Tick(character, scale)   ← 委托动画驱动
+  │    ├─ 检测 character.WeaponAnimDirty → LoadAnimSet(WeaponAnimSet 资源)
+  │    ├─ Animancer.Graph.Speed = scale（全局时间缩放）
+  │    └─ DriveAnimation：trigger 优先级状态机 + UpdateLocomotion mixer
+  └─ Flash 闪烁 + Death 溶解 视觉反馈
+```
+
+**封装边界**：
+- `CharacterAnimancerController` 自治：mixer 构造 / Layer/Mask 管理 / state 切换 / SmoothDamp / 加载 AnimSet
+- view 只管 CC 物理 / 受击闪烁 / 死亡溶解 / 飘字 / 订事件
+- controller 通过 `OnDeathTriggered` 事件通知 view 做 GameObject 级响应（disable CC 让子弹穿过尸体）
+
+**关键技术细节**（详见 CharacterAnimancerController 类注释）：
+- Locomotion：`LinearMixerState` 4 child (Idle/Walk/Run/Sprint) 按 `AnimSpeedRatio` 真实 m/s blend
+- Aim Locomotion：`CartesianMixerState` 9 child (Idle 中心 + 8 方向 strafe) 按 `(AnimMoveX, AnimMoveY)` 2D blend，替代 BlendTree 2D
+- 上下身分离：`UpperBodyMask` 配了启用 Layer 1（Combat 走上半身 / Locomotion 走全身），mask=null 时单层 Combat 覆盖
+- 状态优先级：Die（全身 Layer 0 + Layer 1 weight=0） &gt; Melee（全身 Layer 0） &gt; Holster &gt; Equip &gt; Reload &gt; Shoot &gt; Locomotion
+- 转向 SmoothDamp：mixer.ParameterX/Y 用 `AnimMoveDampTime` 平滑，避免方向瞬切硬切（MoveComponent 转向无 lerp 设计）
+
+**换动画方案的成本**：换回 Animator / 升级 Animancer Pro 高级 mixer / 自研都只重写 `CharacterAnimancerController` 一个类，view + 逻辑组件零改动。
 
 **架构层选择权**：换回 Unity Animator / 升级 Animancer LinearMixerState / 自研都不破坏 ARCHITECTURE——只重写 `CharacterView.LateUpdate` + `DriveAnimation`，逻辑组件零改动。
 

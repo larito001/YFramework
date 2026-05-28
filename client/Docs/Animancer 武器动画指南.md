@@ -1,8 +1,47 @@
 # Animancer 武器动画指南（给美工）
 
-给每把武器配自己的全套动画——Idle / Walk / Run / Sprint / Aim* / Shoot / Reload / Equip / Holster / Melee / Die。
-**用 Animancer 直接 Play AnimationClip，不用 Animator state machine 也不用 BlendTree**。
-你只需要建一个 `WeaponAnimSet.asset` 资源 + 拖 clip 进去。
+**两个 .asset 分工**：
+- **CharacterAnimSet**（角色级，每个角色一份）：通用 Locomotion (Idle/Walk/Run/Sprint) + Death + UpperBodyMask
+- **WeaponAnimSet**（武器级，每把枪一份）：Aim 8 方向 strafe + Shoot/Reload/Equip/Holster/Melee（**只上半身相关**）
+
+切武器只换 WeaponAnimSet，下半身走路 mixer 保持连续。每把枪只需要配自己的上半身 clip，不重复配 locomotion / death。
+
+---
+
+## 第一部分：CharacterAnimSet（角色动画包）
+
+每个角色（Player / Enemy / NPC 等）建一份，含通用 locomotion + death + UpperBodyMask。
+
+### 创建
+
+1. Project 窗口 → `Assets/Resources/Character/`（必须 Resources 下）
+2. 右键 → Create → **TPS → CharacterAnimSet**
+3. 命名 `<角色名>AnimSet.asset`（如 `PlayerAnimSet.asset`）
+
+### 配字段
+
+| 字段 | 拖什么 |
+|---|---|
+| Idle | 静止 idle |
+| Walk | 慢走 |
+| Run | 跑步 |
+| Sprint | 冲刺 |
+| DeathL | 死亡变体 0 |
+| DeathR | 死亡变体 1 |
+| UpperBodyMask | 上半身 AvatarMask（让 Combat layer 只影响上半身，下半身走 Locomotion） |
+| 阈值字段 | locomotion mixer 4 档对应速度（一般 0/WalkSpeed/RunSpeed/SprintSpeed） |
+
+### 告诉程序员路径
+
+`Assets/Resources/Character/PlayerAnimSet.asset` → 告程序员 `Character/PlayerAnimSet`。
+
+程序员在 CharacterFactory 给对应角色配 `character.CurrentCharacterAnimSetPath`。
+
+---
+
+## 第二部分：WeaponAnimSet（武器动画包）
+
+每把枪建一份，**只配上半身相关**（不配 Locomotion / Death）。
 
 ---
 
@@ -35,19 +74,13 @@
 
 选中刚建的 `.asset`，Inspector 里逐个拖：
 
-**Locomotion（无瞄准）** — 角色不持枪 / 持枪非瞄准时
-| 字段 | 拖什么 | 示例 |
-|---|---|---|
-| Idle | 静止 idle | `Idle_Pistol.anim` |
-| Walk | 慢走 | `Walk_Pistol.anim` |
-| Run | 跑步 | `Run_Pistol.anim` |
-| Sprint | 冲刺 | `Sprint_Pistol.anim` |
-
 **Aim Locomotion（持枪瞄准时）** — 玩家右键按住时
 | 字段 | 拖什么 |
 |---|---|
 | AimIdle | 持枪静立瞄准 |
-| AimWalk | 持枪慢走瞄准 |
+| AimWalk | 1D fallback：8 方向缺失时兜底 |
+| AimWalkFwd / Bwd / StrafeLeft / Right | 4 主轴 |
+| AimStrafeFL / FR / BL / BR | 4 对角线 |
 
 **Combat 触发** — 一次性动作
 | 字段 | 拖什么 |

@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 200ad57813736ff46a71d8dc83e7ecf1, type: 3}
-  m_Name: Pistol
+  m_Name: BurstRifle
   m_EditorClassIdentifier:
   AimIdle: {fileID: 7400004, guid: 914b09da235eea34ebdc4e71d057e815, type: 3}
   AimWalk: {fileID: 7400016, guid: 914b09da235eea34ebdc4e71d057e815, type: 3}
@@ -22,8 +22,8 @@ MonoBehaviour:
   AimStrafeFR: {fileID: 7400004, guid: 47f3e97642d383d4dbfc479141f81683, type: 3}
   AimStrafeBL: {fileID: 7400006, guid: 47f3e97642d383d4dbfc479141f81683, type: 3}
   AimStrafeBR: {fileID: 7400048, guid: 914b09da235eea34ebdc4e71d057e815, type: 3}
-  ShootLight: {fileID: 7400050, guid: 914b09da235eea34ebdc4e71d057e815, type: 3}
-  ShootHeavy: {fileID: 7400052, guid: 914b09da235eea34ebdc4e71d057e815, type: 3}
+  ShootLight: {fileID: 7400054, guid: 914b09da235eea34ebdc4e71d057e815, type: 3}
+  ShootHeavy: {fileID: 7400058, guid: 914b09da235eea34ebdc4e71d057e815, type: 3}
   Reload: {fileID: 7400056, guid: 914b09da235eea34ebdc4e71d057e815, type: 3}
   Equip: {fileID: 7400000, guid: 6d0b268b0bd91c44eb369715ba96d320, type: 3}
   Holster: {fileID: 7400002, guid: 6d0b268b0bd91c44eb369715ba96d320, type: 3}

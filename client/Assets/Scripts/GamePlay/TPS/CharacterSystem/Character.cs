@@ -69,6 +69,10 @@ public class Character : Actor
     /// <summary>切武器动画的一次性 trigger。WeaponComponent.ApplySwap 置 true；CharacterView 消费后 ResMgr.Load + 切换 Animancer 状态后清回 false。</summary>
     public bool WeaponAnimDirty;
 
+    /// <summary>角色级 <see cref="CharacterAnimSet"/> 资源路径（Resources 相对路径）。Factory 创建时设一次，view Bind 时加载。
+    /// 跟 CurrentWeaponAnimSetPath 分工：character set 含 locomotion + death + UpperBodyMask（跟角色走），weapon set 含 combat + aim（跟武器走）。</summary>
+    public string CurrentCharacterAnimSetPath;
+
     /// <summary>枪口高度（相对角色脚下 Position.y 的偏移，米）。
     /// AimComponent 用它做鼠标→世界射线相交平面（俯视角倾斜相机下，点哪打哪要靠这层平面）；
     /// WeaponComponent 用它算 FireOrigin 的 Y。两边共用同一值才能保证准星和射线对齐。

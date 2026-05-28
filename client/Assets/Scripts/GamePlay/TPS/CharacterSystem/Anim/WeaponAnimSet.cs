@@ -1,27 +1,23 @@
 using UnityEngine;
 
 /// <summary>
-/// 武器动画集：一份 ScriptableObject 含某把武器全部 AnimationClip + locomotion 阈值。
-/// <see cref="CharacterView"/> 用 Animancer 直接 Play 这些 clip 替代原 Animator state machine。
+/// 武器级动画集：跟**武器**绑定（每把枪不同）。只含 Aim locomotion 8 方向 + Combat（Shoot/Reload/Equip/Holster/Melee）。
+/// 跟 <see cref="CharacterAnimSet"/> 分工：locomotion / death / UpperBodyMask 在 CharacterAnimSet 上（角色级共通）。
+///
+/// 切武器只重新加载这一份，CharacterAnimSet（下半身 locomotion mixer）保持连续。
 ///
 /// **使用流程**（美工）：
 ///   1. Project 窗口 → Create → TPS → WeaponAnimSet
-///   2. 放 Assets/Resources/Weapon/Anim/ 下，命名 `&lt;武器名&gt;.asset`（如 Pistol.asset / RifleA.asset）
-///   3. 拖入对应武器的各 clip，配 walk/run/sprint speed 阈值
-///   4. 程序员把 Resources 相对路径（去 Assets/Resources/ 前缀去 .asset 后缀）配到 <c>Weapon.AnimSetPath</c>
+///   2. 放 Assets/Resources/Weapon/Anim/ 下，命名 &lt;武器名&gt;.asset（如 Pistol.asset / Rifle.asset）
+///   3. 拖 Aim 8 方向 strafe + Combat clip，调 aim 阈值
+///   4. 程序员把 Resources 相对路径配到 Weapon.AnimSetPath
 ///   详见 docs/Animancer 武器动画指南.md
 ///
-/// **协议**：clip 为 null 时 view 跳过对应 state（不闪 / 不报错）。允许部分配置——只配 Idle + Shoot 也能跑。
+/// **协议**：clip 为 null 时 view 跳过对应 state（不闪 / 不报错）。允许部分配置——只配 ShootLight + Reload 也能跑。
 /// </summary>
 [CreateAssetMenu(fileName = "WeaponAnimSet", menuName = "TPS/WeaponAnimSet", order = 100)]
 public class WeaponAnimSet : ScriptableObject
 {
-    [Header("Locomotion（无瞄准）")]
-    public AnimationClip Idle;
-    public AnimationClip Walk;
-    public AnimationClip Run;
-    public AnimationClip Sprint;
-
     [Header("Aim Locomotion（持枪瞄准时——1D fallback）")]
     public AnimationClip AimIdle;
     [Tooltip("1D 兜底：8 方向 strafe 缺失时用此 clip 走任意方向")]
@@ -56,33 +52,13 @@ public class WeaponAnimSet : ScriptableObject
     public AnimationClip MeleeHard;    // MeleeType=0 枪托砸
     public AnimationClip MeleeKick;    // MeleeType=1 前踢
 
-    [Header("死亡变体（DeathVariant 索引）")]
-    public AnimationClip DeathL;       // DeathVariant=0
-    public AnimationClip DeathR;       // DeathVariant=1
-
-    [Header("Locomotion 阈值（按 character.AnimSpeedRatio 真实 m/s 在相邻 clip 间平滑 blend）")]
-    [Tooltip("第 0 档 Idle 对应速度（0=完全静止）")]
-    public float IdleThreshold = 0f;
-    [Tooltip("第 1 档 Walk 对应速度——建议 = MoveComponent.WalkSpeed (m/s)")]
-    public float WalkThreshold = 5f;
-    [Tooltip("第 2 档 Run 对应速度（介于 Walk/Sprint 之间）")]
-    public float RunThreshold = 6f;
-    [Tooltip("第 3 档 Sprint 对应速度——建议 = MoveComponent.SprintSpeed (m/s)")]
-    public float SprintThreshold = 7f;
-
-    [Header("Aim 阈值（独立——瞄准时速度范围 0~AimSpeed 远小于普通 locomotion）")]
+    [Header("Aim 阈值（按 AnimSpeedRatio 真实 m/s blend）")]
     [Tooltip("第 0 档 AimIdle 对应速度（0）")]
     public float AimIdleThreshold = 0f;
-    [Tooltip("第 1 档 AimWalk 对应速度——建议 = MoveComponent.AimSpeed (m/s)")]
+    [Tooltip("第 1 档 AimWalk / strafe 单位向量对应速度——建议 = MoveComponent.AimSpeed (m/s)。注意 Cartesian mixer 是 2D，这只是 1D fallback 用")]
     public float AimWalkThreshold = 1.5f;
 
-    [Header("Fade 时长（秒）")]
-    [Tooltip("Locomotion 之间切换 / 触发 state 进入的淡入时长")]
-    public float DefaultFade = 0.1f;
+    [Header("Fade")]
     [Tooltip("Shoot 触发的淡入时长（一般 0 = 立刻播让节奏紧凑）")]
     public float ShootFade = 0f;
-
-    [Header("分层（上下身分离）")]
-    [Tooltip("上半身骨骼 mask。配了启用 Animancer Layer 1（Combat 走上半身 / Locomotion 走全身）；留空则 Combat 覆盖全身（单层模式）")]
-    public AvatarMask UpperBodyMask;
 }
