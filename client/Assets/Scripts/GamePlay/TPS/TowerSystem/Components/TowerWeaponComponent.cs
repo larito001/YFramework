@@ -52,14 +52,14 @@ public class TowerWeaponComponent : ITowerComponent
 
     public override void Detach()
     {
+        // 先清自己写过的字段，再 Despawn 武器（反序会让"死字段写"是 dead code）
+        if (currentWeapon != null) currentWeapon.FireIntent = false;
         // 持枪人组件协议 #4：Despawn 所有武器
         if (weaponMgr != null)
         {
             for (int i = 0; i < Weapons.Count; i++)
                 if (Weapons[i] != null) weaponMgr.Despawn(Weapons[i]);
         }
-        // 清自己写过的字段
-        if (currentWeapon != null) currentWeapon.FireIntent = false;
         currentWeapon = null;
         prevTargetActorId = -1;
         aimedTimer = 0f;
@@ -74,10 +74,9 @@ public class TowerWeaponComponent : ITowerComponent
         if (currentWeapon == null || world == null) return;
 
         // 1. 读 Targeting 写的 TargetActorId 反查目标
+        // Targeting 已经筛过 IsDead + 距离 + 阵营，这里只需做 ID 查找；ActorWorld.Get 找不到自然返回 null
         int curTargetId = Owner.TargetActorId;
         Actor target = curTargetId >= 0 ? world.Get<Actor>(curTargetId) : null;
-        // 目标可能在本帧已死 / 被销毁，反查失败也按"无目标" 处理
-        if (target != null && target.IsDead) target = null;
 
         // 2. AimTime telegraph：目标变化重置 timer；同一目标持续锁定 timer 累加
         if (curTargetId != prevTargetActorId)

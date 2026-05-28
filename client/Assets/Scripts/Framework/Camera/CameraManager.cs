@@ -3,8 +3,13 @@ using UnityEngine;
 /// <summary>
 /// 相机服务：组合 Rig / Shake / FreeLook / Aim 四个子模块。
 /// Rig 负责主相机与 CinemachineBrain；Shake 负责震屏；FreeLook 与 Aim 负责两套 Cinemachine 虚拟相机。
+///
+/// **走 ILateTickable 不走 ITickable**：相机跟随必须读"角色 transform 最新位置"，而 view 在 LateUpdate 才写 transform。
+/// 若 CameraManager 跑在 Update phase，读到的是上一帧位置——叠加 CC.Move 物理回算抖动，跑动时相机会高频抖。
+/// 走 LateTick + GameLoop 加 [DefaultExecutionOrder(1000)] 让 GameLoop.LateUpdate 在所有 view 之后跑，
+/// 相机一定读到本帧最新 transform。
 /// </summary>
-public class CameraManager : IGameService, ITickable
+public class CameraManager : IGameService, ILateTickable
 {
     public CameraRig Rig { get; }
     public CameraShake Shake { get; }
@@ -19,7 +24,7 @@ public class CameraManager : IGameService, ITickable
     /// <summary>相机相对玩家的偏移，默认顶视稍倾后角（60° 俯角）。</summary>
     public Vector3 FollowOffset = new Vector3(0f, 12f, -7f);
     /// <summary>跟随的指数平滑系数，值越大越紧跟。</summary>
-    public float FollowSmoothing = 12f;
+    public float FollowSmoothing = 20f;
 
     /// <summary>相机 forward 投到水平面，作为 WASD 前向参考。相机几近垂直俯视时退化到世界 +Z。</summary>
     public Vector3 PlanarForward
@@ -77,8 +82,10 @@ public class CameraManager : IGameService, ITickable
         Aim.Resolve(sceneReferenceService);
     }
 
-    public void Tick(float dt)
+    public void LateTick(float dt)
     {
+        // 在 LateUpdate phase 跑：所有 view 的 LateUpdate 已经把 transform.position 推到本帧最新值
+        // （前提：GameLoop 加 [DefaultExecutionOrder(1000)] 保证 GameLoop.LateUpdate 最后跑）
         Shake.Tick(dt);
         UpdateFollow(dt);
     }

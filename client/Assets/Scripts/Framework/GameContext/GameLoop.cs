@@ -4,7 +4,12 @@ using UnityEngine;
 
 /// <summary>
 /// 万物之始
+///
+/// [DefaultExecutionOrder(1000)] 强制 LateUpdate 在所有其他 MonoBehaviour 之后跑：
+/// CameraManager.LateTick 读 transform.position 需要看到本帧 view 已写完的最新位置，
+/// 不然跑动时相机读上一帧位置 + CC.Move 物理抖动 → 相机抖（详见 CameraManager 类注释）。
 /// </summary>
+[DefaultExecutionOrder(1000)]
 public sealed class GameLoop : MonoBehaviour
 {
     public static GameLoop Instance { get; private set; }
