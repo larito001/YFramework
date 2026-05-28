@@ -67,6 +67,9 @@ public class FireComponent : IWeaponComponent
         Owner.ShootEvent = true; // 喂 WeaponComponent，下一帧转写 Owner(Character).Shoot 给 view SetTrigger
 
         if (RecoilShakeIntensity > 0f && cameraMgr?.Shake != null)
-            cameraMgr.Shake.Shake(RecoilShakeDuration, RecoilShakeIntensity);
+        {
+            // kickback：相机被推到"射击反方向"。-FireDirection 就是后坐力的世界方向。
+            cameraMgr.Shake.Shake(-Owner.FireDirection, RecoilShakeDuration, RecoilShakeIntensity);
+        }
     }
 }

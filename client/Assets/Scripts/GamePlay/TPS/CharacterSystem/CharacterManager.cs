@@ -70,7 +70,7 @@ public class CharacterManager : IGameService, ITickable
     }
 
     /// <summary>生成一个站桩 Dummy 敌人在指定位置。返回 Character 实例供外部进一步配置（订阅 OnDied 等）。</summary>
-    public Character SpawnDummy(Vector3 position, float maxHealth = 100f)
+    public Character SpawnDummy(Vector3 position, float maxHealth = 1000f)
     {
         var c = factory.CreateDummy(position, maxHealth);
         characters.Add(c);

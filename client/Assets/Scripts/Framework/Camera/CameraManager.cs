@@ -111,21 +111,15 @@ public class CameraManager : IGameService, ITickable
         t.position = baseFollowPosition;
         t.LookAt(FollowTarget.position, Vector3.up);
 
-        // 2. 再沿相机水平 right 方向叠加 1D 抖动偏移。
-        //    只动位置不动 rotation，且只在水平面（y=0），所以视觉是相机左右"滑动"，不是绕角色旋转。
-        //    取 Shake.CurrentOffset.x 作 1D 振幅（符号已经是 random ±intensity，自带方向）。
+        // 2. 叠加震屏偏移。CurrentOffset 是世界向量（调用方按 kickback 方向传入），
+        //    平面化（y=0）避免相机上下颠：俯视角下垂直分量会让 LookAt 角度抖，看起来很恶心。
+        //    只动位置不动 rotation，所以视觉是相机沿水平面被"推开"，不是绕角色旋转。
         if (Shake != null)
         {
-            float horizontal = Shake.CurrentOffset.x;
-            if (horizontal != 0f)
-            {
-                var right = t.right; right.y = 0f;
-                if (right.sqrMagnitude > 1e-4f)
-                {
-                    right.Normalize();
-                    t.position = baseFollowPosition + right * horizontal;
-                }
-            }
+            var offset = Shake.CurrentOffset;
+            offset.y = 0f;
+            if (offset.sqrMagnitude > 1e-6f)
+                t.position = baseFollowPosition + offset;
         }
     }
 

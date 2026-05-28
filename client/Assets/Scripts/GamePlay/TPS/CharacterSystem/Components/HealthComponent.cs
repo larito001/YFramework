@@ -22,7 +22,11 @@ public class HealthComponent : ICharacterComponent
     public float AutoRemoveDelay = 3f;
 
     private CharacterManager characterMgr;
+    private FlyTextMgr flyTextMgr;
     private float removeTimer;
+
+    /// <summary>飘字相对脚下 Position.y 的偏移（米）。1.8 ≈ 头顶上方一点点，俯视角下不会被身体挡。</summary>
+    public float FlyTextHeight = 1.8f;
 
     /// <summary>受伤事件 (amount, attackerId)。HUD / 飞字 / 受击反馈在这订阅。</summary>
     public event Action<float, int> OnDamaged;
@@ -36,6 +40,7 @@ public class HealthComponent : ICharacterComponent
         if (ResetOnAttach) owner.CurHealth = InitialMaxHealth;
         owner.IsDead = false;
         Ctx?.TryGet(out characterMgr);
+        Ctx?.TryGet(out flyTextMgr);
     }
 
     public override void Detach()
@@ -44,6 +49,7 @@ public class HealthComponent : ICharacterComponent
         OnDamaged = null;
         OnDied = null;
         characterMgr = null;
+        flyTextMgr = null;
         removeTimer = 0f;
         // 不清 HP/IsDead：那是 Character 持久状态，不是组件"写过的意图字段"
         base.Detach();
@@ -70,6 +76,8 @@ public class HealthComponent : ICharacterComponent
 
         Owner.CurHealth = Mathf.Max(0f, Owner.CurHealth - amount);
         Debug.Log($"[Health] actor={Owner.ID} -{amount} from {attackerId}, hp={Owner.CurHealth:F0}/{Owner.MaxHealth:F0}");
+        // 飘字：受击位置（头顶上方）弹个伤害数字。Quick 类型在 FlyTextCtrl 里是红色 + 弹性曲线，正好当"-X HP"动效。
+        flyTextMgr?.AddText($"-{Mathf.RoundToInt(amount)}", Owner.Position + Vector3.up * FlyTextHeight, FlyTextType.Quick);
         OnDamaged?.Invoke(amount, attackerId);
 
         if (Owner.CurHealth <= 0f && !Owner.IsDead)

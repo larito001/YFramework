@@ -78,7 +78,7 @@ public class CharacterFactory
     ///
     /// 后续要做"会动 / 会还击"的敌人：在 CreateDummy 基础上 Add AI 组件（如 SimpleAIComponent
     /// 写 WishVelocity / Rotation / IsShooting）+ MoveComponent + WeaponComponent，不需要造新 Actor 类。</summary>
-    public Character CreateDummy(Vector3 position, float maxHealth = 100f)
+    public Character CreateDummy(Vector3 position, float maxHealth = 1000f)
     {
         var character = new Character();
         // 给 Dummy 也装重力，spawn 后会被 Gravity + CC 一起拉到地面，避免悬空或半身埋在地形里

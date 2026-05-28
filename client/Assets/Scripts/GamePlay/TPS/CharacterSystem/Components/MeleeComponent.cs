@@ -46,6 +46,12 @@ public class MeleeComponent : ICharacterComponent
     /// <summary>单次命中伤害（在窗口内对同一目标只生效一次）。</summary>
     public float Damage = 30f;
 
+    // ── 相机震屏 ──
+    /// <summary>挥击命中窗开启时的相机抖动强度。0 = 不抖。kickback 方向 = -forwardDir。</summary>
+    public float ShakeIntensity = 0.18f;
+    /// <summary>挥击相机抖动时长（秒）。</summary>
+    public float ShakeDuration = 0.15f;
+
     // ── 前冲位移 ──
     /// <summary>前冲速度峰值 (m/s)。t=0 时的瞬时速度。</summary>
     public float ForwardSpeed = 3f;
@@ -57,8 +63,10 @@ public class MeleeComponent : ICharacterComponent
     private bool swinging;
     private float elapsed;
     private Vector3 forwardDir;       // swing 起点锁定的水平前向
+    private bool shakeFired;          // 一次 swing 内只触发一次相机抖
     private InputService input;
     private ActorWorld world;
+    private CameraManager cameraMgr;
     private readonly HashSet<int> hitThisSwing = new HashSet<int>();
     // OverlapSphereNonAlloc 复用 buffer，避免每帧 alloc
     private static readonly Collider[] overlapBuf = new Collider[16];
@@ -67,6 +75,7 @@ public class MeleeComponent : ICharacterComponent
     {
         Ctx?.TryGet(out world);
         Ctx?.TryGet(out input);
+        Ctx?.TryGet(out cameraMgr);
         if (input != null) input.OnMeleeDown += HandleMelee;
     }
 
@@ -82,9 +91,11 @@ public class MeleeComponent : ICharacterComponent
         }
         swinging = false;
         elapsed = 0f;
+        shakeFired = false;
         hitThisSwing.Clear();
         input = null;
         world = null;
+        cameraMgr = null;
         base.Detach();
     }
 
@@ -114,6 +125,7 @@ public class MeleeComponent : ICharacterComponent
         {
             swinging = true;
             elapsed = 0f;
+            shakeFired = false;
             hitThisSwing.Clear();
             var fwd = Owner.Rotation * Vector3.forward;
             fwd.y = 0f;
@@ -142,11 +154,21 @@ public class MeleeComponent : ICharacterComponent
             DoHitDetection();
         }
 
-        // 3. swing 结束：清回 IsMeleeing，让 Move/Weapon 解锁
+        // 3. 相机震屏：命中窗开启那一帧打一发，方向 = -forwardDir（kickback 风格）。
+        // 与命中结果解耦：哪怕没打到东西，挥击本身也应该让相机往挥击反向"顿"一下。
+        if (!shakeFired && elapsed >= HitStartTime)
+        {
+            shakeFired = true;
+            if (ShakeIntensity > 0f && cameraMgr?.Shake != null)
+                cameraMgr.Shake.Shake(-forwardDir, ShakeDuration, ShakeIntensity);
+        }
+
+        // 4. swing 结束：清回 IsMeleeing，让 Move/Weapon 解锁
         if (elapsed >= SwingDuration)
         {
             swinging = false;
             elapsed = 0f;
+            shakeFired = false;
             hitThisSwing.Clear();
             Owner.IsMeleeing = false;
         }
