@@ -49,6 +49,11 @@ public class CharacterAnimancerController
     private float smoothMoveXVel;
     private float smoothMoveYVel;
 
+    /// <summary>退出 layer0 fullbody（Melee）回 locomotion 时的一次性 override fade。
+    /// 7a 退出 fullbody 时写入（= weaponAnimSet.MeleeRecoverFade > 0 ? MeleeRecoverFade : DefaultFade），UpdateLocomotion 下次 Play 消费后清零。
+    /// 解决"Melee → 跑步"切换 DefaultFade 0.1s 太短突兀。</summary>
+    private float overrideNextLocomotionFade;
+
     /// <summary>view 在 Bind 后立即调一次。characterAnimSetPath 一次性加载（角色 spawn 时设定，运行时不换）。
     /// weaponAnimSet 在 Tick 里通过 character.WeaponAnimDirty 自治加载。</summary>
     public void Init(AnimancerComponent animancer, ResMgr resMgr, string characterAnimSetPath)
@@ -93,6 +98,7 @@ public class CharacterAnimancerController
         smoothedAnimMoveY = 0f;
         smoothMoveXVel = 0f;
         smoothMoveYVel = 0f;
+        overrideNextLocomotionFade = 0f;
         resMgr = null;
         Animancer = null;
     }
@@ -298,12 +304,16 @@ public class CharacterAnimancerController
         }
 
         // 7a. Layer 0 全身覆盖中（Melee）：等待播完才回 Locomotion mixer
+        // **过渡 fade**：MeleeRecoverFade（WeaponAnimSet 配） > 0 → 用它，否则 DefaultFade。layer1 weight 用 StartFade 平滑，不再 SetWeight 突切。
+        // UpdateLocomotion 下一次 Play 通过 overrideNextLocomotionFade 消费同样的 fade，让 layer0/layer1 同步过渡。
         if (layer0FullBodyActive)
         {
             if (activeOneShotState != null && activeOneShotState.IsPlaying && activeOneShotState.NormalizedTime < 1f)
                 return;
             layer0FullBodyActive = false;
-            if (useUpperBodyLayer && Animancer.Layers.Count > 1) Animancer.Layers[1].SetWeight(1f);
+            float recoverFade = (weaponAnimSet != null && weaponAnimSet.MeleeRecoverFade > 0f) ? weaponAnimSet.MeleeRecoverFade : fade;
+            overrideNextLocomotionFade = recoverFade;
+            if (useUpperBodyLayer && Animancer.Layers.Count > 1) Animancer.Layers[1].StartFade(1f, recoverFade);
             activeOneShotState = null;
         }
         // 7b. 单层模式 + Combat one-shot 未播完：等待
@@ -328,12 +338,15 @@ public class CharacterAnimancerController
     /// 瞄准时如果没 weaponAnimSet aim mixer，回退到非瞄准 locomotion mixer。</summary>
     private void UpdateLocomotion(Character character)
     {
+        // 一次性 override fade（Melee fullbody → locomotion 平滑过渡），消费后立即清零
+        float fade = overrideNextLocomotionFade > 0f ? overrideNextLocomotionFade : GetDefaultFade();
         if (character.IsAiming && aimLocomotionMixer != null)
         {
             if (currentLayer0Mixer != aimLocomotionMixer)
             {
-                Animancer.Layers[0].Play(aimLocomotionMixer, GetDefaultFade());
+                Animancer.Layers[0].Play(aimLocomotionMixer, fade);
                 currentLayer0Mixer = aimLocomotionMixer;
+                overrideNextLocomotionFade = 0f;
             }
             smoothedAnimMoveX = Mathf.SmoothDamp(smoothedAnimMoveX, character.AnimMoveX, ref smoothMoveXVel, AnimMoveDampTime, Mathf.Infinity, Time.deltaTime);
             smoothedAnimMoveY = Mathf.SmoothDamp(smoothedAnimMoveY, character.AnimMoveY, ref smoothMoveYVel, AnimMoveDampTime, Mathf.Infinity, Time.deltaTime);
@@ -344,8 +357,9 @@ public class CharacterAnimancerController
         {
             if (currentLayer0Mixer != locomotionMixer)
             {
-                Animancer.Layers[0].Play(locomotionMixer, GetDefaultFade());
+                Animancer.Layers[0].Play(locomotionMixer, fade);
                 currentLayer0Mixer = locomotionMixer;
+                overrideNextLocomotionFade = 0f;
             }
             locomotionMixer.Parameter = character.AnimSpeedRatio;
         }

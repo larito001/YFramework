@@ -74,9 +74,10 @@ public class MeleeComponent : ICharacterComponent
     public float ForwardDuration = 2f;
 
     // ── 冷却 ──
-    /// <summary>**默认**两次近战间的冷却时长（秒），swing 结束后到下次允许触发的间隔。0=无冷却（落地立刻可再挥）。
+    /// <summary>**默认**两次按 V 的最小间隔（秒）。HandleMelee 成功触发即启动倒计时，倒计时未结束的 V 输入被静默忽略。
     /// **可被 Owner.MeleeCooldown 覆盖**（WeaponComponent.ApplySwap 从 WeaponAnimSet.MeleeCooldown 镜像）。
-    /// 用途：避免"连按 V → swing 重启 → 前冲反复重启 → 角色被持续推"——加冷却让连击有明确节奏。
+    /// 0=无冷却（按 V 即触发，允许打断当前 swing 重启）。&gt;0=按 V 必须等这么久才能再触发。
+    /// **不是"swing 结束→下次出招"间隔**——是"按 V→按 V"间隔。cd &lt; LockDuration 时 swing 内 cd 就过，可打断重启；cd &gt;= LockDuration 时 swing 必须放完再有等待。
     /// 推荐：轻武器 0.2~0.4；重武器 0.5+。</summary>
     public float Cooldown = 0f;
 
@@ -131,6 +132,10 @@ public class MeleeComponent : ICharacterComponent
         if (Owner.IsReloading) return;  // 换弹中手是占用的，不响应近战
         if (Owner.IsSwapping) return;   // 切枪中手是占用的，不响应近战（Holster+Equip 两阶段全程）
         if (cooldownTimer > 0f) return; // 冷却中静默忽略
+        // 触发即启动 cooldown（按 V 节奏限制）。**不在 swing 结束帧启动**：
+        // 因为打断重启路径不走"结束帧"，那种放法 cooldown 永远不启动 → cd 失效。
+        float effectiveCooldown = Owner.MeleeCooldown > 0f ? Owner.MeleeCooldown : Cooldown;
+        cooldownTimer = effectiveCooldown;
         // 不再用 IsMeleeing 早退——允许打断当前 swing 重启。
         // 显式重置 swinging：让 Tick 进入 "IsMeleeing && !swinging" 分支重置 elapsed/forwardDir/shakeFired/hitThisSwing。
         swinging = false;
@@ -201,9 +206,10 @@ public class MeleeComponent : ICharacterComponent
                 cameraMgr.Shake.Shake(-forwardDir, ShakeDuration, ShakeIntensity);
         }
 
-        // 4. swing 结束：清回 IsMeleeing，让 Move/Weapon 解锁，启动 cooldown
+        // 4. swing 结束：清回 IsMeleeing，让 Move/Weapon 解锁
         // **effective duration**：Owner.MeleeLockDuration > 0 时覆盖 SwingDuration（美工在 WeaponAnimSet 配，由 WeaponComponent.ApplySwap 镜像写入）
         // 允许 .asset 缩短锁定（连击体验好）或延长锁定（重武器手感重）
+        // **cooldown 不在这里启动**——已在 HandleMelee 成功触发时启动（按 V 节奏间隔语义）
         float effectiveDuration = Owner.MeleeLockDuration > 0f ? Owner.MeleeLockDuration : SwingDuration;
         if (elapsed >= effectiveDuration)
         {
@@ -212,9 +218,6 @@ public class MeleeComponent : ICharacterComponent
             shakeFired = false;
             hitThisSwing.Clear();
             Owner.IsMeleeing = false;
-            // cooldown：swing 结束后到下次允许触发的间隔。0=无冷却（不阻挡 V）
-            float effectiveCooldown = Owner.MeleeCooldown > 0f ? Owner.MeleeCooldown : Cooldown;
-            cooldownTimer = effectiveCooldown;
         }
     }
 

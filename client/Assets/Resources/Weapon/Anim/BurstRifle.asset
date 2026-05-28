@@ -31,8 +31,9 @@ MonoBehaviour:
   MeleeKick: {fileID: 7400102, guid: 914b09da235eea34ebdc4e71d057e815, type: 3}
   AimIdleThreshold: 0
   AimWalkThreshold: 0.8
-  MeleeLockDuration: 1.2
+  MeleeLockDuration: 1.3
   MeleeForwardSpeed: 3
   MeleeForwardDuration: 1.2
-  MeleeCooldown: 0.3
+  MeleeCooldown: 1.5
   ShootFade: 0
+  MeleeRecoverFade: 0.1

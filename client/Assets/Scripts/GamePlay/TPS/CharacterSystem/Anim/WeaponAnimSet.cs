@@ -75,12 +75,20 @@ public class WeaponAnimSet : ScriptableObject
              "**重要**：建议设 ≤ MeleeLockDuration，否则连按近战时前冲会被反复重启不归零，造成\"持续被推到正前方\"bug。" +
              "推荐配法：MeleeLockDuration=0.5 + MeleeForwardDuration=0.3 → 推力前 0.3s 衰减到 0，剩 0.2s 完全静止再接下击。")]
     public float MeleeForwardDuration = 0f;
-    [Tooltip("近战冷却时长 (s)。swing 结束后到下一次允许触发的间隔。0=不覆盖，用 MeleeComponent.Cooldown 默认（0=无冷却，落地立即可再挥）。" +
-             ">0 = 强制连击节奏。例：LockDuration=0.5 + Cooldown=0.3 → 真实连击节奏 0.8s/击，连按 V 也只能按这个频率出。" +
-             "适合：想要明显\"按一下出一招\"节奏感的轻武器；重武器一般 Cooldown=0 让 LockDuration 自己决定节奏即可。")]
+    [Tooltip("近战冷却时长 (s) = **两次按 V 的最小间隔**（HandleMelee 触发即启动，未结束的 V 输入被静默忽略）。0=不覆盖，用 MeleeComponent.Cooldown 默认（0=无冷却）。" +
+             "**不是\"swing 结束→下次出招\"间隔**，是\"按 V→按 V\"间隔。" +
+             "Cooldown < LockDuration 时 swing 内 cd 就过，可打断重启当前 swing；Cooldown >= LockDuration 时 swing 必须放完才能再按。" +
+             "例：LockDuration=0.5 + Cooldown=0.8 → 节奏 0.8s/击，每击放完再等 0.3s。" +
+             "例：LockDuration=0.5 + Cooldown=0.3 → swing 中段可打断重启，节奏 0.3s/击。" +
+             "适合：轻武器 0.2~0.4（连击爽快）；重武器 ≥ LockDuration（不可打断）。")]
     public float MeleeCooldown = 0f;
 
     [Header("Fade")]
     [Tooltip("Shoot 触发的淡入时长（秒）。0=立即切让连发节奏紧凑；0.05~0.1=轻微淡入平滑")]
     public float ShootFade = 0f;
+    [Tooltip("近战 swing 结束回 locomotion 的 fade 时长（秒）。0=用 CharacterAnimSet.DefaultFade（一般 0.1s）。" +
+             "**用途**：melee 全身覆盖（Layer 0 全 + Layer 1 weight=0）退出时，Layer 0 切回 locomotion mixer + Layer 1 weight 恢复到 1。" +
+             "DefaultFade 0.1s 偏短，melee→walk 看起来突兀。配 0.2~0.3 让挥击残影和跑步起步有明显过渡。" +
+             "推荐：轻武器 0.2；重武器 0.3+（动作越大恢复越慢）。")]
+    public float MeleeRecoverFade = 0f;
 }
