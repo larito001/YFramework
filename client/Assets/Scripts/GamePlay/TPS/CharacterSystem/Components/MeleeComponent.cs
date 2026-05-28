@@ -21,25 +21,34 @@ using UnityEngine;
 public class MeleeComponent : ICharacterComponent
 {
     // ── 输入触发 ──
-    /// <summary>V 键触发的近战类型：0=Hard 枪托砸，1=Kick 前踢。供 Animator 切动画。</summary>
+    /// <summary>V 键触发的近战类型：0=Hard（枪托砸，对应 WeaponAnimSet.MeleeHard clip）；1=Kick（前踢，对应 MeleeKick clip）。
+    /// 触发时写到 Character.MeleeType，CharacterAnimancerController 按值选播哪个 clip。</summary>
     public int MeleeType = 0;
 
     // ── 时序参数（秒，相对 swing 起点）──
-    /// <summary>一次挥击总时长。到此时间清 IsMeleeing。应近似匹配动画长度。</summary>
+    /// <summary>**默认**一次挥击总时长（秒）。到此时间清 IsMeleeing → MoveComponent 解锁玩家可走。
+    /// **可被 Owner.MeleeLockDuration 覆盖**：WeaponComponent.ApplySwap 切枪时从当前武器的 WeaponAnimSet.MeleeLockDuration
+    /// 镜像写到 Character。effective = Owner.MeleeLockDuration &gt; 0 ? Owner.MeleeLockDuration : SwingDuration。
+    /// 想要"短锁定快接连击"美工配 WeaponAnimSet.MeleeLockDuration=0.4 类似；想要"重击长锁"配 1.5+。</summary>
     public float SwingDuration = 1.2f;
-    /// <summary>命中窗口开始时间。在此之前不做 Overlap（角色刚起手没接触敌人）。</summary>
+    /// <summary>命中窗口**开始**时间（秒，相对 swing 起点）。0~此值不做 Overlap（角色刚起手枪/脚还没接触敌人）。
+    /// 跟 MeleeHard/MeleeKick clip 的"实际命中帧"对齐。常见值 0.2~0.4。</summary>
     public float HitStartTime = 0.25f;
-    /// <summary>命中窗口结束时间。窗口内每帧 Overlap 一次，命中过的 ID 加入 hitThisSwing 不重复。</summary>
+    /// <summary>命中窗口**结束**时间（秒，相对 swing 起点）。[HitStartTime, HitEndTime] 区间每帧 Overlap 检测命中，
+    /// 同一目标 ID 加入 hitThisSwing 后不重复打。常见值 0.5~0.7。结束 → 余下时间播收招动画但不再打人。</summary>
     public float HitEndTime = 0.55f;
 
-    // ── Hitbox 几何 ──
-    /// <summary>球形 hitbox 半径（米）。</summary>
+    // ── Hitbox 几何（球形 OverlapSphereNonAlloc 区域）──
+    /// <summary>球形 hitbox 半径（米）。覆盖单个敌人体型 1.0 即可；范围打击（重锤）调大到 2.0~3.0。</summary>
     public float HitRadius = 1.0f;
-    /// <summary>hitbox 中心沿角色前方偏移（米）。</summary>
+    /// <summary>hitbox 中心沿角色 forward 方向的偏移（米）。0=角色脚下圆心，0.8m=略往前。
+    /// 调大让"前冲砸"覆盖更远；调小让"近距离打"避免穿墙打人。</summary>
     public float HitForwardOffset = 0.8f;
-    /// <summary>hitbox 中心相对脚下的高度（米）。一般略低于枪口高度，覆盖躯干。</summary>
+    /// <summary>hitbox 中心相对脚下 Position.y 的高度（米）。一般略低于 MuzzleHeight，覆盖躯干。
+    /// 1.0m 适合站立敌人胸口；调高到 1.5 覆盖头部 / 调低到 0.5 打腿。</summary>
     public float HitHeight = 1.0f;
-    /// <summary>命中过滤层。建议设成仅含敌人层，避免打到环境物。</summary>
+    /// <summary>OverlapSphere 物理 layer 过滤。建议生产期设成仅含敌人层，避免打到环境物 / 队友。
+    /// 默认 ~0=全开（含 Default / Player / Enemy / Environment），调试用。</summary>
     public LayerMask HitLayers = ~0;
 
     // ── 伤害 ──
@@ -47,24 +56,35 @@ public class MeleeComponent : ICharacterComponent
     /// Factory 配 object initializer，命中时 DamageInfo.Build 一行组装。</summary>
     public DamageSpec Damage;
 
-    // ── 相机震屏（动作伴随反馈，inline 调 service） ──
-    /// <summary>挥击命中窗开启时的相机抖动强度。0 = 不抖。kickback 方向 = -forwardDir。</summary>
+    // ── 相机震屏（动作伴随反馈，inline 调 CameraManager.Shake） ──
+    /// <summary>挥击命中窗开启那一帧触发的相机抖动强度（米级位移）。0=不抖。
+    /// kickback 方向 = -forwardDir（相机被推到挥击反向，看起来像"撞击反作用"）。常见 0.1~0.3。</summary>
     public float ShakeIntensity = 0.18f;
-    /// <summary>挥击相机抖动时长（秒）。</summary>
+    /// <summary>相机抖动从满到 0 的衰减时长（秒）。0.1~0.2 是典型动作游戏值。
+    /// 跟 SwingDuration 无关——抖动是瞬时反馈，可以早于 swing 结束。</summary>
     public float ShakeDuration = 0.15f;
 
-    // ── 前冲位移 ──
-    /// <summary>前冲速度峰值 (m/s)。t=0 时的瞬时速度。</summary>
+    // ── 前冲位移（swing 期间 MeleeComponent 覆写 Owner.WishVelocity.x/z）──
+    /// <summary>前冲峰值速度 (m/s)。swing 起点 t=0 时的瞬时速度，按 ForwardDuration 线性衰减。
+    /// 3=轻量动作（步伐前移）；6~8=重击带强位移；0=完全原地不前冲。</summary>
     public float ForwardSpeed = 3f;
-    /// <summary>前冲衰减时间常数 (s)。speed = ForwardSpeed * (1 - elapsed/ForwardDuration)，
-    /// 在 swing 内被 SwingDuration 截断。设大于 SwingDuration 表示"swing 全程都有残余推力"。
-    /// 取 2 + SwingDuration=1.2 → 推力从 3 m/s 线性降到 1.2 m/s，总位移 ~2.5m。</summary>
+    /// <summary>前冲衰减时间常数 (s)。speed = ForwardSpeed × (1 - elapsed/ForwardDuration)。
+    /// **设大于 SwingDuration** 表示"swing 全程都有残余推力"；**设小于 SwingDuration** 表示"前段有冲后段静止"。
+    /// 默认 ForwardSpeed=3 / ForwardDuration=2 / SwingDuration=1.2：推力从 3→1.2 m/s 衰减，swing 内总位移 ~2.5m。</summary>
     public float ForwardDuration = 2f;
+
+    // ── 冷却 ──
+    /// <summary>**默认**两次近战间的冷却时长（秒），swing 结束后到下次允许触发的间隔。0=无冷却（落地立刻可再挥）。
+    /// **可被 Owner.MeleeCooldown 覆盖**（WeaponComponent.ApplySwap 从 WeaponAnimSet.MeleeCooldown 镜像）。
+    /// 用途：避免"连按 V → swing 重启 → 前冲反复重启 → 角色被持续推"——加冷却让连击有明确节奏。
+    /// 推荐：轻武器 0.2~0.4；重武器 0.5+。</summary>
+    public float Cooldown = 0f;
 
     private bool swinging;
     private float elapsed;
     private Vector3 forwardDir;       // swing 起点锁定的水平前向
     private bool shakeFired;          // 一次 swing 内只触发一次相机抖
+    private float cooldownTimer;      // >0 时拒绝新的 V 触发；swing 结束帧 = effectiveCooldown，每帧 -dt
     private InputService input;
     private ActorWorld world;
     private CameraManager cameraMgr;
@@ -93,6 +113,7 @@ public class MeleeComponent : ICharacterComponent
         swinging = false;
         elapsed = 0f;
         shakeFired = false;
+        cooldownTimer = 0f;
         hitThisSwing.Clear();
         input = null;
         world = null;
@@ -100,12 +121,19 @@ public class MeleeComponent : ICharacterComponent
         base.Detach();
     }
 
-    /// <summary>V 键事件：起手设字段，MeleeComponent 自己的 Tick 检测上升沿启动 swing。</summary>
+    /// <summary>V 键事件：起手设字段，MeleeComponent 自己的 Tick 检测 IsMeleeing 上升沿启动 swing。
+    /// **连击重置语义**：cooldown 通过时无视 IsMeleeing，强制清当前 swing 状态 → Tick 下一帧把 "IsMeleeing && !swinging"
+    /// 视为新上升沿，elapsed/forwardDir/shakeFired/hitThisSwing/clip time 全部重置，相当于"打断重启"。
+    /// 限制连击节奏只靠 cooldown：cooldown=0 → 按一次重启一次（无限连按）；cooldown&gt;0 → 强制节奏。</summary>
     private void HandleMelee()
     {
         if (Owner == null || Owner.IsDead) return;
-        if (Owner.IsMeleeing) return;
         if (Owner.IsReloading) return;  // 换弹中手是占用的，不响应近战
+        if (Owner.IsSwapping) return;   // 切枪中手是占用的，不响应近战（Holster+Equip 两阶段全程）
+        if (cooldownTimer > 0f) return; // 冷却中静默忽略
+        // 不再用 IsMeleeing 早退——允许打断当前 swing 重启。
+        // 显式重置 swinging：让 Tick 进入 "IsMeleeing && !swinging" 分支重置 elapsed/forwardDir/shakeFired/hitThisSwing。
+        swinging = false;
         Owner.MeleeAttack = true;
         Owner.MeleeType = MeleeType;
         Owner.IsMeleeing = true;
@@ -118,8 +146,12 @@ public class MeleeComponent : ICharacterComponent
         {
             // 死亡时强制结束 swing，IsMeleeing 也清掉
             if (swinging) { swinging = false; Owner.IsMeleeing = false; }
+            cooldownTimer = 0f;
             return;
         }
+
+        // 冷却倒计时（无论是否 swinging 都走，swing 内 timer 也 = 0 不影响）
+        if (cooldownTimer > 0f) cooldownTimer -= dt;
 
         // IsMeleeing 上升沿 = 新一击开始（WeaponComponent 在事件回调里把它置 true）
         if (Owner.IsMeleeing && !swinging)
@@ -137,12 +169,17 @@ public class MeleeComponent : ICharacterComponent
 
         elapsed += dt;
 
-        // 1. 前冲位移：从 swing 起算前 ForwardDuration 内，速度线性衰减到 0。
-        //    覆写 Owner.WishVelocity 的水平分量，纵向（重力）保持 Move 写入的值不动。
-        if (elapsed < ForwardDuration && ForwardDuration > 0.001f)
+        // 1. 前冲位移：从 swing 起算前 effForwardDur 内，速度线性衰减到 0。覆写 Owner.WishVelocity 的水平分量，纵向（重力）保持 Move 写入的值不动。
+        //    **effective**：Owner.MeleeForwardSpeed/Duration 由 WeaponComponent.ApplySwap 从 WeaponAnimSet 镜像写入，>0 时覆盖默认。
+        //    Speed 允许 <0 表示"显式覆盖为 0"（0 被当作"不覆盖"信号）。
+        float effForwardSpeed = Owner.MeleeForwardSpeed > 0f ? Owner.MeleeForwardSpeed
+                              : Owner.MeleeForwardSpeed < 0f ? 0f
+                              : ForwardSpeed;
+        float effForwardDur = Owner.MeleeForwardDuration > 0f ? Owner.MeleeForwardDuration : ForwardDuration;
+        if (elapsed < effForwardDur && effForwardDur > 0.001f && effForwardSpeed > 0f)
         {
-            float pushT = elapsed / ForwardDuration;
-            float speed = ForwardSpeed * (1f - pushT);
+            float pushT = elapsed / effForwardDur;
+            float speed = effForwardSpeed * (1f - pushT);
             Owner.WishVelocity = new Vector3(
                 forwardDir.x * speed,
                 Owner.WishVelocity.y,
@@ -164,14 +201,20 @@ public class MeleeComponent : ICharacterComponent
                 cameraMgr.Shake.Shake(-forwardDir, ShakeDuration, ShakeIntensity);
         }
 
-        // 4. swing 结束：清回 IsMeleeing，让 Move/Weapon 解锁
-        if (elapsed >= SwingDuration)
+        // 4. swing 结束：清回 IsMeleeing，让 Move/Weapon 解锁，启动 cooldown
+        // **effective duration**：Owner.MeleeLockDuration > 0 时覆盖 SwingDuration（美工在 WeaponAnimSet 配，由 WeaponComponent.ApplySwap 镜像写入）
+        // 允许 .asset 缩短锁定（连击体验好）或延长锁定（重武器手感重）
+        float effectiveDuration = Owner.MeleeLockDuration > 0f ? Owner.MeleeLockDuration : SwingDuration;
+        if (elapsed >= effectiveDuration)
         {
             swinging = false;
             elapsed = 0f;
             shakeFired = false;
             hitThisSwing.Clear();
             Owner.IsMeleeing = false;
+            // cooldown：swing 结束后到下次允许触发的间隔。0=无冷却（不阻挡 V）
+            float effectiveCooldown = Owner.MeleeCooldown > 0f ? Owner.MeleeCooldown : Cooldown;
+            cooldownTimer = effectiveCooldown;
         }
     }
 

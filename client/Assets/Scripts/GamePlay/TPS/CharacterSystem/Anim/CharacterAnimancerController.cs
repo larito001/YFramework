@@ -243,13 +243,17 @@ public class CharacterAnimancerController
         if (weaponAnimSet != null)
         {
             // 2. 近战（全身覆盖——Melee 包含全身动作）
+            // **连击重置语义**：Animancer 的 Play(clip, fade) 若该 clip 已是 active state，会返回旧 state 但 **不重置 Time**，
+            // 连按 V 时动画会"卡在挥击中段"循环看起来停了。这里 Play 后显式 state.Time=0 让 clip 每次都从头播。
             if (character.MeleeAttack)
             {
                 character.MeleeAttack = false;
                 var clip = character.MeleeType == 0 ? weaponAnimSet.MeleeHard : weaponAnimSet.MeleeKick;
                 if (clip != null)
                 {
-                    activeOneShotState = Animancer.Layers[0].Play(clip, fade);
+                    var state = Animancer.Layers[0].Play(clip, fade);
+                    if (state != null) state.Time = 0f; // 连击打断重启：强制从头播
+                    activeOneShotState = state;
                     layer0FullBodyActive = true;
                     currentLayer0Mixer = null;
                 }

@@ -11,7 +11,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 200ad57813736ff46a71d8dc83e7ecf1, type: 3}
   m_Name: Pistol
-  m_EditorClassIdentifier:
+  m_EditorClassIdentifier: 
   AimIdle: {fileID: 7400004, guid: 914b09da235eea34ebdc4e71d057e815, type: 3}
   AimWalk: {fileID: 7400016, guid: 914b09da235eea34ebdc4e71d057e815, type: 3}
   AimWalkFwd: {fileID: 7400016, guid: 914b09da235eea34ebdc4e71d057e815, type: 3}
@@ -30,5 +30,9 @@ MonoBehaviour:
   MeleeHard: {fileID: 7400100, guid: 914b09da235eea34ebdc4e71d057e815, type: 3}
   MeleeKick: {fileID: 7400102, guid: 914b09da235eea34ebdc4e71d057e815, type: 3}
   AimIdleThreshold: 0
-  AimWalkThreshold: 1.5
+  AimWalkThreshold: 0.5
+  MeleeLockDuration: 1.2
+  MeleeForwardSpeed: 3
+  MeleeForwardDuration: 1
+  MeleeCooldown: 0.5
   ShootFade: 0

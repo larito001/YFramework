@@ -73,6 +73,21 @@ public class Character : Actor
     /// 跟 CurrentWeaponAnimSetPath 分工：character set 含 locomotion + death + UpperBodyMask（跟角色走），weapon set 含 combat + aim（跟武器走）。</summary>
     public string CurrentCharacterAnimSetPath;
 
+    /// <summary>近战僵直锁定时长（秒）。WeaponComponent.ApplySwap 时从当前武器的 WeaponAnimSet.MeleeLockDuration 镜像写入。
+    /// MeleeComponent.Tick 用 `Owner.MeleeLockDuration &gt; 0 ? Owner.MeleeLockDuration : SwingDuration` 决定实际锁定时长。
+    /// 0 = 用 MeleeComponent.SwingDuration 默认值（不覆盖）；&gt;0 = 覆盖 SwingDuration（允许缩短或延长）。</summary>
+    public float MeleeLockDuration;
+
+    /// <summary>近战前冲峰值速度 (m/s)。WeaponComponent.ApplySwap 从 WeaponAnimSet.MeleeForwardSpeed 镜像。
+    /// 0 = 不覆盖用 MeleeComponent.ForwardSpeed 默认；&gt;0 = 覆盖；&lt;0 = 显式覆盖为 0 不前冲。</summary>
+    public float MeleeForwardSpeed;
+    /// <summary>近战前冲衰减时长 (s)。WeaponComponent.ApplySwap 从 WeaponAnimSet.MeleeForwardDuration 镜像。
+    /// 0 = 不覆盖用 MeleeComponent.ForwardDuration 默认；&gt;0 = 覆盖。建议设 ≤ MeleeLockDuration 避免连击推力叠加。</summary>
+    public float MeleeForwardDuration;
+    /// <summary>近战冷却时长 (s)。WeaponComponent.ApplySwap 从 WeaponAnimSet.MeleeCooldown 镜像。
+    /// 0 = 不覆盖用 MeleeComponent.Cooldown 默认（0=无冷却）；&gt;0 = swing 结束后强制等待这么久才能触发下一次。</summary>
+    public float MeleeCooldown;
+
     /// <summary>枪口高度（相对角色脚下 Position.y 的偏移，米）。
     /// AimComponent 用它做鼠标→世界射线相交平面（俯视角倾斜相机下，点哪打哪要靠这层平面）；
     /// WeaponComponent 用它算 FireOrigin 的 Y。两边共用同一值才能保证准星和射线对齐。

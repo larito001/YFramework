@@ -37,6 +37,7 @@ public class WeaponComponent : ICharacterComponent
 
     private InputService input;
     private WeaponManager weaponMgr;
+    private YOTO.ResMgr resMgr;  // 用来 Load WeaponAnimSet 读"动画驱动数据"（如 MeleeLockDuration），切枪时镜像写到 Character
     private Weapon currentWeapon;
     private float swapLockTimer;
     private bool prevReloading;     // 上升沿检测：currentWeapon.IsReloading 从 false→true 时触发 Owner.Reload 一次性 trigger
@@ -50,6 +51,7 @@ public class WeaponComponent : ICharacterComponent
         if (Ctx == null) { Debug.LogError("[WeaponComponent] GameLoop.Ctx 未就绪"); return; }
         Ctx.TryGet(out input);
         Ctx.TryGet(out weaponMgr);
+        Ctx.TryGet(out resMgr);
         if (input != null)
         {
             input.OnWeaponSelect += HandleWeaponSelect;
@@ -96,11 +98,17 @@ public class WeaponComponent : ICharacterComponent
             // 清动画 set 链：触发 view 回 idle pose
             Owner.CurrentWeaponAnimSetPath = null;
             Owner.WeaponAnimDirty = true;
+            // 清动画驱动数据，让 MeleeComponent 回 SwingDuration / ForwardSpeed / ForwardDuration / Cooldown 默认
+            Owner.MeleeLockDuration = 0f;
+            Owner.MeleeForwardSpeed = 0f;
+            Owner.MeleeForwardDuration = 0f;
+            Owner.MeleeCooldown = 0f;
         }
         currentWeapon = null;
         pendingHandMount = null;
         input = null;
         weaponMgr = null;
+        resMgr = null;
         swapLockTimer = 0f;
         mountToHandTimer = 0f;
         holsterTimer = 0f;
@@ -288,6 +296,24 @@ public class WeaponComponent : ICharacterComponent
         // CharacterView 检测 WeaponAnimDirty trigger 后 ResMgr.Load<WeaponAnimSet> + Animancer.Play 替代原 Animator state
         Owner.CurrentWeaponAnimSetPath = currentWeapon?.AnimSetPath;
         Owner.WeaponAnimDirty = true;
+
+        // 从新武器的 WeaponAnimSet 读"动画驱动数据"镜像到 Character 字段——让逻辑组件（如 MeleeComponent）能拿到美工配的时长
+        // 未来加新的动画驱动数据（如 ReloadAnimDuration / EquipAnimDuration）同样在这里加一行镜像
+        Owner.MeleeLockDuration = 0f;
+        Owner.MeleeForwardSpeed = 0f;
+        Owner.MeleeForwardDuration = 0f;
+        Owner.MeleeCooldown = 0f;
+        if (currentWeapon != null && !string.IsNullOrEmpty(currentWeapon.AnimSetPath) && resMgr != null)
+        {
+            var set = resMgr.Load<WeaponAnimSet>(currentWeapon.AnimSetPath);
+            if (set != null)
+            {
+                Owner.MeleeLockDuration = set.MeleeLockDuration;
+                Owner.MeleeForwardSpeed = set.MeleeForwardSpeed;
+                Owner.MeleeForwardDuration = set.MeleeForwardDuration;
+                Owner.MeleeCooldown = set.MeleeCooldown;
+            }
+        }
 
         if (playEquipAnim)
         {
