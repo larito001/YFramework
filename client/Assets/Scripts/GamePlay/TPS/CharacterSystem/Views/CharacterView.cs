@@ -130,7 +130,8 @@ public class CharacterView : BaseView
         flashTimer = HitFlashDuration;
         if (flyTextMgr != null && character != null)
         {
-            flyTextMgr.AddText($"-{Mathf.RoundToInt(info.Amount)}",
+            // 飘字读 FinalAmount（含暴击 / 抗性后），不读 Amount（基础值）。HealthComponent 已经回填 FinalAmount。
+            flyTextMgr.AddText($"-{Mathf.RoundToInt(info.FinalAmount)}",
                 character.Position + Vector3.up * FlyTextHeight, FlyTextType.Quick);
         }
     }

@@ -51,8 +51,9 @@ public class HealthComponent : IActorComponent
         base.Detach();
     }
 
-    /// <summary>受到伤害。已死 / 非正数伤害 / 友军伤害（双方非中立 + 同阵营）直接忽略。
-    /// amount 大于剩余 HP 时夹到 0。数学 + 事件广播；所有副作用（飘字 / 卡肉 / 清理）由订阅方处理。</summary>
+    /// <summary>受到伤害。已死 / 非正数伤害 / 友军伤害（双方非中立 + 同阵营）/ 公式算出 final&lt;=0 直接忽略。
+    /// 流程：阵营过滤 → DamageCalculator 算 final（暴击 + 抗性 + 减伤）→ 扣 HP → Invoke OnDamaged（info 复制 + FinalAmount 回填）
+    /// → 应用 AppliedBuffs 到目标 BuffComponent → 触发死亡链路。</summary>
     public void ApplyDamage(in DamageInfo info)
     {
         if (Owner == null || Owner.IsDead) return;
@@ -60,11 +61,31 @@ public class HealthComponent : IActorComponent
         // 友军伤害过滤：双方都非中立 + 同阵营 → 跳过。中立（TeamId=0）任何一方都正常扣血。
         if (info.AttackerTeamId != 0 && Owner.TeamId != 0 && info.AttackerTeamId == Owner.TeamId) return;
 
-        Owner.CurHealth = Mathf.Max(0f, Owner.CurHealth - info.Amount);
+        // 算最终伤害（含暴击 / 元素抗性 / 减伤 buff，详见 DamageCalculator）
+        float final = DamageCalculator.ComputeFinalDamage(in info, Owner);
+        if (final <= 0f) return;  // 公式判完全免疫
+
+        Owner.CurHealth = Mathf.Max(0f, Owner.CurHealth - final);
+
+        // 事件传"含 FinalAmount 的 info"——订阅方（view 飘字）读 FinalAmount 才正确显示
+        // info 是 in 参数（readonly），先 copy 再写回，原 caller 的 info 不变
+        var finalInfo = info;
+        finalInfo.FinalAmount = final;
 #if UNITY_EDITOR
-        Debug.Log($"[Health] actor={Owner.ID} -{info.Amount} from {info.AttackerId}, hp={Owner.CurHealth:F0}/{Owner.MaxHealth:F0}");
+        Debug.Log($"[Health] actor={Owner.ID} -{final:F0}({(info.IsCritical ? "CRIT" : info.Element.ToString())}) from {info.AttackerId}, hp={Owner.CurHealth:F0}/{Owner.MaxHealth:F0}");
 #endif
-        OnDamaged?.Invoke(info);
+        OnDamaged?.Invoke(finalInfo);
+
+        // 命中后应用携带 buff（攻击者方武器 / 技能 spec 出的 buff，由目标 BuffComponent 持有）
+        if (info.AppliedBuffs != null && info.AppliedBuffs.Count > 0)
+        {
+            var buffComp = Owner.Get<BuffComponent>();
+            if (buffComp != null)
+            {
+                for (int i = 0; i < info.AppliedBuffs.Count; i++)
+                    buffComp.AddBuff(info.AppliedBuffs[i]);
+            }
+        }
 
         if (Owner.CurHealth <= 0f && !Owner.IsDead)
         {

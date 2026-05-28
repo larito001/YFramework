@@ -75,14 +75,17 @@ public class TowerFactory
         w.Add(new FireComponent
         {
             FireInterval = 0.3f,
-            Damage = 20f,
+            Damage = new DamageSpec
+            {
+                BaseDamage = 20f,
+                HitstopTier = HitstopTier.Short,  // 塔连射小卡肉
+            },
             RecoilShakeIntensity = 0f,   // 塔不抖屏（玩家不在塔身上）
             RecoilShakeDuration = 0f,
             Effect = new LinearProjectileEffect
             {
                 BulletSpeed = 80f,
                 BulletLifetime = 2f,
-                HitstopTier = HitstopTier.Short,
             },
         });
         // 不装 ReloadComponent——无限弹药不需要换弹

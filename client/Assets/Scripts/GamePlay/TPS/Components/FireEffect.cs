@@ -3,26 +3,22 @@ using UnityEngine;
 /// <summary>
 /// FireComponent 触发后"做什么"的策略：spawn 直线子弹 / 抛物导弹 / 直接 raycast 等。
 /// 自身不持有任何 cooldown/ammo/shake 状态（那些在 <see cref="FireComponent"/> 里），
-/// 只关心"造一发"的具体行为。
+/// 也不持伤害配置（伤害走 <see cref="DamageSpec"/>，由调用方传入）——只关心"造一发"的具体行为。
 ///
-/// **参数化签名**：Fire 接收 origin/dir/target/ownerActorId/attackerTeamId 而非 Weapon，
-/// 这样技能 / 炮塔 / NPC 等"没 Weapon 但要造投射物"的场景也能直接用。
-/// 武器侧的调用方（FireComponent）从 <see cref="Weapon"/> 字段拆出来传入即可。
+/// **签名设计**：Fire 接收 origin / dir / target / ownerActorId / attackerTeamId / in DamageSpec / bullets / world。
+/// damage 走 DamageSpec（含暴击 / 元素 / buff），effect 不再单字段持 damage / HitstopTier 等——避免和 spec 字段重复。
+/// 技能 / 炮塔 / NPC 等"没 Weapon 但要造投射物"的场景调用方式一致：自己 build spec + 调本方法。
 /// </summary>
 public abstract class FireEffect
 {
-    /// <summary>这把武器命中时给目标的卡肉分级。子弹型 effect 在 spawn 时把这个值写到 bullet 的 MoveComponent 上；
-    /// hitscan 型直接打包进 DamageInfo。默认 Long。Factory 给重武器/狙击 → Long；高频射速 → Short；环境/DOT → None。</summary>
-    public HitstopTier HitstopTier = HitstopTier.Long;
-
     /// <summary>FireComponent 在通过 cooldown + ammo 门控后调用。
     /// origin / dir / target 来自 Weapon.FireOrigin / FireDirection / FireTarget（或调用方自己算）；
     /// ownerActorId = 发射者 Actor.ID（用于自伤过滤 + 伤害归属）；
-    /// attackerTeamId = 发射者阵营（用于友军伤害过滤，详见 ARCHITECTURE "阵营" 小节）；
-    /// damage 透传给 bullet 或 DamageInfo。</summary>
+    /// attackerTeamId = 发射者阵营（用于友军伤害过滤）；
+    /// damage = 攻击者侧伤害配方 spec（基础 / 卡肉 / 暴击 / 元素 / buff 全在内），透传给 Bullet 或 DamageInfo.Build。</summary>
     public abstract void Fire(
         Vector3 origin, Vector3 dir, Vector3 target,
-        int ownerActorId, int attackerTeamId, float damage,
+        int ownerActorId, int attackerTeamId, in DamageSpec damage,
         BulletManager bullets, ActorWorld world);
 }
 
@@ -37,15 +33,15 @@ public class LinearProjectileEffect : FireEffect
 
     public override void Fire(
         Vector3 origin, Vector3 dir, Vector3 target,
-        int ownerActorId, int attackerTeamId, float damage,
+        int ownerActorId, int attackerTeamId, in DamageSpec damage,
         BulletManager bullets, ActorWorld world)
     {
         if (bullets == null) return;
         var velocity = dir * BulletSpeed;
-        // 走 SpawnBullet（不挂默认 MoveComponent）+ 手动 Add 带配置的 BulletMoveComponent，
-        // 这样把 HitstopTier 一次性塞进 MoveComponent 不需要回头改字段。
-        var b = bullets.SpawnBullet(origin, BulletLifetime, damage, ownerActorId, attackerTeamId, velocity);
-        if (b != null) b.Add(new BulletMoveComponent { HitstopTier = HitstopTier });
+        // 走 SpawnBullet（不挂默认 MoveComponent）+ 手动 Add BulletMoveComponent，让未来调 LayerMask 时可以配；
+        // damage spec 透传给 bullet.Damage，命中时 SegmentRaycastMoveBase Build 成 DamageInfo
+        var b = bullets.SpawnBullet(origin, BulletLifetime, in damage, ownerActorId, attackerTeamId, velocity);
+        if (b != null) b.Add(new BulletMoveComponent());
     }
 }
 
@@ -64,7 +60,7 @@ public class BezierMissileEffect : FireEffect
 
     public override void Fire(
         Vector3 origin, Vector3 dir, Vector3 target,
-        int ownerActorId, int attackerTeamId, float damage,
+        int ownerActorId, int attackerTeamId, in DamageSpec damage,
         BulletManager bullets, ActorWorld world)
     {
         if (bullets == null) return;
@@ -73,7 +69,7 @@ public class BezierMissileEffect : FireEffect
         var p1 = p0 + dir * ForwardPushDist;
         var p2 = p3 + Vector3.up * ArcHeight;
 
-        var b = bullets.SpawnBullet(p0, FlightDuration + LifetimeSlack, damage, ownerActorId, attackerTeamId);
+        var b = bullets.SpawnBullet(p0, FlightDuration + LifetimeSlack, in damage, ownerActorId, attackerTeamId);
         if (b == null) return;
         b.Add(new MissileMoveComponent
         {
@@ -82,7 +78,6 @@ public class BezierMissileEffect : FireEffect
             Control2 = p2,
             End = p3,
             Duration = FlightDuration,
-            HitstopTier = HitstopTier,
         });
     }
 }
@@ -103,7 +98,7 @@ public class HitscanEffect : FireEffect
 
     public override void Fire(
         Vector3 origin, Vector3 dir, Vector3 target,
-        int ownerActorId, int attackerTeamId, float damage,
+        int ownerActorId, int attackerTeamId, in DamageSpec damage,
         BulletManager bullets, ActorWorld world)
     {
         // 跳过发射者自身 collider：起点在 forward 0.6m 处但仍可能擦到 capsule 边缘
@@ -112,9 +107,10 @@ public class HitscanEffect : FireEffect
         {
             Debug.DrawLine(origin, hit.point, Color.red, DebugDrawSeconds);
 #if UNITY_EDITOR
-            Debug.Log($"[Hitscan] hit {hit.collider.name} @ {hit.distance:F2}m, dmg={damage}");
+            Debug.Log($"[Hitscan] hit {hit.collider.name} @ {hit.distance:F2}m, dmg={damage.BaseDamage}");
 #endif
-            var info = new DamageInfo(damage, ownerActorId, attackerTeamId, HitstopTier);
+            // hitscan 不 spawn bullet，直接 Build DamageInfo + Apply
+            var info = DamageInfo.Build(in damage, ownerActorId, attackerTeamId);
             DamageRouter.TryHitAndDamage(hit.collider, world, in info);
         }
         else

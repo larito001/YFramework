@@ -51,7 +51,11 @@ public class CharacterFactory
             HitRadius = 1.0f,
             HitForwardOffset = 0.8f,
             HitHeight = 1.0f,
-            Damage = 30f,
+            Damage = new DamageSpec
+            {
+                BaseDamage = 30f,
+                HitstopTier = HitstopTier.Long,   // 近战重击，长卡肉
+            },
             ForwardSpeed = 3f,
             ForwardDuration = 2f,   // 配合 SwingDuration=1.2，总位移 ~2.5m
             // HitLayers 默认全开。生产期建议改成只含敌人层。
@@ -142,10 +146,14 @@ public class CharacterFactory
         };
         w.Add(new FireComponent
         {
-            FireInterval = 0.1f, Damage = 25f,
+            FireInterval = 0.1f,
+            Damage = new DamageSpec
+            {
+                BaseDamage = 25f,
+                HitstopTier = HitstopTier.Short,  // 全自动 → Short 卡肉，避免每发都把目标钉死、节奏被毁
+            },
             RecoilShakeIntensity = 0.08f, RecoilShakeDuration = 0.06f,  // 全自动小抖
-            // 全自动 → Short 卡肉，避免每发都把目标钉死、节奏被毁
-            Effect = new LinearProjectileEffect { BulletSpeed = 80f, BulletLifetime = 2f, HitstopTier = HitstopTier.Short },
+            Effect = new LinearProjectileEffect { BulletSpeed = 80f, BulletLifetime = 2f },
         });
         w.Add(new ReloadComponent { ReloadDuration = 1.5f });
         return w;
@@ -173,7 +181,12 @@ public class CharacterFactory
         };
         w.Add(new FireComponent
         {
-            FireInterval = 0.3f, Damage = 40f,
+            FireInterval = 0.3f,
+            Damage = new DamageSpec
+            {
+                BaseDamage = 40f,
+                HitstopTier = HitstopTier.Long,   // 半自动单发，每发 Long 卡肉给清晰命中反馈
+            },
             RecoilShakeIntensity = 0.18f, RecoilShakeDuration = 0.12f,  // 半自动单发大抖
             Effect = new LinearProjectileEffect { BulletSpeed = 60f, BulletLifetime = 2f },
         });
@@ -204,7 +217,12 @@ public class CharacterFactory
         };
         w.Add(new FireComponent
         {
-            FireInterval = 0.6f, Damage = 80f,
+            FireInterval = 0.6f,
+            Damage = new DamageSpec
+            {
+                BaseDamage = 80f,
+                HitstopTier = HitstopTier.Long,   // 重武器爆破，Long 卡肉
+            },
             RecoilShakeIntensity = 0.35f, RecoilShakeDuration = 0.2f,  // 重武器大震
             Effect = new BezierMissileEffect
             {

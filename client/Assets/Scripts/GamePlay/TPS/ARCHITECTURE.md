@@ -162,6 +162,88 @@ TimeScaleService → CharacterManager → TowerManager → WeaponManager → Bul
 
 ---
 
+## 伤害系统
+
+伤害链路 + 公式 + 扩展点。所有"打了谁、扣多少血、附带什么效果" 都走这条链。
+
+### DamageSpec vs DamageInfo
+
+| 类型 | 角色 | 谁持有 | 什么时候构建 |
+|---|---|---|---|
+| `DamageSpec` | **配置模板**：基础伤害 / 卡肉 / 暴击概率 / 暴击倍率 / 元素 / 携带 buff | 攻击者侧组件（MeleeComponent.Damage / FireComponent.Damage / Bullet.Damage） | Factory 配（object initializer） |
+| `DamageInfo` | **运行时实例**：spec + 上下文（AttackerId / TeamId）+ roll 结果（IsCritical/CritMultiplier）+ 输出（FinalAmount） | 临时 struct，不持有 | 命中那一帧 `DamageInfo.Build(in spec, attackerId, teamId)` |
+
+**好处**：攻击者组件只配一份 spec，命中代码永远一行 `var info = DamageInfo.Build(in Damage, attackerId, teamId);`。加暴击/元素/buff 只改 spec 字段值，命中代码不变。
+
+### 链路
+
+```
+攻击者侧                           DamageRouter                      目标侧
+─────────                          ─────────────                     ─────────
+DamageInfo.Build(in spec, ...)  →  ApplyToActor / TryHit          →   HealthComponent.ApplyDamage
+   ↑ Build 内部 roll 暴击            ↑ collider→ActorID→HealthComp     ↓
+   spec.Element / AppliedBuffs                                       DamageCalculator.ComputeFinalDamage
+   原样透传到 info                                                     ↓
+                                                                     扣 HP / Invoke OnDamaged(含 FinalAmount)
+                                                                     ↓
+                                                                     AppliedBuffs → target.BuffComponent.AddBuff
+```
+
+### DamageInfo 字段
+
+| 字段 | 谁填 | 用途 |
+|---|---|---|
+| `Amount` | 攻击者 | 基础伤害（未放缩） |
+| `AttackerId` | 攻击者 | actor.ID，自伤过滤 + 击杀归属 |
+| `AttackerTeamId` | 攻击者 | 友军伤害过滤 |
+| `HitstopTier` | 攻击者 | 命中卡肉分级 |
+| `IsCritical` | 攻击者（roll） | 暴击标记 |
+| `CritMultiplier` | 攻击者 | 暴击倍率（默认 1.0 = 不放大） |
+| `Element` | 攻击者（武器/技能） | 元素属性，目标方查抗性 |
+| `AppliedBuffs` | 攻击者（武器/技能） | 命中后转给目标 BuffComponent 应用 |
+| `FinalAmount` | **DamageCalculator + HealthComponent 写回** | 实际扣的 HP（view 飘字读这个） |
+
+### 责任划分
+
+| 模块 | 职责 |
+|---|---|
+| **攻击者侧组件**（FireComponent / MeleeComponent / 技能 / AI） | 持 `DamageSpec` 字段（Factory 配）；命中时一行 `DamageInfo.Build(in spec, attackerId, teamId)` |
+| **DamageInfo.Build**（static factory） | 从 spec 组装 DamageInfo；内部 roll 暴击（Random.value &lt; spec.CritChance）；spec 其他字段（Element / Buffs）原样透传 |
+| **DamageRouter** | 路由 Collider → Actor.ID → HealthComponent，过滤自伤 |
+| **DamageCalculator**（static） | 公式集中处：暴击放大 × 元素抗性 × 减伤 buff 全部走这。无副作用、无 HP 写入 |
+| **HealthComponent** | 阵营过滤 → 调 calculator → 扣 HP → 回填 FinalAmount → Invoke 事件 → 调 BuffComponent.AddBuff → 死亡链路 |
+| **target.BuffComponent**（未来完整化） | 接收 AppliedBuffs，管 buff timer / stack / 减伤 / DOT / 属性修改 |
+| **target.ResistComponent**（未实现） | 按 Element 提供抗性值给 calculator |
+
+### 公式协议
+
+所有放大 / 折扣 / 减免按**乘法叠加**：
+
+```
+final = base * crit * (1 - resist) * (1 - mitigation) * ...
+```
+
+加法易堆出 0 / 负值；乘法每项独立可调，策划友好。`final < 0` 会被 Mathf.Max(0) 夹住——未来要"治疗 = 负伤害" 走 HealthComponent.Heal 独立路径，不混入伤害链。
+
+### 扩展点（架构留口，未来扩展按此走，**不破坏现有契约 + 不改命中代码**）
+
+加任意"扩展" 都只改 DamageSpec 配置值或 calculator 公式，攻击者命中代码（DamageInfo.Build 那一行）永远不变。
+
+- **暴击**：spec 已有 CritChance / CritMultiplier。Factory 配 `Damage = new DamageSpec { BaseDamage=25, CritChance=0.1f, CritMultiplier=1.5f }`，命中自动 roll
+- **元素**：spec 已有 Element。Factory 配 `Element = DamageElement.Fire`。未来加 `ResistComponent : IActorComponent`（暴露 GetResist），calculator 取消 TODO 注释接入
+- **buff 应用**：spec 已有 AppliedBuffs。Factory 配 `AppliedBuffs = new List<BuffSpec> { new BuffSpec(BUFF_BURN, 5f) }`。BuffComponent.AddBuff 已就位（占位实现），完整化时内部 List + Tick + timer
+- **减伤 buff**：BuffComponent 加 `GetDamageMitigation(DamageElement)`，calculator 取消 TODO 注释接入
+- **攻击者属性加成**（攻击力%/暴击率加成等）：新建 `CombatStatsComponent`，在 `DamageInfo.Build` 里读 attacker 的 stats 修改 spec.BaseDamage / spec.CritChance（或专门写 BuildFromStats helper）
+
+### 禁止
+
+- ❌ 攻击者侧组件直接调 `target.HealthComponent.ApplyDamage`——必须走 DamageRouter，过滤自伤 / 阵营才能集中
+- ❌ HealthComponent 内部加复杂公式——公式都进 DamageCalculator，HealthComponent 只做"HP 数学 + 事件 + 副作用调度"
+- ❌ 任何模块直接读写 `Owner.CurHealth`——所有扣血走 ApplyDamage，所有加血走 Heal
+- ❌ 把"应用 buff" 散到攻击者侧——攻击者只填 AppliedBuffs，应用在目标侧 HealthComponent 统一调
+
+---
+
 ## Weapon 持有者扩展
 
 Weapon 体系不假设持有者类型——**Character / 塔 / 敌人 / 载具 / 任何 Actor 子类都能持武器**。

@@ -43,10 +43,9 @@ public class MeleeComponent : ICharacterComponent
     public LayerMask HitLayers = ~0;
 
     // ── 伤害 ──
-    /// <summary>单次命中伤害（在窗口内对同一目标只生效一次）。</summary>
-    public float Damage = 30f;
-    /// <summary>近战命中给目标的卡肉分级。默认 Long（重击手感）。</summary>
-    public HitstopTier HitstopTier = HitstopTier.Long;
+    /// <summary>命中伤害配方（基础 / 卡肉 / 暴击 / 元素 / buff 全部集中）。窗口内对同一目标只生效一次。
+    /// Factory 配 object initializer，命中时 DamageInfo.Build 一行组装。</summary>
+    public DamageSpec Damage;
 
     // ── 相机震屏（动作伴随反馈，inline 调 service） ──
     /// <summary>挥击命中窗开启时的相机抖动强度。0 = 不抖。kickback 方向 = -forwardDir。</summary>
@@ -190,7 +189,7 @@ public class MeleeComponent : ICharacterComponent
             int id = DamageRouter.ResolveActorId(overlapBuf[i], Owner.ID);
             if (id < 0 || hitThisSwing.Contains(id)) continue;
             hitThisSwing.Add(id);
-            var info = new DamageInfo(Damage, Owner.ID, Owner.TeamId, HitstopTier);
+            var info = DamageInfo.Build(in Damage, Owner.ID, Owner.TeamId);
             DamageRouter.ApplyToActor(world, id, in info);
         }
     }

@@ -12,20 +12,21 @@ using UnityEngine;
 /// 不是为了让它给非 Bullet 用。Bullet 之外的"线段移动 + 命中" 用例（激光、扫描）出现时再考虑泛化。
 ///
 /// 共享字段：
-///   <see cref="HitLayers"/> / <see cref="HitstopTier"/> — 命中过滤层 + 卡肉分级
+///   <see cref="HitLayers"/>                                   — 命中物理过滤层（effect 侧配置，跟 spec 解耦）
 ///   <see cref="bulletMgr"/> / <see cref="world"/>             — Attach 时拉好的 service 引用
 ///   <see cref="raycastBuf"/>                                  — 静态共享 RaycastHit buffer，避免每帧 alloc
 ///
 /// 共享行为：
 ///   <see cref="CastSegment"/>                                 — 跳过发射者自身的段 raycast
-///   <see cref="HandleHitAndDespawn"/>                         — 写命中点 → DamageRouter 扣血 → Despawn
+///   <see cref="HandleHitAndDespawn"/>                         — Build DamageInfo from Owner.Damage spec → DamageRouter → Despawn
+///
+/// **HitstopTier 等伤害参数从 Owner.Damage (DamageSpec) 取**，本组件不重复持字段——避免 spec 配 Long 而 MoveComponent 配 Short 的冲突。
 /// </summary>
 public abstract class SegmentRaycastMoveBase : IBulletComponent
 {
-    /// <summary>沿途命中过滤层。默认所有层；建议生产期设为仅含可被击中的实体。</summary>
+    /// <summary>沿途命中过滤层。默认所有层；建议生产期设为仅含可被击中的实体。
+    /// 这是物理 layer mask，跟伤害 spec 解耦——同一种 spec 子弹可能挂不同 LayerMask（玩家枪打敌人层 / 塔枪打玩家层等）。</summary>
     public LayerMask HitLayers = ~0;
-    /// <summary>命中目标时使用的卡肉分级。FireEffect 在 spawn 时按武器类型设。</summary>
-    public HitstopTier HitstopTier = HitstopTier.Long;
 
     protected BulletManager bulletMgr;
     protected ActorWorld world;
@@ -57,12 +58,12 @@ public abstract class SegmentRaycastMoveBase : IBulletComponent
         return DamageRouter.RaycastSkipActor(from, dir, dist, HitLayers, Owner.OwnerActorId, raycastBuf, out hit);
     }
 
-    /// <summary>命中处理：DamageRouter 路由扣血 + 把 Position 拉到命中点 + 通知 BulletManager Despawn。
-    /// 子类拿到 CastSegment=true 后调本方法即可，不重复实现命中链。</summary>
+    /// <summary>命中处理：从 Owner.Damage spec 组装 DamageInfo（含暴击 roll / 元素 / buff）→ DamageRouter 路由扣血
+    /// → 把 Position 拉到命中点 → 通知 BulletManager Despawn。子类拿到 CastSegment=true 后调本方法即可。</summary>
     protected void HandleHitAndDespawn(in RaycastHit hit)
     {
-        // Owner.TeamId 在 BulletManager.SpawnBullet 时由 FireEffect 传入（继承自发射武器持有者）
-        var info = new DamageInfo(Owner.Damage, Owner.OwnerActorId, Owner.TeamId, HitstopTier);
+        // DamageSpec 由 FireEffect 在 SpawnBullet 时传入；TeamId / OwnerActorId 由 BulletManager 写入 Owner
+        var info = DamageInfo.Build(in Owner.Damage, Owner.OwnerActorId, Owner.TeamId);
         DamageRouter.TryHitAndDamage(hit.collider, world, in info);
         Owner.Position = hit.point;
         bulletMgr?.Despawn(Owner);

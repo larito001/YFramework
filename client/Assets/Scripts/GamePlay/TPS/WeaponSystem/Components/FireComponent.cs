@@ -18,8 +18,9 @@ public class FireComponent : IWeaponComponent
 {
     /// <summary>两次射击最小间隔（秒）。0.1 = 600 RPM 全自动；0.6 = 重武器节奏。</summary>
     public float FireInterval = 0.1f;
-    /// <summary>单发伤害。透传给 Effect.Fire，由具体实现写到 Bullet.Damage 或直接通过 DamageRouter 应用。</summary>
-    public float Damage = 25f;
+    /// <summary>伤害配方：含基础伤害 / 卡肉 / 暴击概率 / 暴击倍率 / 元素 / 携带 buff。
+    /// 透传给 Effect.Fire → Bullet.Damage（或 Hitscan 直接 Build DamageInfo）。Factory 配 object initializer。</summary>
+    public DamageSpec Damage;
     /// <summary>每发开火的相机抖动强度。0 = 不抖（默认，给 NPC 武器用）；玩家武器一般 0.08~0.4。</summary>
     public float RecoilShakeIntensity = 0f;
     /// <summary>每发开火的相机抖动时长（秒）。和 FireInterval 量级接近，抖动有连续感。</summary>
@@ -65,10 +66,10 @@ public class FireComponent : IWeaponComponent
         cooldown = FireInterval;
         if (Owner.MagCapacity > 0) Owner.CurrentAmmo--;
 
-        // 参数化调用：把 Weapon 上的开火数据拆字段传给 effect，effect 不再依赖 Weapon 类型
+        // 参数化调用：把 Weapon 上的开火几何传给 effect，伤害 spec 直接透传（含所有"造哪种伤害"配置）。
         // Owner.TeamId 由 WeaponManager.Mount 时从持有者继承
         Effect.Fire(Owner.FireOrigin, Owner.FireDirection, Owner.FireTarget,
-                    Owner.OwnerActorId, Owner.TeamId, Damage, bulletMgr, world);
+                    Owner.OwnerActorId, Owner.TeamId, in Damage, bulletMgr, world);
 
         Owner.ShootEvent = true; // 喂持枪人组件（如 WeaponComponent），下一帧按需转写到持有者动画 trigger
 

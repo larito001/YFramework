@@ -73,10 +73,11 @@ public class BulletManager : IGameService, ITickable
         }
     }
 
-    /// <summary>直线弹道便捷 API：创建 Bullet + 自动 Add <see cref="BulletMoveComponent"/>。</summary>
-    public Bullet Spawn(Vector3 position, Vector3 velocity, float lifetime, float damage, int ownerActorId, int teamId)
+    /// <summary>直线弹道便捷 API：创建 Bullet + 自动 Add <see cref="BulletMoveComponent"/>。
+    /// damage 是攻击者侧配置的伤害"配方"（含基础 / 卡肉 / 暴击 / 元素 / buff），命中时由 SegmentRaycastMoveBase 调 DamageInfo.Build 组装。</summary>
+    public Bullet Spawn(Vector3 position, Vector3 velocity, float lifetime, in DamageSpec damage, int ownerActorId, int teamId)
     {
-        var b = SpawnBullet(position, lifetime, damage, ownerActorId, teamId, velocity);
+        var b = SpawnBullet(position, lifetime, in damage, ownerActorId, teamId, velocity);
         b.Add(new BulletMoveComponent());
         return b;
     }
@@ -86,7 +87,7 @@ public class BulletManager : IGameService, ITickable
     /// 或贝塞尔曲线/制导/抛物线等自定义实现）。
     /// teamId 是发射者阵营，子弹继承用于友军过滤（命中目标时打进 DamageInfo.AttackerTeamId）。
     /// initialVelocity 仅用于 view 初始朝向；后续每帧由移动组件写 Owner.Velocity 决定显示朝向。</summary>
-    public Bullet SpawnBullet(Vector3 position, float lifetime, float damage, int ownerActorId, int teamId, Vector3 initialVelocity = default)
+    public Bullet SpawnBullet(Vector3 position, float lifetime, in DamageSpec damage, int ownerActorId, int teamId, Vector3 initialVelocity = default)
     {
         var b = new Bullet
         {
