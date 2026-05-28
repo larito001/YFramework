@@ -19,19 +19,24 @@ public class TowerFactory
         this.manager = manager;
     }
 
-    public Tower CreateTower(Vector3 position, int teamId = 1, float maxHealth = 500f)
+    /// <summary>创建塔。ownerActorId = 放置者 Actor.ID（玩家放置传玩家 ID；关卡预设可传 -1=无主，便于"塔被摧毁通知放置者" / 击杀归属计分。</summary>
+    public Tower CreateTower(Vector3 position, int teamId = 1, int ownerActorId = -1, float maxHealth = 500f)
     {
-        var tower = new Tower { TeamId = teamId };
+        var tower = new Tower { TeamId = teamId, OwnerActorId = ownerActorId };
         tower.Add(new HealthComponent { InitialMaxHealth = maxHealth });
         tower.Add(new HitstopOnDamageComponent());
         tower.Add(new AutoDespawnComponent { Delay = 3f });
+        // Targeting 先 Add：每帧扫敌 + 旋转 + 写 Owner.TargetActorId，WeaponComponent 后续读用
+        tower.Add(new TowerTargetingComponent
+        {
+            Range = 15f,
+            RotateLerpRate = 8f,
+        });
         tower.Add(new TowerWeaponComponent
         {
             Weapons = new List<Weapon> { BuildTurretRifle() },
             SocketName = "",  // 空 = 武器直接挂塔 root（占位 prefab 没专门 socket），用 HandLocalPosition/Euler 控制相对位置
-            Range = 15f,
-            MuzzleHeight = 1.5f,
-            RotateLerpRate = 8f,
+            AimTime = 0.5f,   // 锁敌后 0.5s telegraph，避免瞬响应
         });
 
         var view = manager.LoadBaseView<TowerView>("Tower/Tower", tower);
@@ -52,10 +57,13 @@ public class TowerFactory
         {
             Name = "Turret Rifle",
             ModelPath = "Weapon/RiflePlaceholder",
-            // 武器相对塔 root 的偏移：塔顶往前 0.4m，y 与 TowerWeaponComponent.MuzzleHeight 对齐
-            // 让武器看起来"装在炮塔顶部正前方"。塔 prefab 高度若变化，调这里 + MuzzleHeight 保持一致
+            // 视觉挂载偏移（武器 transform 相对持有者 root）：塔顶往前 0.4m
+            // 让武器看起来"装在炮塔顶部正前方"。
             HandLocalPosition = new Vector3(0f, 1.5f, 0.4f),
             HandLocalEuler = Vector3.zero,
+            // 逻辑 FireOrigin 偏移（子弹起点相对持有者 Position+Rotation）：与 HandLocalPosition 对齐
+            // 保证视觉武器位置 = 弹道起点；塔 prefab 高度若变化两者一起调
+            MuzzleLocalOffset = new Vector3(0f, 1.5f, 0.4f),
             // 塔不切枪，BackLocal* 留默认，永远用不上
             BackLocalPosition = Vector3.zero,
             BackLocalEuler = Vector3.zero,

@@ -147,9 +147,10 @@ public class Actor
         return default;
     }
 
-    /// <summary>把所有 T 类型组件追加到 result（不清空 result）。低频使用，避免 enumerator alloc。
-    /// 用于同类型可叠加场景（Buff、被动技能）。</summary>
-    public void GetAll<T>(List<T> result) where T : IActorComponent
+    /// <summary>把所有 T 类型组件**追加**到 result（不清空 result，调用方自己 Clear）。
+    /// 低频使用，避免 enumerator alloc。用于同类型可叠加场景（Buff、被动技能）。
+    /// 命名 Append 而非 Get 是因为不替换 buffer 内容——和 ActorWorld.AppendAll 保持一致。</summary>
+    public void AppendAll<T>(List<T> result) where T : IActorComponent
     {
         if (result == null) return;
         for (int i = 0; i < _components.Count; i++)

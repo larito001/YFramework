@@ -71,10 +71,10 @@ public class CharacterManager : IGameService, ITickable
         SpawnDummy(new Vector3(2f, 0f, 6f));
         SpawnDummy(new Vector3(-2f, 0f, 6f));
 
-        // 测试用：玩家侧后方 spawn 一座塔（TeamId=1 玩家军），验证 TowerWeaponComponent 锁定 Dummy（TeamId=2）开火
+        // 测试用：玩家侧后方 spawn 一座塔（TeamId=1 玩家军 + 玩家 ID 作为放置者），验证锁敌 + telegraph + 开火链路
         if (ctx != null && ctx.TryGet<TowerManager>(out var towerMgr))
         {
-            towerMgr.SpawnTower(new Vector3(-3f, 0f, -2f), teamId: 1);
+            towerMgr.SpawnTower(new Vector3(-3f, 0f, -2f), teamId: 1, ownerActorId: c.ID);
         }
     }
 

@@ -2,48 +2,42 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// 防御塔的"持枪人组件 + AI 锁敌" 一体（MVP 阶段不拆）。继承 IActorComponent 是通用组件——
-/// 只读写 Actor 基类字段（Position / Rotation / TeamId / IsDead），不依赖 Tower 专属字段。
-///
-/// 按 ARCHITECTURE "持枪人组件协议" 实现：
+/// 防御塔的"持枪人组件"（塔专属）。按 ARCHITECTURE 持枪人组件协议实现：
 ///   1. 持 List&lt;Weapon&gt;，Attach 时 Adopt + Mount 当前武器
-///   2. 每帧扫 ActorWorld 找最近敌人（不同 TeamId 且非中立且有 HealthComponent 且未死且在 Range 内）
-///   3. 朝目标水平旋转 Owner.Rotation（指数 lerp）
-///   4. 写 currentWeapon.FireOrigin / FireDirection / FireTarget / FireIntent（有目标 = 开火）
-///   5. Detach 时 Despawn 所有 Weapon
+///   2. 每帧读 <see cref="Tower.TargetActorId"/>（由 <see cref="TowerTargetingComponent"/> 写）反查目标 Actor
+///   3. 写 currentWeapon.FireOrigin / FireDirection / FireTarget / FireIntent（FireOrigin 算法走 currentWeapon.MuzzleLocalOffset）
+///   4. Detach 时 Despawn 所有 Weapon
 ///
-/// FireComponent 自己有 cooldown + 弹药门控，塔不重复判定——只负责"有没有目标"。
+/// **AI 锁敌不在本组件**：扫敌 + 旋转 Owner.Rotation 由 <see cref="TowerTargetingComponent"/> 负责。本组件只读 TargetActorId。
+/// 拆开让"AI" 和"持枪人协议" 解耦，未来加塔升级 / 优先级目标等改 Targeting 即可。
 ///
-/// Tick 顺序：必须在 WeaponManager.Tick **之前**——本组件写 currentWeapon.FireIntent 等字段，
-/// FireComponent 在 WeaponManager.Tick 里读取。
+/// **AimTime telegraph**：新目标锁定后等 <see cref="AimTime"/> 秒才开火，给玩家反应时间。目标变化时重置 timer。
+///
+/// **Tick 顺序**：必须在 TowerTargetingComponent 之后 Add（Factory 已固定）+ 在 WeaponManager.Tick 之前（GameBootstrapper 已固定）。
 /// </summary>
-public class TowerWeaponComponent : IActorComponent
+public class TowerWeaponComponent : ITowerComponent
 {
     /// <summary>装在塔上的武器列表。Factory 配，Attach 时全部 Adopt 给 WeaponManager。当前只用 Weapons[0]。</summary>
     public List<Weapon> Weapons = new List<Weapon>();
-    /// <summary>武器挂载 socket 名（塔 prefab 上的子物体名）。占位 prefab 没 socket 时直接挂塔 root。</summary>
+    /// <summary>武器挂载 socket 名（塔 prefab 上的子物体名）。空 = 武器直接挂塔 root。</summary>
     public string SocketName = "Muzzle";
-    /// <summary>锁敌最大距离（米）。超过 Range 不锁、不开火。</summary>
-    public float Range = 15f;
-    /// <summary>枪口相对塔脚下 Position.y 的偏移（米），用于算 FireOrigin / FireTarget 的 Y。</summary>
-    public float MuzzleHeight = 1.5f;
-    /// <summary>朝目标旋转的指数 lerp 速率（rad/s 量级）。值越大转头越快。</summary>
-    public float RotateLerpRate = 8f;
+    /// <summary>瞄准延迟（秒）：新目标锁定后等这么久才开火。0=无延迟，立即开火。
+    /// 默认 0.5s 给玩家反应时间。同一目标持续锁定不重置。</summary>
+    public float AimTime = 0.5f;
 
     private WeaponManager weaponMgr;
     private ActorWorld world;
     private Weapon currentWeapon;
-    // 扫敌 buffer：复用避免每帧 alloc。GetAll 把 ActorWorld 当前所有 Actor 写进来。
-    private static readonly List<Actor> scanBuf = new List<Actor>(64);
+    // telegraph 状态：目标变化时重置 aimedTimer
+    private int prevTargetActorId = -1;
+    private float aimedTimer;
 
-    public override void Attach(Actor owner)
+    public override void Attach(Tower owner)
     {
-        base.Attach(owner);
-        if (owner == null) return;
         Ctx?.TryGet(out weaponMgr);
         Ctx?.TryGet(out world);
 
-        // 持枪人组件协议 #1：Adopt 所有武器；Mount 第 0 把（如有 socket）
+        // 持枪人组件协议 #1：Adopt 所有武器；Mount 第 0 把
         if (weaponMgr != null)
         {
             for (int i = 0; i < Weapons.Count; i++)
@@ -64,12 +58,11 @@ public class TowerWeaponComponent : IActorComponent
             for (int i = 0; i < Weapons.Count; i++)
                 if (Weapons[i] != null) weaponMgr.Despawn(Weapons[i]);
         }
-        // 清写过的武器字段（cooldown 等由 FireComponent.Detach 管，本组件清自己写的"开火意图"链）
-        if (currentWeapon != null)
-        {
-            currentWeapon.FireIntent = false;
-        }
+        // 清自己写过的字段
+        if (currentWeapon != null) currentWeapon.FireIntent = false;
         currentWeapon = null;
+        prevTargetActorId = -1;
+        aimedTimer = 0f;
         weaponMgr = null;
         world = null;
         base.Detach();
@@ -80,66 +73,41 @@ public class TowerWeaponComponent : IActorComponent
         if (Owner == null || Owner.IsDead) return;
         if (currentWeapon == null || world == null) return;
 
-        // 1. 扫敌——找最近的"敌阵营 + 非中立 + 有 HealthComponent + 未死 + 在射程内" Actor
-        Actor target = FindNearestEnemy();
+        // 1. 读 Targeting 写的 TargetActorId 反查目标
+        int curTargetId = Owner.TargetActorId;
+        Actor target = curTargetId >= 0 ? world.Get<Actor>(curTargetId) : null;
+        // 目标可能在本帧已死 / 被销毁，反查失败也按"无目标" 处理
+        if (target != null && target.IsDead) target = null;
 
-        // 2. 旋转炮塔朝目标（仅水平，y 维度不动）
-        if (target != null)
+        // 2. AimTime telegraph：目标变化重置 timer；同一目标持续锁定 timer 累加
+        if (curTargetId != prevTargetActorId)
         {
-            var toTarget = target.Position - Owner.Position;
-            toTarget.y = 0f;
-            if (toTarget.sqrMagnitude > 1e-4f)
-            {
-                var targetRot = Quaternion.LookRotation(toTarget.normalized, Vector3.up);
-                float t = 1f - Mathf.Exp(-RotateLerpRate * dt);
-                Owner.Rotation = Quaternion.Slerp(Owner.Rotation, targetRot, t);
-            }
+            aimedTimer = 0f;
+            prevTargetActorId = curTargetId;
         }
+        if (target != null) aimedTimer += dt;
+        else aimedTimer = 0f;  // 失去目标也清 timer，下次锁敌重新等 AimTime
 
         // 3. 写开火意图 + FireOrigin / FireDirection / FireTarget（持枪人组件协议 #3）
+        // FireOrigin 由武器侧配（currentWeapon.MuzzleLocalOffset）；
+        // targetCenter 投影到 muzzle 同高水平面，保证子弹水平直击。
         if (target != null)
         {
-            var muzzle = Owner.Position + Vector3.up * MuzzleHeight + Owner.Rotation * Vector3.forward * 0.6f;
-            var targetCenter = target.Position + Vector3.up * MuzzleHeight;  // 瞄目标的胸部高度
-            var dir = (targetCenter - muzzle);
+            var muzzle = Owner.Position + Owner.Rotation * currentWeapon.MuzzleLocalOffset;
+            var targetCenter = new Vector3(target.Position.x, muzzle.y, target.Position.z);
+            var dir = targetCenter - muzzle;
             if (dir.sqrMagnitude < 1e-4f) dir = Owner.Rotation * Vector3.forward;
             dir.Normalize();
 
             currentWeapon.FireOrigin = muzzle;
             currentWeapon.FireDirection = dir;
             currentWeapon.FireTarget = targetCenter;
-            currentWeapon.FireIntent = true;  // 有目标即开火，FireComponent 自带 cooldown / 弹药门控
+            // AimTime 过完才开火（telegraph）。FireComponent 自带 cooldown 节流，本组件只控"该不该开"
+            currentWeapon.FireIntent = aimedTimer >= AimTime;
         }
         else
         {
             currentWeapon.FireIntent = false;
         }
-    }
-
-    /// <summary>遍历 ActorWorld 找最近的敌方 Actor。返回 null 表示无目标。
-    /// 筛选条件：非自己 + 非中立 + 阵营不同 + 有 HealthComponent + 未死 + 距离≤Range（平方比较省 sqrt）。</summary>
-    private Actor FindNearestEnemy()
-    {
-        scanBuf.Clear();
-        world.GetAll(scanBuf);
-
-        float bestSqr = Range * Range;
-        Actor best = null;
-        var selfPos = Owner.Position;
-        int selfTeam = Owner.TeamId;
-
-        for (int i = 0; i < scanBuf.Count; i++)
-        {
-            var a = scanBuf[i];
-            if (a == null || a == Owner) continue;
-            if (a.TeamId == 0 || a.TeamId == selfTeam) continue;  // 中立 / 同阵营跳过
-            if (a.IsDead) continue;
-            if (a.Get<HealthComponent>() == null) continue;       // 没 HP 组件的不打（Bullet / Weapon 等）
-
-            var d = a.Position - selfPos;
-            float sqr = d.x * d.x + d.y * d.y + d.z * d.z;
-            if (sqr < bestSqr) { bestSqr = sqr; best = a; }
-        }
-        return best;
     }
 }

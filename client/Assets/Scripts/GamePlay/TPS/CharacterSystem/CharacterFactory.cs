@@ -129,6 +129,8 @@ public class CharacterFactory
             ModelPath = "Weapon/RiflePlaceholder",
             HandLocalPosition = Vector3.zero,
             HandLocalEuler = Vector3.zero,
+            // 弹道起点（相对持有者 Position+Rotation 的本地坐标偏移）：玩家身高 1.2m + 朝前 0.6m 避开自己 capsule
+            MuzzleLocalOffset = new Vector3(0f, 1.2f, 0.6f),
             // 背挂位置/朝向占位：Spine1 是默认背骨，pose 全 0 大概率会穿模/方向不对，
             // 需要每把武器进 Unity 手调（先看到大致位置再细调）。
             BackLocalPosition = new Vector3(0f, 0.15f, -0.2f),
@@ -158,6 +160,8 @@ public class CharacterFactory
             ModelPath = "Weapon/PistolPlaceholder",
             HandLocalPosition = Vector3.zero,
             HandLocalEuler = Vector3.zero,
+            // 弹道起点（相对持有者 Position+Rotation 的本地坐标偏移）：玩家身高 1.2m + 朝前 0.6m 避开自己 capsule
+            MuzzleLocalOffset = new Vector3(0f, 1.2f, 0.6f),
             // 背挂位置/朝向占位：Spine1 是默认背骨，pose 全 0 大概率会穿模/方向不对，
             // 需要每把武器进 Unity 手调（先看到大致位置再细调）。
             BackLocalPosition = new Vector3(0f, 0.15f, -0.2f),
@@ -187,6 +191,8 @@ public class CharacterFactory
             ModelPath = "Weapon/RiflePlaceholder",
             HandLocalPosition = Vector3.zero,
             HandLocalEuler = Vector3.zero,
+            // 弹道起点（相对持有者 Position+Rotation 的本地坐标偏移）：玩家身高 1.2m + 朝前 0.6m 避开自己 capsule
+            MuzzleLocalOffset = new Vector3(0f, 1.2f, 0.6f),
             // 背挂位置/朝向占位：Spine1 是默认背骨，pose 全 0 大概率会穿模/方向不对，
             // 需要每把武器进 Unity 手调（先看到大致位置再细调）。
             BackLocalPosition = new Vector3(0f, 0.15f, -0.2f),

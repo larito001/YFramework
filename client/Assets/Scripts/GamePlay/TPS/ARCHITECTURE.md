@@ -52,7 +52,8 @@ TPS/
 |---|---|
 | Actor | 空间（`Position` / `Rotation` / `WishVelocity` / `Velocity` / `IsGrounded`）、生命周期（`LifetimeRemaining` / `OwnerActorId`）、阵营（`TeamId`）、HP 系（`MaxHealth` / `CurHealth` / `IsDead` / `Die` / `DeathVariant`） |
 | Character | 角色动画 / 武器持有 / 瞄准（`AnimMoveX/Y` / `AnimSpeedRatio` / 各 bool trigger / `AimTargetWorldPos` / `MuzzleHeight` / `CurrentWeaponSlot`） |
-| Weapon | 开火 / 装弹 / 挂载（`FireOrigin` / `FireDirection` / `FireTarget` / `Mag*` / `CurrentAmmo` / `ReloadRequest` / `IsReloading` / `ShootEvent` / `Hand*` / `Back*`） |
+| Weapon | 开火几何（`MuzzleLocalOffset` 武器自配的枪口偏移）/ 开火意图（`FireOrigin` / `FireDirection` / `FireTarget` 持枪人每帧写）/ 装弹（`Mag*` / `CurrentAmmo` / `ReloadRequest` / `IsReloading`）/ 挂载（`Hand*` / `Back*` / `ShootEvent`） |
+| Tower | `TargetActorId`（TowerTargetingComponent 写、TowerWeaponComponent 读，实现 targeting / 持枪人 解耦） |
 | Bullet | `Damage` |
 
 下沉到基类的字段允许某些子类用不到（Weapon HP 永远 0、Bullet 不写 WishVelocity）—— 几十字节内存换组件复用，是策略折中。
@@ -77,8 +78,8 @@ Tick 顺序由 Add 顺序决定，Factory 是唯一约定 Add 顺序的地方。
 
 - **通用组件**：直接继承 `IActorComponent`，Owner=Actor。**只读写 Actor 基类字段**。可挂任何 Actor 子类（Character / Weapon / Bullet / 未来的 NPC / Pickup / Destructible）。
   例：`HealthComponent` / `HitstopOnDamageComponent` / `GravityComponent` / `AutoDespawnComponent`。
-- **特化组件**：继承 `ICharacterComponent` / `IWeaponComponent` / `IBulletComponent`，Owner=对应子类。需要子类专属字段时走这个。
-  例：`MoveComponent` / `AimComponent` / `WeaponComponent` / `FireComponent` / `MeleeComponent` / `ReloadComponent` / `BulletMoveComponent` / `MissileMoveComponent`。
+- **特化组件**：继承 `ICharacterComponent` / `IWeaponComponent` / `IBulletComponent` / `ITowerComponent`，Owner=对应子类。需要子类专属字段时走这个，或语义上只该挂某子类时也走这个（即便当前没专属字段）。
+  例：`MoveComponent` / `AimComponent` / `WeaponComponent` / `FireComponent` / `MeleeComponent` / `ReloadComponent` / `BulletMoveComponent` / `MissileMoveComponent` / `TowerTargetingComponent` / `TowerWeaponComponent`。
 
 判断：组件 Tick 里**只读写 Actor 基类字段** → 通用组件；只要 cast Owner 取子类字段 → 特化组件。**通用组件里禁止 `Owner as Character` / `Owner as Bullet` 等 cast**——cast 即承认特化，应改回对应子家族继承。
 
@@ -183,7 +184,7 @@ Weapon 体系不假设持有者类型——**Character / 塔 / 敌人 / 载具 /
 | 持有者 | 持枪人组件 | 决策来源 | 动画驱动 |
 |---|---|---|---|
 | Character（玩家） | `WeaponComponent`（ICharacterComponent，已实现） | InputService 键盘 + 鼠标 | 写 Character 动画 trigger 字段 |
-| Tower（塔） | `TowerWeaponHolderComponent`（未实现） | AI 目标锁定 + 射程判定 | 塔无动画或简单转炮塔 |
+| Tower（塔） | `TowerWeaponComponent` + `TowerTargetingComponent`（ITowerComponent，已实现） | TowerTargetingComponent 扫 ActorWorld 找最近敌人写 Tower.TargetActorId；TowerWeaponComponent 读 TargetActorId + AimTime telegraph | 塔无动画，TowerTargetingComponent 旋转 Owner.Rotation 朝目标 |
 | Enemy（敌人） | `EnemyWeaponHolderComponent`（未实现） | AI 行为树 | 敌人动画 trigger（如有） |
 
 ### 持枪人组件协议
@@ -191,7 +192,7 @@ Weapon 体系不假设持有者类型——**Character / 塔 / 敌人 / 载具 /
 任何持枪人组件**必须做**：
 1. 持有 `List<Weapon>`，Attach 时调 `weaponMgr.Adopt(weapon)` 移交注册
 2. 维护"当前武器" 状态，切换时调 `weaponMgr.Mount/Unmount/MountOnBack` 改 mount socket
-3. 每帧写 `currentWeapon.FireIntent / FireOrigin / FireDirection / FireTarget`——这是 FireComponent 消费的开火数据源
+3. 每帧写 `currentWeapon.FireIntent / FireOrigin / FireDirection / FireTarget`——这是 FireComponent 消费的开火数据源。`FireOrigin` 由武器侧配的 `MuzzleLocalOffset` 决定具体偏移：`FireOrigin = holder.Position + holder.Rotation * currentWeapon.MuzzleLocalOffset`，持枪人组件只机械应用，不该硬编码 forward / height 数值
 4. Detach 时调 `weaponMgr.Despawn(weapon)` 销毁子 Actor
 
 **不该做**：

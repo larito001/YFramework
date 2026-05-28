@@ -50,10 +50,11 @@ public class TowerManager : IGameService, ITickable
         }
     }
 
-    /// <summary>外部 API：在指定位置 spawn 一座塔（teamId 默认 1=玩家军）。返回 Tower 实例供外部进一步配置。</summary>
-    public Tower SpawnTower(UnityEngine.Vector3 position, int teamId = 1, float maxHealth = 500f)
+    /// <summary>外部 API：在指定位置 spawn 一座塔。
+    /// teamId：默认 1=玩家军；ownerActorId：放置者 Actor.ID（玩家放置传玩家 ID，关卡预设传 -1=无主），用于击杀归属 / 摧毁通知。</summary>
+    public Tower SpawnTower(UnityEngine.Vector3 position, int teamId = 1, int ownerActorId = -1, float maxHealth = 500f)
     {
-        var t = factory.CreateTower(position, teamId, maxHealth);
+        var t = factory.CreateTower(position, teamId, ownerActorId, maxHealth);
         AttachLifecycleHooks(t);
         towers.Add(t);
         world.Register(t);
