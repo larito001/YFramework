@@ -62,7 +62,9 @@ public class MissileMoveComponent : IBulletComponent
             if (!CastAndHit(Owner.Position, End))
             {
                 Owner.Position = End;
-                Debug.Log($"[Missile] arrived @ End, dmg={Owner.Damage}");
+#if UNITY_EDITOR
+                Debug.Log($"[Missile] arrived @ End (no damage), dmg={Owner.Damage}");
+#endif
                 bulletMgr?.Despawn(Owner);
             }
             return;
@@ -90,7 +92,9 @@ public class MissileMoveComponent : IBulletComponent
                 Owner.OwnerCharacterId, raycastBuf, out var hit))
             return false;
 
+#if UNITY_EDITOR
         Debug.Log($"[Missile] hit {hit.collider.name} @ {hit.distance:F2}m, dmg={Owner.Damage}");
+#endif
         var info = new DamageInfo(Owner.Damage, Owner.OwnerCharacterId, HitstopTier);
         DamageRouter.TryHitAndDamage(hit.collider, world, in info);
         Owner.Position = hit.point;

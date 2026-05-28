@@ -92,7 +92,9 @@ public class HitscanEffect : FireEffect
                 weapon.OwnerCharacterId, raycastBuf, out var hit))
         {
             Debug.DrawLine(weapon.FireOrigin, hit.point, Color.red, DebugDrawSeconds);
+#if UNITY_EDITOR
             Debug.Log($"[Hitscan] {weapon.Name} hit {hit.collider.name} @ {hit.distance:F2}m, dmg={damage}");
+#endif
             var info = new DamageInfo(damage, weapon.OwnerCharacterId, HitstopTier);
             DamageRouter.TryHitAndDamage(hit.collider, world, in info);
         }

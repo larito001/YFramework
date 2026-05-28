@@ -55,7 +55,9 @@ public class HealthComponent : ICharacterComponent
         if (info.Amount <= 0f) return;
 
         Owner.CurHealth = Mathf.Max(0f, Owner.CurHealth - info.Amount);
+#if UNITY_EDITOR
         Debug.Log($"[Health] actor={Owner.ID} -{info.Amount} from {info.AttackerId}, hp={Owner.CurHealth:F0}/{Owner.MaxHealth:F0}");
+#endif
         OnDamaged?.Invoke(info);
 
         if (Owner.CurHealth <= 0f && !Owner.IsDead)
@@ -64,7 +66,9 @@ public class HealthComponent : ICharacterComponent
             // 死亡动画 trigger + 随机变体（0=DeathL，1=DeathR）。和 IsDead 同帧写出，view 下一次 LateUpdate 消费。
             Owner.DeathVariant = UnityEngine.Random.Range(0, 2);
             Owner.Die = true;
+#if UNITY_EDITOR
             Debug.Log($"[Health] actor={Owner.ID} died by {info.AttackerId} (variant={Owner.DeathVariant})");
+#endif
             OnDied?.Invoke(info.AttackerId);
         }
     }

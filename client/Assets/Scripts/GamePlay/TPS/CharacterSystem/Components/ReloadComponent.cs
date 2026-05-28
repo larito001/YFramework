@@ -51,7 +51,9 @@ public class ReloadComponent : IWeaponComponent
                 Owner.CurrentAmmo = Owner.MagCapacity;
                 Owner.IsReloading = false;
                 timer = 0f;
+#if UNITY_EDITOR
                 Debug.Log($"[Reload] {Owner.Name} reloaded: {Owner.CurrentAmmo}/{Owner.MagCapacity}");
+#endif
             }
         }
     }

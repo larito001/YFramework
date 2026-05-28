@@ -198,8 +198,9 @@ public class CharacterView : BaseView
 
             // MoveX/MoveY 用 damp 版本平滑：连续切 WASD 方向时 BlendTree 姿势不瞬移
             // Speed 已被 MoveComponent 的 Acceleration 平滑，view 端不再二次 damp
-            Anim.SetFloat(HashMoveX, character.AnimMoveX, AnimMoveDampTime, Time.deltaTime);
-            Anim.SetFloat(HashMoveY, character.AnimMoveY, AnimMoveDampTime, Time.deltaTime);
+            // damp dt 用 scaledDt（含 TimeScale），卡肉期间 damp 内部状态也一起冻住，避免解除瞬间跳值
+            Anim.SetFloat(HashMoveX, character.AnimMoveX, AnimMoveDampTime, scaledDt);
+            Anim.SetFloat(HashMoveY, character.AnimMoveY, AnimMoveDampTime, scaledDt);
             Anim.SetFloat(HashSpeed, character.AnimSpeedRatio);
             Anim.SetBool(HashIsShooting, character.IsShooting);
             Anim.SetBool(HashIsAiming, character.IsAiming);

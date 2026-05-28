@@ -104,13 +104,23 @@ public class WeaponComponent : ICharacterComponent
     public override void Tick(float dt)
     {
         if (input == null || Owner == null) return;
-        // 死亡时打断换弹 / 清射击，让 Reload/Recoil 上半身层退回 Idle，避免倒地动画播的同时上半身还在做换弹/后坐力动作。
+        // 死亡时打断换弹 / 清射击 / 清切枪状态。
         // 写 currentWeapon.IsReloading=false 后 ReloadComponent 下一帧看到就跳过 timer（外部打断协议）。
+        // 切枪相关 timer 和标志也一并清掉：本分支提前 return 不再 decrement timer，
+        // 不清的话 IsSwapping 会永远卡 true，未来若加复活组件会无法再开火/近战/换弹。
         if (Owner.IsDead)
         {
             if (currentWeapon != null && currentWeapon.IsReloading) currentWeapon.IsReloading = false;
             Owner.IsReloading = false;
             Owner.IsShooting = false;
+            Owner.IsSwapping = false;
+            Owner.WeaponSwap = false;
+            Owner.WeaponHolster = false;
+            swapLockTimer = 0f;
+            holsterTimer = 0f;
+            mountToHandTimer = 0f;
+            pendingSwapSlot = -1;
+            pendingHandMount = null;
             prevReloading = false;
             return;
         }

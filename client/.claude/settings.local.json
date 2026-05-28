@@ -21,7 +21,14 @@
       "PowerShell(Remove-Item *)",
       "PowerShell(Test-Path *)",
       "PowerShell(Split-Path *)",
-      "Bash(git checkout *)"
+      "Bash(git checkout *)",
+      "Bash(grep -iE \"\\\\.\\(cs|js|ts|py|sh|bat|ps1|json|yaml|yml|html\\)$\")",
+      "Bash(grep -viE \"\\\\.meta$|/Mirror/|/Facepunch|/Plugins/|/Art/|test|Test\")",
+      "Read(//c/UnityProject/YFramework/webCtrl/**)",
+      "Read(//c/UnityProject/YFramework/**)",
+      "Bash(gh pr *)",
+      "PowerShell(gh pr *)",
+      "Bash(git fetch *)"
     ]
   }
 }

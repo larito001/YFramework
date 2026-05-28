@@ -51,7 +51,9 @@ public class BulletMoveComponent : IBulletComponent
         if (DamageRouter.RaycastSkipActor(Owner.Position, dir, dist, HitLayers,
                 Owner.OwnerCharacterId, raycastBuf, out var hit))
         {
+#if UNITY_EDITOR
             Debug.Log($"[Bullet] hit {hit.collider.name} @ {hit.distance:F2}m, dmg={Owner.Damage}");
+#endif
             var info = new DamageInfo(Owner.Damage, Owner.OwnerCharacterId, HitstopTier);
             DamageRouter.TryHitAndDamage(hit.collider, world, in info);
             Owner.Position = hit.point;
