@@ -109,6 +109,11 @@ public class CharacterFactory
             // 这里再回写一遍保证 character.Position 与 view 一致。
             character.Position = position;
         }
+
+        // Dummy 没 WeaponComponent，不会触发 LoadWeaponAnimSet —— view.currentAnimSet 一直 null → DriveAnimation 早退 → 死了不播 Death。
+        // 这里手动设默认 AnimSet（复用 Pistol 那套 clip），让 view 加载后 Die / Locomotion 都能跑
+        character.CurrentWeaponAnimSetPath = "Weapon/Anim/Pistol";
+        character.WeaponAnimDirty = true;
         return character;
     }
 
@@ -131,6 +136,8 @@ public class CharacterFactory
         {
             Name = "Rifle A",
             ModelPath = "Weapon/RiflePlaceholder",
+            // 临时复用 Pistol AnimSet（美工建好 RifleA.asset 后改成 "Weapon/Anim/RifleA"）
+            AnimSetPath = "Weapon/Anim/Pistol",
             HandLocalPosition = Vector3.zero,
             HandLocalEuler = Vector3.zero,
             // 弹道起点（相对持有者 Position+Rotation 的本地坐标偏移）：玩家身高 1.2m + 朝前 0.6m 避开自己 capsule
@@ -166,6 +173,8 @@ public class CharacterFactory
         {
             Name = "Rifle B",
             ModelPath = "Weapon/PistolPlaceholder",
+            // 手枪用 Pistol 专属 WeaponAnimSet（Animancer 直接 Play 里面配的 clip）
+            AnimSetPath = "Weapon/Anim/Pistol",
             HandLocalPosition = Vector3.zero,
             HandLocalEuler = Vector3.zero,
             // 弹道起点（相对持有者 Position+Rotation 的本地坐标偏移）：玩家身高 1.2m + 朝前 0.6m 避开自己 capsule
@@ -202,6 +211,8 @@ public class CharacterFactory
         {
             Name = "Missile Launcher",
             ModelPath = "Weapon/RiflePlaceholder",
+            // 临时复用 Pistol AnimSet（美工建好 MissileLauncher.asset 后改）
+            AnimSetPath = "Weapon/Anim/Pistol",
             HandLocalPosition = Vector3.zero,
             HandLocalEuler = Vector3.zero,
             // 弹道起点（相对持有者 Position+Rotation 的本地坐标偏移）：玩家身高 1.2m + 朝前 0.6m 避开自己 capsule

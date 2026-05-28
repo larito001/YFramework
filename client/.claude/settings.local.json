@@ -28,7 +28,10 @@
       "Read(//c/UnityProject/YFramework/**)",
       "Bash(gh pr *)",
       "PowerShell(gh pr *)",
-      "Bash(git fetch *)"
+      "Bash(git fetch *)",
+      "Bash(git rm *)",
+      "Bash(uuidgen)",
+      "PowerShell([guid]::NewGuid\\(\\).ToString\\('N'\\))"
     ]
   }
 }

@@ -51,8 +51,8 @@ TPS/
 | 类 | 字段 |
 |---|---|
 | Actor | 空间（`Position` / `Rotation` / `WishVelocity` / `Velocity` / `IsGrounded`）、生命周期（`LifetimeRemaining` / `OwnerActorId`）、阵营（`TeamId`）、HP 系（`MaxHealth` / `CurHealth` / `IsDead` / `Die` / `DeathVariant`） |
-| Character | 角色动画 / 武器持有 / 瞄准（`AnimMoveX/Y` / `AnimSpeedRatio` / 各 bool trigger / `AimTargetWorldPos` / `MuzzleHeight` / `CurrentWeaponSlot`） |
-| Weapon | 开火几何（`MuzzleLocalOffset` 武器自配的枪口偏移）/ 开火意图（`FireOrigin` / `FireDirection` / `FireTarget` 持枪人每帧写）/ 装弹（`Mag*` / `CurrentAmmo` / `ReloadRequest` / `IsReloading`）/ 挂载（`Hand*` / `Back*` / `ShootEvent`） |
+| Character | 角色动画 / 武器持有 / 瞄准（`AnimMoveX/Y` / `AnimSpeedRatio` / 各 bool trigger / `AimTargetWorldPos` / `MuzzleHeight` / `CurrentWeaponSlot` / `CurrentWeaponAnimSetPath` + `WeaponAnimDirty`） |
+| Weapon | 开火几何（`MuzzleLocalOffset` 武器自配的枪口偏移）/ 开火意图（`FireOrigin` / `FireDirection` / `FireTarget` 持枪人每帧写）/ 装弹（`Mag*` / `CurrentAmmo` / `ReloadRequest` / `IsReloading`）/ 挂载（`Hand*` / `Back*` / `ShootEvent`）/ 动画（`AnimSetPath` 武器自带的 WeaponAnimSet ScriptableObject 资源路径） |
 | Tower | `TargetActorId`（TowerTargetingComponent 写、TowerWeaponComponent 读，实现 targeting / 持枪人 解耦） |
 | Bullet | `Damage` |
 
@@ -275,12 +275,46 @@ Weapon 体系不假设持有者类型——**Character / 塔 / 敌人 / 载具 /
 1. 持有 `List<Weapon>`，Attach 时调 `weaponMgr.Adopt(weapon)` 移交注册
 2. 维护"当前武器" 状态，切换时调 `weaponMgr.Mount/Unmount/MountOnBack` 改 mount socket
 3. 每帧写 `currentWeapon.FireIntent / FireOrigin / FireDirection / FireTarget`——这是 FireComponent 消费的开火数据源。`FireOrigin` 由武器侧配的 `MuzzleLocalOffset` 决定具体偏移：`FireOrigin = holder.Position + holder.Rotation * currentWeapon.MuzzleLocalOffset`，持枪人组件只机械应用，不该硬编码 forward / height 数值
+4. 切枪 / Detach 时把 `currentWeapon.AnimSetPath` 镜像写到 `holder.CurrentWeaponAnimSetPath` + 置 `holder.WeaponAnimDirty=true`，由 view 加载对应 WeaponAnimSet ScriptableObject 切换动画（详见"动画接口协议"小节）
 4. Detach 时调 `weaponMgr.Despawn(weapon)` 销毁子 Actor
 
 **不该做**：
 - 假设持有者类型是 Character（除非组件本身就是 Character 专属，如 `WeaponComponent` 监听 InputService）
 - 直接调 Weapon 上的 FireComponent（FireComponent 自己 Tick，按 FireIntent 决定开火）
 - 在持枪人组件里写 Weapon 内部状态（弹药 / cooldown / mount pose 都由 Weapon 子组件管）
+
+---
+
+## 动画接口协议
+
+Character 上的动画字段是**"逻辑组件 → view" 协议层**：
+
+```
+WeaponComponent / MeleeComponent / HealthComponent 等逻辑组件
+                  ↓ 写
+Character.{Shoot/Reload/WeaponSwap/WeaponHolster/MeleeAttack/MeleeType/Die/DeathVariant/
+           IsAiming/IsShooting/IsReloading/HeavyRecoil/RecoilAnimSpeed/
+           AnimMoveX/Y/AnimSpeedRatio/AnimPlaybackRate/
+           CurrentWeaponAnimSetPath/WeaponAnimDirty}
+                  ↓ 读
+CharacterView.LateUpdate
+                  ↓ 调用任何方案
+Unity Animator / Animancer / 自研 Playables
+```
+
+**view 内部可以用任何动画方案实现**——只要消费 Character 协议字段即可。**当前实现：Animancer + WeaponAnimSet ScriptableObject + LinearMixerState + Layer/AvatarMask 分上下身**：
+- Weapon 上配 `AnimSetPath`（指向 Resources 下的 .asset）
+- 武器切换时 view 加载 `WeaponAnimSet`（含 Idle/Walk/Run/Sprint/Aim*/Shoot/Reload/Equip/Holster/Melee/Die 各 AnimationClip + 阈值 + UpperBodyMask）
+- **Locomotion 用 `LinearMixerState` 平滑 blend**：4 child (Idle/Walk/Run/Sprint) 按 `IdleThreshold/WalkThreshold/RunThreshold/SprintThreshold` 平滑过渡；Aim 模式切到 aimLocomotionMixer（2 child）
+- **Combat 走 Layer 1 + AvatarMask 上下身分离**：UpperBodyMask 配了时上半身播 Shoot/Reload/Equip/Holster/Melee，下半身继续走 Locomotion mixer（边跑边射）；mask=null 时单层模式，Combat 覆盖 Locomotion
+- **状态优先级**：Die（Layer 0 全身覆盖 + Layer 1 fade out）&gt; Melee &gt; Holster &gt; Equip &gt; Reload &gt; Shoot
+- 一次性 state（双层模式）播完自动 fade out Layer 1 让 Locomotion 透回；单层模式走 IsPlaying 跟踪
+
+**架构层选择权**：换回 Unity Animator / 升级 Animancer LinearMixerState / 自研都不破坏 ARCHITECTURE——只重写 `CharacterView.LateUpdate` + `DriveAnimation`，逻辑组件零改动。
+
+### 给美工
+
+加新武器动画的操作步骤详见 `docs/Animancer 武器动画指南.md`。Factory 配 `Weapon.AnimSetPath = "Resources 相对路径"` 程序员负责，`WeaponAnimSet.asset` 美工创建 + 拖 clip。
 
 ---
 

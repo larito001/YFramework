@@ -20,7 +20,7 @@ public class Character : Actor
     // ── 角色动画（MoveComponent 写，view 读取 BlendTree）──
     public float AnimMoveX;
     public float AnimMoveY;
-    /// <summary>归一化水平速度（horizontal speed / WalkSpeed，clamp[0,1]）。Run 1D BlendTree 用。</summary>
+    /// <summary>**水平速度真实值 (m/s)**（之前是 ratio，现已改为 m/s）。view 的 Animancer LinearMixerState 用真实 m/s 阈值对齐 4 档 clip blend。</summary>
     public float AnimSpeedRatio;
     /// <summary>动画播放倍率（Animator.speed）。MoveComponent 按当前状态（walk/sprint/aim）写入，view 应用。</summary>
     public float AnimPlaybackRate = 1f;
@@ -62,6 +62,12 @@ public class Character : Actor
 
     /// <summary>当前持有武器槽位。WeaponComponent 写入，HUD/业务读取。实际武器模型挂载走 Weapon Actor + WeaponView。</summary>
     public int CurrentWeaponSlot;
+
+    /// <summary>当前武器对应的 <see cref="WeaponAnimSet"/> 资源路径（Resources 相对路径）。WeaponComponent.ApplySwap 时
+    /// 从 currentWeapon.AnimSetPath 镜像写入。空 / null = 持有者 view 走默认 idle pose。</summary>
+    public string CurrentWeaponAnimSetPath;
+    /// <summary>切武器动画的一次性 trigger。WeaponComponent.ApplySwap 置 true；CharacterView 消费后 ResMgr.Load + 切换 Animancer 状态后清回 false。</summary>
+    public bool WeaponAnimDirty;
 
     /// <summary>枪口高度（相对角色脚下 Position.y 的偏移，米）。
     /// AimComponent 用它做鼠标→世界射线相交平面（俯视角倾斜相机下，点哪打哪要靠这层平面）；

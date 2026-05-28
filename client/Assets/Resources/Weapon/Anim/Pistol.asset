@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 200ad57813736ff46a71d8dc83e7ecf1, type: 3}
+  m_Name: Pistol
+  m_EditorClassIdentifier:
+  Idle: {fileID: 7400004, guid: 914b09da235eea34ebdc4e71d057e815, type: 3}
+  Walk: {fileID: 7400002, guid: 74ab6da24dee7ca40a83456cd2488156, type: 3}
+  Run: {fileID: 7400002, guid: 74ab6da24dee7ca40a83456cd2488156, type: 3}
+  Sprint: {fileID: 7400002, guid: 74ab6da24dee7ca40a83456cd2488156, type: 3}
+  AimIdle: {fileID: 7400004, guid: 914b09da235eea34ebdc4e71d057e815, type: 3}
+  AimWalk: {fileID: 7400016, guid: 914b09da235eea34ebdc4e71d057e815, type: 3}
+  AimWalkFwd: {fileID: 7400016, guid: 914b09da235eea34ebdc4e71d057e815, type: 3}
+  AimWalkBwd: {fileID: 7400024, guid: 914b09da235eea34ebdc4e71d057e815, type: 3}
+  AimStrafeLeft: {fileID: 7400040, guid: 914b09da235eea34ebdc4e71d057e815, type: 3}
+  AimStrafeRight: {fileID: 7400032, guid: 914b09da235eea34ebdc4e71d057e815, type: 3}
+  AimStrafeFL: {fileID: 7400046, guid: 914b09da235eea34ebdc4e71d057e815, type: 3}
+  AimStrafeFR: {fileID: 7400004, guid: 47f3e97642d383d4dbfc479141f81683, type: 3}
+  AimStrafeBL: {fileID: 7400006, guid: 47f3e97642d383d4dbfc479141f81683, type: 3}
+  AimStrafeBR: {fileID: 7400048, guid: 914b09da235eea34ebdc4e71d057e815, type: 3}
+  ShootLight: {fileID: 7400050, guid: 914b09da235eea34ebdc4e71d057e815, type: 3}
+  ShootHeavy: {fileID: 7400052, guid: 914b09da235eea34ebdc4e71d057e815, type: 3}
+  Reload: {fileID: 7400056, guid: 914b09da235eea34ebdc4e71d057e815, type: 3}
+  Equip: {fileID: 7400000, guid: 6d0b268b0bd91c44eb369715ba96d320, type: 3}
+  Holster: {fileID: 7400002, guid: 6d0b268b0bd91c44eb369715ba96d320, type: 3}
+  MeleeHard: {fileID: 7400100, guid: 914b09da235eea34ebdc4e71d057e815, type: 3}
+  MeleeKick: {fileID: 7400102, guid: 914b09da235eea34ebdc4e71d057e815, type: 3}
+  DeathL: {fileID: 7400122, guid: 914b09da235eea34ebdc4e71d057e815, type: 3}
+  DeathR: {fileID: 7400124, guid: 914b09da235eea34ebdc4e71d057e815, type: 3}
+  IdleThreshold: 0
+  WalkThreshold: 5
+  RunThreshold: 6
+  SprintThreshold: 7
+  AimIdleThreshold: 0
+  AimWalkThreshold: 1.5
+  DefaultFade: 0.1
+  ShootFade: 0
+  UpperBodyMask: {fileID: 31900000, guid: d230545fc4224170b84c70ad3efac58a, type: 2}

@@ -87,14 +87,13 @@ public class MoveComponent : ICharacterComponent
                 if (wishDir.sqrMagnitude > 1f) wishDir.Normalize();
             }
             // 三档：瞄准 → AimSpeed；非瞄准 + Shift → SprintSpeed；非瞄准默认 → WalkSpeed
-            // 各档同时绑定对应的动画播放倍率，供 view 直接套用
             float maxSpeed;
-            float animRate;
-            if (Owner.IsAiming) { maxSpeed = AimSpeed; animRate = AimAnimSpeed; }
-            else if (input.SprintHeld) { maxSpeed = SprintSpeed; animRate = SprintAnimSpeed; }
-            else { maxSpeed = WalkSpeed; animRate = WalkAnimSpeed; }
+            if (Owner.IsAiming) maxSpeed = AimSpeed;
+            else if (input.SprintHeld) maxSpeed = SprintSpeed;
+            else maxSpeed = WalkSpeed;
             wishHorizontal = wishDir * maxSpeed;
-            Owner.AnimPlaybackRate = animRate;
+            // AnimPlaybackRate 在 Animancer 实现下统一为 1：mixer 按真实 m/s 阈值自动选 clip 匹配步幅，不需要 view 再用倍率拉扯
+            Owner.AnimPlaybackRate = 1f;
         }
 
         // 2. 速度平滑：只平滑 magnitude，方向瞬切（转弯不受加速度影响，起步/停步有 lerp）
@@ -112,17 +111,13 @@ public class MoveComponent : ICharacterComponent
         v.z = currentHorizontal.z;
         Owner.WishVelocity = v;
 
-        // 4. 动画参数（用平滑后的 currentHorizontal，BlendTree 跟随真实速度衰减/爬升）
-        //    Walk（瞄准 2D）：localMove / aim 最大速度，全速 = 单位向量
-        //    Sprint（不瞄准 1D）：Speed = horiz/WalkSpeed，范围 [0, 2]，对应 Idle/SprintLoop@1x/SprintLoop@2x
+        // 4. 动画参数
+        //    AnimMoveX/Y：本地坐标方向 [-1, 1]，给 view（旧 Animator BlendTree 2D 参数）—— 当前 Animancer 实现未使用
+        //    AnimSpeedRatio：**真实水平速度 (m/s)**，不归一化。view 的 LinearMixerState 用真实 m/s threshold 对齐 4 档 clip
         var localMove = Quaternion.Inverse(Owner.Rotation) * currentHorizontal;
-        // Walk BlendTree 用 AimSpeed 归一化（只在瞄准时该 BlendTree 才被使用）
         float invAim = AimSpeed > 0.01f ? 1f / AimSpeed : 0f;
         Owner.AnimMoveX = localMove.x * invAim;
         Owner.AnimMoveY = localMove.z * invAim;
-        // Sprint BlendTree 用 WalkSpeed 归一化到 [0, 1]，view 用 Anim.speed 再缩放匹配脚步
-        //   walk full（horiz=WalkSpeed）   → ratio=1 → BlendTree 满血 SprintLoop + Anim.speed=1
-        //   sprint full（horiz=SprintSpeed）→ ratio=clamp 1 → BlendTree 满血 SprintLoop + Anim.speed=SprintSpeed/ref
-        Owner.AnimSpeedRatio = WalkSpeed > 0.01f ? Mathf.Clamp01(currentHorizontal.magnitude / WalkSpeed) : 0f;
+        Owner.AnimSpeedRatio = currentHorizontal.magnitude;
     }
 }

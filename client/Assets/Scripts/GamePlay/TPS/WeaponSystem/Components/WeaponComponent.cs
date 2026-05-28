@@ -93,6 +93,9 @@ public class WeaponComponent : ICharacterComponent
             Owner.CurrentWeaponSlot = -1;
             Owner.HeavyRecoil = false;
             Owner.RecoilAnimSpeed = 1f;
+            // 清动画 set 链：触发 view 回 idle pose
+            Owner.CurrentWeaponAnimSetPath = null;
+            Owner.WeaponAnimDirty = true;
         }
         currentWeapon = null;
         pendingHandMount = null;
@@ -280,6 +283,11 @@ public class WeaponComponent : ICharacterComponent
             Owner.HeavyRecoil = currentWeapon.HeavyRecoil;
             Owner.RecoilAnimSpeed = currentWeapon.RecoilAnimSpeed;
         }
+
+        // 通知 view 切 WeaponAnimSet（path 空 = 回退默认 idle pose）
+        // CharacterView 检测 WeaponAnimDirty trigger 后 ResMgr.Load<WeaponAnimSet> + Animancer.Play 替代原 Animator state
+        Owner.CurrentWeaponAnimSetPath = currentWeapon?.AnimSetPath;
+        Owner.WeaponAnimDirty = true;
 
         if (playEquipAnim)
         {

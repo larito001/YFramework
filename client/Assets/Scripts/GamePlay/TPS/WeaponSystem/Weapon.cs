@@ -30,6 +30,14 @@ public class Weapon : Actor
     public bool IsEquipped;
     public string MountSocketName;
 
+    // ── 动画 ──
+    /// <summary>武器对应的 <see cref="WeaponAnimSet"/> ScriptableObject 资源路径（Resources 相对路径，如 "Weapon/Anim/Pistol"）。
+    /// 空 / null = 持有者 view 默认 idle pose（不切 Animancer state）。
+    /// 切枪时 WeaponComponent.ApplySwap 把本路径写到 Character.CurrentWeaponAnimSetPath，
+    /// CharacterView 检测 WeaponAnimDirty trigger 后 ResMgr.Load&lt;WeaponAnimSet&gt; + 用 Animancer.Play 替代 Animator state machine。
+    /// 详见 ARCHITECTURE "动画接口协议" + docs/Animancer 武器动画指南.md。</summary>
+    public string AnimSetPath;
+
     // ── 开火几何（武器自配，持枪人读着算 FireOrigin） ──
     /// <summary>枪口相对持有者 (Position + Rotation) 的本地坐标偏移（米）。x=横向、y=高度、z=朝前推。
     /// 持枪人组件（玩家 WeaponComponent / 塔 TowerWeaponComponent）算 FireOrigin 都是：
