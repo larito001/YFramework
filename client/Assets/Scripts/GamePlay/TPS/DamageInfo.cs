@@ -6,18 +6,21 @@
 /// 字段约定：
 ///   - <see cref="Amount"/>：基础伤害值。&lt;=0 由 HealthComponent 直接忽略。
 ///   - <see cref="AttackerId"/>：攻击者 actor.ID。-1 = 无主（环境伤害 / DOT 等）。HealthComponent 用它过滤自伤。
+///   - <see cref="AttackerTeamId"/>：攻击者阵营。0=中立。HealthComponent 用它过滤同阵营（友军伤害默认禁用，详见 ARCHITECTURE "阵营" 小节）。
 ///   - <see cref="HitstopTier"/>：受击卡肉分级。攻击端在命中瞬间决定（按子弹 / 武器 / 目标类型）。默认 Long。
 /// </summary>
 public struct DamageInfo
 {
     public float Amount;
     public int AttackerId;
+    public int AttackerTeamId;
     public HitstopTier HitstopTier;
 
-    public DamageInfo(float amount, int attackerId, HitstopTier hitstopTier = HitstopTier.Long)
+    public DamageInfo(float amount, int attackerId, int attackerTeamId, HitstopTier hitstopTier = HitstopTier.Long)
     {
         Amount = amount;
         AttackerId = attackerId;
+        AttackerTeamId = attackerTeamId;
         HitstopTier = hitstopTier;
     }
 }

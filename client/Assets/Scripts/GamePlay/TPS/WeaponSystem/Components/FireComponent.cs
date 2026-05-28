@@ -66,8 +66,9 @@ public class FireComponent : IWeaponComponent
         if (Owner.MagCapacity > 0) Owner.CurrentAmmo--;
 
         // 参数化调用：把 Weapon 上的开火数据拆字段传给 effect，effect 不再依赖 Weapon 类型
+        // Owner.TeamId 由 WeaponManager.Mount 时从持有者继承
         Effect.Fire(Owner.FireOrigin, Owner.FireDirection, Owner.FireTarget,
-                    Owner.OwnerActorId, Damage, bulletMgr, world);
+                    Owner.OwnerActorId, Owner.TeamId, Damage, bulletMgr, world);
 
         Owner.ShootEvent = true; // 喂持枪人组件（如 WeaponComponent），下一帧按需转写到持有者动画 trigger
 

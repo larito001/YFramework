@@ -39,4 +39,12 @@ public class ActorWorld : IGameService
     }
 
     public IReadOnlyDictionary<int, Actor> All => _actors;
+
+    /// <summary>把当前所有 Actor 追加到 buffer（不清空 buffer）。供需要遍历的场景用，如塔 AI 扫敌。
+    /// 通过外部 buffer 复用避免每帧 alloc；遍历内部 Dictionary 直接走 struct enumerator 也不 alloc。</summary>
+    public void GetAll(List<Actor> buffer)
+    {
+        if (buffer == null) return;
+        foreach (var kv in _actors) buffer.Add(kv.Value);
+    }
 }

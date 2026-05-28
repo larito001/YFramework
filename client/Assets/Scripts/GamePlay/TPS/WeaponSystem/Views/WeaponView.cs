@@ -71,14 +71,24 @@ public class WeaponView : BaseView
             return;
         }
 
-        var socket = FindChildByName(ownerView.transform, weapon.MountSocketName);
-        if (socket == null)
+        // MountSocketName 空 → 直接挂在持有者 root（占位 prefab 没骨骼 / 塔等简单挂载用）
+        // 非空 → 递归找命名子物体（玩家走 RightHandProp 骨骼那条）
+        Transform mount;
+        if (string.IsNullOrEmpty(weapon.MountSocketName))
         {
-            Debug.LogWarning($"[WeaponView] 找不到 socket '{weapon.MountSocketName}' on {ownerView.name}");
-            return;
+            mount = ownerView.transform;
+        }
+        else
+        {
+            mount = FindChildByName(ownerView.transform, weapon.MountSocketName);
+            if (mount == null)
+            {
+                Debug.LogWarning($"[WeaponView] 找不到 socket '{weapon.MountSocketName}' on {ownerView.name}");
+                return;
+            }
         }
 
-        transform.SetParent(socket, worldPositionStays: false);
+        transform.SetParent(mount, worldPositionStays: false);
         transform.localPosition = weapon.LocalPosition;
         transform.localRotation = Quaternion.Euler(weapon.LocalEuler);
         SetRenderersEnabled(true);

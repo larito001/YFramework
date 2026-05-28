@@ -50,6 +50,11 @@ public class Actor
     /// <summary>发射者 / 召唤者 Actor.ID，用于自伤过滤和归属。-1 表示无主。</summary>
     public int OwnerActorId = -1;
 
+    // ── 阵营 ──
+    /// <summary>阵营 ID。0=中立 / 1=玩家军 / 2=敌军，3+ 留作扩展。详见 ARCHITECTURE.md "阵营" 小节。
+    /// 塔 AI 锁敌 / DamageRouter 走 HealthComponent 友军伤害过滤 / Weapon.TeamId 跟随持有者—— 都靠本字段。</summary>
+    public int TeamId;
+
     // ── HP（HealthComponent 写，UI / 死亡逻辑读） ──
     /// <summary>最大生命值。HealthComponent.Attach 时写入；可被增益 / 装备改动。</summary>
     public float MaxHealth;

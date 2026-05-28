@@ -5,7 +5,7 @@ using UnityEngine;
 /// 自身不持有任何 cooldown/ammo/shake 状态（那些在 <see cref="FireComponent"/> 里），
 /// 只关心"造一发"的具体行为。
 ///
-/// **参数化签名**：Fire 接收 origin/dir/target/ownerActorId 而非 Weapon，
+/// **参数化签名**：Fire 接收 origin/dir/target/ownerActorId/attackerTeamId 而非 Weapon，
 /// 这样技能 / 炮塔 / NPC 等"没 Weapon 但要造投射物"的场景也能直接用。
 /// 武器侧的调用方（FireComponent）从 <see cref="Weapon"/> 字段拆出来传入即可。
 /// </summary>
@@ -18,10 +18,11 @@ public abstract class FireEffect
     /// <summary>FireComponent 在通过 cooldown + ammo 门控后调用。
     /// origin / dir / target 来自 Weapon.FireOrigin / FireDirection / FireTarget（或调用方自己算）；
     /// ownerActorId = 发射者 Actor.ID（用于自伤过滤 + 伤害归属）；
+    /// attackerTeamId = 发射者阵营（用于友军伤害过滤，详见 ARCHITECTURE "阵营" 小节）；
     /// damage 透传给 bullet 或 DamageInfo。</summary>
     public abstract void Fire(
         Vector3 origin, Vector3 dir, Vector3 target,
-        int ownerActorId, float damage,
+        int ownerActorId, int attackerTeamId, float damage,
         BulletManager bullets, ActorWorld world);
 }
 
@@ -36,14 +37,14 @@ public class LinearProjectileEffect : FireEffect
 
     public override void Fire(
         Vector3 origin, Vector3 dir, Vector3 target,
-        int ownerActorId, float damage,
+        int ownerActorId, int attackerTeamId, float damage,
         BulletManager bullets, ActorWorld world)
     {
         if (bullets == null) return;
         var velocity = dir * BulletSpeed;
         // 走 SpawnBullet（不挂默认 MoveComponent）+ 手动 Add 带配置的 BulletMoveComponent，
         // 这样把 HitstopTier 一次性塞进 MoveComponent 不需要回头改字段。
-        var b = bullets.SpawnBullet(origin, BulletLifetime, damage, ownerActorId, velocity);
+        var b = bullets.SpawnBullet(origin, BulletLifetime, damage, ownerActorId, attackerTeamId, velocity);
         if (b != null) b.Add(new BulletMoveComponent { HitstopTier = HitstopTier });
     }
 }
@@ -63,7 +64,7 @@ public class BezierMissileEffect : FireEffect
 
     public override void Fire(
         Vector3 origin, Vector3 dir, Vector3 target,
-        int ownerActorId, float damage,
+        int ownerActorId, int attackerTeamId, float damage,
         BulletManager bullets, ActorWorld world)
     {
         if (bullets == null) return;
@@ -72,7 +73,7 @@ public class BezierMissileEffect : FireEffect
         var p1 = p0 + dir * ForwardPushDist;
         var p2 = p3 + Vector3.up * ArcHeight;
 
-        var b = bullets.SpawnBullet(p0, FlightDuration + LifetimeSlack, damage, ownerActorId);
+        var b = bullets.SpawnBullet(p0, FlightDuration + LifetimeSlack, damage, ownerActorId, attackerTeamId);
         if (b == null) return;
         b.Add(new MissileMoveComponent
         {
@@ -102,7 +103,7 @@ public class HitscanEffect : FireEffect
 
     public override void Fire(
         Vector3 origin, Vector3 dir, Vector3 target,
-        int ownerActorId, float damage,
+        int ownerActorId, int attackerTeamId, float damage,
         BulletManager bullets, ActorWorld world)
     {
         // 跳过发射者自身 collider：起点在 forward 0.6m 处但仍可能擦到 capsule 边缘
@@ -113,7 +114,7 @@ public class HitscanEffect : FireEffect
 #if UNITY_EDITOR
             Debug.Log($"[Hitscan] hit {hit.collider.name} @ {hit.distance:F2}m, dmg={damage}");
 #endif
-            var info = new DamageInfo(damage, ownerActorId, HitstopTier);
+            var info = new DamageInfo(damage, ownerActorId, attackerTeamId, HitstopTier);
             DamageRouter.TryHitAndDamage(hit.collider, world, in info);
         }
         else

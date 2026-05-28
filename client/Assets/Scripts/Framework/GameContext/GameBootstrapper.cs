@@ -91,6 +91,9 @@ public static partial class GameBootstrapper
         //
         // 反序会让开火延迟一帧、子弹起步少一帧推进。新增同类 Manager 按依赖方向插入。
         ctx.Register(new CharacterManager());
+        // TowerManager 必须在 WeaponManager 之前注册：TowerWeaponComponent.Tick 写 currentWeapon.FireIntent /
+        // FireOrigin / FireDirection / FireTarget，FireComponent 在 WeaponManager.Tick 里消费这些字段。
+        ctx.Register(new TowerManager());
         ctx.Register(new WeaponManager());
         ctx.Register(new BulletManager());
 

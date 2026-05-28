@@ -25,6 +25,7 @@ TPS/
 │                              （HealthComponent / HitstopOnDamageComponent / GravityComponent /
 │                               AutoDespawnComponent / FireEffect / SegmentRaycastMoveBase）
 ├── CharacterSystem/           Character Actor + 它的 Manager / Factory / View / 特化组件
+├── TowerSystem/               Tower Actor + 它的 Manager / Factory / View + TowerWeaponComponent
 ├── WeaponSystem/              Weapon Actor + 它的 Manager / View / 特化组件
 └── BulletSystem/              Bullet Actor + 它的 Manager / View / 特化组件
 ```
@@ -49,7 +50,7 @@ TPS/
 
 | 类 | 字段 |
 |---|---|
-| Actor | 空间（`Position` / `Rotation` / `WishVelocity` / `Velocity` / `IsGrounded`）、生命周期（`LifetimeRemaining` / `OwnerActorId`）、HP 系（`MaxHealth` / `CurHealth` / `IsDead` / `Die` / `DeathVariant`） |
+| Actor | 空间（`Position` / `Rotation` / `WishVelocity` / `Velocity` / `IsGrounded`）、生命周期（`LifetimeRemaining` / `OwnerActorId`）、阵营（`TeamId`）、HP 系（`MaxHealth` / `CurHealth` / `IsDead` / `Die` / `DeathVariant`） |
 | Character | 角色动画 / 武器持有 / 瞄准（`AnimMoveX/Y` / `AnimSpeedRatio` / 各 bool trigger / `AimTargetWorldPos` / `MuzzleHeight` / `CurrentWeaponSlot`） |
 | Weapon | 开火 / 装弹 / 挂载（`FireOrigin` / `FireDirection` / `FireTarget` / `Mag*` / `CurrentAmmo` / `ReloadRequest` / `IsReloading` / `ShootEvent` / `Hand*` / `Back*`） |
 | Bullet | `Damage` |
@@ -128,15 +129,35 @@ Tick 顺序由 Add 顺序决定，Factory 是唯一约定 Add 顺序的地方。
 实际注册顺序见 `GameBootstrapper.BuildContext`。**有数据依赖、不能乱序的只有**：
 
 ```
-TimeScaleService → CharacterManager → WeaponManager → BulletManager
+TimeScaleService → CharacterManager → TowerManager → WeaponManager → BulletManager
 ```
 
 依赖前提：
 - TimeScaleService 必须在 Actor Manager 之前——它的 Tick 用 unscaledDt 写 `actor.TimeScale` / `Time.timeScale`，同帧后续 Manager Tick 才能读到当帧的缩放值
-- WeaponManager 在 CharacterManager 之后——武器开火参数依赖 Character 当帧写完的 `FireOrigin / FireDirection`
+- WeaponManager 在 CharacterManager / TowerManager 之后——武器开火参数依赖持枪人组件当帧写完的 `FireOrigin / FireDirection / FireIntent`（玩家走 WeaponComponent，塔走 TowerWeaponComponent）
 - BulletManager 在 WeaponManager 之后——子弹 spawn 依赖 Weapon 当帧写完的字段
 
 其他 service（InputService、CameraManager、FlyTextMgr、网络层等）Tick 顺序无关紧要——它们之间无数据依赖。CameraManager 等 framework service 实际在 GameBootstrapper 早期就注册了，远在 Actor Manager 之前。
+
+---
+
+## 阵营
+
+`Actor.TeamId int` 字段标识阵营归属：
+
+| TeamId | 含义 |
+|---|---|
+| 0 | 中立。子弹 / 环境 / 未配置的 Actor 默认值 |
+| 1 | 玩家军（Character 玩家、玩家方塔） |
+| 2 | 敌军（Dummy、敌方塔、未来的 AI 敌人） |
+| 3+ | 扩展（NPC 派系 / 多人 PvP 队伍）|
+
+**约定**：
+- **友军伤害默认禁用**：`HealthComponent.ApplyDamage` 检查 `info.AttackerTeamId == Owner.TeamId && Owner.TeamId != 0` 时跳过扣血。两边任一为 0（中立）正常扣血——中立既能伤别人也能被伤。
+- **Weapon.TeamId 跟随持有者**：`WeaponManager.Mount/MountOnBack` 时写 `weapon.TeamId = owner.TeamId`。换持有者自动更新。
+- **Bullet.TeamId 跟随发射者**：`BulletManager.SpawnBullet` 时由 `FireEffect.Fire` 传入。子弹命中扣血时把 `Owner.TeamId` 打进 `DamageInfo.AttackerTeamId`。
+- **DamageRouter.RaycastSkipActor 不过滤友军**：友军挡子弹（视觉上"打中了"），但 HealthComponent 拦扣血。未来要"友军不挡子弹"再加 teamMask 参数。
+- **塔 AI 锁敌**：扫 `ActorWorld.GetAll` + 按 `target.TeamId != self.TeamId && target.TeamId != 0` 筛。
 
 ---
 

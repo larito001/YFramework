@@ -30,10 +30,20 @@ public class Weapon : Actor
     public bool IsEquipped;
     public string MountSocketName;
 
+    // ── 开火几何（武器自配，持枪人读着算 FireOrigin） ──
+    /// <summary>枪口相对持有者 (Position + Rotation) 的本地坐标偏移（米）。x=横向、y=高度、z=朝前推。
+    /// 持枪人组件（玩家 WeaponComponent / 塔 TowerWeaponComponent）算 FireOrigin 都是：
+    /// <c>FireOrigin = holder.Position + holder.Rotation * MuzzleLocalOffset</c>
+    ///
+    /// 让"枪口位置" 配置归武器侧（不同武器枪口长度不一样、装在不同持有者上偏移也不一样）。
+    /// Factory 按 武器 × 持有者 组合各自配——同一把 RifleA prefab 给玩家用 (0,1.2,0.6)，给塔用 (0,1.5,0.4)。
+    /// 默认值匹配 Character 持枪：身高 1.2m + 朝前 0.6m 避开自己 capsule。</summary>
+    public Vector3 MuzzleLocalOffset = new Vector3(0f, 1.2f, 0.6f);
+
     // ── 开火意图（持枪人每帧写，FireComponent 子组件读）──
     /// <summary>持枪人当前是否想开火（已经过瞄准/切枪/近战/换弹门控）。FireComponent 自己再叠射速冷却/弹夹等。</summary>
     public bool FireIntent;
-    /// <summary>射线/弹道起点（世界坐标）。持枪人按角色胸高 + 朝前推算。</summary>
+    /// <summary>射线/弹道起点（世界坐标）。持枪人按 MuzzleLocalOffset 算后写入。</summary>
     public Vector3 FireOrigin;
     /// <summary>射击方向（单位向量，世界坐标）。持枪人按准星算。</summary>
     public Vector3 FireDirection;

@@ -65,6 +65,7 @@ public class WeaponManager : IGameService, ITickable
         if (weapon == null || owner == null) return;
         weapon.IsEquipped = true;
         weapon.OwnerActorId = owner.ID;
+        weapon.TeamId = owner.TeamId;  // 阵营随持有者：换持有者自动更新；FireComponent 透传给 Bullet/DamageInfo
         weapon.MountSocketName = socketName;
         weapon.LocalPosition = weapon.HandLocalPosition;
         weapon.LocalEuler = weapon.HandLocalEuler;
@@ -76,6 +77,7 @@ public class WeaponManager : IGameService, ITickable
         if (weapon == null || owner == null) return;
         weapon.IsEquipped = true;
         weapon.OwnerActorId = owner.ID;
+        weapon.TeamId = owner.TeamId;
         weapon.MountSocketName = socketName;
         weapon.LocalPosition = weapon.BackLocalPosition;
         weapon.LocalEuler = weapon.BackLocalEuler;

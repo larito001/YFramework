@@ -51,12 +51,14 @@ public class HealthComponent : IActorComponent
         base.Detach();
     }
 
-    /// <summary>受到伤害。已死 / 非正数伤害直接忽略。amount 大于剩余 HP 时夹到 0。
-    /// 数学 + 事件广播；所有副作用（飘字 / 卡肉 / 清理）由订阅方处理。</summary>
+    /// <summary>受到伤害。已死 / 非正数伤害 / 友军伤害（双方非中立 + 同阵营）直接忽略。
+    /// amount 大于剩余 HP 时夹到 0。数学 + 事件广播；所有副作用（飘字 / 卡肉 / 清理）由订阅方处理。</summary>
     public void ApplyDamage(in DamageInfo info)
     {
         if (Owner == null || Owner.IsDead) return;
         if (info.Amount <= 0f) return;
+        // 友军伤害过滤：双方都非中立 + 同阵营 → 跳过。中立（TeamId=0）任何一方都正常扣血。
+        if (info.AttackerTeamId != 0 && Owner.TeamId != 0 && info.AttackerTeamId == Owner.TeamId) return;
 
         Owner.CurHealth = Mathf.Max(0f, Owner.CurHealth - info.Amount);
 #if UNITY_EDITOR

@@ -61,7 +61,8 @@ public abstract class SegmentRaycastMoveBase : IBulletComponent
     /// 子类拿到 CastSegment=true 后调本方法即可，不重复实现命中链。</summary>
     protected void HandleHitAndDespawn(in RaycastHit hit)
     {
-        var info = new DamageInfo(Owner.Damage, Owner.OwnerActorId, HitstopTier);
+        // Owner.TeamId 在 BulletManager.SpawnBullet 时由 FireEffect 传入（继承自发射武器持有者）
+        var info = new DamageInfo(Owner.Damage, Owner.OwnerActorId, Owner.TeamId, HitstopTier);
         DamageRouter.TryHitAndDamage(hit.collider, world, in info);
         Owner.Position = hit.point;
         bulletMgr?.Despawn(Owner);

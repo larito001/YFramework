@@ -149,12 +149,14 @@ public class WeaponComponent : ICharacterComponent
         }
 
         // 当前武器的开火意图 + 弹道源：FireComponent 自己消费（射速/弹夹/扩散在子组件里再叠）
-        // origin 沿角色朝前推 0.6m + 枪口高度（避开自己的 CharacterController capsule）
+        // origin 由武器侧配（currentWeapon.MuzzleLocalOffset），WeaponComponent 只机械应用：
+        //   FireOrigin = holder.Position + holder.Rotation * MuzzleLocalOffset
+        // 不同武器枪口长度不一样、避自身 capsule 距离也不一样——配置归武器，玩家持枪人不操心。
         // direction = AimTargetWorldPos - origin：AimComponent 已经把鼠标投影到同一枪口高度平面，dir 天然水平
         if (currentWeapon != null)
         {
             currentWeapon.FireIntent = Owner.IsShooting;
-            var origin = Owner.Position + Owner.Rotation * Vector3.forward * 0.6f + Vector3.up * Owner.MuzzleHeight;
+            var origin = Owner.Position + Owner.Rotation * currentWeapon.MuzzleLocalOffset;
             var characterForward = Owner.Rotation * Vector3.forward;
 
             // 鼠标停在自己身上 / 离 muzzle 太近 / 落在角色背后时，aim-origin 会指向自己（甚至反向），

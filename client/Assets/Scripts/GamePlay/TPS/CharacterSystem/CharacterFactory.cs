@@ -25,7 +25,7 @@ public class CharacterFactory
 
     public Character CreateCharacter(Vector3 position = default)
     {
-        var character = new Character();
+        var character = new Character { TeamId = 1 };  // 玩家军（详见 ARCHITECTURE "阵营"）
         character.Add(new AimComponent());
         character.Add(new MoveComponent());
         character.Add(new WeaponComponent
@@ -85,7 +85,7 @@ public class CharacterFactory
     /// 写 WishVelocity / Rotation / IsShooting）+ MoveComponent + WeaponComponent，不需要造新 Actor 类。</summary>
     public Character CreateDummy(Vector3 position, float maxHealth = 1000f)
     {
-        var character = new Character();
+        var character = new Character { TeamId = 2 };  // 敌军（详见 ARCHITECTURE "阵营"）
         // 给 Dummy 也装重力，spawn 后会被 Gravity + CC 一起拉到地面，避免悬空或半身埋在地形里
         character.Add(new GravityComponent());
         character.Add(new HealthComponent

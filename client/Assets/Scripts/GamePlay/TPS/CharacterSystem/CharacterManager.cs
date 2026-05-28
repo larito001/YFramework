@@ -70,6 +70,12 @@ public class CharacterManager : IGameService, ITickable
         SpawnDummy(new Vector3(0f, 0f, 5f));
         SpawnDummy(new Vector3(2f, 0f, 6f));
         SpawnDummy(new Vector3(-2f, 0f, 6f));
+
+        // 测试用：玩家侧后方 spawn 一座塔（TeamId=1 玩家军），验证 TowerWeaponComponent 锁定 Dummy（TeamId=2）开火
+        if (ctx != null && ctx.TryGet<TowerManager>(out var towerMgr))
+        {
+            towerMgr.SpawnTower(new Vector3(-3f, 0f, -2f), teamId: 1);
+        }
     }
 
     /// <summary>生成一个站桩 Dummy 敌人在指定位置。返回 Character 实例供外部进一步配置（订阅 OnDied 等）。</summary>
