@@ -48,7 +48,8 @@ public class BulletMoveComponent : IBulletComponent
         if (Physics.Raycast(Owner.Position, dir, out var hit, dist, HitLayers))
         {
             Debug.Log($"[Bullet] hit {hit.collider.name} @ {hit.distance:F2}m, dmg={Owner.Damage}");
-            DamageRouter.TryHitAndDamage(hit.collider, world, Owner.OwnerCharacterId, Owner.Damage);
+            // 卡肉 tier 透传：默认用子弹自带的 HitstopTier；要按目标类型动态决定的话在这里 inspect hit.collider 改 tier
+            DamageRouter.TryHitAndDamage(hit.collider, world, Owner.OwnerCharacterId, Owner.Damage, Owner.HitstopTier);
             Owner.Position = hit.point;
             bulletMgr?.Despawn(Owner);
             return;

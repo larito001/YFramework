@@ -73,6 +73,9 @@ public static partial class GameBootstrapper
         Debug.Log(ctx.Get<ConfigManager>().heroConfig.Get(1001).HeroName);
         ctx.Register(new ActorWorld());
         ctx.Register(new ViewManager());
+        // TimeScaleService 必须在 CharacterManager 之前注册：它用 GameLoop 未缩放 dt 推进卡肉 timer，
+        // 同帧写完 character.TimeScale 后，CharacterManager.Tick 读到的就是当帧的缩放值。
+        ctx.Register(new TimeScaleService());
         // ── TPS Manager Tick 顺序（不要随意调整）──
         //   CharacterManager → WeaponManager → BulletManager
         //

@@ -18,6 +18,12 @@ public class Actor
     private static int idCounter = 1;
     public int ID { get; } = idCounter++;
 
+    /// <summary>本 actor 的局部时间缩放因子。1=正常，0=完全冻结。
+    /// 由 <see cref="TimeScaleService"/> 写入（卡肉 / 局部慢动作），<see cref="Tick"/> 内部用它缩放 dt 再派发给组件。
+    /// View 端如果用 Unity Time.deltaTime 跑物理 / 动画，也应读这个字段把 dt 乘上去（参考 CharacterView）。
+    /// 全局慢动作走 Unity Time.timeScale，跟这个字段相乘叠加。</summary>
+    public float TimeScale = 1f;
+
     private readonly List<IActorComponent> _components = new List<IActorComponent>();
     /// <summary>Tick 中 Remove 的延迟队列，Tick 末批量摘 + Detach。</summary>
     private readonly List<IActorComponent> _toRemove = new List<IActorComponent>();
@@ -103,6 +109,15 @@ public class Actor
 
     public virtual void Tick(float dt)
     {
+        // 局部时间缩放：TimeScale=1 时走原 dt（零开销快路径），否则按 actor 自己的节奏跑。
+        // 在这里统一缩放，让所有 Actor 子类（Character/Weapon/Bullet/...）自动支持卡肉 / 局部慢动作，
+        // Manager 调用方仍传"游戏帧 dt"即可，不用知道 TimeScale 的存在。
+        if (TimeScale != 1f) dt *= TimeScale;
+
+        // 完全冻结时直接短路：AimComponent 这类读鼠标算 Rotation 的 dt-独立逻辑不该在卡肉期间继续跑，
+        // 否则全局/局部冻住时角色仍能转身瞄准，视觉上"只有动画停了"很穿帮。
+        if (dt <= 0f) return;
+
         _isTicking = true;
         try
         {

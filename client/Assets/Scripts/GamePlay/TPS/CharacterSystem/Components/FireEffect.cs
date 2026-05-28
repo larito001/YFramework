@@ -7,6 +7,10 @@ using UnityEngine;
 /// </summary>
 public abstract class FireEffect
 {
+    /// <summary>这把武器命中时给目标的卡肉分级。子弹型 effect 在 spawn 时把这个值拷到 bullet.HitstopTier；
+    /// hitscan 型直接传给 DamageRouter。默认 Long。Factory 给重武器/狙击 → Long；高频射速 → Short；环境/DOT → None。</summary>
+    public HitstopTier HitstopTier = HitstopTier.Long;
+
     /// <summary>FireComponent 在通过 cooldown + ammo 门控后调用。
     /// damage 由 FireComponent 传入（武器侧统一配，effect 透传给 bullet 或 DamageRouter）。</summary>
     public abstract void Fire(Weapon weapon, BulletManager bullets, ActorWorld world, float damage);
@@ -25,7 +29,8 @@ public class LinearProjectileEffect : FireEffect
     {
         if (bullets == null) return;
         var velocity = weapon.FireDirection * BulletSpeed;
-        bullets.Spawn(weapon.FireOrigin, velocity, BulletLifetime, damage, weapon.OwnerCharacterId);
+        var b = bullets.Spawn(weapon.FireOrigin, velocity, BulletLifetime, damage, weapon.OwnerCharacterId);
+        if (b != null) b.HitstopTier = HitstopTier;
     }
 }
 
@@ -51,6 +56,7 @@ public class BezierMissileEffect : FireEffect
         var p2 = p3 + Vector3.up * ArcHeight;
 
         var b = bullets.SpawnBullet(p0, FlightDuration + LifetimeSlack, damage, weapon.OwnerCharacterId);
+        if (b != null) b.HitstopTier = HitstopTier;
         b.Add(new MissileMoveComponent
         {
             Start = p0,
@@ -79,7 +85,8 @@ public class HitscanEffect : FireEffect
         {
             Debug.DrawLine(weapon.FireOrigin, hit.point, Color.red, DebugDrawSeconds);
             Debug.Log($"[Hitscan] {weapon.Name} hit {hit.collider.name} @ {hit.distance:F2}m, dmg={damage}");
-            DamageRouter.TryHitAndDamage(hit.collider, world, weapon.OwnerCharacterId, damage);
+            // hitscan 不经过 bullet，直接把 effect 自己的 HitstopTier 传给 DamageRouter
+            DamageRouter.TryHitAndDamage(hit.collider, world, weapon.OwnerCharacterId, damage, HitstopTier);
         }
         else
         {

@@ -39,6 +39,8 @@ public class CharacterManager : IGameService, ITickable
 
     public void Tick(float dt)
     {
+        // 局部时间缩放在 Actor.Tick 内部统一处理（每个 actor 用自己的 TimeScale），这里只传游戏帧 dt。
+        // TimeScaleService 在本 Manager 之前 Tick 写好 actor.TimeScale。
         for (int i = 0; i < characters.Count; i++)
             characters[i].Tick(dt);
 

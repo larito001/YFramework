@@ -83,7 +83,8 @@ public class MissileMoveComponent : IBulletComponent
         if (Physics.Raycast(from, dir, out var hit, dist, HitLayers))
         {
             Debug.Log($"[Missile] hit {hit.collider.name} @ {hit.distance:F2}m, dmg={Owner.Damage}");
-            DamageRouter.TryHitAndDamage(hit.collider, world, Owner.OwnerCharacterId, Owner.Damage);
+            // 卡肉 tier 透传：默认用导弹自带的 HitstopTier（Factory/Effect 配的）
+            DamageRouter.TryHitAndDamage(hit.collider, world, Owner.OwnerCharacterId, Owner.Damage, Owner.HitstopTier);
             Owner.Position = hit.point;
             bulletMgr?.Despawn(Owner);
             return true;

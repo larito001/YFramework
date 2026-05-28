@@ -28,6 +28,8 @@ public class HealthComponent : ICharacterComponent
     /// <summary>飘字相对脚下 Position.y 的偏移（米）。1.8 ≈ 头顶上方一点点，俯视角下不会被身体挡。</summary>
     public float FlyTextHeight = 1.8f;
 
+    private TimeScaleService timeScaleService;
+
     /// <summary>受伤事件 (amount, attackerId)。HUD / 飞字 / 受击反馈在这订阅。</summary>
     public event Action<float, int> OnDamaged;
     /// <summary>死亡事件 (attackerId)。关卡逻辑 / 击杀计分 / 尸体清理在这订阅。</summary>
@@ -41,6 +43,7 @@ public class HealthComponent : ICharacterComponent
         owner.IsDead = false;
         Ctx?.TryGet(out characterMgr);
         Ctx?.TryGet(out flyTextMgr);
+        Ctx?.TryGet(out timeScaleService);
     }
 
     public override void Detach()
@@ -50,6 +53,7 @@ public class HealthComponent : ICharacterComponent
         OnDied = null;
         characterMgr = null;
         flyTextMgr = null;
+        timeScaleService = null;
         removeTimer = 0f;
         // 不清 HP/IsDead：那是 Character 持久状态，不是组件"写过的意图字段"
         base.Detach();
@@ -68,8 +72,9 @@ public class HealthComponent : ICharacterComponent
         }
     }
 
-    /// <summary>受到伤害。已死 / 非正数伤害直接忽略。amount 大于剩余 HP 时夹到 0。</summary>
-    public void ApplyDamage(float amount, int attackerId)
+    /// <summary>受到伤害。已死 / 非正数伤害直接忽略。amount 大于剩余 HP 时夹到 0。
+    /// hitstopTier：本次受击的卡肉分级，由攻击端在命中瞬间根据子弹/目标类型决定。默认 Long。</summary>
+    public void ApplyDamage(float amount, int attackerId, HitstopTier hitstopTier = HitstopTier.Long)
     {
         if (Owner == null || Owner.IsDead) return;
         if (amount <= 0f) return;
@@ -78,6 +83,8 @@ public class HealthComponent : ICharacterComponent
         Debug.Log($"[Health] actor={Owner.ID} -{amount} from {attackerId}, hp={Owner.CurHealth:F0}/{Owner.MaxHealth:F0}");
         // 飘字：受击位置（头顶上方）弹个伤害数字。Quick 类型在 FlyTextCtrl 里是红色 + 弹性曲线，正好当"-X HP"动效。
         flyTextMgr?.AddText($"-{Mathf.RoundToInt(amount)}", Owner.Position + Vector3.up * FlyTextHeight, FlyTextType.Quick);
+        // 卡肉：tier=None 时跳过；Short/Long 在 service 查表后转 Hitstop。具体 (duration, scale) 在 TimeScaleService 上配。
+        timeScaleService?.HitstopByTier(Owner.ID, hitstopTier);
         OnDamaged?.Invoke(amount, attackerId);
 
         if (Owner.CurHealth <= 0f && !Owner.IsDead)

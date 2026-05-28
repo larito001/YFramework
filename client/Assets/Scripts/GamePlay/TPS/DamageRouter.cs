@@ -28,8 +28,10 @@ public static class DamageRouter
     }
 
     /// <summary>给指定 actor 扣血。targetId 一般是 <see cref="ResolveActorId"/> 的返回值。
-    /// 目标不是 Character / 没有 HealthComponent 都静默返回 false。</summary>
-    public static bool ApplyToActor(ActorWorld world, int targetId, int attackerId, float damage)
+    /// 目标不是 Character / 没有 HealthComponent 都静默返回 false。
+    /// hitstopTier：受击卡肉分级，由攻击端在命中瞬间根据子弹/目标类型决定；默认 Long。</summary>
+    public static bool ApplyToActor(ActorWorld world, int targetId, int attackerId, float damage,
+        HitstopTier hitstopTier = HitstopTier.Long)
     {
         if (world == null || targetId < 0) return false;
         if (!world.TryGet(targetId, out var actor)) return false;
@@ -37,18 +39,20 @@ public static class DamageRouter
         {
             var hp = target.Get<HealthComponent>();
             if (hp == null) return false;
-            hp.ApplyDamage(damage, attackerId);
+            hp.ApplyDamage(damage, attackerId, hitstopTier);
             return true;
         }
         return false;
     }
 
-    /// <summary>合并版：collider → 扣血一步到位（无需去重场景）。返回命中 actor 的 ID，未命中返回 -1。</summary>
-    public static int TryHitAndDamage(Collider col, ActorWorld world, int attackerId, float damage)
+    /// <summary>合并版：collider → 扣血一步到位（无需去重场景）。返回命中 actor 的 ID，未命中返回 -1。
+    /// hitstopTier：受击卡肉分级，默认 Long。可以在调用前根据子弹类型 + 目标 collider 自定义。</summary>
+    public static int TryHitAndDamage(Collider col, ActorWorld world, int attackerId, float damage,
+        HitstopTier hitstopTier = HitstopTier.Long)
     {
         int id = ResolveActorId(col, attackerId);
         if (id < 0) return -1;
-        ApplyToActor(world, id, attackerId, damage);
+        ApplyToActor(world, id, attackerId, damage, hitstopTier);
         return id;
     }
 }

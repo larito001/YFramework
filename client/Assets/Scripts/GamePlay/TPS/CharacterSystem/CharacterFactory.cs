@@ -135,7 +135,8 @@ public class CharacterFactory
         {
             FireInterval = 0.1f, Damage = 25f,
             RecoilShakeIntensity = 0.08f, RecoilShakeDuration = 0.06f,  // 全自动小抖
-            Effect = new LinearProjectileEffect { BulletSpeed = 80f, BulletLifetime = 2f },
+            // 全自动 → Short 卡肉，避免每发都把目标钉死、节奏被毁
+            Effect = new LinearProjectileEffect { BulletSpeed = 80f, BulletLifetime = 2f, HitstopTier = HitstopTier.Short },
         });
         return w;
     }

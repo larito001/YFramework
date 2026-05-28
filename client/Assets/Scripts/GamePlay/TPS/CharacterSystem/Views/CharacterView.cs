@@ -149,10 +149,15 @@ public class CharacterView : BaseView
     {
         if (character == null) return;
 
+        // 局部时间缩放：CC.Move 的 dt 和 Animator.speed 都按 character.TimeScale 缩，
+        // 卡肉时整个角色（物理 + 动画）一起冻结。全局慢动作走 Unity Time.timeScale 自动包含在 Time.deltaTime 里。
+        float scale = character.TimeScale;
+        float scaledDt = scale == 1f ? Time.deltaTime : Time.deltaTime * scale;
+
         // Controller 死亡时被禁用以"删除碰撞"。disabled 状态下 Move/isGrounded 调用是 no-op 但有 Unity 警告，统一跳过。
         if (Controller != null && Controller.enabled)
         {
-            Controller.Move(character.WishVelocity * Time.deltaTime);
+            Controller.Move(character.WishVelocity * scaledDt);
             character.IsGrounded = Controller.isGrounded;
         }
         transform.rotation = character.Rotation;
@@ -161,18 +166,20 @@ public class CharacterView : BaseView
         if (Anim != null)
         {
             // 动画播放倍率：在 Locomotion tag 的状态用 Character.AnimPlaybackRate（MoveComponent 按 walk/sprint/aim 写入），
-            // 其他状态（Melee/Equipping/Idle 等）保持 1x 避免误缩
+            // 其他状态（Melee/Equipping/Idle 等）保持 1x 避免误缩。最后再乘 TimeScale 实现卡肉冻结动画。
             var stateInfo = Anim.GetCurrentAnimatorStateInfo(0);
+            float animBase;
             if (stateInfo.IsTag("Locomotion"))
             {
                 var horiz = new Vector2(character.WishVelocity.x, character.WishVelocity.z).magnitude;
                 // 几乎静止时回 1，避免 Idle 姿势被 walk/sprint 倍率扭曲
-                Anim.speed = horiz > 0.05f ? character.AnimPlaybackRate : 1f;
+                animBase = horiz > 0.05f ? character.AnimPlaybackRate : 1f;
             }
             else
             {
-                Anim.speed = 1f;
+                animBase = 1f;
             }
+            Anim.speed = animBase * scale;
 
             // MoveX/MoveY 用 damp 版本平滑：连续切 WASD 方向时 BlendTree 姿势不瞬移
             // Speed 已被 MoveComponent 的 Acceleration 平滑，view 端不再二次 damp
@@ -223,14 +230,14 @@ public class CharacterView : BaseView
         }
 
         // Flash 闪烁 + Death 溶解，合到同一份 MPB 一起写出（两个特效用同一个材质 shader）。
-        // 任一在跑就需要 SetPropertyBlock；都不跑时跳过，避免 idle 也每帧写一次 MPB。
+        // 用 scaledDt（已含 TimeScale），让卡肉期间这两个特效也一起冻住，整体感才连贯。
         bool flashActive = flashTimer > 0f;
         bool needWrite = flashActive || dissolving;
 
         float flashK = 0f;
         if (flashActive)
         {
-            flashTimer -= Time.deltaTime;
+            flashTimer -= scaledDt;
             flashK = HitFlashDuration > 0f ? Mathf.Clamp01(flashTimer / HitFlashDuration) : 0f;
             if (flashTimer <= 0f) { flashTimer = 0f; flashK = 0f; }
         }
@@ -238,7 +245,7 @@ public class CharacterView : BaseView
         float dissolveK = 0f;
         if (dissolving)
         {
-            dissolveTimer += Time.deltaTime;
+            dissolveTimer += scaledDt;
             dissolveK = DissolveDuration > 0f ? Mathf.Clamp01(dissolveTimer / DissolveDuration) : 1f;
         }
 
