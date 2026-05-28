@@ -41,15 +41,15 @@ public class Weapon : Actor
     /// 直线武器用 Origin+Direction 即可；曲线/制导武器（导弹）需要精确目标点，用此字段。</summary>
     public Vector3 FireTarget;
 
-    // ── 弹药 / 换弹（WeaponComponent 管，FireComponent 读/扣）──
+    // ── 弹药 / 换弹（ReloadComponent 管，FireComponent 读/扣）──
     /// <summary>弹匣容量。Factory 配。0 = 无限弹药（FireComponent 不扣不查）。</summary>
     public int MagCapacity = 30;
     /// <summary>当前弹匣余弹。Factory 初始化时一般等于 MagCapacity。</summary>
     public int CurrentAmmo = 30;
-    /// <summary>换弹总时长（秒），匹配 Animator Reload 动画长度。WeaponComponent 倒计时。</summary>
-    public float ReloadDuration = 1.5f;
-    /// <summary>换弹进行中。WeaponComponent 唯一 writer；FireComponent 当作"禁火"读。</summary>
+    /// <summary>换弹进行中。ReloadComponent 唯一 writer（外部可置 false 强制打断）；FireComponent 当作"禁火"读。</summary>
     public bool IsReloading;
+    /// <summary>WeaponComponent 转发 R 键事件用的一次性 trigger。ReloadComponent 消费后清回 false。</summary>
+    public bool ReloadRequest;
 
     // ── 后坐力动画 ──
     /// <summary>是否用大后坐力动画（Rifle_ShootGrenade）。false=小后坐力(Rifle_ShootOnce)。</summary>

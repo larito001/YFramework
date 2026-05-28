@@ -4,17 +4,17 @@ using UnityEngine;
 /// <summary>
 /// 持枪人组件（Character 侧，纯逻辑）：
 ///   - 持有武器槽位 Weapon Actor 列表，Attach 时交给 WeaponManager 接管（注册 + 创建 view）
-///   - 切枪：监听 InputService.OnWeaponSelect（1~9 数字键）→ Equip(slot) → weaponMgr.Mount/Unmount + 计时锁开火
+///   - 切枪：监听 InputService.OnWeaponSelect（1~9 数字键）→ Equip(slot) → 走 Holster→Equip 两阶段过场
 ///   - 射击：每帧把 input.FireHeld 写到 Owner.IsShooting（开火行为由 Weapon 的 FireComponent 自己消费）
-///   - 换弹：监听 InputService.OnReloadDown → 校验后启动 reloadTimer，到点把 CurrentAmmo 回填到 MagCapacity
-///     并清 IsReloading；换枪打断换弹（reloadTimer 是绑定 currentWeapon 跑的）
+///   - 换弹：监听 InputService.OnReloadDown → 转发给 currentWeapon.ReloadRequest，<see cref="ReloadComponent"/> 自己处理。
+///     本组件镜像 currentWeapon.IsReloading → Owner.IsReloading（动画门控），上升沿触发 Owner.Reload trigger。
 ///
 /// 近战完全由 <see cref="MeleeComponent"/> 接管：V 键订阅、MeleeAttack/MeleeType/IsMeleeing 写入、
 /// swing 时长、前冲、命中、伤害结算、清回 IsMeleeing。本组件只在 Tick 里**读** IsMeleeing 做开火门控，
 /// 不写入也不清除近战字段。
 ///
-/// 字段写入：FireOrigin / FireDirection / FireTarget / FireIntent / IsReloading / CurrentAmmo → currentWeapon。
-/// IsShooting / IsSwapping / WeaponSwap / CurrentWeaponSlot / IsReloading / Reload / Shoot / HeavyRecoil / RecoilAnimSpeed → Owner。
+/// 字段写入：FireOrigin / FireDirection / FireTarget / FireIntent → currentWeapon。
+/// IsShooting / IsSwapping / WeaponSwap / WeaponHolster / CurrentWeaponSlot / IsReloading / Reload / Shoot / HeavyRecoil / RecoilAnimSpeed → Owner。
 /// </summary>
 public class WeaponComponent : ICharacterComponent
 {
@@ -39,7 +39,7 @@ public class WeaponComponent : ICharacterComponent
     private WeaponManager weaponMgr;
     private Weapon currentWeapon;
     private float swapLockTimer;
-    private float reloadTimer; // >0 表示 currentWeapon 正在换弹倒计时
+    private bool prevReloading;     // 上升沿检测：currentWeapon.IsReloading 从 false→true 时触发 Owner.Reload 一次性 trigger
     private float mountToHandTimer; // >0 时 currentWeapon 还挂在背上，到点 Mount 到手部
     private Weapon pendingHandMount; // mountToHandTimer 到点时要挂手的武器（= currentWeapon，但显式存避免误读）
     private float holsterTimer;     // >0 时 Holster 阶段进行中，旧武器还在手里、播放 HolsterRifle
@@ -94,45 +94,33 @@ public class WeaponComponent : ICharacterComponent
         input = null;
         weaponMgr = null;
         swapLockTimer = 0f;
-        reloadTimer = 0f;
         mountToHandTimer = 0f;
         holsterTimer = 0f;
         pendingSwapSlot = -1;
+        prevReloading = false;
         base.Detach();
     }
 
     public override void Tick(float dt)
     {
         if (input == null || Owner == null) return;
-        // 死亡时立刻清掉换弹/射击连续态，让 Recoil/Reload 上半身层有条件退回 Idle，
-        // 避免倒地动画播的同时上半身还在做换弹/后坐力动作
+        // 死亡时打断换弹 / 清射击，让 Reload/Recoil 上半身层退回 Idle，避免倒地动画播的同时上半身还在做换弹/后坐力动作。
+        // 写 currentWeapon.IsReloading=false 后 ReloadComponent 下一帧看到就跳过 timer（外部打断协议）。
         if (Owner.IsDead)
         {
-            if (Owner.IsReloading)
-            {
-                reloadTimer = 0f;
-                if (currentWeapon != null) currentWeapon.IsReloading = false;
-                Owner.IsReloading = false;
-            }
+            if (currentWeapon != null && currentWeapon.IsReloading) currentWeapon.IsReloading = false;
+            Owner.IsReloading = false;
             Owner.IsShooting = false;
+            prevReloading = false;
             return;
         }
 
-        // 换弹倒计时：只对 currentWeapon 跑。到点回填弹匣 + 清状态。
-        if (reloadTimer > 0f)
-        {
-            reloadTimer -= dt;
-            if (reloadTimer <= 0f)
-            {
-                reloadTimer = 0f;
-                if (currentWeapon != null)
-                {
-                    currentWeapon.CurrentAmmo = currentWeapon.MagCapacity;
-                    currentWeapon.IsReloading = false;
-                }
-                Owner.IsReloading = false;
-            }
-        }
+        // 镜像 currentWeapon.IsReloading → Owner.IsReloading（view 动画门控）。
+        // 上升沿（false→true）→ 一次性 Owner.Reload trigger，view 消费 SetTrigger("Reload")。
+        bool currReloading = currentWeapon != null && currentWeapon.IsReloading;
+        Owner.IsReloading = currReloading;
+        if (currReloading && !prevReloading) Owner.Reload = true;
+        prevReloading = currReloading;
 
         // 开火条件：瞄准 + 没在切枪 + 没在近战 + 没在换弹 + 没死 + 有弹（MagCapacity=0 是无限弹药武器，跳过弹药门控）
         bool hasAmmo = currentWeapon == null || currentWeapon.MagCapacity <= 0 || currentWeapon.CurrentAmmo > 0;
@@ -241,7 +229,8 @@ public class WeaponComponent : ICharacterComponent
     }
 
     /// <summary>实际切枪动作：unmount 旧武器 + 挂新武器（到背或到手）+ 写后坐力参数 + 可选触发 Equip 动画。
-    /// 被 EquipInternal 的"无过场"分支直接调；被 Tick 里 Holster 倒计时到点调（开 Equip 阶段）。</summary>
+    /// 被 EquipInternal 的"无过场"分支直接调；被 Tick 里 Holster 倒计时到点调（开 Equip 阶段）。
+    /// 换枪打断旧武器的 reload：写旧 currentWeapon.IsReloading=false，ReloadComponent 下一 Tick 看到就跳过 timer。</summary>
     private void ApplySwap(int slot, bool playEquipAnim, bool mountToBack)
     {
         if (Owner == null) return;
@@ -250,12 +239,10 @@ public class WeaponComponent : ICharacterComponent
         bool slotChanged = Owner.CurrentWeaponSlot != slot;
         Owner.CurrentWeaponSlot = slot;
 
-        // 换枪打断换弹：reloadTimer 绑定 currentWeapon，换枪后必须清，否则到点会回填到新武器弹匣里
-        if (slotChanged && reloadTimer > 0f)
+        // 换枪打断旧武器的 reload（避免切回去时旧武器还在 reload，或者 timer 在后台继续到点回填）
+        if (slotChanged && currentWeapon != null && currentWeapon.IsReloading)
         {
-            reloadTimer = 0f;
-            if (currentWeapon != null) currentWeapon.IsReloading = false;
-            Owner.IsReloading = false;
+            currentWeapon.IsReloading = false;
         }
 
         if (weaponMgr != null)
@@ -268,6 +255,7 @@ public class WeaponComponent : ICharacterComponent
             }
         }
         currentWeapon = w;
+        prevReloading = currentWeapon != null && currentWeapon.IsReloading; // 重置上升沿基线，避免切到一个正在 reload 的武器误触发 Reload trigger
 
         // 把新武器的后坐力动画参数推给 Owner，view 每帧 SetBool/SetFloat 给 Animator
         if (currentWeapon != null)
@@ -290,19 +278,13 @@ public class WeaponComponent : ICharacterComponent
 
     private void HandleWeaponSelect(int slot) => Equip(slot);
 
-    /// <summary>R 键事件：校验后启动换弹倒计时，并发一次性 Reload trigger 给 view。</summary>
+    /// <summary>R 键事件：校验后转发请求给 currentWeapon，ReloadComponent 自己处理 timer + 弹匣回填。</summary>
     private void HandleReload()
     {
         if (Owner == null || Owner.IsDead) return;
         if (currentWeapon == null) return;
-        // 切枪/近战/换弹中不响应：这些状态下角色手是占用的
-        if (Owner.IsSwapping || Owner.IsMeleeing || Owner.IsReloading) return;
-        if (currentWeapon.MagCapacity <= 0) return;                          // 无限弹药武器不换弹
-        if (currentWeapon.CurrentAmmo >= currentWeapon.MagCapacity) return;  // 已满
-
-        reloadTimer = currentWeapon.ReloadDuration;
-        currentWeapon.IsReloading = true;
-        Owner.IsReloading = true;
-        Owner.Reload = true; // 一次性 trigger，view 下一帧消费 SetTrigger 后清回
+        // 切枪/近战中不响应：这些状态下角色手是占用的
+        if (Owner.IsSwapping || Owner.IsMeleeing) return;
+        currentWeapon.ReloadRequest = true;
     }
 }

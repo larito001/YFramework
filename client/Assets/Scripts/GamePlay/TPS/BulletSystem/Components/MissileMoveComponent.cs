@@ -24,6 +24,8 @@ public class MissileMoveComponent : IBulletComponent
     public float Duration = 1f;
     /// <summary>沿途命中过滤层。默认所有层。</summary>
     public LayerMask HitLayers = ~0;
+    /// <summary>命中目标时使用的卡肉分级。FireEffect 在 spawn 时按武器类型设。</summary>
+    public HitstopTier HitstopTier = HitstopTier.Long;
 
     private float elapsed;
     private BulletManager bulletMgr;
@@ -84,24 +86,13 @@ public class MissileMoveComponent : IBulletComponent
         if (dist < 1e-4f) return false;
         var dir = step / dist;
 
-        int hitCount = Physics.RaycastNonAlloc(from, dir, raycastBuf, dist, HitLayers);
-        if (hitCount == 0) return false;
+        if (!DamageRouter.RaycastSkipActor(from, dir, dist, HitLayers,
+                Owner.OwnerCharacterId, raycastBuf, out var hit))
+            return false;
 
-        int bestIdx = -1;
-        float bestDist = float.MaxValue;
-        for (int i = 0; i < hitCount; i++)
-        {
-            var h = raycastBuf[i];
-            var view = h.collider.GetComponentInParent<BaseView>();
-            if (view != null && view.ID == Owner.OwnerCharacterId) continue; // 跳过自身
-            if (h.distance < bestDist) { bestDist = h.distance; bestIdx = i; }
-        }
-        if (bestIdx < 0) return false;
-
-        var hit = raycastBuf[bestIdx];
         Debug.Log($"[Missile] hit {hit.collider.name} @ {hit.distance:F2}m, dmg={Owner.Damage}");
-        // 卡肉 tier 透传：默认用导弹自带的 HitstopTier（Factory/Effect 配的）
-        DamageRouter.TryHitAndDamage(hit.collider, world, Owner.OwnerCharacterId, Owner.Damage, Owner.HitstopTier);
+        var info = new DamageInfo(Owner.Damage, Owner.OwnerCharacterId, HitstopTier);
+        DamageRouter.TryHitAndDamage(hit.collider, world, in info);
         Owner.Position = hit.point;
         bulletMgr?.Despawn(Owner);
         return true;

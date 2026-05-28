@@ -112,11 +112,9 @@ public class Actor
         // 局部时间缩放：TimeScale=1 时走原 dt（零开销快路径），否则按 actor 自己的节奏跑。
         // 在这里统一缩放，让所有 Actor 子类（Character/Weapon/Bullet/...）自动支持卡肉 / 局部慢动作，
         // Manager 调用方仍传"游戏帧 dt"即可，不用知道 TimeScale 的存在。
+        // 注意：dt 缩到 0 时仍然派发给组件——组件自己决定是否在 dt=0 时做 dt-独立的事
+        // （比如 AimComponent 在 dt<=0 时早退，避免冻结期间还转身瞄准）。基类不替子类做决定。
         if (TimeScale != 1f) dt *= TimeScale;
-
-        // 完全冻结时直接短路：AimComponent 这类读鼠标算 Rotation 的 dt-独立逻辑不该在卡肉期间继续跑，
-        // 否则全局/局部冻住时角色仍能转身瞄准，视觉上"只有动画停了"很穿帮。
-        if (dt <= 0f) return;
 
         _isTicking = true;
         try

@@ -190,7 +190,8 @@ public class MeleeComponent : ICharacterComponent
             int id = DamageRouter.ResolveActorId(overlapBuf[i], Owner.ID);
             if (id < 0 || hitThisSwing.Contains(id)) continue;
             hitThisSwing.Add(id);
-            DamageRouter.ApplyToActor(world, id, Owner.ID, Damage, HitstopTier);
+            var info = new DamageInfo(Damage, Owner.ID, HitstopTier);
+            DamageRouter.ApplyToActor(world, id, in info);
         }
     }
 }

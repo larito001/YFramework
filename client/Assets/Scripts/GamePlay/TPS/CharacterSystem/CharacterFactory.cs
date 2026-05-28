@@ -3,16 +3,16 @@ using UnityEngine;
 
 /// <summary>
 /// 创建 Character：new Character + 装组件 + ViewManager 加载 prefab。
-/// 同时按"配方"造 Weapon Actor（数据 + FireComponent 组合），交给 WeaponComponent 持有。
+/// 同时按"配方"造 Weapon Actor（数据 + FireComponent + ReloadComponent），交给 WeaponComponent 持有。
 ///
-/// 组件 Add 顺序（= Tick 顺序）固定为 Aim → Move → Weapon → Melee → Gravity → Health，原因：
+/// 组件 Add 顺序（= Tick 顺序）固定为 Aim → Move → Weapon → Melee → Gravity → Health → Hitstop → AutoDespawn，原因：
 ///   - Aim 在 Move 之前：Move 用 Aim 写入的 Rotation 反算 local 动画方向
 ///   - Melee 在 Move 之后：Melee 在前冲窗内覆写 WishVelocity.x/z，Move 在后会抹掉
 ///   - Gravity 在 Move/Melee 之后：x/z 由前面写完，Gravity 最后一锤定 y
-///   - Health 顺序无所谓（不 Tick），放最后避免影响其他依赖
+///   - Health 顺序无所谓（不 Tick），但要在 Hitstop/AutoDespawn 之前 Add——它俩 Attach 时要 Get HealthComponent 订阅事件
+///   - Hitstop/AutoDespawn 只订阅 OnDamaged/OnDied，顺序无所谓
 ///
-/// Dummy 配方只装 HealthComponent + GravityComponent，靠 Gravity 让 CC 落地，否则 spawn 在 Y=0
-/// 不一定贴着地面（取决于场景地形 / 模型 pivot）。
+/// Dummy 配方只装 HealthComponent + GravityComponent + 反馈/清理组件，没有 Aim/Move/Weapon/Melee。
 /// </summary>
 public class CharacterFactory
 {
@@ -62,6 +62,11 @@ public class CharacterFactory
         {
             InitialMaxHealth = 100f,
         });
+        // 反馈 + 清理：订阅 HealthComponent 事件。把这些跨系统调用拆到独立组件而不是塞 HealthComponent 里，
+        // 让 HealthComponent 只做 HP 数学 + 事件广播，分层清晰。
+        character.Add(new HitstopOnDamageComponent());
+        character.Add(new AutoDespawnComponent { Delay = 3f });
+
         var view = manager.LoadBaseView<CharacterView>("Player/Player", character);
         if (view != null && position != Vector3.zero)
         {
@@ -87,6 +92,9 @@ public class CharacterFactory
         {
             InitialMaxHealth = maxHealth,
         });
+        // Dummy 也接卡肉 + 自动清理（被打了也卡，死了 3s 后清）
+        character.Add(new HitstopOnDamageComponent());
+        character.Add(new AutoDespawnComponent { Delay = 3f });
 
         var view = manager.LoadBaseView<CharacterView>("Player/Player", character);
         if (view != null)
@@ -127,7 +135,6 @@ public class CharacterFactory
             BackLocalEuler = new Vector3(0f, 90f, 0f),
             MagCapacity = 30,
             CurrentAmmo = 30,
-            ReloadDuration = 1.5f,
             HeavyRecoil = false,        // 小后坐力：ShootOnce
             RecoilAnimSpeed = 3.5f,     // 0.1s FireInterval，clip ~0.35s，加速到 ~0.1s 播完
         };
@@ -138,6 +145,7 @@ public class CharacterFactory
             // 全自动 → Short 卡肉，避免每发都把目标钉死、节奏被毁
             Effect = new LinearProjectileEffect { BulletSpeed = 80f, BulletLifetime = 2f, HitstopTier = HitstopTier.Short },
         });
+        w.Add(new ReloadComponent { ReloadDuration = 1.5f });
         return w;
     }
 
@@ -156,7 +164,6 @@ public class CharacterFactory
             BackLocalEuler = new Vector3(0f, 90f, 0f),
             MagCapacity = 12,
             CurrentAmmo = 12,
-            ReloadDuration = 1.0f,
             HeavyRecoil = false,        // 小后坐力：ShootOnce
             RecoilAnimSpeed = 1.2f,     // 0.3s FireInterval，clip ~0.35s，略加速
         };
@@ -166,6 +173,7 @@ public class CharacterFactory
             RecoilShakeIntensity = 0.18f, RecoilShakeDuration = 0.12f,  // 半自动单发大抖
             Effect = new LinearProjectileEffect { BulletSpeed = 60f, BulletLifetime = 2f },
         });
+        w.Add(new ReloadComponent { ReloadDuration = 1.0f });
         return w;
     }
 
@@ -185,7 +193,6 @@ public class CharacterFactory
             BackLocalEuler = new Vector3(0f, 90f, 0f),
             MagCapacity = 4,
             CurrentAmmo = 4,
-            ReloadDuration = 2.5f,
             HeavyRecoil = true,         // 大后坐力：ShootGrenade
             RecoilAnimSpeed = 1.0f,     // 0.6s FireInterval > clip 长度，原速即可
         };
@@ -200,6 +207,7 @@ public class CharacterFactory
                 ArcHeight = 4f,
             },
         });
+        w.Add(new ReloadComponent { ReloadDuration = 2.5f });
         return w;
     }
 }

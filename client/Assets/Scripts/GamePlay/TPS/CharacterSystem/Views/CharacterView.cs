@@ -24,6 +24,8 @@ public class CharacterView : BaseView
     public Color HitFlashColor = Color.white;
     /// <summary>受击闪烁时长（秒）。从 1 线性衰减回 0；过短不易察觉，过长拖尾感强。</summary>
     public float HitFlashDuration = 0.12f;
+    /// <summary>飘字相对脚下 Position.y 的偏移（米）。1.8 ≈ 头顶上方一点点，俯视角下不会被身体挡。</summary>
+    public float FlyTextHeight = 1.8f;
 
     /// <summary>死亡溶解总时长（秒）。和 HealthComponent.AutoRemoveDelay 对齐，让"完全消失"刚好赶上 Despawn。
     /// 越大效果越缓；shader 端用 _DissolveAmount 在这段时间内从 0 线性推到 1。</summary>
@@ -37,6 +39,7 @@ public class CharacterView : BaseView
 
     private Character character;
     private HealthComponent subscribedHealth;
+    private FlyTextMgr flyTextMgr;
     private Renderer[] flashRenderers;
     private MaterialPropertyBlock flashMpb;
     private float flashTimer;
@@ -90,12 +93,16 @@ public class CharacterView : BaseView
         character.Rotation = transform.rotation;
         character.IsGrounded = Controller.isGrounded;
 
-        // 订阅受击事件：HealthComponent 在 ApplyDamage 里触发 OnDamaged，view 拿来刷一发 _FlashAmount=1
+        // 拿 UI service（飘字）。view 层做 UI 反馈是分层正确的——HealthComponent 不该调 service。
+        var ctx = GameLoop.Instance != null ? GameLoop.Instance.Ctx : null;
+        if (ctx != null) ctx.TryGet(out flyTextMgr);
+
+        // 订阅受击事件：HealthComponent 在 ApplyDamage 里触发 OnDamaged，view 拿来刷闪烁 + 弹飘字
         // 死亡事件：OnDied 触发后启动溶解定时器，shader 的 _DissolveAmount 在 DissolveDuration 内 0→1
         subscribedHealth = character.Get<HealthComponent>();
         if (subscribedHealth != null)
         {
-            subscribedHealth.OnDamaged += OnDamagedFlash;
+            subscribedHealth.OnDamaged += OnDamaged;
             subscribedHealth.OnDied += OnDeathDissolve;
         }
     }
@@ -107,17 +114,25 @@ public class CharacterView : BaseView
     {
         if (subscribedHealth != null)
         {
-            subscribedHealth.OnDamaged -= OnDamagedFlash;
+            subscribedHealth.OnDamaged -= OnDamaged;
             subscribedHealth.OnDied -= OnDeathDissolve;
             subscribedHealth = null;
         }
+        flyTextMgr = null;
         character = null;
         ID = -1;
     }
 
-    private void OnDamagedFlash(float amount, int attackerId)
+    /// <summary>受击：view 层的所有视觉反馈集中在这里——闪烁 + 飘字 + 后续可加血条抖动等。
+    /// 把这种"对受击的视觉响应"放 view 而不是 HealthComponent，是因为 HealthComponent 是逻辑组件不该碰 UI。</summary>
+    private void OnDamaged(DamageInfo info)
     {
         flashTimer = HitFlashDuration;
+        if (flyTextMgr != null && character != null)
+        {
+            flyTextMgr.AddText($"-{Mathf.RoundToInt(info.Amount)}",
+                character.Position + Vector3.up * FlyTextHeight, FlyTextType.Quick);
+        }
     }
 
     private void OnDeathDissolve(int attackerId)

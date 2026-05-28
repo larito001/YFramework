@@ -7,12 +7,12 @@ using UnityEngine;
 /// </summary>
 public abstract class FireEffect
 {
-    /// <summary>这把武器命中时给目标的卡肉分级。子弹型 effect 在 spawn 时把这个值拷到 bullet.HitstopTier；
-    /// hitscan 型直接传给 DamageRouter。默认 Long。Factory 给重武器/狙击 → Long；高频射速 → Short；环境/DOT → None。</summary>
+    /// <summary>这把武器命中时给目标的卡肉分级。子弹型 effect 在 spawn 时把这个值写到 bullet 的 MoveComponent 上；
+    /// hitscan 型直接打包进 DamageInfo。默认 Long。Factory 给重武器/狙击 → Long；高频射速 → Short；环境/DOT → None。</summary>
     public HitstopTier HitstopTier = HitstopTier.Long;
 
     /// <summary>FireComponent 在通过 cooldown + ammo 门控后调用。
-    /// damage 由 FireComponent 传入（武器侧统一配，effect 透传给 bullet 或 DamageRouter）。</summary>
+    /// damage 由 FireComponent 传入（武器侧统一配，effect 透传给 bullet 或 DamageInfo）。</summary>
     public abstract void Fire(Weapon weapon, BulletManager bullets, ActorWorld world, float damage);
 }
 
@@ -29,8 +29,10 @@ public class LinearProjectileEffect : FireEffect
     {
         if (bullets == null) return;
         var velocity = weapon.FireDirection * BulletSpeed;
-        var b = bullets.Spawn(weapon.FireOrigin, velocity, BulletLifetime, damage, weapon.OwnerCharacterId);
-        if (b != null) b.HitstopTier = HitstopTier;
+        // 直接走 SpawnBullet（不挂默认 MoveComponent）+ 手动 Add 带配置的 BulletMoveComponent，
+        // 这样把 HitstopTier 一次性塞进 MoveComponent 不需要回头改字段。
+        var b = bullets.SpawnBullet(weapon.FireOrigin, BulletLifetime, damage, weapon.OwnerCharacterId, velocity);
+        if (b != null) b.Add(new BulletMoveComponent { HitstopTier = HitstopTier });
     }
 }
 
@@ -56,7 +58,7 @@ public class BezierMissileEffect : FireEffect
         var p2 = p3 + Vector3.up * ArcHeight;
 
         var b = bullets.SpawnBullet(p0, FlightDuration + LifetimeSlack, damage, weapon.OwnerCharacterId);
-        if (b != null) b.HitstopTier = HitstopTier;
+        if (b == null) return;
         b.Add(new MissileMoveComponent
         {
             Start = p0,
@@ -64,6 +66,7 @@ public class BezierMissileEffect : FireEffect
             Control2 = p2,
             End = p3,
             Duration = FlightDuration,
+            HitstopTier = HitstopTier,
         });
     }
 }
@@ -85,24 +88,13 @@ public class HitscanEffect : FireEffect
     public override void Fire(Weapon weapon, BulletManager bullets, ActorWorld world, float damage)
     {
         // 跳过发射者自身 collider：起点在 forward 0.6m 处但仍可能擦到 capsule 边缘
-        int hitCount = Physics.RaycastNonAlloc(weapon.FireOrigin, weapon.FireDirection, raycastBuf, Range, HitLayers);
-        int bestIdx = -1;
-        float bestDist = float.MaxValue;
-        for (int i = 0; i < hitCount; i++)
+        if (DamageRouter.RaycastSkipActor(weapon.FireOrigin, weapon.FireDirection, Range, HitLayers,
+                weapon.OwnerCharacterId, raycastBuf, out var hit))
         {
-            var h = raycastBuf[i];
-            var view = h.collider.GetComponentInParent<BaseView>();
-            if (view != null && view.ID == weapon.OwnerCharacterId) continue;
-            if (h.distance < bestDist) { bestDist = h.distance; bestIdx = i; }
-        }
-
-        if (bestIdx >= 0)
-        {
-            var hit = raycastBuf[bestIdx];
             Debug.DrawLine(weapon.FireOrigin, hit.point, Color.red, DebugDrawSeconds);
             Debug.Log($"[Hitscan] {weapon.Name} hit {hit.collider.name} @ {hit.distance:F2}m, dmg={damage}");
-            // hitscan 不经过 bullet，直接把 effect 自己的 HitstopTier 传给 DamageRouter
-            DamageRouter.TryHitAndDamage(hit.collider, world, weapon.OwnerCharacterId, damage, HitstopTier);
+            var info = new DamageInfo(damage, weapon.OwnerCharacterId, HitstopTier);
+            DamageRouter.TryHitAndDamage(hit.collider, world, in info);
         }
         else
         {

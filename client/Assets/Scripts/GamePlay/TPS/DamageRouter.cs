@@ -29,9 +29,8 @@ public static class DamageRouter
 
     /// <summary>给指定 actor 扣血。targetId 一般是 <see cref="ResolveActorId"/> 的返回值。
     /// 目标不是 Character / 没有 HealthComponent 都静默返回 false。
-    /// hitstopTier：受击卡肉分级，由攻击端在命中瞬间根据子弹/目标类型决定；默认 Long。</summary>
-    public static bool ApplyToActor(ActorWorld world, int targetId, int attackerId, float damage,
-        HitstopTier hitstopTier = HitstopTier.Long)
+    /// info 携带 amount + attackerId + 反馈相关字段（卡肉 tier 等）。</summary>
+    public static bool ApplyToActor(ActorWorld world, int targetId, in DamageInfo info)
     {
         if (world == null || targetId < 0) return false;
         if (!world.TryGet(targetId, out var actor)) return false;
@@ -39,20 +38,42 @@ public static class DamageRouter
         {
             var hp = target.Get<HealthComponent>();
             if (hp == null) return false;
-            hp.ApplyDamage(damage, attackerId, hitstopTier);
+            hp.ApplyDamage(in info);
             return true;
         }
         return false;
     }
 
-    /// <summary>合并版：collider → 扣血一步到位（无需去重场景）。返回命中 actor 的 ID，未命中返回 -1。
-    /// hitstopTier：受击卡肉分级，默认 Long。可以在调用前根据子弹类型 + 目标 collider 自定义。</summary>
-    public static int TryHitAndDamage(Collider col, ActorWorld world, int attackerId, float damage,
-        HitstopTier hitstopTier = HitstopTier.Long)
+    /// <summary>合并版：collider → 扣血一步到位（无需去重场景）。返回命中 actor 的 ID，未命中返回 -1。</summary>
+    public static int TryHitAndDamage(Collider col, ActorWorld world, in DamageInfo info)
     {
-        int id = ResolveActorId(col, attackerId);
+        int id = ResolveActorId(col, info.AttackerId);
         if (id < 0) return -1;
-        ApplyToActor(world, id, attackerId, damage, hitstopTier);
+        ApplyToActor(world, id, in info);
         return id;
+    }
+
+    /// <summary>沿 dir 在 [origin, origin+dir*maxDist] 内做 RaycastNonAlloc，
+    /// 跳过 attackerId 自己的 collider，挑距离最近的非自身 hit。
+    /// hitBuf 由调用方自己提供（一般 static reuse 避免 GC）。
+    /// 返回是否命中（非自身）；命中时 best 写入对应 RaycastHit。
+    /// 子弹 / 导弹 / hitscan 三处共用这个 helper，避免三份重复的"过滤自身"逻辑。</summary>
+    public static bool RaycastSkipActor(
+        Vector3 origin, Vector3 dir, float maxDist, LayerMask mask,
+        int attackerId, RaycastHit[] hitBuf, out RaycastHit best)
+    {
+        int n = Physics.RaycastNonAlloc(origin, dir, hitBuf, maxDist, mask);
+        int bestIdx = -1;
+        float bestDist = float.MaxValue;
+        for (int i = 0; i < n; i++)
+        {
+            var h = hitBuf[i];
+            var view = h.collider.GetComponentInParent<BaseView>();
+            if (view != null && view.ID == attackerId) continue; // 跳过自身
+            if (h.distance < bestDist) { bestDist = h.distance; bestIdx = i; }
+        }
+        if (bestIdx < 0) { best = default; return false; }
+        best = hitBuf[bestIdx];
+        return true;
     }
 }

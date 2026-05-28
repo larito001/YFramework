@@ -17,8 +17,4 @@ public class Bullet : Actor
     public float LifetimeRemaining;
     public float Damage;
     public int OwnerCharacterId = -1;
-    /// <summary>命中受击者时使用的卡肉分级。FireEffect 在 spawn 时按子弹类型设；
-    /// 命中处理（BulletMoveComponent / MissileMoveComponent）透传给 DamageRouter。默认 Long。
-    /// 命中前需要按目标类型再调整的话，在 move 组件的 hit 分支里改 tier 传值即可。</summary>
-    public HitstopTier HitstopTier = HitstopTier.Long;
 }

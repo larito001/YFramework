@@ -42,6 +42,9 @@ public class AimComponent : ICharacterComponent
     public override void Tick(float dt)
     {
         if (input == null || Owner == null) return;
+        // dt<=0 = 卡肉/局部冻结。AimComponent 的工作是 dt-独立的（鼠标→Rotation），
+        // 冻结期间继续跑会让角色"动画停了但还在转身瞄准"，穿帮。早退。
+        if (dt <= 0f) return;
 
         Owner.IsAiming = input.AimHeld;
 
