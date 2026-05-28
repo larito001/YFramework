@@ -8,9 +8,13 @@ using UnityEngine;
 /// </summary>
 public class AimComponent : ICharacterComponent
 {
-    /// <summary>旋转 lerp 速率（指数收敛）。值越大越紧跟，帧率无关。
+    /// <summary>非瞄准时的旋转 lerp 速率（朝移动方向）。指数收敛，帧率无关。
     /// 推荐 10~20：12 比较跟手又有缓动，5 偏软，25 接近瞬转。</summary>
     public float RotateLerpRate = 12f;
+    /// <summary>瞄准时的旋转 lerp 速率（朝鼠标方向）。比非瞄准模式快——瞄准要求精度，
+    /// 慢追会让枪口可见地"跟不上鼠标"，尤其在 strafe BlendTree 期间叠加上半身动画 damp 会更明显。
+    /// 30 ≈ 95% 到位 5 帧（83ms）；要绝对硬切设 1e6 之类的大数（等价于 t=1）。</summary>
+    public float AimRotateLerpRate = 30f;
 
     private InputService input;
     private CameraManager cameraMgr;
@@ -52,7 +56,9 @@ public class AimComponent : ICharacterComponent
 
         var targetRot = Quaternion.LookRotation(targetDir, Vector3.up);
         // 指数 lerp：每帧把当前朝向往目标朝向收 (1 - e^(-rate*dt))，帧率无关，自带 ease-out
-        float t = 1f - Mathf.Exp(-RotateLerpRate * dt);
+        // 瞄准用更高 rate 让枪口紧跟鼠标，非瞄准用低 rate 保留转身缓动质感
+        float rate = Owner.IsAiming ? AimRotateLerpRate : RotateLerpRate;
+        float t = 1f - Mathf.Exp(-rate * dt);
         Owner.Rotation = Quaternion.Slerp(Owner.Rotation, targetRot, t);
     }
 
