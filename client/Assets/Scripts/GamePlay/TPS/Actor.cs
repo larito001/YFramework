@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using UnityEngine;
 
 /// <summary>
 /// 游戏内的任意物体。ID 全局唯一，构造时自动分配。
@@ -12,6 +13,10 @@ using System.Collections.Generic;
 ///
 /// 组件 Detach 时**必须把自己写过的 Owner 字段清回默认值**，否则 writer 离场后 reader 读到死值
 /// （典型：WeaponComponent 在 IsMeleeing=true 时被移走，MoveComponent 永远锁位移）。
+///
+/// 基类字段语义（详见 ARCHITECTURE.md 的"字段归属"小节）：
+///   通用组件（HealthComponent / HitstopOnDamageComponent / GravityComponent / AutoDespawnComponent）
+///   只读写这些基类字段；子类专属字段（Character.AnimMoveX / Weapon.FireOrigin 等）由特化组件处理。
 /// </summary>
 public class Actor
 {
@@ -23,6 +28,39 @@ public class Actor
     /// View 端如果用 Unity Time.deltaTime 跑物理 / 动画，也应读这个字段把 dt 乘上去（参考 CharacterView）。
     /// 全局慢动作走 Unity Time.timeScale，跟这个字段相乘叠加。</summary>
     public float TimeScale = 1f;
+
+    // ── 空间（所有 Actor 都需要） ──
+    /// <summary>世界坐标。Character 由 View 物理后回写、Bullet 由 BulletMoveComponent 推进。</summary>
+    public Vector3 Position;
+    /// <summary>世界朝向。Character 由 AimComponent 写、Bullet 由 View 通过 Velocity 推算（不写本字段）。</summary>
+    public Quaternion Rotation = Quaternion.identity;
+    /// <summary>意图速度（m/s）。Character 由 MoveComponent / MeleeComponent / GravityComponent 写，
+    /// CharacterView.LateUpdate 用 CharacterController.Move 应用。Bullet 不用此字段（Bullet 用 <see cref="Velocity"/>）。</summary>
+    public Vector3 WishVelocity;
+    /// <summary>实际速度（m/s）。Bullet 由 FireEffect 写初值、MissileMoveComponent 每帧写切线方向。
+    /// Character 不用此字段（CC 内部维护实际速度，回写到 Position 即可）。</summary>
+    public Vector3 Velocity;
+    /// <summary>是否贴地。CharacterView 调 CC.isGrounded 后回写。Bullet/Weapon 不用。</summary>
+    public bool IsGrounded;
+
+    // ── 生命周期（多数 Actor 用，少数不写） ──
+    /// <summary>剩余寿命（秒）。Bullet / 投射物 / 临时召唤物用，&lt;=0 视为不限制或已结束。
+    /// Character / Weapon 一般不写本字段，清理走 AutoDespawnComponent。</summary>
+    public float LifetimeRemaining;
+    /// <summary>发射者 / 召唤者 Actor.ID，用于自伤过滤和归属。-1 表示无主。</summary>
+    public int OwnerActorId = -1;
+
+    // ── HP（HealthComponent 写，UI / 死亡逻辑读） ──
+    /// <summary>最大生命值。HealthComponent.Attach 时写入；可被增益 / 装备改动。</summary>
+    public float MaxHealth;
+    /// <summary>当前生命值。HealthComponent.ApplyDamage / Heal 修改。</summary>
+    public float CurHealth;
+    /// <summary>死亡标志位。HealthComponent 在 CurHealth&lt;=0 时置 true；其他组件按需 Tick 头部早退。</summary>
+    public bool IsDead;
+    /// <summary>死亡一次性 trigger：HealthComponent 死亡时置 true（和 IsDead 同帧），view 消费 SetTrigger("Die") 后清回。</summary>
+    public bool Die;
+    /// <summary>死亡动画变体：HealthComponent 在置 Die 时随机选（0=DeathL，1=DeathR），view 写到 Animator Int。</summary>
+    public int DeathVariant;
 
     private readonly List<IActorComponent> _components = new List<IActorComponent>();
     /// <summary>Tick 中 Remove 的延迟队列，Tick 末批量摘 + Detach。</summary>
@@ -161,23 +199,36 @@ public class Actor
 }
 
 /// <summary>
-/// Actor 组件统一基类。Actor 容器只认这个类型；
-/// 具体类型（ICharacterComponent / IWeaponComponent / IBulletComponent）继承本类，
-/// sealed override Attach(Actor) 把回调路由到自己强类型的 Attach(TActor)。
+/// Actor 组件统一基类。Actor 容器只认这个类型。两种用法：
+///   - **通用组件**：直接继承本类，Owner 类型保持 Actor，只读写 Actor 基类字段
+///     （如 HealthComponent / HitstopOnDamageComponent / GravityComponent / AutoDespawnComponent）。
+///   - **特化组件**：继承 ICharacterComponent / IWeaponComponent / IBulletComponent，
+///     sealed override Attach(Actor) 把回调路由到强类型的 Attach(TActor)，访问子类专属字段。
 ///
-/// 提供 Ctx：Attach 时统一从 GameLoop.Instance 拉一次 GameContext，子类 Attach(TActor) 中直接用
+/// 提供 Ctx：Attach 时统一从 GameLoop.Instance 拉一次 GameContext，子类直接用
 /// Ctx?.TryGet(out service)，不再每个组件重复写 GameLoop.Instance.Ctx 链。Detach 时清回 null。
+///
+/// 提供 Owner（Actor 类型）：通用组件直接用本字段访问 Actor 基类字段；特化组件子类用 new Owner 隐藏出强类型版本。
 /// </summary>
 public abstract class IActorComponent
 {
+    /// <summary>挂载到的 Actor。Attach 后非 null，Detach 后 null。通用组件直接用；
+    /// 特化组件（IXxxComponent）通过 new 隐藏暴露强类型版本，本字段仍是 Actor。</summary>
+    public Actor Owner { get; private set; }
+
     /// <summary>全局服务上下文。Attach 后非 null（除非 GameLoop 未就绪），Detach 后 null。
     /// 子类用 Ctx?.TryGet(out svc) 拿 service。</summary>
     protected GameContext Ctx { get; private set; }
 
     public virtual void Attach(Actor owner)
     {
+        Owner = owner;
         Ctx = GameLoop.Instance != null ? GameLoop.Instance.Ctx : null;
     }
     public virtual void Tick(float dt) { }
-    public virtual void Detach() { Ctx = null; }
+    public virtual void Detach()
+    {
+        Owner = null;
+        Ctx = null;
+    }
 }

@@ -20,7 +20,13 @@ public class ReloadComponent : IWeaponComponent
 
     public override void Detach()
     {
-        if (Owner != null) Owner.IsReloading = false;
+        if (Owner != null)
+        {
+            Owner.IsReloading = false;
+            // 清 ReloadRequest trigger：Detach 时若为 true（玩家刚按 R 还没轮到本组件 Tick 消费），
+            // 下次 attach 会立即消费 stale 请求自动开始换弹
+            Owner.ReloadRequest = false;
+        }
         timer = 0f;
         base.Detach();
     }

@@ -9,7 +9,7 @@ using UnityEngine;
 ///   1. 早退：未装备 / 没开火意图 / cooldown 没好 / Effect 未配 / 弹药空
 ///   2. 起 cooldown，扣弹（MagCapacity=0 视作无限弹药）
 ///   3. 调用 Effect.Fire 走具体弹道
-///   4. 写 Owner.ShootEvent 让 WeaponComponent 转写 Owner(Character).Shoot 给动画 trigger
+///   4. 写 Owner.ShootEvent 让持枪人组件（如 Character 的 WeaponComponent）按需转写到持有者动画 trigger
 ///   5. 触发相机抖（动作伴随反馈，inline 调 service，详见架构规范）
 ///
 /// 加新武器形态（追踪导弹 / 散弹枪 / 喷火器）直接写个 FireEffect 子类即可，本组件无需改动。
@@ -42,6 +42,9 @@ public class FireComponent : IWeaponComponent
 
     public override void Detach()
     {
+        // 清 ShootEvent trigger：Detach 时若仍为 true（开火帧后立即被 Remove），
+        // 下帧 WeaponComponent 会消费这个 stale trigger 产出"幽灵开火"（Owner.Shoot=true）。
+        if (Owner != null) Owner.ShootEvent = false;
         bulletMgr = null;
         world = null;
         cameraMgr = null;
@@ -62,9 +65,11 @@ public class FireComponent : IWeaponComponent
         cooldown = FireInterval;
         if (Owner.MagCapacity > 0) Owner.CurrentAmmo--;
 
-        Effect.Fire(Owner, bulletMgr, world, Damage);
+        // 参数化调用：把 Weapon 上的开火数据拆字段传给 effect，effect 不再依赖 Weapon 类型
+        Effect.Fire(Owner.FireOrigin, Owner.FireDirection, Owner.FireTarget,
+                    Owner.OwnerActorId, Damage, bulletMgr, world);
 
-        Owner.ShootEvent = true; // 喂 WeaponComponent，下一帧转写 Owner(Character).Shoot 给 view SetTrigger
+        Owner.ShootEvent = true; // 喂持枪人组件（如 WeaponComponent），下一帧按需转写到持有者动画 trigger
 
         if (RecoilShakeIntensity > 0f && cameraMgr?.Shake != null)
         {

@@ -9,10 +9,10 @@ description: Use this skill when the user asks to review TPS code (e.g. "review 
 
 1. `git diff main...HEAD` 拿改动。用户传了 base 就用 base，否则默认 `main`。
 2. 只看 `Assets/Scripts/GamePlay/TPS/` 下的改动行（含新增文件）。其他目录跳过。
-3. 对每个改动文件按下面 7 条 grep + 读上下文。
+3. 对每个改动文件按下面 8 条 grep + 读上下文。
 4. 输出违规。没违规一行 `No issues found.`。
 
-# 7 条检查
+# 8 条检查
 
 ## 分层（看到就标）
 
@@ -31,7 +31,8 @@ description: Use this skill when the user asks to review TPS code (e.g. "review 
 
 3. **跨 actor / 跨 view 持裸引用**
    组件字段含 `Character`/`Weapon`/`Bullet` 类型（不是 Owner）；view 字段含别的 `XxxView` 类型。
-   修：存 ID + `ActorWorld.Get<T>(id)` / `ViewManager.TryGetView(id)`。
+   例外（**OK 不报**）：组件作为某类 Actor 的"逻辑拥有者"（如 `WeaponComponent` 持 `List<Weapon>` / `Weapon currentWeapon`）—— 父持子裸引用是设计。判断："父是不是子的 Factory 创建者 + 生命周期管理者"，是 → 合法；否 → 真违规。
+   修：真违规改成存 ID + `ActorWorld.Get<T>(id)` / `ViewManager.TryGetView(id)`。
 
 4. **GameObject.Find / FindObjectOfType / FindGameObjectWithTag**
    grep 出来即报。
@@ -48,6 +49,13 @@ description: Use this skill when the user asks to review TPS code (e.g. "review 
 7. **遍历中改 list 元素**
    `for (int i; i < list.Count; i++)` 循环体里直接 `list.Remove` / `RemoveAt`，没走 `toRemove` 暂存模式。
    参考 `BulletManager.Tick` / `CharacterManager.Tick` 的延迟移除。
+
+8. **通用组件 cast Owner 为子类**
+   类声明 `class XxxComponent : IActorComponent`（直接继承，不走 `ICharacterComponent` / `IBulletComponent` / `IWeaponComponent`），文件里出现 `Owner as Character` / `(Character)Owner` / `Owner as Bullet` / `Owner as Weapon` 等 cast——cast 即"我依赖子类字段"，违反"通用组件只读 Actor 基类字段"约定。
+   例外（**OK 不报**）：
+     - 子家族基类自己（`ICharacterComponent` / `IBulletComponent` / `IWeaponComponent`）的路由 cast——它们就是把通用 Actor 路由到强类型的中间层。
+     - base 类是 `IActorComponent` 但**通过私有字段缓存 cast 后类型**（如 `private Bullet bullet = owner as Bullet;` 然后整文件用 `bullet.X`）— 这种本质是特化组件错放在 IActorComponent 上，**改回对应子家族**。
+   修：要么改成对应 `IXxxComponent` 子家族（声明特化），要么把所需字段下沉到 Actor 基类。
 
 # 输出格式
 

@@ -8,7 +8,8 @@
 /// </summary>
 public class IWeaponComponent : IActorComponent
 {
-    public Weapon Owner { get; private set; }
+    /// <summary>强类型 Owner。隐藏基类 <see cref="IActorComponent.Owner"/>（Actor）—— 两者实际指同一对象。</summary>
+    public new Weapon Owner { get; private set; }
 
     public sealed override void Attach(Actor owner)
     {

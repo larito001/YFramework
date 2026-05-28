@@ -54,6 +54,7 @@ public class CharacterManager : IGameService, ITickable
     public void GenneratePlayer(Vector3 position = default)
     {
         var c = factory.CreateCharacter(position);
+        AttachLifecycleHooks(c);
         characters.Add(c);
         world.Register(c);
 
@@ -75,9 +76,33 @@ public class CharacterManager : IGameService, ITickable
     public Character SpawnDummy(Vector3 position, float maxHealth = 1000f)
     {
         var c = factory.CreateDummy(position, maxHealth);
+        AttachLifecycleHooks(c);
         characters.Add(c);
         world.Register(c);
         return c;
+    }
+
+    /// <summary>给新 spawn 的 Character 挂上 Manager 侧的事件订阅：
+    /// 当前是 AutoDespawnComponent.OnDespawnReady → 倒计时到点 → RemoveCharacter（deferred）。
+    /// 通用组件不持 Manager 引用、走事件订阅是 ARCHITECTURE 约定（详见"跨对象通信"小节）。
+    /// 配对的 <see cref="DetachLifecycleHooks"/> 在 RemoveImmediate 里调用。</summary>
+    private void AttachLifecycleHooks(Character c)
+    {
+        var ad = c.Get<AutoDespawnComponent>();
+        if (ad != null) ad.OnDespawnReady += OnAutoDespawnReady;
+    }
+
+    /// <summary>显式退订对应 AttachLifecycleHooks 的事件。即便 AutoDespawnComponent.Detach
+    /// 会清 event = null 兜底，也走这一步——避免依赖发布方的清理协议（中途 Remove 重 Add 时会静默失订阅）。</summary>
+    private void DetachLifecycleHooks(Character c)
+    {
+        var ad = c.Get<AutoDespawnComponent>();
+        if (ad != null) ad.OnDespawnReady -= OnAutoDespawnReady;
+    }
+
+    private void OnAutoDespawnReady(Actor a)
+    {
+        if (a is Character c) RemoveCharacter(c);
     }
 
     /// <summary>请求移除 Character（deferred）。组件 Tick 中调用安全；实际清理发生在本帧 Tick 末尾。
@@ -92,6 +117,7 @@ public class CharacterManager : IGameService, ITickable
     private void RemoveImmediate(Character character)
     {
         if (character == null) return;
+        DetachLifecycleHooks(character);
         characters.Remove(character);
         world.Unregister(character.ID);
         viewMgr.RemoveBaseView(character.ID);

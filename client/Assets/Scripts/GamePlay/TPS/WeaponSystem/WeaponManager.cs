@@ -4,6 +4,9 @@ using System.Collections.Generic;
 /// Weapon Actor 集合 + 每帧 Tick + 挂载状态写入。
 /// 不直接产生 Weapon —— 由调用方（WeaponComponent / 后续的掉落系统）new 好 Weapon 对象，调 Adopt 移交。
 /// Mount/Unmount 只改 Weapon 上的字段，view 端 WeaponView 自己监听响应。
+///
+/// **持有者无关**：Mount API 接收 <see cref="Actor"/>，不绑 Character——塔 / 敌人 / 任何 Actor 子类都能持武器。
+/// 详见 ARCHITECTURE.md "Weapon 持有者扩展" 小节。
 /// </summary>
 public class WeaponManager : IGameService, ITickable
 {
@@ -54,23 +57,25 @@ public class WeaponManager : IGameService, ITickable
         weapon.Dispose();
     }
 
-    /// <summary>挂到手部 socket：写装备态 + 把 HandLocalPosition/Euler 拷到 LocalPosition/Euler 供 view 读。</summary>
-    public void Mount(Weapon weapon, Character owner, string socketName)
+    /// <summary>挂到手部 socket：写装备态 + 把 HandLocalPosition/Euler 拷到 LocalPosition/Euler 供 view 读。
+    /// owner 是任意 <see cref="Actor"/>——Character / 塔 / 敌人 / 未来的载具都能持武器。
+    /// view 端 <see cref="WeaponView"/> 通过 ViewManager.TryGetView 反查 BaseView 找 socket，对持有者类型无要求。</summary>
+    public void Mount(Weapon weapon, Actor owner, string socketName)
     {
         if (weapon == null || owner == null) return;
         weapon.IsEquipped = true;
-        weapon.OwnerCharacterId = owner.ID;
+        weapon.OwnerActorId = owner.ID;
         weapon.MountSocketName = socketName;
         weapon.LocalPosition = weapon.HandLocalPosition;
         weapon.LocalEuler = weapon.HandLocalEuler;
     }
 
-    /// <summary>挂到背部 socket（切枪过场用）：同 Mount 但拷的是 BackLocalPosition/Euler。</summary>
-    public void MountOnBack(Weapon weapon, Character owner, string socketName)
+    /// <summary>挂到背部 socket（切枪过场用）：同 Mount 但拷的是 BackLocalPosition/Euler。owner 可以是任意 Actor。</summary>
+    public void MountOnBack(Weapon weapon, Actor owner, string socketName)
     {
         if (weapon == null || owner == null) return;
         weapon.IsEquipped = true;
-        weapon.OwnerCharacterId = owner.ID;
+        weapon.OwnerActorId = owner.ID;
         weapon.MountSocketName = socketName;
         weapon.LocalPosition = weapon.BackLocalPosition;
         weapon.LocalEuler = weapon.BackLocalEuler;
@@ -82,6 +87,6 @@ public class WeaponManager : IGameService, ITickable
     {
         if (weapon == null) return;
         weapon.IsEquipped = false;
-        weapon.OwnerCharacterId = -1;
+        weapon.OwnerActorId = -1;
     }
 }

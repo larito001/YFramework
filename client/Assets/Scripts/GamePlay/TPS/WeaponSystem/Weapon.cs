@@ -5,9 +5,10 @@ using UnityEngine;
 ///
 /// 字段分组：
 ///   数据（构造时定）：Name / ModelPath / LocalPosition / LocalEuler
-///   装备态（WeaponManager.Mount/Unmount 写）：IsEquipped / OwnerCharacterId / MountSocketName
+///   装备态（WeaponManager.Mount/Unmount 写）：IsEquipped / OwnerActorId（基类字段）/ MountSocketName
 ///   —— WeaponView 监听这三个字段决定挂到角色 socket 还是隐藏
 ///
+/// 持枪人 ID 复用 <see cref="Actor.OwnerActorId"/> 基类字段，不再单独定义 OwnerCharacterId。
 /// ModelPath 是 Resources 相对路径，prefab 只是 mesh + materials，WeaponView 运行时 AddComponent 挂到实例上。
 /// </summary>
 public class Weapon : Actor
@@ -27,7 +28,6 @@ public class Weapon : Actor
     public Vector3 BackLocalEuler;
 
     public bool IsEquipped;
-    public int OwnerCharacterId = -1;
     public string MountSocketName;
 
     // ── 开火意图（持枪人每帧写，FireComponent 子组件读）──

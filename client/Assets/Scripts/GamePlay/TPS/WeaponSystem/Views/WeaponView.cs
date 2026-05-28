@@ -1,8 +1,8 @@
 using UnityEngine;
 
 /// <summary>
-/// 武器 view：被动消费 Weapon 的装备态字段，决定挂到角色 socket / 隐藏。
-/// Weapon 完全不知道 view 存在；跨 actor 引用（找 owner 的 CharacterView）走 ViewManager.TryGetView。
+/// 武器 view：被动消费 Weapon 的装备态字段，决定挂到持有者 socket / 隐藏。
+/// Weapon 完全不知道 view 存在；跨 actor 引用（找 owner 的 BaseView，可能是 CharacterView / TowerView / 等）走 ViewManager.TryGetView。
 /// 没有"落地武器"功能前，未装备就关掉所有 Renderer 隐形（不用 SetActive，否则 inactive 后 LateUpdate
 /// 停跑、状态机收不到 Equip 信号，再也激活不回来）。
 ///
@@ -45,13 +45,13 @@ public class WeaponView : BaseView
 
         bool changed = !initialized
             || weapon.IsEquipped != currentEquipped
-            || weapon.OwnerCharacterId != currentOwnerId
+            || weapon.OwnerActorId != currentOwnerId
             || weapon.MountSocketName != currentSocketName;
         if (!changed) return;
 
         ApplyMount();
         currentEquipped = weapon.IsEquipped;
-        currentOwnerId = weapon.OwnerCharacterId;
+        currentOwnerId = weapon.OwnerActorId;
         currentSocketName = weapon.MountSocketName;
         initialized = true;
     }
@@ -59,15 +59,15 @@ public class WeaponView : BaseView
     private void ApplyMount()
     {
         // 未装备：关 Renderer 隐形。等以后做掉落/拾取再扩展（写世界坐标 + 显形 + 开 collider）
-        if (!weapon.IsEquipped || weapon.OwnerCharacterId < 0)
+        if (!weapon.IsEquipped || weapon.OwnerActorId < 0)
         {
             SetRenderersEnabled(false);
             return;
         }
 
-        if (viewMgr == null || !viewMgr.TryGetView(weapon.OwnerCharacterId, out var ownerView) || ownerView == null)
+        if (viewMgr == null || !viewMgr.TryGetView(weapon.OwnerActorId, out var ownerView) || ownerView == null)
         {
-            Debug.LogWarning($"[WeaponView] 找不到 owner view id={weapon.OwnerCharacterId}");
+            Debug.LogWarning($"[WeaponView] 找不到 owner view id={weapon.OwnerActorId}");
             return;
         }
 

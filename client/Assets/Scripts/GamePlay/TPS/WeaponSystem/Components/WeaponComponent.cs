@@ -88,6 +88,11 @@ public class WeaponComponent : ICharacterComponent
             Owner.IsReloading = false;
             Owner.Reload = false;
             Owner.Shoot = false;
+            // "持有武器属性"字段：无 WeaponComponent = 无武器，回默认。
+            // -1 = 无武器槽（默认 0 是合法槽，留 0 让 HUD 误以为还持槽 0）；HeavyRecoil/RecoilAnimSpeed 回 Animator 默认。
+            Owner.CurrentWeaponSlot = -1;
+            Owner.HeavyRecoil = false;
+            Owner.RecoilAnimSpeed = 1f;
         }
         currentWeapon = null;
         pendingHandMount = null;

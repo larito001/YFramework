@@ -2,8 +2,11 @@ using System;
 using UnityEngine;
 
 /// <summary>
-/// 生命值组件：管 Character.MaxHealth / CurHealth / IsDead 三个字段，提供受击/治疗 API + 事件。
-/// 不 Tick（被动接受调用）。HP 数据放 Character 上方便 UI / 死亡逻辑直接读，不挂任何 Get 链。
+/// 生命值组件：管 Actor.MaxHealth / CurHealth / IsDead / Die / DeathVariant 五个**Actor 基类字段**，
+/// 提供受击/治疗 API + 事件。不 Tick（被动接受调用）。
+///
+/// **通用组件**：直接继承 IActorComponent，Owner=Actor。可挂在任何 Actor 子类上（Character / 未来的
+/// NPC / 可破坏物 / Boss 部位 / Vehicle 等），不再限定 Character。
 ///
 /// **职责边界（重要）**：
 ///   - 本组件**只做 HP 数学 + 事件广播**，不直接调任何 service / UI / Manager。
@@ -16,9 +19,9 @@ using UnityEngine;
 /// <c>actor.Get&lt;HealthComponent&gt;()?.ApplyDamage(in info)</c> 统一入口。
 ///
 /// 死亡：CurHealth&lt;=0 时一次性置 IsDead，触发 OnDied 事件。组件不负责销毁 Actor，
-/// 由订阅方（AutoDespawnComponent / 关卡逻辑）决定何时 RemoveCharacter。
+/// 由订阅方（AutoDespawnComponent / 关卡逻辑）决定何时清理。
 /// </summary>
-public class HealthComponent : ICharacterComponent
+public class HealthComponent : IActorComponent
 {
     /// <summary>初始最大生命值。Attach 时写到 Owner.MaxHealth。</summary>
     public float InitialMaxHealth = 100f;
@@ -30,8 +33,9 @@ public class HealthComponent : ICharacterComponent
     /// <summary>死亡事件 (attackerId)。AutoDespawn / 关卡逻辑 / 击杀计分 / 尸体清理在这订阅。</summary>
     public event Action<int> OnDied;
 
-    public override void Attach(Character owner)
+    public override void Attach(Actor owner)
     {
+        base.Attach(owner);
         if (owner == null) return;
         owner.MaxHealth = InitialMaxHealth;
         if (ResetOnAttach) owner.CurHealth = InitialMaxHealth;

@@ -15,11 +15,13 @@
 /// </summary>
 public class ICharacterComponent : IActorComponent
 {
-    public Character Owner { get; private set; }
+    /// <summary>强类型 Owner。隐藏基类 <see cref="IActorComponent.Owner"/>（Actor）—— 两者实际指同一对象，
+    /// 子类用本字段免去每次 cast。Owner=null 表示挂的 Actor 不是 Character（理论上不该发生，靠 Factory 约束）。</summary>
+    public new Character Owner { get; private set; }
 
     public sealed override void Attach(Actor owner)
     {
-        base.Attach(owner); // 设 Ctx
+        base.Attach(owner); // 设 base.Owner = owner、Ctx
         Owner = owner as Character;
         Attach(Owner);
     }

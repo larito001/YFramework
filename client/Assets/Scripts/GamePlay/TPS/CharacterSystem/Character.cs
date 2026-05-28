@@ -10,37 +10,29 @@ using UnityEngine;
 /// 组件下一帧基于回写的状态继续算。view 完全被动，Character 不知道它存在。
 ///
 /// 组件容器（Add/Get/Tick/Dispose）由 Actor 基类提供。
+///
+/// **字段归属**：通用字段（Position / Rotation / WishVelocity / IsGrounded / HP 系 / Die / DeathVariant）
+/// 已经下沉到 <see cref="Actor"/>。本类只持 Character 专属字段（动画 / 武器持有 / 瞄准）。
+/// 详见 ARCHITECTURE.md "字段归属" 小节。
 /// </summary>
 public class Character : Actor
 {
-    // ── 状态（view 物理后回写，组件读取） ──
-    public Vector3 Position;
-    public bool IsGrounded;
-
-    // ── 生命值（HealthComponent 写，UI / 死亡逻辑读）──
-    /// <summary>最大生命值。HealthComponent.Attach 时从配置写入；后续可被增益/装备改动。</summary>
-    public float MaxHealth = 100f;
-    /// <summary>当前生命值，HealthComponent.ApplyDamage / Heal 修改。</summary>
-    public float CurHealth = 100f;
-    /// <summary>死亡标志位。HealthComponent 在 CurHealth&lt;=0 时置 true；其他组件按需 Tick 头部早退。</summary>
-    public bool IsDead;
-
-    // ── 意图（组件写，view 读取/应用） ──
-    public Quaternion Rotation = Quaternion.identity;
-    public Vector3 WishVelocity;
+    // ── 角色动画（MoveComponent 写，view 读取 BlendTree）──
     public float AnimMoveX;
     public float AnimMoveY;
-    public bool IsShooting;
-    /// <summary>右键按住=瞄准=抬枪。AimComponent 写，view 喂 Animator IsAiming，WeaponComponent 用它门控 IsShooting。</summary>
-    public bool IsAiming;
     /// <summary>归一化水平速度（horizontal speed / WalkSpeed，clamp[0,1]）。Run 1D BlendTree 用。</summary>
     public float AnimSpeedRatio;
     /// <summary>动画播放倍率（Animator.speed）。MoveComponent 按当前状态（walk/sprint/aim）写入，view 应用。</summary>
     public float AnimPlaybackRate = 1f;
+
+    // ── 战斗状态（WeaponComponent / MeleeComponent 写，view + 其他组件读门控） ──
+    public bool IsShooting;
+    /// <summary>右键按住=瞄准=抬枪。AimComponent 写，view 喂 Animator IsAiming，WeaponComponent 用它门控 IsShooting。</summary>
+    public bool IsAiming;
     /// <summary>一次性 trigger：组件置 true，view 消费后清回 false</summary>
     public bool MeleeAttack;
     public int MeleeType;
-    /// <summary>近战进行中，MoveComponent 锁水平位移。WeaponComponent 在 melee 触发时置 true，计时器到期清零。</summary>
+    /// <summary>近战进行中，MoveComponent 锁水平位移。MeleeComponent 在 V 键触发时置 true，计时器到期清零。</summary>
     public bool IsMeleeing;
 
     /// <summary>切枪进行中，WeaponComponent 用它门控开火。计时器到期自动清零（覆盖 Holster + Equip 两阶段）。</summary>
@@ -59,11 +51,6 @@ public class Character : Actor
     /// 用于驱动 Recoil 层的 ShootLight/ShootHeavy 单次动画（每发重新播放，节奏跟随实际开火）。</summary>
     public bool Shoot;
 
-    /// <summary>死亡一次性 trigger：HealthComponent 在 CurHealth&lt;=0 时置 true（和 IsDead 同帧），
-    /// view 消费 SetTrigger("Die") 后清回，由 DeathVariant 选择具体动画。</summary>
-    public bool Die;
-    /// <summary>死亡动画变体：HealthComponent 在置 Die 时随机选（0=DeathL，1=DeathR），view 写到 Animator Int。</summary>
-    public int DeathVariant;
     /// <summary>当前装备武器是否用大后坐力动画。WeaponComponent 在 Equip 时从 currentWeapon.HeavyRecoil 写入。</summary>
     public bool HeavyRecoil;
     /// <summary>后坐力动画播放速度倍率。WeaponComponent 在 Equip 时从 currentWeapon.RecoilAnimSpeed 写入，
