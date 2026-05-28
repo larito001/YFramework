@@ -62,8 +62,8 @@ public class CharacterFactory
         {
             InitialMaxHealth = 100f,
         });
-        // 反馈 + 清理：订阅 HealthComponent 事件。把这些跨系统调用拆到独立组件而不是塞 HealthComponent 里，
-        // 让 HealthComponent 只做 HP 数学 + 事件广播，分层清晰。
+        // 反馈 + 清理：订阅 HealthComponent 事件。**多订阅者**的状态变化（damage 触发 flytext / 卡肉 / 自动清理）走事件，
+        // 让 HealthComponent 只做 HP 数学 + 事件广播。单订阅者紧耦合的反馈（如近战 shake）直接放在主组件 inline 调 service。
         character.Add(new HitstopOnDamageComponent());
         character.Add(new AutoDespawnComponent { Delay = 3f });
 

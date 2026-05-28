@@ -107,9 +107,12 @@ public class BulletManager : IGameService, ITickable
         return b;
     }
 
+    /// <summary>请求 Despawn（deferred）。Tick 末批量清。同一颗子弹一帧内多次调用会去重，
+    /// 避免 RemoveImmediate 重复释放 view / 重复 Dispose。和 CharacterManager.RemoveCharacter 对齐。</summary>
     public void Despawn(Bullet bullet)
     {
         if (bullet == null) return;
+        if (toRemove.Contains(bullet)) return;
         toRemove.Add(bullet);
     }
 

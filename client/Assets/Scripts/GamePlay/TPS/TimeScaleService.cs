@@ -48,7 +48,9 @@ public class TimeScaleService : IGameService, ITickable
 
     // ── 全局 hitstop 状态 ──
     private float globalHitstopRemaining;     // >0 表示全局卡肉中，timer 用 unscaledDeltaTime 推
-    private float globalHitstopRestoreScale = 1f; // 卡肉结束时恢复的 Time.timeScale（一般 1f，也可能是 0.5 慢动作）
+    private float globalHitstopRestoreScale = 1f; // 卡肉结束时恢复的 Time.timeScale（进入时记录的"原值"）
+    private float globalHitstopActiveScale = 1f;  // 进入时写到 Time.timeScale 的值。恢复时如果 Time.timeScale != active，
+                                                  // 说明 hitstop 期间外部（暂停/慢动作系统）改过 scale，尊重外部值不覆盖
 
     public void Init(GameContext ctx)
     {
@@ -57,6 +59,11 @@ public class TimeScaleService : IGameService, ITickable
 
     public void Shutdown()
     {
+        // Shutdown 时如果仍在 hitstop，需要安全恢复 Time.timeScale，否则进程级状态会被卡在 0
+        // （Unity 的 Time.timeScale 不会随 GameContext 销毁自动重置）。
+        if (globalHitstopRemaining > 0f && Mathf.Approximately(Time.timeScale, globalHitstopActiveScale))
+            Time.timeScale = globalHitstopRestoreScale;
+        globalHitstopRemaining = 0f;
         hitstop.Clear();
         tickKeys.Clear();
         toRemove.Clear();
@@ -109,6 +116,7 @@ public class TimeScaleService : IGameService, ITickable
             globalHitstopRestoreScale = Time.timeScale;
 
         globalHitstopRemaining = Mathf.Max(globalHitstopRemaining, duration);
+        globalHitstopActiveScale = scale;
         Time.timeScale = scale;
     }
 
@@ -150,7 +158,10 @@ public class TimeScaleService : IGameService, ITickable
             if (globalHitstopRemaining <= 0f)
             {
                 globalHitstopRemaining = 0f;
-                Time.timeScale = globalHitstopRestoreScale;
+                // 仅当 Time.timeScale 仍是我们设的 active 值时才恢复——hitstop 期间外部（暂停/慢动作系统）
+                // 改过 scale 的话尊重外部值，避免拿"卡肉前"的旧快照覆盖外部决定。
+                if (Mathf.Approximately(Time.timeScale, globalHitstopActiveScale))
+                    Time.timeScale = globalHitstopRestoreScale;
             }
         }
 

@@ -10,7 +10,7 @@ using UnityEngine;
 ///   2. 起 cooldown，扣弹（MagCapacity=0 视作无限弹药）
 ///   3. 调用 Effect.Fire 走具体弹道
 ///   4. 写 Owner.ShootEvent 让 WeaponComponent 转写 Owner(Character).Shoot 给动画 trigger
-///   5. 触发相机抖
+///   5. 触发相机抖（动作伴随反馈，inline 调 service，详见架构规范）
 ///
 /// 加新武器形态（追踪导弹 / 散弹枪 / 喷火器）直接写个 FireEffect 子类即可，本组件无需改动。
 /// </summary>

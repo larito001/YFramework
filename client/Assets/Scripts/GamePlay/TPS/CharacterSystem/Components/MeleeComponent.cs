@@ -48,7 +48,7 @@ public class MeleeComponent : ICharacterComponent
     /// <summary>近战命中给目标的卡肉分级。默认 Long（重击手感）。</summary>
     public HitstopTier HitstopTier = HitstopTier.Long;
 
-    // ── 相机震屏 ──
+    // ── 相机震屏（动作伴随反馈，inline 调 service） ──
     /// <summary>挥击命中窗开启时的相机抖动强度。0 = 不抖。kickback 方向 = -forwardDir。</summary>
     public float ShakeIntensity = 0.18f;
     /// <summary>挥击相机抖动时长（秒）。</summary>

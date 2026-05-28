@@ -29,18 +29,24 @@ public class Actor
     private readonly List<IActorComponent> _toRemove = new List<IActorComponent>();
     private bool _isTicking;
 
-    /// <summary>追加到末尾。Tick 顺序 = 现有组件全部跑完后才轮到本组件。</summary>
+    /// <summary>追加到末尾。Tick 顺序 = 现有组件全部跑完后才轮到本组件。
+    /// **不允许在 Tick 期间调用**——会破坏当前帧遍历语义（append 让新组件本帧立刻 Tick，
+    /// AddBefore 插到当前 index 前面会让当前组件本帧重复 Tick）。Tick 中要插组件，存意图到
+    /// Owner 字段、下帧由外部代码 Add，或通过 service 调度。</summary>
     public T Add<T>(T comp) where T : IActorComponent
     {
+        if (_isTicking) { LogTickAddError(nameof(Add)); return comp; }
         _components.Add(comp);
         comp.Attach(this);
         return comp;
     }
 
     /// <summary>在首个 TAnchor 之前插入。找不到 TAnchor 时回退 append（不抛错，调用方负责确认时机）。
-    /// 调用形如：<c>actor.AddBefore&lt;BuffComponent, MoveComponent&gt;(new BuffComponent())</c>。</summary>
+    /// 调用形如：<c>actor.AddBefore&lt;BuffComponent, MoveComponent&gt;(new BuffComponent())</c>。
+    /// 同 <see cref="Add"/>，**不允许 Tick 中调用**。</summary>
     public T AddBefore<T, TAnchor>(T comp) where T : IActorComponent where TAnchor : IActorComponent
     {
+        if (_isTicking) { LogTickAddError(nameof(AddBefore)); return comp; }
         int idx = IndexOf<TAnchor>();
         if (idx < 0) _components.Add(comp);
         else _components.Insert(idx, comp);
@@ -48,14 +54,21 @@ public class Actor
         return comp;
     }
 
-    /// <summary>在首个 TAnchor 之后插入。找不到 TAnchor 时回退 append。</summary>
+    /// <summary>在首个 TAnchor 之后插入。找不到 TAnchor 时回退 append。**不允许 Tick 中调用**。</summary>
     public T AddAfter<T, TAnchor>(T comp) where T : IActorComponent where TAnchor : IActorComponent
     {
+        if (_isTicking) { LogTickAddError(nameof(AddAfter)); return comp; }
         int idx = IndexOf<TAnchor>();
         if (idx < 0) _components.Add(comp);
         else _components.Insert(idx + 1, comp);
         comp.Attach(this);
         return comp;
+    }
+
+    private static void LogTickAddError(string api)
+    {
+        UnityEngine.Debug.LogError($"[Actor] {api} called during Tick — Add 操作不能在 Tick 中执行（会破坏遍历语义）。" +
+            $" Remove 有延迟队列，Add 没有。请把 {api} 移到 Tick 外，或通过 service 调度到下帧。本次调用已忽略。");
     }
 
     /// <summary>摘掉首个 T 类型组件。Tick 期间调用 → 延迟到 Tick 末摘。返回是否找到（或已入延迟队列）。</summary>
