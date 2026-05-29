@@ -82,7 +82,7 @@ public class CharacterManager : IGameService, ITickable
         // 测试用：玩家侧后方 spawn 一座塔（TeamId=1 玩家军 + 玩家 ID 作为放置者），验证锁敌 + telegraph + 开火链路
         if (player != null && ctx != null && ctx.TryGet<TowerManager>(out var towerMgr))
         {
-            towerMgr.SpawnTower(new Vector3(-3f, 0f, -2f), teamId: 1, ownerActorId: player.ID);
+            // towerMgr.SpawnTower(new Vector3(-3f, 0f, -2f), teamId: 1, ownerActorId: player.ID);
         }
     }
 

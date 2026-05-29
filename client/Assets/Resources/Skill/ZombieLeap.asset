@@ -20,7 +20,7 @@ MonoBehaviour:
   - Clip: {fileID: 7400000, guid: e9c02acd63158dc4dbe1ff94c11ab8a9, type: 3}
     Fade: 0.1
     HoldDuration: 0
-    ForwardDistance: 3
+    ForwardDistance: 6
     DistanceProfile:
       serializedVersion: 2
       m_Curve:
@@ -55,15 +55,63 @@ MonoBehaviour:
       m_PostInfinity: 2
       m_RotationOrder: 4
     HitWindows:
-    - StartNorm: 0.5
+    - StartNorm: 0
+      EndNorm: 0.1
+      Radius: 2
+      ForwardOffset: 0
+      Height: 1.5
+      Damage:
+        BaseDamage: 10
+        HitstopTier: 1
+        CritChance: 0
+        CritMultiplier: 0
+        Element: 0
+        AppliedBuffs: []
+    - StartNorm: 0.2
+      EndNorm: 0.3
+      Radius: 2
+      ForwardOffset: 0
+      Height: 1.5
+      Damage:
+        BaseDamage: 10
+        HitstopTier: 1
+        CritChance: 0
+        CritMultiplier: 0
+        Element: 0
+        AppliedBuffs: []
+    - StartNorm: 0.4
+      EndNorm: 0.5
+      Radius: 2
+      ForwardOffset: 0
+      Height: 1.5
+      Damage:
+        BaseDamage: 10
+        HitstopTier: 1
+        CritChance: 0
+        CritMultiplier: 0
+        Element: 0
+        AppliedBuffs: []
+    - StartNorm: 0.6
+      EndNorm: 0.7
+      Radius: 2
+      ForwardOffset: 0
+      Height: 1.5
+      Damage:
+        BaseDamage: 10
+        HitstopTier: 1
+        CritChance: 0
+        CritMultiplier: 0
+        Element: 0
+        AppliedBuffs: []
+    - StartNorm: 0.8
       EndNorm: 1
       Radius: 2
       ForwardOffset: 0
       Height: 1.5
       Damage:
-        BaseDamage: 100
+        BaseDamage: 10
         HitstopTier: 1
-        CritChance: 1
-        CritMultiplier: 1
+        CritChance: 0
+        CritMultiplier: 0
         Element: 0
         AppliedBuffs: []

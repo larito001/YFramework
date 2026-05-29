@@ -28,36 +28,25 @@ MonoBehaviour:
       m_PostInfinity: 2
       m_RotationOrder: 4
     HitWindows:
-    - StartNorm: 0.25
-      EndNorm: 0.55
+    - StartNorm: 0.2
+      EndNorm: 0.22
       Radius: 1
       ForwardOffset: 0.8
       Height: 1
       Damage:
-        BaseDamage: 30
+        BaseDamage: 20
         HitstopTier: 2
         CritChance: 0
         CritMultiplier: 0
         Element: 0
         AppliedBuffs: []
-  - Clip: {fileID: 7400102, guid: 914b09da235eea34ebdc4e71d057e815, type: 3}
-    Fade: 0.08
-    HoldDuration: 0
-    ForwardDistance: 1
-    DistanceProfile:
-      serializedVersion: 2
-      m_Curve: []
-      m_PreInfinity: 2
-      m_PostInfinity: 2
-      m_RotationOrder: 4
-    HitWindows:
-    - StartNorm: 0.2
-      EndNorm: 0.5
+    - StartNorm: 0.22
+      EndNorm: 0.24
       Radius: 1
       ForwardOffset: 0.8
       Height: 1
       Damage:
-        BaseDamage: 25
+        BaseDamage: 10
         HitstopTier: 2
         CritChance: 0
         CritMultiplier: 0
