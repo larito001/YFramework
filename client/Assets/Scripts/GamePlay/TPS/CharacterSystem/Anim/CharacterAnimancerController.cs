@@ -103,8 +103,16 @@ public class CharacterAnimancerController : LocomotionAnimController
                 currentLayer0Mixer = aimLocomotionMixer;
                 overrideNextLocomotionFade = 0f;
             }
-            smoothedAnimMoveX = Mathf.SmoothDamp(smoothedAnimMoveX, character.AnimMoveX, ref smoothMoveXVel, AnimMoveDampTime, Mathf.Infinity, Time.deltaTime);
-            smoothedAnimMoveY = Mathf.SmoothDamp(smoothedAnimMoveY, character.AnimMoveY, ref smoothMoveYVel, AnimMoveDampTime, Mathf.Infinity, Time.deltaTime);
+            // dt<=0 时**跳过** SmoothDamp：Unity 的 Mathf.SmoothDamp 在"已 settle（current==target）"那一帧会走 overshoot 分支
+            // 执行 (output-target)/deltaTime，deltaTime==0 → 0/0 = NaN，把 ref 速度 smoothMove*Vel 永久污染成 NaN，
+            // 之后每帧把 NaN 喂给 mixer.ParameterX/Y → ArgumentOutOfRangeException(value must not be NaN/Infinity)。
+            // Time.deltaTime 在暂停（Time.timeScale=0）/ 首帧 / 编辑器刚恢复时为 0，而 LateUpdate 仍会跑。dt<=0 时沿用上一帧平滑值即可。
+            float dt = Time.deltaTime;
+            if (dt > 0f)
+            {
+                smoothedAnimMoveX = Mathf.SmoothDamp(smoothedAnimMoveX, character.AnimMoveX, ref smoothMoveXVel, AnimMoveDampTime, Mathf.Infinity, dt);
+                smoothedAnimMoveY = Mathf.SmoothDamp(smoothedAnimMoveY, character.AnimMoveY, ref smoothMoveYVel, AnimMoveDampTime, Mathf.Infinity, dt);
+            }
             aimLocomotionMixer.ParameterX = smoothedAnimMoveX;
             aimLocomotionMixer.ParameterY = smoothedAnimMoveY;
         }

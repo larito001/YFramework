@@ -11,7 +11,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 58440f2dc37c3e64abf80c8588d8a8a6, type: 3}
   m_Name: PlayerAnimSet
-  m_EditorClassIdentifier:
+  m_EditorClassIdentifier: 
   Idle: {fileID: 7400004, guid: 914b09da235eea34ebdc4e71d057e815, type: 3}
   Walk: {fileID: 7400002, guid: 74ab6da24dee7ca40a83456cd2488156, type: 3}
   Run: {fileID: 7400002, guid: 74ab6da24dee7ca40a83456cd2488156, type: 3}
@@ -22,5 +22,7 @@ MonoBehaviour:
   SprintThreshold: 7
   DeathL: {fileID: 7400122, guid: 914b09da235eea34ebdc4e71d057e815, type: 3}
   DeathR: {fileID: 7400124, guid: 914b09da235eea34ebdc4e71d057e815, type: 3}
+  HitReact: {fileID: 7400000, guid: 0665bfc3e5c624948af52b87191543b2, type: 3}
+  HitReactFade: 0.05
   UpperBodyMask: {fileID: 31900000, guid: d230545fc4224170b84c70ad3efac58a, type: 2}
   DefaultFade: 0.1

@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 380b6113268355d44a1eca7cb631c756, type: 3}
-  m_Name: ZombieLeap
+  m_Name: ZombieLeap 1
   m_EditorClassIdentifier: 
   Name: ZombieLeap
   RecoverFade: 0.25
@@ -43,32 +43,14 @@ MonoBehaviour:
         inWeight: 0.33333334
         outWeight: 0.33333334
       - serializedVersion: 3
-        time: 0.4794942
-        value: 0.6670882
-        inSlope: 0.28166047
-        outSlope: 0.28166047
-        tangentMode: 0
-        weightedMode: 0
-        inWeight: 0.33333334
-        outWeight: 0.33333334
-      - serializedVersion: 3
-        time: 0.53687966
-        value: 0.69273657
-        inSlope: 0.636574
-        outSlope: 0.636574
+        time: 0.54521096
+        value: 0.7729215
+        inSlope: 1.7292435
+        outSlope: 1.7292435
         tangentMode: 0
         weightedMode: 0
         inWeight: 0.40463912
-        outWeight: 0.29823858
-      - serializedVersion: 3
-        time: 0.82652265
-        value: 0.8636555
-        inSlope: 0.9574011
-        outSlope: 0.9574011
-        tangentMode: 0
-        weightedMode: 0
-        inWeight: 0.33333334
-        outWeight: 0.33333334
+        outWeight: 0.13879488
       - serializedVersion: 3
         time: 1
         value: 1
@@ -82,13 +64,61 @@ MonoBehaviour:
       m_PostInfinity: 2
       m_RotationOrder: 4
     HitWindows:
-    - StartNorm: 0.1
+    - StartNorm: 0
+      EndNorm: 0.1
+      Radius: 2
+      ForwardOffset: 0
+      Height: 1.5
+      Damage:
+        BaseDamage: 10
+        HitstopTier: 1
+        CritChance: 0
+        CritMultiplier: 0
+        Element: 0
+        AppliedBuffs: []
+    - StartNorm: 0.2
       EndNorm: 0.3
       Radius: 2
       ForwardOffset: 0
       Height: 1.5
       Damage:
-        BaseDamage: 50
+        BaseDamage: 10
+        HitstopTier: 1
+        CritChance: 0
+        CritMultiplier: 0
+        Element: 0
+        AppliedBuffs: []
+    - StartNorm: 0.4
+      EndNorm: 0.5
+      Radius: 2
+      ForwardOffset: 0
+      Height: 1.5
+      Damage:
+        BaseDamage: 10
+        HitstopTier: 1
+        CritChance: 0
+        CritMultiplier: 0
+        Element: 0
+        AppliedBuffs: []
+    - StartNorm: 0.6
+      EndNorm: 0.7
+      Radius: 2
+      ForwardOffset: 0
+      Height: 1.5
+      Damage:
+        BaseDamage: 10
+        HitstopTier: 1
+        CritChance: 0
+        CritMultiplier: 0
+        Element: 0
+        AppliedBuffs: []
+    - StartNorm: 0.6
+      EndNorm: 0.7
+      Radius: 2
+      ForwardOffset: 0
+      Height: 1.5
+      Damage:
+        BaseDamage: 10
         HitstopTier: 1
         CritChance: 0
         CritMultiplier: 0
