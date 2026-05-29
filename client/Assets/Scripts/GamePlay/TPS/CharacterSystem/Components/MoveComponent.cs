@@ -75,9 +75,8 @@ public class MoveComponent : ICharacterComponent
         Vector3 wishHorizontal = Vector3.zero;
         if (!Owner.IsCastingSkill)
         {
+            // MoveWorld 由输入组件保证为世界空间、模 0~1、y=0，这里直接用（不重复归一/压平）
             Vector3 wishDir = input.MoveWorld;
-            wishDir.y = 0f;
-            if (wishDir.sqrMagnitude > 1f) wishDir.Normalize();
             // 三档：瞄准 → AimSpeed；非瞄准 + Shift → SprintSpeed；非瞄准默认 → WalkSpeed
             float maxSpeed;
             if (Owner.IsAiming) maxSpeed = AimSpeed;

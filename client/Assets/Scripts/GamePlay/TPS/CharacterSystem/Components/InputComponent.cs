@@ -56,15 +56,26 @@ public class InputComponent : InputComponentBase
         AimHeld = input.AimHeld;
         FireHeld = input.FireHeld;
 
-        // 瞄准世界点：鼠标射线 ∩ 枪口高度平面（俯视倾斜相机下"点哪打哪"靠这层平面）
-        var cam = cameraMgr != null ? cameraMgr.MainCamera : Camera.main;
-        if (cam != null)
+        // 瞄准世界点：仅瞄准时算（非瞄准不做无谓射线，且 AimWorldPoint 契约就是"AimHeld 时有效"）。
+        // 鼠标射线 ∩ 枪口高度平面（俯视倾斜相机下"点哪打哪"靠这层平面）。
+        if (AimHeld)
         {
-            var ray = cam.ScreenPointToRay(input.MousePosition);
-            float planeY = Owner.Position.y + Owner.MuzzleHeight;
-            var plane = new Plane(Vector3.up, new Vector3(0f, planeY, 0f));
-            if (plane.Raycast(ray, out float enter))
-                AimWorldPoint = ray.GetPoint(enter);
+            bool got = false;
+            var cam = cameraMgr != null ? cameraMgr.MainCamera : Camera.main;
+            if (cam != null)
+            {
+                var ray = cam.ScreenPointToRay(input.MousePosition);
+                float planeY = Owner.Position.y + Owner.MuzzleHeight;
+                var plane = new Plane(Vector3.up, new Vector3(0f, planeY, 0f));
+                if (plane.Raycast(ray, out float enter)) { AimWorldPoint = ray.GetPoint(enter); got = true; }
+            }
+            // 兜底：相机未就绪 / 射线未命中时朝角色正前方，绝不退化成世界原点（否则首帧瞄准会瞬转朝 (0,0,0)）
+            if (!got)
+            {
+                var fwd = Owner.Rotation * Vector3.forward;
+                fwd.y = 0f;
+                AimWorldPoint = Owner.Position + (fwd.sqrMagnitude > 1e-4f ? fwd.normalized : Vector3.forward);
+            }
         }
     }
 

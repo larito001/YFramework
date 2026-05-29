@@ -36,9 +36,8 @@ public abstract class InputComponentBase : ICharacterComponent
 
     public override void Detach()
     {
-        OnCastSkill = null;
-        OnReload = null;
-        OnWeaponSelect = null;
+        // 不在此置 null 事件：退订由各订阅者自己 Detach 时 `-=`（拆解按 Add 逆序，订阅者先于输入组件 Detach）。
+        // 发布方清订阅者会掩盖"订阅者忘记退订"的泄漏，归属也不清晰，故只清自身意图状态。
         MoveWorld = Vector3.zero;
         SprintHeld = false;
         AimHeld = false;
