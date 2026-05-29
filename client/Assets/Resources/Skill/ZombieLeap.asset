@@ -1,0 +1,62 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 380b6113268355d44a1eca7cb631c756, type: 3}
+  m_Name: ZombieLeap
+  m_EditorClassIdentifier: 
+  Name: ZombieLeap
+  RecoverFade: 0.25
+  Segments:
+  - Clip: {fileID: 7400000, guid: 177d5dd7bb2b4834a91226cf097a31ae, type: 3}
+    Fade: 0.1
+    HoldDuration: 0
+    ForwardDistance: 0.5
+    DistanceProfile:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    HitWindows: []
+  - Clip: {fileID: 7400000, guid: 5b3039ec412843d4ea92142d3cf1acbc, type: 3}
+    Fade: 0
+    HoldDuration: 0
+    ForwardDistance: 4.5
+    DistanceProfile:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    HitWindows: []
+  - Clip: {fileID: 7400000, guid: 4b9f5c073923f3a48a6c2e0c4e745c77, type: 3}
+    Fade: 0
+    HoldDuration: 0
+    ForwardDistance: 0
+    DistanceProfile:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    HitWindows:
+    - StartNorm: 0
+      EndNorm: 0.4
+      Radius: 1.8
+      ForwardOffset: 1
+      Height: 1
+      Damage:
+        BaseDamage: 40
+        HitstopTier: 2
+        CritChance: 0
+        CritMultiplier: 0
+        Element: 0
+        AppliedBuffs: []

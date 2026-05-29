@@ -48,9 +48,7 @@ public class WeaponAnimSet : ScriptableObject
     public AnimationClip Equip;        // 切到这把武器播
     public AnimationClip Holster;      // 切走这把武器播
 
-    [Header("近战变体（MeleeType 索引）")]
-    public AnimationClip MeleeHard;    // MeleeType=0 枪托砸
-    public AnimationClip MeleeKick;    // MeleeType=1 前踢
+    // 近战已上移为通用"技能"（SkillDef + SkillCastComponent），不再随武器配置。
 
     [Header("Aim 阈值（按 AnimSpeedRatio 真实 m/s blend）")]
     [Tooltip("第 0 档 AimIdle 对应速度（0=完全静立瞄准）")]
@@ -58,37 +56,7 @@ public class WeaponAnimSet : ScriptableObject
     [Tooltip("第 1 档 AimWalk / strafe 单位向量对应速度——建议 = MoveComponent.AimSpeed (m/s)。Cartesian mixer 用作 1D fallback")]
     public float AimWalkThreshold = 1.5f;
 
-    [Header("近战僵直（覆盖 MeleeComponent.SwingDuration）")]
-    [Tooltip("近战挥击锁定移动时长（秒）。0=不覆盖，用 MeleeComponent.SwingDuration 默认（一般 1.2s）。" +
-             "美工调完 MeleeHard/MeleeKick clip 后填实际 clip 长度（如 clip 0.6s 填 0.6）让锁定跟动画对齐。" +
-             "**比 SwingDuration 小也生效**——想要短锁定快接连击就填小值（如 0.4s），动作游戏感更强。" +
-             "WeaponComponent 切枪时通过 ResMgr 加载本 .asset 读这字段写到 Character.MeleeLockDuration。")]
-    public float MeleeLockDuration = 0f;
-
-    [Header("近战前冲（覆盖 MeleeComponent.ForwardSpeed / ForwardDuration）")]
-    [Tooltip("近战挥击的前冲峰值速度 (m/s)。0=不覆盖，用 MeleeComponent.ForwardSpeed 默认。" +
-             ">0=覆盖，0.0 时角色完全原地不前冲，3=轻动作，6~8=重击带强位移。" +
-             "WeaponComponent.ApplySwap 镜像到 Character.MeleeForwardSpeed。" +
-             "**约定**：填 <0 (如 -1) 表示\"显式覆盖为 0 不前冲\"，因为 0 被当作\"不覆盖\"信号。")]
-    public float MeleeForwardSpeed = 0f;
-    [Tooltip("近战前冲衰减时长 (s)。0=不覆盖，用 MeleeComponent.ForwardDuration 默认（2s）。" +
-             "**重要**：建议设 ≤ MeleeLockDuration，否则连按近战时前冲会被反复重启不归零，造成\"持续被推到正前方\"bug。" +
-             "推荐配法：MeleeLockDuration=0.5 + MeleeForwardDuration=0.3 → 推力前 0.3s 衰减到 0，剩 0.2s 完全静止再接下击。")]
-    public float MeleeForwardDuration = 0f;
-    [Tooltip("近战冷却时长 (s) = **两次按 V 的最小间隔**（HandleMelee 触发即启动，未结束的 V 输入被静默忽略）。0=不覆盖，用 MeleeComponent.Cooldown 默认（0=无冷却）。" +
-             "**不是\"swing 结束→下次出招\"间隔**，是\"按 V→按 V\"间隔。" +
-             "Cooldown < LockDuration 时 swing 内 cd 就过，可打断重启当前 swing；Cooldown >= LockDuration 时 swing 必须放完才能再按。" +
-             "例：LockDuration=0.5 + Cooldown=0.8 → 节奏 0.8s/击，每击放完再等 0.3s。" +
-             "例：LockDuration=0.5 + Cooldown=0.3 → swing 中段可打断重启，节奏 0.3s/击。" +
-             "适合：轻武器 0.2~0.4（连击爽快）；重武器 ≥ LockDuration（不可打断）。")]
-    public float MeleeCooldown = 0f;
-
     [Header("Fade")]
     [Tooltip("Shoot 触发的淡入时长（秒）。0=立即切让连发节奏紧凑；0.05~0.1=轻微淡入平滑")]
     public float ShootFade = 0f;
-    [Tooltip("近战 swing 结束回 locomotion 的 fade 时长（秒）。0=用 CharacterAnimSet.DefaultFade（一般 0.1s）。" +
-             "**用途**：melee 全身覆盖（Layer 0 全 + Layer 1 weight=0）退出时，Layer 0 切回 locomotion mixer + Layer 1 weight 恢复到 1。" +
-             "DefaultFade 0.1s 偏短，melee→walk 看起来突兀。配 0.2~0.3 让挥击残影和跑步起步有明显过渡。" +
-             "推荐：轻武器 0.2；重武器 0.3+（动作越大恢复越慢）。")]
-    public float MeleeRecoverFade = 0f;
 }

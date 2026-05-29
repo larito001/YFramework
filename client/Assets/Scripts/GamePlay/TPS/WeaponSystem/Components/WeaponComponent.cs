@@ -9,9 +9,8 @@ using UnityEngine;
 ///   - 换弹：监听 InputService.OnReloadDown → 转发给 currentWeapon.ReloadRequest，<see cref="ReloadComponent"/> 自己处理。
 ///     本组件镜像 currentWeapon.IsReloading → Owner.IsReloading（动画门控），上升沿触发 Owner.Reload trigger。
 ///
-/// 近战完全由 <see cref="MeleeComponent"/> 接管：V 键订阅、MeleeAttack/MeleeType/IsMeleeing 写入、
-/// swing 时长、前冲、命中、伤害结算、清回 IsMeleeing。本组件只在 Tick 里**读** IsMeleeing 做开火门控，
-/// 不写入也不清除近战字段。
+/// 近战已上移为通用"技能"（<see cref="SkillDef"/> + <see cref="SkillCastComponent"/>）。本组件只在 Tick 里**读**
+/// <see cref="Character.IsCastingSkill"/> 做开火/换弹/切枪门控（技能释放途中不可被这些操作打断），不写入技能字段。
 ///
 /// 字段写入：FireOrigin / FireDirection / FireTarget / FireIntent → currentWeapon。
 /// IsShooting / IsSwapping / WeaponSwap / WeaponHolster / CurrentWeaponSlot / IsReloading / Reload / Shoot / HeavyRecoil / RecoilAnimSpeed → Owner。
@@ -37,7 +36,6 @@ public class WeaponComponent : ICharacterComponent
 
     private InputService input;
     private WeaponManager weaponMgr;
-    private YOTO.ResMgr resMgr;  // 用来 Load WeaponAnimSet 读"动画驱动数据"（如 MeleeLockDuration），切枪时镜像写到 Character
     private Weapon currentWeapon;
     private float swapLockTimer;
     private bool prevReloading;     // 上升沿检测：currentWeapon.IsReloading 从 false→true 时触发 Owner.Reload 一次性 trigger
@@ -51,7 +49,6 @@ public class WeaponComponent : ICharacterComponent
         if (Ctx == null) { Debug.LogError("[WeaponComponent] GameLoop.Ctx 未就绪"); return; }
         Ctx.TryGet(out input);
         Ctx.TryGet(out weaponMgr);
-        Ctx.TryGet(out resMgr);
         if (input != null)
         {
             input.OnWeaponSelect += HandleWeaponSelect;
@@ -80,7 +77,7 @@ public class WeaponComponent : ICharacterComponent
             for (int i = 0; i < Weapons.Count; i++)
                 if (Weapons[i] != null) weaponMgr.Despawn(Weapons[i]);
         }
-        // 清自己写过的 Owner 状态字段。近战相关字段由 MeleeComponent 负责。
+        // 清自己写过的 Owner 状态字段。技能相关字段由 SkillCastComponent 负责。
         if (Owner != null)
         {
             Owner.IsShooting = false;
@@ -98,17 +95,11 @@ public class WeaponComponent : ICharacterComponent
             // 清动画 set 链：触发 view 回 idle pose
             Owner.CurrentWeaponAnimSetPath = null;
             Owner.WeaponAnimDirty = true;
-            // 清动画驱动数据，让 MeleeComponent 回 SwingDuration / ForwardSpeed / ForwardDuration / Cooldown 默认
-            Owner.MeleeLockDuration = 0f;
-            Owner.MeleeForwardSpeed = 0f;
-            Owner.MeleeForwardDuration = 0f;
-            Owner.MeleeCooldown = 0f;
         }
         currentWeapon = null;
         pendingHandMount = null;
         input = null;
         weaponMgr = null;
-        resMgr = null;
         swapLockTimer = 0f;
         mountToHandTimer = 0f;
         holsterTimer = 0f;
@@ -150,7 +141,7 @@ public class WeaponComponent : ICharacterComponent
 
         // 开火条件：瞄准 + 没在切枪 + 没在近战 + 没在换弹 + 没死 + 有弹（MagCapacity=0 是无限弹药武器，跳过弹药门控）
         bool hasAmmo = currentWeapon == null || currentWeapon.MagCapacity <= 0 || currentWeapon.CurrentAmmo > 0;
-        Owner.IsShooting = input.FireHeld && Owner.IsAiming && !Owner.IsSwapping && !Owner.IsMeleeing && !Owner.IsReloading && !Owner.IsDead && hasAmmo;
+        Owner.IsShooting = input.FireHeld && Owner.IsAiming && !Owner.IsSwapping && !Owner.IsCastingSkill && !Owner.IsReloading && !Owner.IsDead && hasAmmo;
 
         // 射击一次性 trigger 镜像：FireComponent 每发射成功置 ShootEvent，view 端 SetTrigger("Shoot") 重启 Recoil 动画
         if (currentWeapon != null && currentWeapon.ShootEvent)
@@ -234,10 +225,10 @@ public class WeaponComponent : ICharacterComponent
         if (Owner == null) return;
         if (Weapons == null || slot < 0 || slot >= Weapons.Count) return;
 
-        // 死亡 / melee swing 中静默忽略（手部 / 全身被占用）。playAnim=false 分支是 Factory 强制 spawn 路径，不走这两条门控。
+        // 死亡 / 技能释放中静默忽略（手部 / 全身被占用）。playAnim=false 分支是 Factory 强制 spawn 路径，不走这两条门控。
         // **不**拦 IsReloading：换弹中切枪打断 reload 是设计内的（ApplySwap 主动清旧武器 IsReloading=false）。
         if (playAnim && Owner.IsDead) return;
-        if (playAnim && Owner.IsMeleeing) return;
+        if (playAnim && Owner.IsCastingSkill) return;
 
         // mid-swap 守卫：动画切枪期间禁止再切。用 Owner.IsSwapping（由 swapLockTimer 覆盖全 Holster+Equip 时长驱动）
         // 比 holsterTimer/mountToHandTimer 更严密 —— 当 BackSocketName 空或 MountToHandDelay<=0 时两个 timer 可能没启动，
@@ -302,24 +293,6 @@ public class WeaponComponent : ICharacterComponent
         Owner.CurrentWeaponAnimSetPath = currentWeapon?.AnimSetPath;
         Owner.WeaponAnimDirty = true;
 
-        // 从新武器的 WeaponAnimSet 读"动画驱动数据"镜像到 Character 字段——让逻辑组件（如 MeleeComponent）能拿到美工配的时长
-        // 未来加新的动画驱动数据（如 ReloadAnimDuration / EquipAnimDuration）同样在这里加一行镜像
-        Owner.MeleeLockDuration = 0f;
-        Owner.MeleeForwardSpeed = 0f;
-        Owner.MeleeForwardDuration = 0f;
-        Owner.MeleeCooldown = 0f;
-        if (currentWeapon != null && !string.IsNullOrEmpty(currentWeapon.AnimSetPath) && resMgr != null)
-        {
-            var set = resMgr.Load<WeaponAnimSet>(currentWeapon.AnimSetPath);
-            if (set != null)
-            {
-                Owner.MeleeLockDuration = set.MeleeLockDuration;
-                Owner.MeleeForwardSpeed = set.MeleeForwardSpeed;
-                Owner.MeleeForwardDuration = set.MeleeForwardDuration;
-                Owner.MeleeCooldown = set.MeleeCooldown;
-            }
-        }
-
         if (playEquipAnim)
         {
             Owner.WeaponSwap = true;
@@ -339,8 +312,8 @@ public class WeaponComponent : ICharacterComponent
     {
         if (Owner == null || Owner.IsDead) return;
         if (currentWeapon == null) return;
-        // 切枪/近战中不响应：这些状态下角色手是占用的
-        if (Owner.IsSwapping || Owner.IsMeleeing) return;
+        // 切枪/技能释放中不响应：这些状态下角色手是占用的
+        if (Owner.IsSwapping || Owner.IsCastingSkill) return;
         currentWeapon.ReloadRequest = true;
     }
 }

@@ -71,6 +71,11 @@ public class CharacterManager : IGameService, ITickable
         SpawnDummy(new Vector3(2f, 0f, 6f));
         SpawnDummy(new Vector3(-2f, 0f, 6f));
 
+        // 测试用：spawn 2 个会随机行动（idle/走/跑/攻击/飞扑）的僵尸。
+        // 需先用菜单 Tools/TPS/Build Skill & Anim Assets 生成 Resources 下的 ZombieAnimSet + 技能资产。
+        SpawnZombie(new Vector3(4f, 0f, 8f));
+        SpawnZombie(new Vector3(-4f, 0f, 8f));
+
         // 测试用：玩家侧后方 spawn 一座塔（TeamId=1 玩家军 + 玩家 ID 作为放置者），验证锁敌 + telegraph + 开火链路
         if (ctx != null && ctx.TryGet<TowerManager>(out var towerMgr))
         {
@@ -82,6 +87,16 @@ public class CharacterManager : IGameService, ITickable
     public Character SpawnDummy(Vector3 position, float maxHealth = 1000f)
     {
         var c = factory.CreateDummy(position, maxHealth);
+        AttachLifecycleHooks(c);
+        characters.Add(c);
+        world.Register(c);
+        return c;
+    }
+
+    /// <summary>生成一个会随机行动的僵尸（locomotion + 技能 + 简单 AI）在指定位置。</summary>
+    public Character SpawnZombie(Vector3 position, float maxHealth = 200f)
+    {
+        var c = factory.CreateZombie(position, maxHealth);
         AttachLifecycleHooks(c);
         characters.Add(c);
         world.Register(c);

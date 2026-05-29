@@ -25,15 +25,26 @@ public class Character : Actor
     /// <summary>动画播放倍率（Animator.speed）。MoveComponent 按当前状态（walk/sprint/aim）写入，view 应用。</summary>
     public float AnimPlaybackRate = 1f;
 
-    // ── 战斗状态（WeaponComponent / MeleeComponent 写，view + 其他组件读门控） ──
+    // ── 战斗状态（WeaponComponent 写，view + 其他组件读门控） ──
     public bool IsShooting;
     /// <summary>右键按住=瞄准=抬枪。AimComponent 写，view 喂 Animator IsAiming，WeaponComponent 用它门控 IsShooting。</summary>
     public bool IsAiming;
-    /// <summary>一次性 trigger：组件置 true，view 消费后清回 false</summary>
-    public bool MeleeAttack;
-    public int MeleeType;
-    /// <summary>近战进行中，MoveComponent 锁水平位移。MeleeComponent 在 V 键触发时置 true，计时器到期清零。</summary>
-    public bool IsMeleeing;
+
+    // ── 技能（SkillCastComponent 写，view 读：全身不可打断技能链，见 SkillDef / SkillCastComponent）──
+    /// <summary>技能播放中。SkillCastComponent 起技能置 true、结束清 false。
+    /// **gating 总开关**：Move/Aim/Weapon 在它为 true 时锁移动/转身/开火（释放途中不可打断）；controller 用它锁全身覆盖。</summary>
+    public bool IsCastingSkill;
+    /// <summary>请求释放的技能下标（SkillCastComponent.Skills 索引）。AI / 测试写，组件消费后置回 -1。
+    /// 玩家近战走输入直接 Cast，不经此字段。-1 = 无请求。</summary>
+    public int RequestedSkillIndex = -1;
+    /// <summary>当前技能段要播的 clip。SkillCastComponent 进段时写，controller 消费 <see cref="SkillClipDirty"/> 时播放。</summary>
+    public AnimationClip SkillClip;
+    /// <summary>一次性：有新段 clip 待播。SkillCastComponent 进段置 true，controller 全身分支 Play(SkillClip) 后清回。</summary>
+    public bool SkillClipDirty;
+    /// <summary>当前段进入淡入时长（秒）。0 = 用 CharacterAnimSet.DefaultFade。</summary>
+    public float SkillClipFade;
+    /// <summary>技能结束回 locomotion 的淡入时长（秒）。SkillCastComponent EndCast 时写（= SkillDef.RecoverFade）。0 = 默认。</summary>
+    public float SkillRecoverFade;
 
     /// <summary>切枪进行中，WeaponComponent 用它门控开火。计时器到期自动清零（覆盖 Holster + Equip 两阶段）。</summary>
     public bool IsSwapping;
@@ -72,21 +83,6 @@ public class Character : Actor
     /// <summary>角色级 <see cref="CharacterAnimSet"/> 资源路径（Resources 相对路径）。Factory 创建时设一次，view Bind 时加载。
     /// 跟 CurrentWeaponAnimSetPath 分工：character set 含 locomotion + death + UpperBodyMask（跟角色走），weapon set 含 combat + aim（跟武器走）。</summary>
     public string CurrentCharacterAnimSetPath;
-
-    /// <summary>近战僵直锁定时长（秒）。WeaponComponent.ApplySwap 时从当前武器的 WeaponAnimSet.MeleeLockDuration 镜像写入。
-    /// MeleeComponent.Tick 用 `Owner.MeleeLockDuration &gt; 0 ? Owner.MeleeLockDuration : SwingDuration` 决定实际锁定时长。
-    /// 0 = 用 MeleeComponent.SwingDuration 默认值（不覆盖）；&gt;0 = 覆盖 SwingDuration（允许缩短或延长）。</summary>
-    public float MeleeLockDuration;
-
-    /// <summary>近战前冲峰值速度 (m/s)。WeaponComponent.ApplySwap 从 WeaponAnimSet.MeleeForwardSpeed 镜像。
-    /// 0 = 不覆盖用 MeleeComponent.ForwardSpeed 默认；&gt;0 = 覆盖；&lt;0 = 显式覆盖为 0 不前冲。</summary>
-    public float MeleeForwardSpeed;
-    /// <summary>近战前冲衰减时长 (s)。WeaponComponent.ApplySwap 从 WeaponAnimSet.MeleeForwardDuration 镜像。
-    /// 0 = 不覆盖用 MeleeComponent.ForwardDuration 默认；&gt;0 = 覆盖。建议设 ≤ MeleeLockDuration 避免连击推力叠加。</summary>
-    public float MeleeForwardDuration;
-    /// <summary>近战冷却时长 (s)。WeaponComponent.ApplySwap 从 WeaponAnimSet.MeleeCooldown 镜像。
-    /// 0 = 不覆盖用 MeleeComponent.Cooldown 默认（0=无冷却）；&gt;0 = swing 结束后强制等待这么久才能触发下一次。</summary>
-    public float MeleeCooldown;
 
     /// <summary>枪口高度（相对角色脚下 Position.y 的偏移，米）。
     /// AimComponent 用它做鼠标→世界射线相交平面（俯视角倾斜相机下，点哪打哪要靠这层平面）；

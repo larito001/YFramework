@@ -5,14 +5,14 @@ using UnityEngine;
 /// 创建 Character：new Character + 装组件 + ViewManager 加载 prefab。
 /// 同时按"配方"造 Weapon Actor（数据 + FireComponent + ReloadComponent），交给 WeaponComponent 持有。
 ///
-/// 组件 Add 顺序（= Tick 顺序）固定为 Aim → Move → Weapon → Melee → Gravity → Health → Hitstop → AutoDespawn，原因：
+/// 组件 Add 顺序（= Tick 顺序）固定为 Aim → Move → Weapon → SkillCast → Gravity → Health → Hitstop → AutoDespawn，原因：
 ///   - Aim 在 Move 之前：Move 用 Aim 写入的 Rotation 反算 local 动画方向
-///   - Melee 在 Move 之后：Melee 在前冲窗内覆写 WishVelocity.x/z，Move 在后会抹掉
-///   - Gravity 在 Move/Melee 之后：x/z 由前面写完，Gravity 最后一锤定 y
+///   - SkillCast 在 Move 之后：技能释放时覆写 WishVelocity.x/z 做位移，Move 在后会抹掉
+///   - Gravity 在 Move/SkillCast 之后：x/z 由前面写完，Gravity 最后一锤定 y
 ///   - Health 顺序无所谓（不 Tick），但要在 Hitstop/AutoDespawn 之前 Add——它俩 Attach 时要 Get HealthComponent 订阅事件
 ///   - Hitstop/AutoDespawn 只订阅 OnDamaged/OnDied，顺序无所谓
 ///
-/// Dummy 配方只装 HealthComponent + GravityComponent + 反馈/清理组件，没有 Aim/Move/Weapon/Melee。
+/// Dummy 配方只装 HealthComponent + GravityComponent + 反馈/清理组件，没有 Aim/Move/Weapon/SkillCast。
 /// </summary>
 public class CharacterFactory
 {
@@ -42,24 +42,13 @@ public class CharacterFactory
                 BuildBurstRifle(),
             },
         });
-        // 近战自包含：V 键订阅 / swing 时长 / 命中窗 / 前冲 / hitbox 都在这里。
-        // 默认 hitbox 是球，前方 0.8m 半径 1m，命中窗 0.25-0.55s 内做 OverlapSphere。
-        character.Add(new MeleeComponent
+        // 技能：玩家近战 = Skills[0]，V 键释放（BindMeleeInput）。技能段/命中窗/位移在 SkillDef 资产里配。
+        // **依赖资产**：Resources/Skill/PlayerMelee.asset（菜单 Tools/TPS/Build Skill & Anim Assets 一键生成）。
+        //   资产建好前按 V 无效（Cast 找不到 SkillDef）。Add 顺序在 Move 之后、Gravity 之前——位移覆写 WishVelocity.xz 后由 Gravity 定 y。
+        character.AddAfter<SkillCastComponent, MoveComponent>(new SkillCastComponent
         {
-            MeleeType = 0,          // 0=Hard 枪托砸，1=Kick 前踢
-            SwingDuration = 1.2f,
-            HitStartTime = 0.25f,
-            HitEndTime = 0.55f,
-            HitRadius = 1.0f,
-            HitForwardOffset = 0.8f,
-            HitHeight = 1.0f,
-            Damage = new DamageSpec
-            {
-                BaseDamage = 30f,
-                HitstopTier = HitstopTier.Long,   // 近战重击，长卡肉
-            },
-            ForwardSpeed = 3f,
-            ForwardDuration = 2f,   // 配合 SwingDuration=1.2，总位移 ~2.5m
+            SkillPaths = new List<string> { "Skill/PlayerMelee" },
+            BindMeleeInput = true,
             // HitLayers 默认全开。生产期建议改成只含敌人层。
         });
         // 重力 + 贴地。写 WishVelocity.y，放在所有写 x/z 的组件之后
@@ -116,6 +105,47 @@ public class CharacterFactory
         // 这里手动设默认 AnimSet（复用 Pistol 那套 clip），让 view 加载后 Die / Locomotion 都能跑
         character.CurrentWeaponAnimSetPath = "Weapon/Anim/Pistol";
         character.WeaponAnimDirty = true;
+        return character;
+    }
+
+    /// <summary>会动会打的僵尸敌人：locomotion（idle/慢走/快跑）+ 技能（攻击/飞扑，<see cref="SkillDef"/>）+ 简单随机 <see cref="ZombieAIComponent"/>。
+    /// view 复用 Player.prefab（僵尸 clip 是 Humanoid，retarget 到玩家骨架；后续有专门僵尸 mesh prefab 再换 ZombieView）。
+    ///
+    /// **依赖资产**（用菜单 Tools/TPS/Build Skill & Anim Assets 一键生成）：
+    ///   - Resources/Zombie/ZombieAnimSet.asset（CharacterAnimSet：Idle/Walk/Run + Death + 阈值）
+    ///   - Resources/Skill/ZombieAttack.asset / ZombieLeap.asset（SkillDef）
+    /// 资产缺失时：locomotion / 技能不播（graceful），AI 仍跑但看不到动作。
+    ///
+    /// 组件 Add 顺序：ZombieAI → SkillCast → Gravity → Health → Hitstop → AutoDespawn
+    ///   （AI 写 WishVelocity/RequestedSkillIndex；SkillCast 随后消费 + 技能段覆写 x/z；Gravity 定 y）。</summary>
+    public Character CreateZombie(Vector3 position, float maxHealth = 200f)
+    {
+        var character = new Character { TeamId = 2, CurrentCharacterAnimSetPath = "Zombie/ZombieAnimSet" };
+        character.Add(new ZombieAIComponent
+        {
+            WalkSpeed = 1.5f,
+            RunSpeed = 4f,
+            AttackSkillIndex = 0,
+            LeapSkillIndex = 1,
+        });
+        character.Add(new SkillCastComponent
+        {
+            SkillPaths = new List<string> { "Skill/ZombieAttack", "Skill/ZombieLeap" },
+            BindMeleeInput = false, // 僵尸不订阅玩家输入，由 AI 写 RequestedSkillIndex 触发
+            // HitLayers 默认全开（调试）。生产期设成只含玩家层。
+        });
+        character.Add(new GravityComponent());
+        character.Add(new HealthComponent { InitialMaxHealth = maxHealth });
+        character.Add(new HitstopOnDamageComponent());
+        character.Add(new AutoDespawnComponent { Delay = 3f });
+
+        var view = manager.LoadBaseView<CharacterView>("Player/Player", character);
+        if (view != null)
+        {
+            view.gameObject.name = $"Zombie_{character.ID}";
+            TeleportTo(view, position);
+            character.Position = position;
+        }
         return character;
     }
 

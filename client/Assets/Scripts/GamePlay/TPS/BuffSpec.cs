@@ -4,7 +4,10 @@
 ///
 /// 当前是占位 struct（BuffId + Duration），buff 系统未实现时 BuffComponent.AddBuff 只 log。
 /// 未来 Buff 完整化时本字段扩展为：BuffConfig 引用 / Stack 数 / Caster ID / 自定义参数 dict 等。
+///
+/// **[Serializable]**：支持序列化进 ScriptableObject（DamageSpec.AppliedBuffs 在 SkillDef 等资产里 Inspector 编辑）。
 /// </summary>
+[System.Serializable]
 public struct BuffSpec
 {
     /// <summary>Buff 配置表 ID。0 = 无效（不会被应用）。</summary>

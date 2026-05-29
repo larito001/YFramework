@@ -69,7 +69,7 @@ TPS/
 - ❌ **驱动多订阅者关心的状态变化派生效应**：damage→飘字/卡肉/清理这种"多个系统都要响应同一个状态变化"必须走事件订阅，不在逻辑组件里 inline 调 UI/Manager
 
 判断准则（按这个就行，别纠结边界）：
-- **预期只有 1 个反馈者** + **紧耦合于动作本身** → inline 调 service 即可（FireComponent → CameraShake、MeleeComponent → CameraShake）
+- **预期只有 1 个反馈者** + **紧耦合于动作本身** → inline 调 service 即可（FireComponent → CameraShake）
 - **多个系统订阅同一状态变化** → 逻辑组件只发事件（HealthComponent.OnDamaged 有 view 闪烁、飘字、卡肉、清理多个订阅者）
 
 Tick 顺序由 Add 顺序决定，Factory 是唯一约定 Add 顺序的地方。有顺序依赖的组件**类注释里写明**。
@@ -79,7 +79,7 @@ Tick 顺序由 Add 顺序决定，Factory 是唯一约定 Add 顺序的地方。
 - **通用组件**：直接继承 `IActorComponent`，Owner=Actor。**只读写 Actor 基类字段**。可挂任何 Actor 子类（Character / Weapon / Bullet / 未来的 NPC / Pickup / Destructible）。
   例：`HealthComponent` / `HitstopOnDamageComponent` / `GravityComponent` / `AutoDespawnComponent`。
 - **特化组件**：继承 `ICharacterComponent` / `IWeaponComponent` / `IBulletComponent` / `ITowerComponent`，Owner=对应子类。需要子类专属字段时走这个，或语义上只该挂某子类时也走这个（即便当前没专属字段）。
-  例：`MoveComponent` / `AimComponent` / `WeaponComponent` / `FireComponent` / `MeleeComponent` / `ReloadComponent` / `BulletMoveComponent` / `MissileMoveComponent` / `TowerTargetingComponent` / `TowerWeaponComponent`。
+  例：`MoveComponent` / `AimComponent` / `WeaponComponent` / `SkillCastComponent` / `ZombieAIComponent` / `FireComponent` / `ReloadComponent` / `BulletMoveComponent` / `MissileMoveComponent` / `TowerTargetingComponent` / `TowerWeaponComponent`。
 
 判断：组件 Tick 里**只读写 Actor 基类字段** → 通用组件；只要 cast Owner 取子类字段 → 特化组件。**通用组件里禁止 `Owner as Character` / `Owner as Bullet` 等 cast**——cast 即承认特化，应改回对应子家族继承。
 
@@ -170,7 +170,7 @@ TimeScaleService → CharacterManager → TowerManager → WeaponManager → Bul
 
 | 类型 | 角色 | 谁持有 | 什么时候构建 |
 |---|---|---|---|
-| `DamageSpec` | **配置模板**：基础伤害 / 卡肉 / 暴击概率 / 暴击倍率 / 元素 / 携带 buff | 攻击者侧组件（MeleeComponent.Damage / FireComponent.Damage / Bullet.Damage） | Factory 配（object initializer） |
+| `DamageSpec` | **配置模板**：基础伤害 / 卡肉 / 暴击概率 / 暴击倍率 / 元素 / 携带 buff | 攻击者侧组件 / 资产（SkillDef.HitWindow.Damage / FireComponent.Damage / Bullet.Damage） | Factory object initializer 或 SkillDef 资产 Inspector（[Serializable]） |
 | `DamageInfo` | **运行时实例**：spec + 上下文（AttackerId / TeamId）+ roll 结果（IsCritical/CritMultiplier）+ 输出（FinalAmount） | 临时 struct，不持有 | 命中那一帧 `DamageInfo.Build(in spec, attackerId, teamId)` |
 
 **好处**：攻击者组件只配一份 spec，命中代码永远一行 `var info = DamageInfo.Build(in Damage, attackerId, teamId);`。加暴击/元素/buff 只改 spec 字段值，命中代码不变。
@@ -207,7 +207,7 @@ DamageInfo.Build(in spec, ...)  →  ApplyToActor / TryHit          →   Health
 
 | 模块 | 职责 |
 |---|---|
-| **攻击者侧组件**（FireComponent / MeleeComponent / 技能 / AI） | 持 `DamageSpec` 字段（Factory 配）；命中时一行 `DamageInfo.Build(in spec, attackerId, teamId)` |
+| **攻击者侧组件 / 技能**（FireComponent / SkillCastComponent(SkillDef.HitWindow) / Bullet / AI） | 持 `DamageSpec`（Factory 配或 SkillDef 资产）；命中时一行 `DamageInfo.Build(in spec, attackerId, teamId)` |
 | **DamageInfo.Build**（static factory） | 从 spec 组装 DamageInfo；内部 roll 暴击（Random.value &lt; spec.CritChance）；spec 其他字段（Element / Buffs）原样透传 |
 | **DamageRouter** | 路由 Collider → Actor.ID → HealthComponent，过滤自伤 |
 | **DamageCalculator**（static） | 公式集中处：暴击放大 × 元素抗性 × 减伤 buff 全部走这。无副作用、无 HP 写入 |
@@ -290,60 +290,110 @@ Weapon 体系不假设持有者类型——**Character / 塔 / 敌人 / 载具 /
 Character 上的动画字段是**"逻辑组件 → view" 协议层**：
 
 ```
-WeaponComponent / MeleeComponent / HealthComponent 等逻辑组件
+WeaponComponent / SkillCastComponent / HealthComponent / AI 组件 等逻辑组件
                   ↓ 写
-Character.{Shoot/Reload/WeaponSwap/WeaponHolster/MeleeAttack/MeleeType/Die/DeathVariant/
+Character.{Shoot/Reload/WeaponSwap/WeaponHolster/Die/DeathVariant/
            IsAiming/IsShooting/IsReloading/HeavyRecoil/RecoilAnimSpeed/
            AnimMoveX/Y/AnimSpeedRatio/AnimPlaybackRate/
-           CurrentWeaponAnimSetPath/WeaponAnimDirty}
+           CurrentWeaponAnimSetPath/WeaponAnimDirty/
+           IsCastingSkill/RequestedSkillIndex/SkillClip/SkillClipDirty/SkillClipFade/SkillRecoverFade}
                   ↓ 读
 CharacterView.LateUpdate
                   ↓ 调用任何方案
 Unity Animator / Animancer / 自研 Playables
 ```
 
-**view 内部可以用任何动画方案实现**——只要消费 Character 协议字段即可。**当前实现：Animancer + 双 AnimSet ScriptableObject，封装在 `CharacterAnimancerController`** 普通 class 里：
+> **技能协议**：`SkillCastComponent`（逻辑侧）owns 技能时间线 + 命中窗伤害 + 位移（写 `WishVelocity`），并把当前段 clip 交到 `SkillClip`/`SkillClipDirty`；`IsCastingSkill` 是全身锁 + gating 总开关（释放途中 Move/Aim/Weapon 全锁，不可打断）。controller 只是"按 SkillClip 播全身"的跟随器。
+
+**view 内部可以用任何动画方案实现**——只要消费 Character 协议字段即可。**当前实现：Animancer + AnimSet ScriptableObject，封装在 `LocomotionAnimController` 基类 + 派生 controller 里**：
+
+### Controller 继承结构
+
+```
+LocomotionAnimController（基类，普通 class）
+  通用层：Die + 技能全身分支（播 SkillClip）+ locomotion 1D mixer + 上下身 Layer/Mask + one-shot 生命周期
+  优先级：Die > 技能(IsCastingSkill 锁全身) > DriveCombat(派生武器 one-shot) > locomotion
+  virtual 钩子：PreDrive / DriveCombat / IsFullBodyHeld(默认=IsCastingSkill) / GetFullBodyRecoverFade / UpdateLocomotion
+  ├─ CharacterAnimancerController（玩家）：武器/瞄准段——weaponAnimSet + Aim 2D mixer + Shoot/Reload/Equip/Holster
+  └─ ZombieAnimancerController（僵尸/AI）：空具体子类（locomotion + 技能全在基类，无武器无瞄准）
+```
+
+view 侧通过 `CharacterView.CreateController()`（protected virtual）选 controller：玩家 view 返回 `CharacterAnimancerController`，`ZombieView`（薄子类）override 返回 `ZombieAnimancerController`，其余 view 逻辑全继承。**后续所有怪物统一走僵尸行为**（CreateZombie：复用 Player prefab + ZombieAIComponent + SkillCastComponent）。
+
+### 技能系统（SkillDef + SkillCastComponent）
+
+**全身不可打断战斗动作**（玩家近战、僵尸攻击/飞扑）统一为**技能**：
+
+- **`SkillDef`**（ScriptableObject = 技能编辑器，Inspector 编辑）：一组按顺序播的 `SkillSegment`，每段 = clip + `Fade` + `HoldDuration`（0=clip.length，>0=循环 N 秒）+ `ForwardDistance`（前向位移）+ `DistanceProfile`（位移曲线）+ `HitWindows[]`（归一化时间命中窗 + 球形 hitbox + `DamageSpec`）。攻击位移=0（Stand_To_Atk→Atk_Loop→Atk_End），飞扑 Air 段位移大（Jump_Start→Air→End）。
+- **`SkillCastComponent`**（ICharacterComponent，取代旧 MeleeComponent）：`Cast(i)` 不可打断；逐段推进时间线（clip.length / HoldDuration）；命中窗内 OverlapSphere 扣血（复用 `DamageRouter`）；位移写 `WishVelocity.xz`（逻辑侧，Gravity 定 y）；置 `IsCastingSkill` 锁全角色；把当前段 clip 交给 controller。触发：玩家 `BindMeleeInput` 订阅 V 键；AI 写 `RequestedSkillIndex` / 直接 `Cast`。
+- **资产**：`Tools/TPS/Build Zombie Assets` 菜单（`ZombieAssetBuilder`）从 zombie fbx 一键生成 ZombieAnimSet + ZombieAttack/ZombieLeap SkillDef 到 Resources。
 
 ### 双 AnimSet 分工
 
 | AnimSet | 字段 | 跟谁绑定 | 何时加载 |
 |---|---|---|---|
-| `CharacterAnimSet` | Locomotion (Idle/Walk/Run/Sprint) + 阈值 + Death(L/R) + UpperBodyMask + DefaultFade | **角色**（不同角色不同走路 / 死亡姿势） | view Bind 时**一次性**加载（`Character.CurrentCharacterAnimSetPath`，Factory 设） |
-| `WeaponAnimSet` | Aim 1D fallback (AimIdle/AimWalk) + 8 方向 strafe + Combat (Shoot/Reload/Equip/Holster/Melee) + aim 阈值 + ShootFade | **武器**（每把枪不同上半身姿势） | **切武器时**重新加载（`Weapon.AnimSetPath` → `Character.CurrentWeaponAnimSetPath` + `WeaponAnimDirty` trigger） |
+| `CharacterAnimSet` | Locomotion (Idle/Walk/Run/Sprint) + 阈值 + Death(L/R) + UpperBodyMask + DefaultFade | **角色**（玩家 / 僵尸各一份，不同走路 / 死亡姿势） | view Bind 时**一次性**加载（`Character.CurrentCharacterAnimSetPath`，Factory 设） |
+| `WeaponAnimSet` | Aim 1D fallback (AimIdle/AimWalk) + 8 方向 strafe + Combat (Shoot/Reload/Equip/Holster) + aim 阈值 + ShootFade | **武器**（每把枪不同上半身姿势） | **切武器时**重新加载（`Weapon.AnimSetPath` → `Character.CurrentWeaponAnimSetPath` + `WeaponAnimDirty` trigger） |
 
-**关键收益**：切武器只重建 aim mixer，**非瞄准 locomotion mixer 保持连续**——下半身走路不被打断。每把枪只需要配上半身相关 clip，不需要复制 locomotion。
+> 技能 clip 不在 AnimSet 里——在独立的 `SkillDef` 资产上（玩家近战、僵尸技能各自的 .asset）。
 
-
+**关键收益**：切武器只重建 aim mixer，**非瞄准 locomotion mixer 保持连续**——下半身走路不被打断。
 
 ```
 CharacterView.LateUpdate
-  ├─ CC.Move 物理 + transform 同步
-  ├─ animController.Tick(character, scale)   ← 委托动画驱动
-  │    ├─ 检测 character.WeaponAnimDirty → LoadAnimSet(WeaponAnimSet 资源)
+  ├─ CC.Move(WishVelocity) 物理 + transform 同步（技能位移也走 WishVelocity，由此应用）
+  ├─ animController.Tick(character, scale)   ← 委托动画驱动（基类 LocomotionAnimController）
+  │    ├─ PreDrive(character)                ← virtual，玩家在此按 WeaponAnimDirty 加载 WeaponAnimSet
   │    ├─ Animancer.Graph.Speed = scale（全局时间缩放）
-  │    └─ DriveAnimation：trigger 优先级状态机 + UpdateLocomotion mixer
+  │    └─ DriveAnimation：Die → 技能(SkillClipDirty 播全身, IsCastingSkill 锁) → DriveCombat(virtual) → one-shot 生命周期 → UpdateLocomotion(virtual)
   └─ Flash 闪烁 + Death 溶解 视觉反馈
 ```
 
 **封装边界**：
-- `CharacterAnimancerController` 自治：mixer 构造 / Layer/Mask 管理 / state 切换 / SmoothDamp / 加载 AnimSet
-- view 只管 CC 物理 / 受击闪烁 / 死亡溶解 / 飘字 / 订事件
+- `LocomotionAnimController` 自治通用层：mixer 构造 / Layer/Mask 管理 / state 切换 / 技能全身播放 / one-shot 进出生命周期 / 加载 CharacterAnimSet
+- 派生 controller 只填武器 one-shot（玩家）；僵尸子类为空（基类全覆盖）
+- view 只管 CC 物理 / 受击闪烁 / 死亡溶解 / 飘字 / 订事件 / `CreateController()` 选 controller
 - controller 通过 `OnDeathTriggered` 事件通知 view 做 GameObject 级响应（disable CC 让子弹穿过尸体）
 
-**关键技术细节**（详见 CharacterAnimancerController 类注释）：
-- Locomotion：`LinearMixerState` 4 child (Idle/Walk/Run/Sprint) 按 `AnimSpeedRatio` 真实 m/s blend
-- Aim Locomotion：`CartesianMixerState` 9 child (Idle 中心 + 8 方向 strafe) 按 `(AnimMoveX, AnimMoveY)` 2D blend，替代 BlendTree 2D
-- 上下身分离：`UpperBodyMask` 配了启用 Layer 1（Combat 走上半身 / Locomotion 走全身），mask=null 时单层 Combat 覆盖
-- 状态优先级：Die（全身 Layer 0 + Layer 1 weight=0） &gt; Melee（全身 Layer 0） &gt; Holster &gt; Equip &gt; Reload &gt; Shoot &gt; Locomotion
-- 转向 SmoothDamp：mixer.ParameterX/Y 用 `AnimMoveDampTime` 平滑，避免方向瞬切硬切（MoveComponent 转向无 lerp 设计）
+**关键技术细节**（详见各 controller 类注释）：
+- Locomotion（基类）：`LinearMixerState` 按 `AnimSpeedRatio` 真实 m/s blend；child 数随 CharacterAnimSet 非 null clip 退化（4/2/1/0）
+- Aim Locomotion（玩家 override）：`CartesianMixerState` 9 child (Idle 中心 + 8 方向 strafe) 按 `(AnimMoveX, AnimMoveY)` 2D blend
+- 上下身分离（基类）：`UpperBodyMask` 配了启用 Layer 1（Combat 走上半身 / Locomotion 走全身），mask=null 时单层 Combat 覆盖（僵尸常态）
+- 状态优先级：Die（全身 Layer 0 + Layer 1 weight=0） &gt; 技能全身（`IsCastingSkill` 期间锁，结束 SkillRecoverFade 回 locomotion） &gt; DriveCombat 上半身 one-shot（Holster/Equip/Reload/Shoot） &gt; Locomotion
+- 转向 SmoothDamp（玩家 override）：aim mixer.ParameterX/Y 用 `AnimMoveDampTime` 平滑，避免方向瞬切硬切（MoveComponent 转向无 lerp 设计）
 
-**换动画方案的成本**：换回 Animator / 升级 Animancer Pro 高级 mixer / 自研都只重写 `CharacterAnimancerController` 一个类，view + 逻辑组件零改动。
+**加新角色类型的成本**：复用通用层，只新建一个 `XxxView : CharacterView` override `CreateController`（僵尸甚至直接复用 `CharacterView`），locomotion/death/分层/技能全白送。新动作 = 新建一个 `SkillDef` 资产（不写代码）。
 
-**架构层选择权**：换回 Unity Animator / 升级 Animancer LinearMixerState / 自研都不破坏 ARCHITECTURE——只重写 `CharacterView.LateUpdate` + `DriveAnimation`，逻辑组件零改动。
+**换动画方案的成本**：换回 Animator / 升级 Animancer Pro 高级 mixer / 自研都只重写 controller 类，view + 逻辑组件零改动。
 
 ### 给美工
 
 加新武器动画的操作步骤详见 `docs/Animancer 武器动画指南.md`。Factory 配 `Weapon.AnimSetPath = "Resources 相对路径"` 程序员负责，`WeaponAnimSet.asset` 美工创建 + 拖 clip。
+
+### 技能编辑器（SkillDef）使用
+
+技能（玩家近战 / 僵尸攻击·飞扑 等"全身不可打断带伤害的动作"）= 一个 **`SkillDef` ScriptableObject 资产**，**纯 Inspector 编辑**，不写代码。
+
+**新建一个技能**：
+1. Project 窗口 → Create → **TPS → SkillDef**，放到 `Assets/Resources/Skill/` 下（如 `Resources/Skill/PlayerMelee.asset`）——必须在 Resources 里，SkillCastComponent 按相对路径加载。
+2. 填 `Name`（编辑器可读）、`RecoverFade`（整技能放完回跑步的淡入，0=默认）。
+3. 配 `Segments`（按顺序播放的段，每段一个 clip）：
+   - `Clip`：本段动画（全身）。
+   - `Fade`：进入本段淡入（0=默认；段间衔接填 0~0.1 紧凑）。
+   - `HoldDuration`：0 = 播到 clip 自然结束；>0 = 循环该 clip 这么多秒再进下一段（**循环段的 clip 要在 fbx import 勾 Loop Time**）。
+   - `ForwardDistance`：本段沿角色前向的总位移（米）。0=原地（攻击）；正=前冲（飞扑 Air 段填大值）；负=后退。
+   - `DistanceProfile`：位移随段内进度的曲线（x=段进度 0→1，y=已位移占比 0→1）。留空=匀速。可做"前段爆发后段刹车"。
+   - `HitWindows`：本段命中窗（可多个，做多段连击伤害）：
+     - `StartNorm`/`EndNorm`：段内归一化时间 [0,1] 开/关伤害检测（对齐 clip 的命中帧）。
+     - `Radius`/`ForwardOffset`/`Height`：球形 hitbox（中心 = 角色脚下 + 前向×Offset + 上×Height）。
+     - `Damage`：伤害配方（`DamageSpec`：基础伤害 / 卡肉 tier / 暴击 / 元素 / buff）。
+4. 把 Resources 相对路径配到持有者的 `SkillCastComponent.SkillPaths`（程序员在 Factory 里配；下标即触发索引）。
+
+**触发**：玩家 `SkillCastComponent.BindMeleeInput=true` → V 键释放 `SkillPaths[0]`；AI 写 `Character.RequestedSkillIndex = i` 或直接调 `SkillCastComponent.Cast(i)`。释放途中移动/转身/开火/再触发全部被 `IsCastingSkill` 锁住（不可打断）。
+
+**配置范例**：单段攻击 = [Atk(HitWindow 命中帧)]；起手→循环→收招 = [Stand_To_Atk, Atk_Loop(HoldDuration), Atk_End]；连招 = 多段各带命中窗（如玩家近战 [Hard, Kick]）；飞扑 = [Jump_Start, Jump_Air(ForwardDistance 大), Jump_End(落地命中窗)]。
+
+**一键生成现有技能资产**：菜单 **Tools/TPS → Build Skill & Anim Assets**（`ZombieAssetBuilder`）从真实 fbx clip 程序化生成 ZombieAnimSet + ZombieAttack + ZombieLeap + PlayerMelee 到 Resources。要改数值/段，既可直接改生成的 .asset（Inspector），也可改 builder 后重跑（会覆盖）。
 
 ---
 

@@ -26,7 +26,10 @@ using System.Collections.Generic;
 ///
 /// **字段语义对照 DamageInfo**：DamageSpec 是"模板配置"（静态），DamageInfo 是"运行时实例"（含 attacker 上下文 + roll 结果）。
 /// 暴击 roll 在 Build 时做，避免散到每个攻击者组件。
+///
+/// **[Serializable]**：除了代码里 object initializer 配置，也支持序列化进 ScriptableObject（如 SkillDef.HitWindow.Damage），在 Inspector 编辑。
 /// </summary>
+[System.Serializable]
 public struct DamageSpec
 {
     /// <summary>基础伤害值。0 = 无伤害（仍会走 calculator / OnDamaged 链路，可用于"只触发反馈不扣血" 的命中）。</summary>

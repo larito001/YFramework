@@ -31,7 +31,13 @@
       "Bash(git fetch *)",
       "Bash(git rm *)",
       "Bash(uuidgen)",
-      "PowerShell([guid]::NewGuid\\(\\).ToString\\('N'\\))"
+      "PowerShell([guid]::NewGuid\\(\\).ToString\\('N'\\))",
+      "Bash(xargs -n1 basename)",
+      "Bash(sed 's/_IPC\\\\.fbx$//')",
+      "Bash(sed 's/\\\\.fbx$//')",
+      "Bash(mv \"Zombie_27/Animation/In_Place\" \"Art/Animations/Zombie\")",
+      "Bash(mv \"Zombie_27/Animation/In_Place.meta\" \"Art/Animations/Zombie.meta\")",
+      "Bash(rm -rf \"Zombie_27/Animation/Root_Motion\" \"Zombie_27/Animation/Root_Motion.meta\")"
     ]
   }
 }

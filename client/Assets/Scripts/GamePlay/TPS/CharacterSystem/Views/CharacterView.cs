@@ -37,7 +37,7 @@ public class CharacterView : BaseView
     private HealthComponent subscribedHealth;
     private FlyTextMgr flyTextMgr;
     private ResMgr resMgr;
-    private CharacterAnimancerController animController;
+    private LocomotionAnimController animController;
 
     private Renderer[] flashRenderers;
     private MaterialPropertyBlock flashMpb;
@@ -69,10 +69,16 @@ public class CharacterView : BaseView
             Debug.LogWarning($"[CharacterView] {name} 找不到 Animator——Animancer 无法工作");
 
         // 保留 runtimeAnimatorController 作为兜底：WeaponAnimSet 未加载时 default Idle pose 不至于 T-pose；Animancer.Play 后 Playables graph 覆盖
-        animController = new CharacterAnimancerController();
+        animController = CreateController();
 
         flashRenderers = GetComponentsInChildren<Renderer>(true);
     }
+
+    /// <summary>创建本 view 用的动画驱动器。玩家用 <see cref="CharacterAnimancerController"/>（武器+瞄准）；
+    /// 僵尸 view（<see cref="ZombieView"/>）override 返回 <see cref="ZombieAnimancerController"/>（技能链）。
+    /// 在 Awake 调用，此时序列化字段已就绪。</summary>
+    protected virtual LocomotionAnimController CreateController()
+        => new CharacterAnimancerController { AnimMoveDampTime = AnimMoveDampTime };
 
     public override void Bind(Actor actor, int id)
     {
@@ -92,7 +98,7 @@ public class CharacterView : BaseView
         }
 
         // 接入 animController：传 CharacterAnimSet path（一次性加载，运行时不换）
-        animController.AnimMoveDampTime = AnimMoveDampTime;
+        // AnimMoveDampTime 已在 CreateController() 注入（仅玩家 controller 用）
         animController.Init(Animancer, resMgr, character.CurrentCharacterAnimSetPath);
         animController.OnDeathTriggered += OnAnimDeathTriggered;
 

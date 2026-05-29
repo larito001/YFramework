@@ -15,7 +15,7 @@ using UnityEngine;
 ///   - 死亡自动清理走 <see cref="AutoDespawnComponent"/> 订阅 OnDied。
 ///   不要再往本组件里加 service 依赖——破坏分层。
 ///
-/// 谁可以打它：MeleeComponent / 子弹 BulletMoveComponent / Hitscan / 任意外部伤害源都通过
+/// 谁可以打它：SkillCastComponent（技能命中窗）/ 子弹 BulletMoveComponent / Hitscan / 任意外部伤害源都通过
 /// <c>actor.Get&lt;HealthComponent&gt;()?.ApplyDamage(in info)</c> 统一入口。
 ///
 /// 死亡：CurHealth&lt;=0 时一次性置 IsDead，触发 OnDied 事件。组件不负责销毁 Actor，

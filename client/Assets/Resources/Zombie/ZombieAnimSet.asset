@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 58440f2dc37c3e64abf80c8588d8a8a6, type: 3}
+  m_Name: ZombieAnimSet
+  m_EditorClassIdentifier: 
+  Idle: {fileID: 7400000, guid: 2e2b7350e68ead84ebb8efca8fd1643a, type: 3}
+  Walk: {fileID: 7400000, guid: bc8d6f745767cad499bb135ea5afebbb, type: 3}
+  Run: {fileID: 7400000, guid: 266482df8b01a46429a51ee4e9530edf, type: 3}
+  Sprint: {fileID: 0}
+  IdleThreshold: 0
+  WalkThreshold: 1.5
+  RunThreshold: 4
+  SprintThreshold: 6
+  DeathL: {fileID: 7400000, guid: 288aefe4cd1133141a10bd8e8f8b12ce, type: 3}
+  DeathR: {fileID: 7400000, guid: 264840593b7e20042bb0d89a47d40363, type: 3}
+  UpperBodyMask: {fileID: 0}
+  DefaultFade: 0.15

@@ -12,7 +12,7 @@ using UnityEngine;
 ///   Get&lt;T&gt; 返回首个匹配；同类型多实例（如 Buff 叠加）用 GetAll&lt;T&gt;(buffer) 写入外部 list。
 ///
 /// 组件 Detach 时**必须把自己写过的 Owner 字段清回默认值**，否则 writer 离场后 reader 读到死值
-/// （典型：WeaponComponent 在 IsMeleeing=true 时被移走，MoveComponent 永远锁位移）。
+/// （典型：SkillCastComponent 在 IsCastingSkill=true 时被移走，MoveComponent 永远锁位移）。
 ///
 /// 基类字段语义（详见 ARCHITECTURE.md 的"字段归属"小节）：
 ///   通用组件（HealthComponent / HitstopOnDamageComponent / GravityComponent / AutoDespawnComponent）
@@ -34,7 +34,7 @@ public class Actor
     public Vector3 Position;
     /// <summary>世界朝向。Character 由 AimComponent 写、Bullet 由 View 通过 Velocity 推算（不写本字段）。</summary>
     public Quaternion Rotation = Quaternion.identity;
-    /// <summary>意图速度（m/s）。Character 由 MoveComponent / MeleeComponent / GravityComponent 写，
+    /// <summary>意图速度（m/s）。Character 由 MoveComponent / SkillCastComponent / ZombieAIComponent / GravityComponent 写，
     /// CharacterView.LateUpdate 用 CharacterController.Move 应用。Bullet 不用此字段（Bullet 用 <see cref="Velocity"/>）。</summary>
     public Vector3 WishVelocity;
     /// <summary>实际速度（m/s）。Bullet 由 FireEffect 写初值、MissileMoveComponent 每帧写切线方向。

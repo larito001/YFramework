@@ -73,9 +73,9 @@ public class MoveComponent : ICharacterComponent
         }
 
         // 1. WASD → 期望水平速度（相机基坐标）
-        // 近战中锁水平位移：wishHorizontal=0，重力仍照常，currentHorizontal 自然衰减
+        // 技能释放中锁水平位移：wishHorizontal=0，重力仍照常，currentHorizontal 自然衰减（位移由 SkillCastComponent 覆写）
         Vector3 wishHorizontal = Vector3.zero;
-        if (!Owner.IsMeleeing)
+        if (!Owner.IsCastingSkill)
         {
             var m = input.Move;
             Vector3 wishDir = Vector3.zero;

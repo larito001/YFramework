@@ -54,8 +54,8 @@ public class AimComponent : ICharacterComponent
 
         Owner.IsAiming = input.AimHeld;
 
-        // 近战中锁朝向：Owner.Rotation 保持触发瞬间的值，不被鼠标/键盘改变
-        if (Owner.IsMeleeing) return;
+        // 技能释放中锁朝向：Owner.Rotation 保持释放瞬间的值，不被鼠标/键盘改变（SkillCastComponent 锁定前向做位移）
+        if (Owner.IsCastingSkill) return;
 
         Vector3 targetDir = Owner.IsAiming
             ? CalcAimDirection()
