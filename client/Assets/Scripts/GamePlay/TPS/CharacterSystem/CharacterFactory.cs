@@ -110,8 +110,8 @@ public class CharacterFactory
         return character;
     }
 
-    /// <summary>会动会打的僵尸敌人——**和玩家走同一套玩法管线**，只把输入源从 InputComponent 换成 <see cref="AIInputComponent"/>（随机占位）：
-    ///   AIInput 给世界空间移动意图 + 随机释放技能 → Aim（非瞄准→朝移动方向）+ Move（idle/慢走/快跑 locomotion）+ SkillCast（攻击/飞扑）。
+    /// <summary>会动会打的僵尸敌人——**和玩家走同一套玩法管线**，只把输入源从 InputComponent 换成 <see cref="AIInputComponent"/>（巡逻→追击→攻击）：
+    ///   AIInput 给世界空间移动意图 + 近身释放技能 → Aim（非瞄准→朝移动方向）+ Move（idle/慢走/快跑 locomotion）+ SkillCast（攻击/飞扑）。
     /// view 用专门的僵尸 prefab（Zombie 网格 + ZombieView + ZombieAnimancerController）。
     ///
     /// **依赖资产**（用菜单 Tools/TPS/Build Skill & Anim Assets 一键生成）：
@@ -125,12 +125,16 @@ public class CharacterFactory
     public Character CreateZombie(Vector3 position, float maxHealth = 200f)
     {
         var character = new Character { TeamId = 2, CurrentCharacterAnimSetPath = "Zombie/ZombieAnimSet" };
-        // 输入源：随机 AI（占位）。必须最先 Add（Aim/Move/Skill 在 Attach 里 Get 它）。SkillCount=2 对齐下面两个技能。
-        character.Add(new AIInputComponent { SkillCount = 2 });
+        // 输入源：简单 AI（巡逻→5m 追玩家→2m 面向玩家随机放技能）。必须最先 Add（Aim/Move/Skill 在 Attach 里 Get 它）。
+        character.Add(new AIInputComponent
+        {
+            DetectRange = 5f,
+            AttackRange = 2f,
+        });
         character.Add(new AimComponent());   // 不瞄准（AimHeld 恒 false）→ 朝 MoveWorld 转身
         character.Add(new MoveComponent
         {
-            WalkSpeed = 1.5f,   // 慢走（对齐 ZombieAnimSet.WalkThreshold）
+            WalkSpeed = 0.2f,   // 慢走（对齐 ZombieAnimSet.WalkThreshold）
             SprintSpeed = 4f,   // 快跑（对齐 RunThreshold）
         });
         character.Add(new SkillCastComponent

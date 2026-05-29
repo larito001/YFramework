@@ -22,6 +22,9 @@ public class SkillCastComponent : ICharacterComponent
 
     private readonly List<SkillDef> skills = new List<SkillDef>();
 
+    /// <summary>已加载的可释放技能数量（= SkillPaths 数）。AI 取随机技能下标用，避免在别处手抄数量。</summary>
+    public int SkillCount => skills.Count;
+
     // ── runtime ──
     private SkillDef active;
     private int segIndex;

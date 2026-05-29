@@ -27,7 +27,19 @@ MonoBehaviour:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
-    HitWindows: []
+    HitWindows:
+    - StartNorm: 0
+      EndNorm: 1
+      Radius: 2
+      ForwardOffset: 0
+      Height: 1.5
+      Damage:
+        BaseDamage: 10
+        HitstopTier: 0
+        CritChance: 0
+        CritMultiplier: 0
+        Element: 0
+        AppliedBuffs: []
   - Clip: {fileID: 7400000, guid: 862dfc1fe4b9bae478dc65ca071342dc, type: 3}
     Fade: 0.05
     HoldDuration: 0.7
@@ -61,4 +73,16 @@ MonoBehaviour:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
-    HitWindows: []
+    HitWindows:
+    - StartNorm: 0
+      EndNorm: 1
+      Radius: 2
+      ForwardOffset: 0
+      Height: 1
+      Damage:
+        BaseDamage: 13
+        HitstopTier: 0
+        CritChance: 0
+        CritMultiplier: 0
+        Element: 0
+        AppliedBuffs: []

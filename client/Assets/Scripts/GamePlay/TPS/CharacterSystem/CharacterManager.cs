@@ -16,6 +16,11 @@ public class CharacterManager : IGameService, ITickable
     // 攒到本帧 Tick 末尾统一清。和 BulletManager.toRemove 一个套路。
     private readonly List<Character> toRemove = new List<Character>();
 
+    // 玩家复活：记录当前玩家 + 出生点；玩家死亡 AutoDespawn 到点时不移除而是重生。
+    private Character player;
+    private Vector3 playerSpawnPos;
+    private bool respawnPlayerPending;
+
     public void Init(GameContext context)
     {
         ctx = context;
@@ -49,21 +54,19 @@ public class CharacterManager : IGameService, ITickable
             for (int i = 0; i < toRemove.Count; i++) RemoveImmediate(toRemove[i]);
             toRemove.Clear();
         }
+
+        // 玩家重生：在移除处理之后做（避开 Tick 遍历期间往 characters 加新元素），出生点建新玩家 + 重新跟随相机。
+        if (respawnPlayerPending)
+        {
+            respawnPlayerPending = false;
+            SpawnPlayer(playerSpawnPos);
+        }
     }
 
     public void GenneratePlayer(Vector3 position = default)
     {
-        var c = factory.CreateCharacter(position);
-        AttachLifecycleHooks(c);
-        characters.Add(c);
-        world.Register(c);
-
-        // 让相机跟随玩家。view 由 LoadBaseView 在 factory 内同步创建，这里能拿到。
-        if (viewMgr.TryGetView(c.ID, out var view) && view != null)
-        {
-            if (ctx != null && ctx.TryGet<CameraManager>(out var cam))
-                cam.SetFollow(view.transform);
-        }
+        playerSpawnPos = position;
+        SpawnPlayer(position); // 设 this.player
 
         // 测试用：在玩家前方铺 3 个 Dummy 站桩靶，便于验证近战/子弹/导弹/射线四种伤害源都能扣血。
         // 不想要就删这三行。
@@ -77,10 +80,26 @@ public class CharacterManager : IGameService, ITickable
         SpawnZombie(new Vector3(-4f, 0f, 8f));
 
         // 测试用：玩家侧后方 spawn 一座塔（TeamId=1 玩家军 + 玩家 ID 作为放置者），验证锁敌 + telegraph + 开火链路
-        if (ctx != null && ctx.TryGet<TowerManager>(out var towerMgr))
+        if (player != null && ctx != null && ctx.TryGet<TowerManager>(out var towerMgr))
         {
-            towerMgr.SpawnTower(new Vector3(-3f, 0f, -2f), teamId: 1, ownerActorId: c.ID);
+            towerMgr.SpawnTower(new Vector3(-3f, 0f, -2f), teamId: 1, ownerActorId: player.ID);
         }
+    }
+
+    /// <summary>spawn（或复活）玩家：建角色 + 挂生命周期钩子 + 注册 ActorWorld + 相机跟随 + 记录为当前玩家。
+    /// 复活走"重生"路线（删旧 + 建新）而非原地改死值——复用整条 spawn 链，省去解死亡溶解 / CC disable / 死亡动画的麻烦。</summary>
+    private void SpawnPlayer(Vector3 position)
+    {
+        var c = factory.CreateCharacter(position);
+        AttachLifecycleHooks(c);
+        characters.Add(c);
+        world.Register(c);
+        player = c;
+
+        // 让相机跟随玩家。view 由 LoadBaseView 在 factory 内同步创建，这里能拿到。
+        if (viewMgr.TryGetView(c.ID, out var view) && view != null
+            && ctx != null && ctx.TryGet<CameraManager>(out var cam))
+            cam.SetFollow(view.transform);
     }
 
     /// <summary>生成一个站桩 Dummy 敌人在指定位置。返回 Character 实例供外部进一步配置（订阅 OnDied 等）。</summary>
@@ -123,7 +142,10 @@ public class CharacterManager : IGameService, ITickable
 
     private void OnAutoDespawnReady(Actor a)
     {
-        if (a is Character c) RemoveCharacter(c);
+        if (!(a is Character c)) return;
+        RemoveCharacter(c);
+        // 玩家：死亡 3s（AutoDespawn.Delay）后不是消失，而是在出生点重生。其余敌人正常移除。
+        if (c == player) respawnPlayerPending = true;
     }
 
     /// <summary>请求移除 Character（deferred）。组件 Tick 中调用安全；实际清理发生在本帧 Tick 末尾。
