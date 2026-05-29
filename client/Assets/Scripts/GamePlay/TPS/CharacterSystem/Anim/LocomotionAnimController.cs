@@ -107,6 +107,32 @@ public abstract class LocomotionAnimController
     /// <summary>退出全身覆盖回 locomotion 的 fade。基类用 DefaultFade；技能结束走 <see cref="Character.SkillRecoverFade"/>（在 3a 处理）。</summary>
     protected virtual float GetFullBodyRecoverFade(float defaultFade) => defaultFade;
 
+    // ────────────────────────── 上身常驻 pose 钩子（玩家持武器时启用） ──────────────────────────
+    // 默认实现 = 旧行为（Layer 1 仅承载 one-shot、播完淡出整层）。僵尸/单层走默认，行为不变。
+
+    /// <summary>Layer 1 是否承载**常驻 base pose**（站立持枪/瞄准持枪）。
+    /// true 时基类跳过旧 3b/3c one-shot 淡出生命周期，改调 <see cref="UpdateUpperBody"/>。
+    /// 默认 false（僵尸/单层/无武器走旧逻辑）。玩家持武器且配了 pose 时返 true。</summary>
+    protected virtual bool HasUpperBodyBasePose(Character character) => false;
+
+    /// <summary>驱动 Layer 1 上身常驻状态机（base pose 按 IsAiming 切换 + 叠加 one-shot 回 base）。
+    /// 仅当 <see cref="HasUpperBodyBasePose"/> 为 true 时基类每帧调用。默认空。</summary>
+    protected virtual void UpdateUpperBody(Character character) { }
+
+    /// <summary>从 Layer 0 全身覆盖（技能）恢复时，让 Layer 1 回到常驻 base pose 而非空层。
+    /// 默认 = 旧行为 StartFade(1)。玩家 override 改为重建 base pose。</summary>
+    protected virtual void RestoreUpperBodyAfterFullBody(Character character, float recoverFade)
+    {
+        if (useUpperBodyLayer && Animancer.Layers.Count > 1) Animancer.Layers[1].StartFade(1f, recoverFade);
+    }
+
+    /// <summary>进入 Layer 0 全身覆盖（死亡/技能）时调，让派生类清上身常驻缓存（避免恢复时残留 one-shot / 旧 pose）。默认空。</summary>
+    protected virtual void OnFullBodyOverrideEnter() { }
+
+    /// <summary>Layer 1 初始权重（<see cref="SetupUpperBodyLayer"/> 加载时设）。
+    /// 基类默认 1f（旧行为：mask 配了即 weight 1）。玩家 override 返 0f（初始无武器静默，由装备跃迁升起）。</summary>
+    protected virtual float GetInitialUpperBodyWeight() => 1f;
+
     /// <summary>Locomotion 驱动：基类用 LinearMixer 1D（按 AnimSpeedRatio 真实 m/s blend）。
     /// 玩家 override 叠加瞄准 2D mixer。无 locomotionMixer（无移动逻辑的怪物）则不播。</summary>
     protected virtual void UpdateLocomotion(Character character)
@@ -149,7 +175,12 @@ public abstract class LocomotionAnimController
         characterAnimSet = set;
         BuildLocomotionMixer();
         SetupUpperBodyLayer();
+        OnCharacterAnimSetLoaded();
     }
+
+    /// <summary>CharacterAnimSet 加载完（locomotion mixer / Layer mask 已就绪）后调。
+    /// 派生类在此构造角色级附加 mixer（玩家：瞄准 8 方向 strafe，从 CharacterAnimSet 取 clip，build 一次不随切枪重建）。默认空。</summary>
+    protected virtual void OnCharacterAnimSetLoaded() { }
 
     /// <summary>构造非瞄准 locomotion mixer：LinearMixerState 按 AnimSpeedRatio 真实 m/s blend。
     /// **可退化**：只取 Idle/Walk/Run/Sprint 中非 null 的 clip——
@@ -185,7 +216,7 @@ public abstract class LocomotionAnimController
         {
             var layer = Animancer.Layers[1];
             layer.Mask = characterAnimSet.UpperBodyMask;
-            layer.SetWeight(1f);
+            layer.SetWeight(GetInitialUpperBodyWeight());
         }
         else if (Animancer.Layers.Count > 1)
         {
@@ -211,6 +242,7 @@ public abstract class LocomotionAnimController
             if (useUpperBodyLayer && Animancer.Layers.Count > 1) Animancer.Layers[1].SetWeight(0f);
             currentLayer0Mixer = null;
             layer0FullBodyActive = true;
+            OnFullBodyOverrideEnter();
             OnDeathTriggered?.Invoke();
             return;
         }
@@ -224,6 +256,7 @@ public abstract class LocomotionAnimController
             // 全身锁定无条件置位（即使本段无 clip——退化段也要保持锁定 + 走统一退出逻辑）
             layer0FullBodyActive = true;
             currentLayer0Mixer = null;
+            OnFullBodyOverrideEnter();
             if (character.SkillClip != null)
             {
                 float f = character.SkillClipFade > 0f ? character.SkillClipFade : fade;
@@ -236,7 +269,11 @@ public abstract class LocomotionAnimController
         if (character.IsCastingSkill) return; // 技能播放中：锁全身，跳过 combat + locomotion
 
         // 3. 战斗段（派生类：玩家武器 one-shot）。返回 true = 触发了全身 one-shot，本帧短路。
+        // upperBase 模式下 DriveCombat 短路（trigger 交给 UpdateUpperBody 消费），仅退化/僵尸走旧逻辑。
         if (DriveCombat(character, fade)) return;
+
+        // upperBase = Layer 1 承载常驻 base pose（玩家持武器）：跳过旧 3b/3c one-shot 淡出，改走 3d UpdateUpperBody。
+        bool upperBase = HasUpperBodyBasePose(character);
 
         // 3a. Layer 0 全身覆盖中（技能/melee）：IsFullBodyHeld（= IsCastingSkill）一 false 就退出回 Locomotion。
         // 过渡 fade：技能结束优先用 SkillRecoverFade，否则 GetFullBodyRecoverFade。
@@ -246,20 +283,28 @@ public abstract class LocomotionAnimController
             layer0FullBodyActive = false;
             float recoverFade = character.SkillRecoverFade > 0f ? character.SkillRecoverFade : GetFullBodyRecoverFade(fade);
             overrideNextLocomotionFade = recoverFade;
-            if (useUpperBodyLayer && Animancer.Layers.Count > 1) Animancer.Layers[1].StartFade(1f, recoverFade);
+            if (upperBase) RestoreUpperBodyAfterFullBody(character, recoverFade); // 玩家：Layer1->weight1 + 当帧重建 base
+            else if (useUpperBodyLayer && Animancer.Layers.Count > 1) Animancer.Layers[1].StartFade(1f, recoverFade);
             activeOneShotState = null;
         }
-        // 3b. 单层模式 + one-shot 未播完：等待（受击 flinch / 单层开火走这条）
-        else if (!useUpperBodyLayer && activeOneShotState != null && activeOneShotState.IsPlaying && activeOneShotState.NormalizedTime < 1f)
+        // 3b/3c. 旧模型（无 base pose：僵尸/单层/无武器）的 one-shot 生命周期。upperBase 模式跳过。
+        else if (!upperBase)
         {
-            return;
+            // 3b. 单层模式 + one-shot 未播完：等待（受击 flinch / 单层开火走这条）
+            if (!useUpperBodyLayer && activeOneShotState != null && activeOneShotState.IsPlaying && activeOneShotState.NormalizedTime < 1f)
+            {
+                return;
+            }
+            // 3c. 双层模式 + one-shot 播完：淡出 Layer 1
+            else if (activeOneShotState != null && (activeOneShotState.NormalizedTime >= 1f || !activeOneShotState.IsPlaying))
+            {
+                if (useUpperBodyLayer && Animancer.Layers.Count > 1) Animancer.Layers[1].StartFade(0f, fade);
+                activeOneShotState = null;
+            }
         }
-        // 3c. 双层模式 + one-shot 播完：淡出 Layer 1
-        else if (activeOneShotState != null && (activeOneShotState.NormalizedTime >= 1f || !activeOneShotState.IsPlaying))
-        {
-            if (useUpperBodyLayer && Animancer.Layers.Count > 1) Animancer.Layers[1].StartFade(0f, fade);
-            activeOneShotState = null;
-        }
+
+        // 3d. 新模型：Layer 1 上身常驻状态机（base pose + 叠加 one-shot 回 base）。
+        if (upperBase) UpdateUpperBody(character);
 
         // 4. Locomotion always-on
         UpdateLocomotion(character);

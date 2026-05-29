@@ -20,6 +20,16 @@ MonoBehaviour:
   WalkThreshold: 5
   RunThreshold: 6
   SprintThreshold: 7
+  AimIdle: {fileID: 7400004, guid: 914b09da235eea34ebdc4e71d057e815, type: 3}
+  AimWalk: {fileID: 7400016, guid: 914b09da235eea34ebdc4e71d057e815, type: 3}
+  AimWalkFwd: {fileID: 7400016, guid: 914b09da235eea34ebdc4e71d057e815, type: 3}
+  AimWalkBwd: {fileID: 7400024, guid: 914b09da235eea34ebdc4e71d057e815, type: 3}
+  AimStrafeLeft: {fileID: 7400040, guid: 914b09da235eea34ebdc4e71d057e815, type: 3}
+  AimStrafeRight: {fileID: 7400032, guid: 914b09da235eea34ebdc4e71d057e815, type: 3}
+  AimStrafeFL: {fileID: 7400046, guid: 914b09da235eea34ebdc4e71d057e815, type: 3}
+  AimStrafeFR: {fileID: 7400004, guid: 47f3e97642d383d4dbfc479141f81683, type: 3}
+  AimStrafeBL: {fileID: 7400006, guid: 47f3e97642d383d4dbfc479141f81683, type: 3}
+  AimStrafeBR: {fileID: 7400048, guid: 914b09da235eea34ebdc4e71d057e815, type: 3}
   DeathL: {fileID: 7400122, guid: 914b09da235eea34ebdc4e71d057e815, type: 3}
   DeathR: {fileID: 7400124, guid: 914b09da235eea34ebdc4e71d057e815, type: 3}
   HitReact: {fileID: 7400000, guid: 0665bfc3e5c624948af52b87191543b2, type: 3}

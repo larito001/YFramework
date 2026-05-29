@@ -12,28 +12,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 200ad57813736ff46a71d8dc83e7ecf1, type: 3}
   m_Name: BurstRifle
   m_EditorClassIdentifier: 
-  AimIdle: {fileID: 7400004, guid: 914b09da235eea34ebdc4e71d057e815, type: 3}
-  AimWalk: {fileID: 7400016, guid: 914b09da235eea34ebdc4e71d057e815, type: 3}
-  AimWalkFwd: {fileID: 7400016, guid: 914b09da235eea34ebdc4e71d057e815, type: 3}
-  AimWalkBwd: {fileID: 7400024, guid: 914b09da235eea34ebdc4e71d057e815, type: 3}
-  AimStrafeLeft: {fileID: 7400040, guid: 914b09da235eea34ebdc4e71d057e815, type: 3}
-  AimStrafeRight: {fileID: 7400032, guid: 914b09da235eea34ebdc4e71d057e815, type: 3}
-  AimStrafeFL: {fileID: 7400046, guid: 914b09da235eea34ebdc4e71d057e815, type: 3}
-  AimStrafeFR: {fileID: 7400004, guid: 47f3e97642d383d4dbfc479141f81683, type: 3}
-  AimStrafeBL: {fileID: 7400006, guid: 47f3e97642d383d4dbfc479141f81683, type: 3}
-  AimStrafeBR: {fileID: 7400048, guid: 914b09da235eea34ebdc4e71d057e815, type: 3}
+  IdleGunPose: {fileID: 7400004, guid: 914b09da235eea34ebdc4e71d057e815, type: 3}
+  AimPose: {fileID: 7400004, guid: 914b09da235eea34ebdc4e71d057e815, type: 3}
   ShootLight: {fileID: 7400054, guid: 914b09da235eea34ebdc4e71d057e815, type: 3}
   ShootHeavy: {fileID: 7400058, guid: 914b09da235eea34ebdc4e71d057e815, type: 3}
   Reload: {fileID: 7400056, guid: 914b09da235eea34ebdc4e71d057e815, type: 3}
   Equip: {fileID: 7400000, guid: 6d0b268b0bd91c44eb369715ba96d320, type: 3}
   Holster: {fileID: 7400002, guid: 6d0b268b0bd91c44eb369715ba96d320, type: 3}
-  MeleeHard: {fileID: 7400100, guid: 914b09da235eea34ebdc4e71d057e815, type: 3}
-  MeleeKick: {fileID: 7400102, guid: 914b09da235eea34ebdc4e71d057e815, type: 3}
-  AimIdleThreshold: 0
-  AimWalkThreshold: 0.8
-  MeleeLockDuration: 1.3
-  MeleeForwardSpeed: 3
-  MeleeForwardDuration: 1.2
-  MeleeCooldown: 1.5
   ShootFade: 0
-  MeleeRecoverFade: 0.1
+  AimPoseFade: 0.15
+  UpperBodyEnterFade: 0.15
+  UpperBodyExitFade: 0.15
