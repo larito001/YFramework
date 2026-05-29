@@ -1,8 +1,8 @@
 using UnityEngine;
 
 /// <summary>
-/// 俯视角第三人称射击的**水平移动**（纯逻辑组件，不碰 view）：
-///   - 基坐标：相机水平 forward / right
+/// 俯视角第三人称射击的**水平移动**（纯逻辑组件，不碰 view / 不碰输入源）：
+///   - 移动方向：直接用 <see cref="InputComponentBase.MoveWorld"/>（世界空间意图，相机/AI 解释已在输入组件做完）
 ///   - 三档速度（Walk/Sprint/Aim）+ Acceleration 平滑 magnitude
 ///   - 只写 Owner.WishVelocity 的 **x/z**，y 由 <see cref="GravityComponent"/> 负责
 ///   - 同时写 AnimMoveX/Y（Walk BlendTree）+ AnimSpeedRatio（Sprint BlendTree）+ AnimPlaybackRate
@@ -26,15 +26,14 @@ public class MoveComponent : ICharacterComponent
     /// 25 = 0→8 m/s 用 0.32s，slight lerp 体感。</summary>
     public float Acceleration = 25f;
 
-    private InputService input;
-    private CameraManager cameraMgr;
+    private InputComponentBase input;
     private Vector3 currentHorizontal; // 平滑后的水平速度
 
     public override void Attach(Character owner)
     {
-        if (Ctx == null) { Debug.LogError("[MoveComponent] GameLoop.Ctx 未就绪"); return; }
-        Ctx.TryGet(out input);
-        Ctx.TryGet(out cameraMgr);
+        // 从同 Actor 上的输入组件读意图（玩家=InputComponent / AI=AIInputComponent），不直接碰 InputService / 相机
+        input = owner.Get<InputComponentBase>();
+        if (input == null) Debug.LogWarning("[MoveComponent] 找不到 InputComponentBase —— 角色不会移动。需在 MoveComponent 之前 Add 输入组件。");
     }
 
     public override void Detach()
@@ -53,7 +52,6 @@ public class MoveComponent : ICharacterComponent
             Owner.AnimPlaybackRate = 1f;
         }
         input = null;
-        cameraMgr = null;
         currentHorizontal = Vector3.zero;
         base.Detach();
     }
@@ -72,20 +70,14 @@ public class MoveComponent : ICharacterComponent
             return;
         }
 
-        // 1. WASD → 期望水平速度（相机基坐标）
+        // 1. 输入组件给的世界空间移动意图 → 期望水平速度（相机/AI 解释已在输入组件做完）
         // 技能释放中锁水平位移：wishHorizontal=0，重力仍照常，currentHorizontal 自然衰减（位移由 SkillCastComponent 覆写）
         Vector3 wishHorizontal = Vector3.zero;
         if (!Owner.IsCastingSkill)
         {
-            var m = input.Move;
-            Vector3 wishDir = Vector3.zero;
-            if (m.sqrMagnitude > 1e-4f)
-            {
-                var camFwd = cameraMgr != null ? cameraMgr.PlanarForward : Vector3.forward;
-                var camRight = cameraMgr != null ? cameraMgr.PlanarRight : Vector3.right;
-                wishDir = camFwd * m.y + camRight * m.x;
-                if (wishDir.sqrMagnitude > 1f) wishDir.Normalize();
-            }
+            Vector3 wishDir = input.MoveWorld;
+            wishDir.y = 0f;
+            if (wishDir.sqrMagnitude > 1f) wishDir.Normalize();
             // 三档：瞄准 → AimSpeed；非瞄准 + Shift → SprintSpeed；非瞄准默认 → WalkSpeed
             float maxSpeed;
             if (Owner.IsAiming) maxSpeed = AimSpeed;

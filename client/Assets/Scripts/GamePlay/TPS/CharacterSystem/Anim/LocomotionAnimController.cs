@@ -221,14 +221,15 @@ public abstract class LocomotionAnimController
         if (character.SkillClipDirty)
         {
             character.SkillClipDirty = false;
+            // 全身锁定无条件置位（即使本段无 clip——退化段也要保持锁定 + 走统一退出逻辑）
+            layer0FullBodyActive = true;
+            currentLayer0Mixer = null;
             if (character.SkillClip != null)
             {
                 float f = character.SkillClipFade > 0f ? character.SkillClipFade : fade;
                 var s = Animancer.Layers[0].Play(character.SkillClip, f);
                 if (s != null) s.Time = 0f; // 每段从头播
                 activeOneShotState = s;
-                layer0FullBodyActive = true;
-                currentLayer0Mixer = null;
                 if (useUpperBodyLayer && Animancer.Layers.Count > 1) Animancer.Layers[1].StartFade(0f, f);
             }
         }

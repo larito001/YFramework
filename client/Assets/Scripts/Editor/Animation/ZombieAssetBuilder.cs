@@ -90,6 +90,7 @@ public static class ZombieAssetBuilder
         var attack = ScriptableObject.CreateInstance<SkillDef>();
         attack.Name = "ZombieAttack";
         attack.RecoverFade = 0.2f;
+        attack.ShakeIntensity = 0.15f; attack.ShakeDuration = 0.12f;
         attack.Segments = new[]
         {
             Seg(atkStart, 0.1f, 0f, 0f, null),
@@ -105,6 +106,7 @@ public static class ZombieAssetBuilder
         var leap = ScriptableObject.CreateInstance<SkillDef>();
         leap.Name = "ZombieLeap";
         leap.RecoverFade = 0.25f;
+        leap.ShakeIntensity = 0.3f; leap.ShakeDuration = 0.2f; // 落地重击大震
         leap.Segments = new[]
         {
             Seg(jumpStart, 0.1f, 0f, 0.5f, null),
@@ -139,6 +141,7 @@ public static class ZombieAssetBuilder
         var melee = ScriptableObject.CreateInstance<SkillDef>();
         melee.Name = "PlayerMelee";
         melee.RecoverFade = 0.2f;
+        melee.ShakeIntensity = 0.18f; melee.ShakeDuration = 0.15f; // 复刻旧 MeleeComponent 震屏
         melee.Segments = kick != null
             ? new[]
             {

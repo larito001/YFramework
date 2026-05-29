@@ -4,9 +4,9 @@ using UnityEngine;
 /// <summary>
 /// 持枪人组件（Character 侧，纯逻辑）：
 ///   - 持有武器槽位 Weapon Actor 列表，Attach 时交给 WeaponManager 接管（注册 + 创建 view）
-///   - 切枪：监听 InputService.OnWeaponSelect（1~9 数字键）→ Equip(slot) → 走 Holster→Equip 两阶段过场
+///   - 切枪：订阅 InputComponentBase.OnWeaponSelect（1~9 数字键）→ Equip(slot) → 走 Holster→Equip 两阶段过场
 ///   - 射击：每帧把 input.FireHeld 写到 Owner.IsShooting（开火行为由 Weapon 的 FireComponent 自己消费）
-///   - 换弹：监听 InputService.OnReloadDown → 转发给 currentWeapon.ReloadRequest，<see cref="ReloadComponent"/> 自己处理。
+///   - 换弹：订阅 InputComponentBase.OnReload → 转发给 currentWeapon.ReloadRequest，<see cref="ReloadComponent"/> 自己处理。
 ///     本组件镜像 currentWeapon.IsReloading → Owner.IsReloading（动画门控），上升沿触发 Owner.Reload trigger。
 ///
 /// 近战已上移为通用"技能"（<see cref="SkillDef"/> + <see cref="SkillCastComponent"/>）。本组件只在 Tick 里**读**
@@ -34,7 +34,7 @@ public class WeaponComponent : ICharacterComponent
     /// 默认 0.5s = EquipRifle 大约一半的时长。&lt;=0 立即挂手（关闭过场效果）。</summary>
     public float MountToHandDelay = 0.5f;
 
-    private InputService input;
+    private InputComponentBase input;
     private WeaponManager weaponMgr;
     private Weapon currentWeapon;
     private float swapLockTimer;
@@ -47,12 +47,13 @@ public class WeaponComponent : ICharacterComponent
     public override void Attach(Character owner)
     {
         if (Ctx == null) { Debug.LogError("[WeaponComponent] GameLoop.Ctx 未就绪"); return; }
-        Ctx.TryGet(out input);
         Ctx.TryGet(out weaponMgr);
+        // 从同 Actor 的输入组件读意图（不直接碰 InputService）
+        input = owner.Get<InputComponentBase>();
         if (input != null)
         {
             input.OnWeaponSelect += HandleWeaponSelect;
-            input.OnReloadDown += HandleReload;
+            input.OnReload += HandleReload;
         }
         // 把配置中的 Weapon Actor 实例交给 WeaponManager（注册 + 创建 view）
         if (weaponMgr != null)
@@ -69,7 +70,7 @@ public class WeaponComponent : ICharacterComponent
         if (input != null)
         {
             input.OnWeaponSelect -= HandleWeaponSelect;
-            input.OnReloadDown -= HandleReload;
+            input.OnReload -= HandleReload;
         }
         // 武器随持枪人一起销毁
         if (weaponMgr != null)

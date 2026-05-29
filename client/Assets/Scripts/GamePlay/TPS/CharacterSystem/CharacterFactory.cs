@@ -26,6 +26,9 @@ public class CharacterFactory
     public Character CreateCharacter(Vector3 position = default)
     {
         var character = new Character { TeamId = 1, CurrentCharacterAnimSetPath = "Character/PlayerAnimSet" };
+        // 输入抽象：玩家 InputComponent 是 InputService + 相机的唯一消费者，对外只给世界空间意图。
+        // 必须**最先 Add**——Aim/Move/Weapon/Skill 在 Attach 里 Owner.Get<InputComponentBase>() 拿它。
+        character.Add(new InputComponent());
         character.Add(new AimComponent());
         character.Add(new MoveComponent());
         character.Add(new WeaponComponent
@@ -42,13 +45,12 @@ public class CharacterFactory
                 BuildBurstRifle(),
             },
         });
-        // 技能：玩家近战 = Skills[0]，V 键释放（BindMeleeInput）。技能段/命中窗/位移在 SkillDef 资产里配。
+        // 技能：玩家近战 = Skills[0]，由 InputComponent 的 OnCastSkill(V 键→0) 触发。技能段/命中窗/位移在 SkillDef 资产里配。
         // **依赖资产**：Resources/Skill/PlayerMelee.asset（菜单 Tools/TPS/Build Skill & Anim Assets 一键生成）。
-        //   资产建好前按 V 无效（Cast 找不到 SkillDef）。Add 顺序在 Move 之后、Gravity 之前——位移覆写 WishVelocity.xz 后由 Gravity 定 y。
+        //   资产建好前按 V 报 warning（Cast 找不到 SkillDef）。Add 顺序在 Move 之后、Gravity 之前——位移覆写 WishVelocity.xz 后由 Gravity 定 y。
         character.AddAfter<SkillCastComponent, MoveComponent>(new SkillCastComponent
         {
             SkillPaths = new List<string> { "Skill/PlayerMelee" },
-            BindMeleeInput = true,
             // HitLayers 默认全开。生产期建议改成只含敌人层。
         });
         // 重力 + 贴地。写 WishVelocity.y，放在所有写 x/z 的组件之后
@@ -108,7 +110,8 @@ public class CharacterFactory
         return character;
     }
 
-    /// <summary>会动会打的僵尸敌人：locomotion（idle/慢走/快跑）+ 技能（攻击/飞扑，<see cref="SkillDef"/>）+ 简单随机 <see cref="ZombieAIComponent"/>。
+    /// <summary>会动会打的僵尸敌人——**和玩家走同一套玩法管线**，只把输入源从 InputComponent 换成 <see cref="AIInputComponent"/>（随机占位）：
+    ///   AIInput 给世界空间移动意图 + 随机释放技能 → Aim（非瞄准→朝移动方向）+ Move（idle/慢走/快跑 locomotion）+ SkillCast（攻击/飞扑）。
     /// view 复用 Player.prefab（僵尸 clip 是 Humanoid，retarget 到玩家骨架；后续有专门僵尸 mesh prefab 再换 ZombieView）。
     ///
     /// **依赖资产**（用菜单 Tools/TPS/Build Skill & Anim Assets 一键生成）：
@@ -116,22 +119,22 @@ public class CharacterFactory
     ///   - Resources/Skill/ZombieAttack.asset / ZombieLeap.asset（SkillDef）
     /// 资产缺失时：locomotion / 技能不播（graceful），AI 仍跑但看不到动作。
     ///
-    /// 组件 Add 顺序：ZombieAI → SkillCast → Gravity → Health → Hitstop → AutoDespawn
-    ///   （AI 写 WishVelocity/RequestedSkillIndex；SkillCast 随后消费 + 技能段覆写 x/z；Gravity 定 y）。</summary>
+    /// 组件 Add 顺序：AIInput → Aim → Move → SkillCast → Gravity → Health → Hitstop → AutoDespawn
+    ///   （AIInput 给意图；Aim 朝移动方向转身；Move 写 locomotion；SkillCast 释放时覆写 x/z；Gravity 定 y）。无 WeaponComponent（僵尸不持枪）。</summary>
     public Character CreateZombie(Vector3 position, float maxHealth = 200f)
     {
         var character = new Character { TeamId = 2, CurrentCharacterAnimSetPath = "Zombie/ZombieAnimSet" };
-        character.Add(new ZombieAIComponent
+        // 输入源：随机 AI（占位）。必须最先 Add（Aim/Move/Skill 在 Attach 里 Get 它）。SkillCount=2 对齐下面两个技能。
+        character.Add(new AIInputComponent { SkillCount = 2 });
+        character.Add(new AimComponent());   // 不瞄准（AimHeld 恒 false）→ 朝 MoveWorld 转身
+        character.Add(new MoveComponent
         {
-            WalkSpeed = 1.5f,
-            RunSpeed = 4f,
-            AttackSkillIndex = 0,
-            LeapSkillIndex = 1,
+            WalkSpeed = 1.5f,   // 慢走（对齐 ZombieAnimSet.WalkThreshold）
+            SprintSpeed = 4f,   // 快跑（对齐 RunThreshold）
         });
         character.Add(new SkillCastComponent
         {
             SkillPaths = new List<string> { "Skill/ZombieAttack", "Skill/ZombieLeap" },
-            BindMeleeInput = false, // 僵尸不订阅玩家输入，由 AI 写 RequestedSkillIndex 触发
             // HitLayers 默认全开（调试）。生产期设成只含玩家层。
         });
         character.Add(new GravityComponent());

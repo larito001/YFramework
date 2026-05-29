@@ -79,7 +79,7 @@ Tick 顺序由 Add 顺序决定，Factory 是唯一约定 Add 顺序的地方。
 - **通用组件**：直接继承 `IActorComponent`，Owner=Actor。**只读写 Actor 基类字段**。可挂任何 Actor 子类（Character / Weapon / Bullet / 未来的 NPC / Pickup / Destructible）。
   例：`HealthComponent` / `HitstopOnDamageComponent` / `GravityComponent` / `AutoDespawnComponent`。
 - **特化组件**：继承 `ICharacterComponent` / `IWeaponComponent` / `IBulletComponent` / `ITowerComponent`，Owner=对应子类。需要子类专属字段时走这个，或语义上只该挂某子类时也走这个（即便当前没专属字段）。
-  例：`MoveComponent` / `AimComponent` / `WeaponComponent` / `SkillCastComponent` / `ZombieAIComponent` / `FireComponent` / `ReloadComponent` / `BulletMoveComponent` / `MissileMoveComponent` / `TowerTargetingComponent` / `TowerWeaponComponent`。
+  例：`InputComponent` / `AIInputComponent` / `MoveComponent` / `AimComponent` / `WeaponComponent` / `SkillCastComponent` / `FireComponent` / `ReloadComponent` / `BulletMoveComponent` / `MissileMoveComponent` / `TowerTargetingComponent` / `TowerWeaponComponent`。
 
 判断：组件 Tick 里**只读写 Actor 基类字段** → 通用组件；只要 cast Owner 取子类字段 → 特化组件。**通用组件里禁止 `Owner as Character` / `Owner as Bullet` 等 cast**——cast 即承认特化，应改回对应子家族继承。
 
@@ -265,7 +265,7 @@ Weapon 体系不假设持有者类型——**Character / 塔 / 敌人 / 载具 /
 
 | 持有者 | 持枪人组件 | 决策来源 | 动画驱动 |
 |---|---|---|---|
-| Character（玩家） | `WeaponComponent`（ICharacterComponent，已实现） | InputService 键盘 + 鼠标 | 写 Character 动画 trigger 字段 |
+| Character（玩家） | `WeaponComponent`（ICharacterComponent，已实现） | `InputComponent`（← InputService 键鼠，见"输入抽象层"） | 写 Character 动画 trigger 字段 |
 | Tower（塔） | `TowerWeaponComponent` + `TowerTargetingComponent`（ITowerComponent，已实现） | TowerTargetingComponent 扫 ActorWorld 找最近敌人写 Tower.TargetActorId；TowerWeaponComponent 读 TargetActorId + AimTime telegraph | 塔无动画，TowerTargetingComponent 旋转 Owner.Rotation 朝目标 |
 | Enemy（敌人） | `EnemyWeaponHolderComponent`（未实现） | AI 行为树 | 敌人动画 trigger（如有） |
 
@@ -279,9 +279,28 @@ Weapon 体系不假设持有者类型——**Character / 塔 / 敌人 / 载具 /
 4. Detach 时调 `weaponMgr.Despawn(weapon)` 销毁子 Actor
 
 **不该做**：
-- 假设持有者类型是 Character（除非组件本身就是 Character 专属，如 `WeaponComponent` 监听 InputService）
+- 假设持有者类型是 Character（除非组件本身就是 Character 专属，如 `WeaponComponent` 读 InputComponentBase）
 - 直接调 Weapon 上的 FireComponent（FireComponent 自己 Tick，按 FireIntent 决定开火）
 - 在持枪人组件里写 Weapon 内部状态（弹药 / cooldown / mount pose 都由 Weapon 子组件管）
+
+---
+
+## 输入抽象层（InputComponentBase）
+
+**输入源**和**玩法组件**解耦：玩法组件（Aim/Move/Weapon/Skill）不直接碰全局 `InputService` / 相机，只读同 Actor 上的输入组件 `Owner.Get<InputComponentBase>()`。
+
+```
+InputComponentBase（abstract ICharacterComponent，世界空间意图面）
+  状态：MoveWorld(世界方向) / SprintHeld / AimHeld / FireHeld / AimWorldPoint(瞄准世界点)
+  事件：OnCastSkill(int) / OnReload / OnWeaponSelect(int)
+  ├─ InputComponent（玩家）：InputService + 相机的唯一消费者，做 WASD→世界 / 鼠标→世界点 解释
+  └─ AIInputComponent（AI/僵尸）：同一意图面，由行为树/状态机产出（当前随机占位）
+```
+
+- **职责边界**：相机/鼠标/键位解释**只在 InputComponent**；玩法组件吃世界空间意图，玩家/AI 通用。
+- 玩家和僵尸**共用 Aim+Move+SkillCast 管线**，只换输入组件（CreateCharacter 用 InputComponent，CreateZombie 用 AIInputComponent）。
+- Add 顺序：输入组件**最先**，玩法组件在 Attach 里 Get 它。
+- 换真 AI：实现一个 `InputComponentBase` 子类（或改 AIInputComponent）写 MoveWorld + Raise*，下游零改动。
 
 ---
 
@@ -296,7 +315,7 @@ Character.{Shoot/Reload/WeaponSwap/WeaponHolster/Die/DeathVariant/
            IsAiming/IsShooting/IsReloading/HeavyRecoil/RecoilAnimSpeed/
            AnimMoveX/Y/AnimSpeedRatio/AnimPlaybackRate/
            CurrentWeaponAnimSetPath/WeaponAnimDirty/
-           IsCastingSkill/RequestedSkillIndex/SkillClip/SkillClipDirty/SkillClipFade/SkillRecoverFade}
+           IsCastingSkill/SkillClip/SkillClipDirty/SkillClipFade/SkillRecoverFade}
                   ↓ 读
 CharacterView.LateUpdate
                   ↓ 调用任何方案
@@ -318,15 +337,18 @@ LocomotionAnimController（基类，普通 class）
   └─ ZombieAnimancerController（僵尸/AI）：空具体子类（locomotion + 技能全在基类，无武器无瞄准）
 ```
 
-view 侧通过 `CharacterView.CreateController()`（protected virtual）选 controller：玩家 view 返回 `CharacterAnimancerController`，`ZombieView`（薄子类）override 返回 `ZombieAnimancerController`，其余 view 逻辑全继承。**后续所有怪物统一走僵尸行为**（CreateZombie：复用 Player prefab + ZombieAIComponent + SkillCastComponent）。
+view 侧通过 `CharacterView.CreateController()`（protected virtual）选 controller：玩家 view 返回 `CharacterAnimancerController`，`ZombieView`（薄子类）override 返回 `ZombieAnimancerController`，其余 view 逻辑全继承。**后续所有怪物统一走僵尸行为**（CreateZombie：复用 Player prefab + AIInputComponent + Move + SkillCastComponent）。
 
 ### 技能系统（SkillDef + SkillCastComponent）
 
-**全身不可打断战斗动作**（玩家近战、僵尸攻击/飞扑）统一为**技能**：
+**全身不可打断战斗动作**（玩家近战、僵尸攻击/飞扑）统一为**技能**——职责划分（结构）：
 
-- **`SkillDef`**（ScriptableObject = 技能编辑器，Inspector 编辑）：一组按顺序播的 `SkillSegment`，每段 = clip + `Fade` + `HoldDuration`（0=clip.length，>0=循环 N 秒）+ `ForwardDistance`（前向位移）+ `DistanceProfile`（位移曲线）+ `HitWindows[]`（归一化时间命中窗 + 球形 hitbox + `DamageSpec`）。攻击位移=0（Stand_To_Atk→Atk_Loop→Atk_End），飞扑 Air 段位移大（Jump_Start→Air→End）。
-- **`SkillCastComponent`**（ICharacterComponent，取代旧 MeleeComponent）：`Cast(i)` 不可打断；逐段推进时间线（clip.length / HoldDuration）；命中窗内 OverlapSphere 扣血（复用 `DamageRouter`）；位移写 `WishVelocity.xz`（逻辑侧，Gravity 定 y）；置 `IsCastingSkill` 锁全角色；把当前段 clip 交给 controller。触发：玩家 `BindMeleeInput` 订阅 V 键；AI 写 `RequestedSkillIndex` / 直接 `Cast`。
-- **资产**：`Tools/TPS/Build Zombie Assets` 菜单（`ZombieAssetBuilder`）从 zombie fbx 一键生成 ZombieAnimSet + ZombieAttack/ZombieLeap SkillDef 到 Resources。
+- **`SkillDef`**（ScriptableObject，数据）：一组按顺序播的 `SkillSegment`（clip + 位移 + 命中窗）。纯数据，不含行为。
+- **`SkillCastComponent`**（ICharacterComponent，逻辑 owner，取代旧 MeleeComponent）：`Cast(i)` 不可打断；逐段推进时间线；命中窗内 OverlapSphere 扣血（复用 `DamageRouter`）；位移写 `WishVelocity.xz`（逻辑侧，Gravity 定 y）；置 `IsCastingSkill` 锁全角色；把当前段 clip 交给 controller。
+- **controller**（基类 `LocomotionAnimController` 的技能全身分支）：纯**跟随器**——只按 `SkillClip`/`SkillClipDirty` 播放，不持技能时间线。
+- **触发**：订阅输入组件的 `InputComponentBase.OnCastSkill(int)`（玩家 V 键→0；AI→随机下标）；也可外部直接 `Cast(i)`。
+
+> 字段语义、编辑步骤、配置范例、一键生成菜单 → 见 **`Docs/技能系统使用指南.md`**（本文件只描述结构与职责，不放使用细节）。
 
 ### 双 AnimSet 分工
 
@@ -366,34 +388,11 @@ CharacterView.LateUpdate
 
 **换动画方案的成本**：换回 Animator / 升级 Animancer Pro 高级 mixer / 自研都只重写 controller 类，view + 逻辑组件零改动。
 
-### 给美工
+### 使用文档（怎么做动画 / 技能，不在本文件）
 
-加新武器动画的操作步骤详见 `docs/Animancer 武器动画指南.md`。Factory 配 `Weapon.AnimSetPath = "Resources 相对路径"` 程序员负责，`WeaponAnimSet.asset` 美工创建 + 拖 clip。
-
-### 技能编辑器（SkillDef）使用
-
-技能（玩家近战 / 僵尸攻击·飞扑 等"全身不可打断带伤害的动作"）= 一个 **`SkillDef` ScriptableObject 资产**，**纯 Inspector 编辑**，不写代码。
-
-**新建一个技能**：
-1. Project 窗口 → Create → **TPS → SkillDef**，放到 `Assets/Resources/Skill/` 下（如 `Resources/Skill/PlayerMelee.asset`）——必须在 Resources 里，SkillCastComponent 按相对路径加载。
-2. 填 `Name`（编辑器可读）、`RecoverFade`（整技能放完回跑步的淡入，0=默认）。
-3. 配 `Segments`（按顺序播放的段，每段一个 clip）：
-   - `Clip`：本段动画（全身）。
-   - `Fade`：进入本段淡入（0=默认；段间衔接填 0~0.1 紧凑）。
-   - `HoldDuration`：0 = 播到 clip 自然结束；>0 = 循环该 clip 这么多秒再进下一段（**循环段的 clip 要在 fbx import 勾 Loop Time**）。
-   - `ForwardDistance`：本段沿角色前向的总位移（米）。0=原地（攻击）；正=前冲（飞扑 Air 段填大值）；负=后退。
-   - `DistanceProfile`：位移随段内进度的曲线（x=段进度 0→1，y=已位移占比 0→1）。留空=匀速。可做"前段爆发后段刹车"。
-   - `HitWindows`：本段命中窗（可多个，做多段连击伤害）：
-     - `StartNorm`/`EndNorm`：段内归一化时间 [0,1] 开/关伤害检测（对齐 clip 的命中帧）。
-     - `Radius`/`ForwardOffset`/`Height`：球形 hitbox（中心 = 角色脚下 + 前向×Offset + 上×Height）。
-     - `Damage`：伤害配方（`DamageSpec`：基础伤害 / 卡肉 tier / 暴击 / 元素 / buff）。
-4. 把 Resources 相对路径配到持有者的 `SkillCastComponent.SkillPaths`（程序员在 Factory 里配；下标即触发索引）。
-
-**触发**：玩家 `SkillCastComponent.BindMeleeInput=true` → V 键释放 `SkillPaths[0]`；AI 写 `Character.RequestedSkillIndex = i` 或直接调 `SkillCastComponent.Cast(i)`。释放途中移动/转身/开火/再触发全部被 `IsCastingSkill` 锁住（不可打断）。
-
-**配置范例**：单段攻击 = [Atk(HitWindow 命中帧)]；起手→循环→收招 = [Stand_To_Atk, Atk_Loop(HoldDuration), Atk_End]；连招 = 多段各带命中窗（如玩家近战 [Hard, Kick]）；飞扑 = [Jump_Start, Jump_Air(ForwardDistance 大), Jump_End(落地命中窗)]。
-
-**一键生成现有技能资产**：菜单 **Tools/TPS → Build Skill & Anim Assets**（`ZombieAssetBuilder`）从真实 fbx clip 程序化生成 ZombieAnimSet + ZombieAttack + ZombieLeap + PlayerMelee 到 Resources。要改数值/段，既可直接改生成的 .asset（Inspector），也可改 builder 后重跑（会覆盖）。
+ARCHITECTURE 只描述结构与职责。具体操作步骤见 `Docs/`：
+- 加武器动画：`Docs/Animancer 武器动画指南.md`（Factory 配 `Weapon.AnimSetPath`，`WeaponAnimSet.asset` 美工拖 clip）。
+- 做技能（SkillDef 字段 / 触发 / 配置范例 / 一键生成）：`Docs/技能系统使用指南.md`。
 
 ---
 

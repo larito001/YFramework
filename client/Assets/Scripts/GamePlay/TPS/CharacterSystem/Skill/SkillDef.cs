@@ -22,6 +22,12 @@ public class SkillDef : ScriptableObject
     public string Name;
     [Tooltip("整技能结束、回 locomotion 的淡入时长（秒）。0=用 CharacterAnimSet.DefaultFade")]
     public float RecoverFade;
+
+    [Header("相机震屏（命中窗开启那帧触发，kickback 风格，与是否打中解耦）")]
+    [Tooltip("震屏强度（米级位移）。0=不震。常见 0.1~0.3。")]
+    public float ShakeIntensity;
+    [Tooltip("震屏从满到 0 的衰减时长（秒）。0.1~0.2 典型。")]
+    public float ShakeDuration = 0.15f;
     [Tooltip("按顺序播放的段。每段播完（clip 自然结束或 HoldDuration 到点）进下一段，最后一段完回 locomotion。")]
     public SkillSegment[] Segments;
 

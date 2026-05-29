@@ -34,7 +34,7 @@ public class Actor
     public Vector3 Position;
     /// <summary>世界朝向。Character 由 AimComponent 写、Bullet 由 View 通过 Velocity 推算（不写本字段）。</summary>
     public Quaternion Rotation = Quaternion.identity;
-    /// <summary>意图速度（m/s）。Character 由 MoveComponent / SkillCastComponent / ZombieAIComponent / GravityComponent 写，
+    /// <summary>意图速度（m/s）。Character 由 MoveComponent / SkillCastComponent / GravityComponent 写，
     /// CharacterView.LateUpdate 用 CharacterController.Move 应用。Bullet 不用此字段（Bullet 用 <see cref="Velocity"/>）。</summary>
     public Vector3 WishVelocity;
     /// <summary>实际速度（m/s）。Bullet 由 FireEffect 写初值、MissileMoveComponent 每帧写切线方向。

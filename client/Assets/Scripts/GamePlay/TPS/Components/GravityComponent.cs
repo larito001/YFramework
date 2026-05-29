@@ -2,7 +2,7 @@ using UnityEngine;
 
 /// <summary>
 /// 重力 + 贴地组件：管 Actor.WishVelocity 的 **y 分量**。
-/// 横向位移（x/z）由 MoveComponent / SkillCastComponent / ZombieAIComponent 等负责，本组件只动 y、不读 input。
+/// 横向位移（x/z）由 MoveComponent / SkillCastComponent 等负责，本组件只动 y、不读 input。
 ///
 /// **通用组件**：直接继承 IActorComponent，Owner=Actor。所有"有 CC + 受重力"的 Actor 都能挂。
 ///

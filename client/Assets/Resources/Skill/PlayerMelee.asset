@@ -14,6 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Name: PlayerMelee
   RecoverFade: 0.2
+  ShakeIntensity: 0.18
+  ShakeDuration: 0.15
   Segments:
   - Clip: {fileID: 7400100, guid: 914b09da235eea34ebdc4e71d057e815, type: 3}
     Fade: 0.1

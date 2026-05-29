@@ -34,9 +34,6 @@ public class Character : Actor
     /// <summary>技能播放中。SkillCastComponent 起技能置 true、结束清 false。
     /// **gating 总开关**：Move/Aim/Weapon 在它为 true 时锁移动/转身/开火（释放途中不可打断）；controller 用它锁全身覆盖。</summary>
     public bool IsCastingSkill;
-    /// <summary>请求释放的技能下标（SkillCastComponent.Skills 索引）。AI / 测试写，组件消费后置回 -1。
-    /// 玩家近战走输入直接 Cast，不经此字段。-1 = 无请求。</summary>
-    public int RequestedSkillIndex = -1;
     /// <summary>当前技能段要播的 clip。SkillCastComponent 进段时写，controller 消费 <see cref="SkillClipDirty"/> 时播放。</summary>
     public AnimationClip SkillClip;
     /// <summary>一次性：有新段 clip 待播。SkillCastComponent 进段置 true，controller 全身分支 Play(SkillClip) 后清回。</summary>

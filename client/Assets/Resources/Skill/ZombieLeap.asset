@@ -14,49 +14,56 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Name: ZombieLeap
   RecoverFade: 0.25
+  ShakeIntensity: 0.3
+  ShakeDuration: 0.2
   Segments:
-  - Clip: {fileID: 7400000, guid: 177d5dd7bb2b4834a91226cf097a31ae, type: 3}
+  - Clip: {fileID: 7400000, guid: e9c02acd63158dc4dbe1ff94c11ab8a9, type: 3}
     Fade: 0.1
     HoldDuration: 0
-    ForwardDistance: 0.5
+    ForwardDistance: 3
     DistanceProfile:
       serializedVersion: 2
-      m_Curve: []
-      m_PreInfinity: 2
-      m_PostInfinity: 2
-      m_RotationOrder: 4
-    HitWindows: []
-  - Clip: {fileID: 7400000, guid: 5b3039ec412843d4ea92142d3cf1acbc, type: 3}
-    Fade: 0
-    HoldDuration: 0
-    ForwardDistance: 4.5
-    DistanceProfile:
-      serializedVersion: 2
-      m_Curve: []
-      m_PreInfinity: 2
-      m_PostInfinity: 2
-      m_RotationOrder: 4
-    HitWindows: []
-  - Clip: {fileID: 7400000, guid: 4b9f5c073923f3a48a6c2e0c4e745c77, type: 3}
-    Fade: 0
-    HoldDuration: 0
-    ForwardDistance: 0
-    DistanceProfile:
-      serializedVersion: 2
-      m_Curve: []
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 0.72503406
+        value: 0.6572007
+        inSlope: 1.4983261
+        outSlope: 1.4983261
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0.33333334
+        outWeight: 0.33333334
+      - serializedVersion: 3
+        time: 1
+        value: 1
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
     HitWindows:
     - StartNorm: 0
-      EndNorm: 0.4
-      Radius: 1.8
-      ForwardOffset: 1
-      Height: 1
+      EndNorm: 1
+      Radius: 2
+      ForwardOffset: 0
+      Height: 1.5
       Damage:
-        BaseDamage: 40
-        HitstopTier: 2
-        CritChance: 0
-        CritMultiplier: 0
+        BaseDamage: 100
+        HitstopTier: 1
+        CritChance: 1
+        CritMultiplier: 1
         Element: 0
         AppliedBuffs: []
