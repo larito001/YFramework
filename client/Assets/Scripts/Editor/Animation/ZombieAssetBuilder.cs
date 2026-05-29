@@ -1,4 +1,5 @@
 using System.Linq;
+using Animancer;
 using UnityEditor;
 using UnityEngine;
 
@@ -6,6 +7,7 @@ using UnityEngine;
 /// 菜单：Tools/TPS/Build Skill &amp; Anim Assets
 /// 一键生成所有技能 / 动画运行时资产（含 clip 引用 + 配置）：
 ///   僵尸（从 Assets/Art/Animations/Zombie 下 fbx）：
+///   - Resources/Zombie/Zombie.prefab（MotusMan_v55 角色网格 = 僵尸动画的 Humanoid 骨架源 + AnimancerComponent + CharacterController + <see cref="ZombieView"/>）
 ///   - Resources/Zombie/ZombieAnimSet.asset（<see cref="CharacterAnimSet"/>）：idle / 慢走(Walk) / 快跑(Chase=Run) + 死亡 + 阈值
 ///   - Resources/Skill/ZombieAttack.asset（<see cref="SkillDef"/>）：Stand_To_Atk → Atk_Loop(命中窗扣血) → Atk_End，原地无位移
 ///   - Resources/Skill/ZombieLeap.asset（<see cref="SkillDef"/>）：Jump_Start → Jump_Air(前冲位移) → Jump_End(落地命中窗)
@@ -46,6 +48,11 @@ public static class ZombieAssetBuilder
     [MenuItem("Tools/TPS/Build Skill & Anim Assets")]
     public static void Build()
     {
+        // 清空 Inspector 选中：本流程会重导入 fbx（SetLoop）+ 临时实例化/销毁 GameObject（建 prefab），
+        // 若此时某个 fbx / 物体正被 Inspector 检视，重导入会让它的 serializedObject 变 null，抛一串
+        // GameObjectInspector/SkinnedMeshRendererEditor.OnEnable 空引用（无害但刷屏）。先清选中规避。
+        Selection.objects = new Object[0];
+
         // 1. 循环 clip 设 loopTime（locomotion 要循环 blend；Atk_Loop 要能 hold 住循环）
         SetLoop(IdleFbx); SetLoop(WalkFbx); SetLoop(RunFbx); SetLoop(AtkLoopFbx);
 
@@ -121,9 +128,63 @@ public static class ZombieAssetBuilder
         // 6. 玩家近战技能（恢复 V 键近战）
         BuildPlayerMelee();
 
+        // 7. 僵尸 prefab（从 Idle fbx 的内嵌蒙皮网格 + Humanoid Animator 建，挂 ZombieView/Animancer/CC）
+        BuildZombiePrefab();
+
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
-        Debug.Log("[ZombieAssetBuilder] 完成：ZombieAnimSet + ZombieAttack + ZombieLeap + PlayerMelee 已生成到 Resources/。");
+        Debug.Log("[ZombieAssetBuilder] 完成：ZombieAnimSet + ZombieAttack + ZombieLeap + PlayerMelee + Zombie.prefab 已生成到 Resources/。");
+    }
+
+    /// <summary>从 MotusMan_v55 角色网格（= 僵尸所有动画 fbx 共用的 Humanoid 骨架/Avatar 源）生成
+    /// Resources/Zombie/Zombie.prefab，挂 AnimancerComponent + CharacterController + <see cref="ZombieView"/>。
+    /// 僵尸动画原生绑在这套骨架上，retarget 完美；它和玩家用的模型不同，外观上是独立的敌人。
+    ///
+    /// **用 Object.Instantiate（深拷贝成普通 prefab）而非 InstantiatePrefab**——后者存出来是 variant，
+    /// 加的组件不落盘（之前的坑：生成的 prefab 是个无组件的 MotusMan variant，没 CC → 掉地板下 + Inspector 报空引用）。</summary>
+    private static void BuildZombiePrefab()
+    {
+        const string ModelFbx = "Assets/Art/Characters/MotusMan_v55.fbx";
+        var model = AssetDatabase.LoadAssetAtPath<GameObject>(ModelFbx);
+        if (model == null) { Debug.LogError($"[ZombieAssetBuilder] 找不到角色模型 fbx: {ModelFbx}"); return; }
+
+        GameObject go = null;
+        try
+        {
+            go = (GameObject)Object.Instantiate(model); // 深拷贝整套层级 → SaveAsPrefabAsset 出自包含 prefab
+            go.name = "Zombie";
+
+            // ⚠ 不能用 `GetComponent ?? AddComponent`：GetComponent 缺失时返回 Unity 的"假 null"，
+            // C# 的 ?? 按真引用判空会**放过假 null** 不触发 AddComponent，拿到一个 missing 组件引用（访问即抛 MissingComponentException）。
+            // 必须用 Unity 重载的 `== null` 显式判。
+
+            // Humanoid 模型实例化后根上有 Animator + Avatar
+            var animator = go.GetComponent<Animator>();
+            if (animator == null) animator = go.GetComponentInChildren<Animator>();
+            if (animator == null) Debug.LogWarning("[ZombieAssetBuilder] 模型无 Animator —— 确认 fbx Rig 设为 Humanoid。");
+
+            var animancer = go.GetComponent<AnimancerComponent>();
+            if (animancer == null) animancer = go.AddComponent<AnimancerComponent>();
+            if (animator != null) animancer.Animator = animator;
+
+            // CharacterController：与 Player.prefab 同参（脚在 y=0，spawn 不掉地板下）。
+            // 关键：prefab 必须自带 CC——否则 CharacterView.Awake 兜底 AddComponent 用 Unity 默认 center(0,0,0)，胶囊底在 y=-1，半身陷地。
+            var cc = go.GetComponent<CharacterController>();
+            if (cc == null) cc = go.AddComponent<CharacterController>();
+            cc.center = new Vector3(0f, 1f, 0f);
+            cc.height = 2f;
+            cc.radius = 0.5f;
+
+            if (go.GetComponent<ZombieView>() == null) go.AddComponent<ZombieView>();
+
+            EnsureFolder("Assets/Resources/Zombie");
+            var saved = PrefabUtility.SaveAsPrefabAsset(go, "Assets/Resources/Zombie/Zombie.prefab", out bool ok);
+            if (!ok || saved == null) Debug.LogError("[ZombieAssetBuilder] 保存 Zombie.prefab 失败");
+        }
+        finally
+        {
+            if (go != null) Object.DestroyImmediate(go);
+        }
     }
 
     /// <summary>玩家近战 = **Hard → Kick 两段连招**全身技能（一次 V 顺序播完，释放途中不可打断）：

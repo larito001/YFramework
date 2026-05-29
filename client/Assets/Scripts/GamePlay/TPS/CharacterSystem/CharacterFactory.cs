@@ -112,9 +112,10 @@ public class CharacterFactory
 
     /// <summary>会动会打的僵尸敌人——**和玩家走同一套玩法管线**，只把输入源从 InputComponent 换成 <see cref="AIInputComponent"/>（随机占位）：
     ///   AIInput 给世界空间移动意图 + 随机释放技能 → Aim（非瞄准→朝移动方向）+ Move（idle/慢走/快跑 locomotion）+ SkillCast（攻击/飞扑）。
-    /// view 复用 Player.prefab（僵尸 clip 是 Humanoid，retarget 到玩家骨架；后续有专门僵尸 mesh prefab 再换 ZombieView）。
+    /// view 用专门的僵尸 prefab（Zombie 网格 + ZombieView + ZombieAnimancerController）。
     ///
     /// **依赖资产**（用菜单 Tools/TPS/Build Skill & Anim Assets 一键生成）：
+    ///   - Resources/Zombie/Zombie.prefab（MotusMan_v55 角色网格 + ZombieView/Animancer/CC，僵尸动画原生骨架）
     ///   - Resources/Zombie/ZombieAnimSet.asset（CharacterAnimSet：Idle/Walk/Run + Death + 阈值）
     ///   - Resources/Skill/ZombieAttack.asset / ZombieLeap.asset（SkillDef）
     /// 资产缺失时：locomotion / 技能不播（graceful），AI 仍跑但看不到动作。
@@ -142,7 +143,9 @@ public class CharacterFactory
         character.Add(new HitstopOnDamageComponent());
         character.Add(new AutoDespawnComponent { Delay = 3f });
 
-        var view = manager.LoadBaseView<CharacterView>("Player/Player", character);
+        // 用专门的僵尸 prefab（Zombie 模型 + ZombieView + ZombieAnimancerController）。
+        // 由菜单 Tools/TPS/Build Skill & Anim Assets 从 Idle fbx 内嵌网格生成到 Resources/Zombie/Zombie.prefab。
+        var view = manager.LoadBaseView<ZombieView>("Zombie/Zombie", character, addIfMissing: true);
         if (view != null)
         {
             view.gameObject.name = $"Zombie_{character.ID}";
