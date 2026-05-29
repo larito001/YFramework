@@ -303,13 +303,14 @@ public class CharacterAnimancerController
             if (character.Shoot) character.Shoot = false;
         }
 
-        // 7a. Layer 0 全身覆盖中（Melee）：等待播完才回 Locomotion mixer
+        // 7a. Layer 0 全身覆盖中（Melee）：**swing 逻辑端结束**即退出回 Locomotion，不死等 clip 播完。
+        // 旧实现 "等 NormalizedTime >= 1" 在 LockDuration < clip 长度时会让 layer 0 卡在 melee 结束姿态——切枪 / 换弹 / 跑步衔接都僵。
+        // 现在 character.IsMeleeing 一 false（MeleeComponent 在 effectiveDuration 到点清回）就退出。Die 走单独分支不依赖此处。
         // **过渡 fade**：MeleeRecoverFade（WeaponAnimSet 配） > 0 → 用它，否则 DefaultFade。layer1 weight 用 StartFade 平滑，不再 SetWeight 突切。
         // UpdateLocomotion 下一次 Play 通过 overrideNextLocomotionFade 消费同样的 fade，让 layer0/layer1 同步过渡。
         if (layer0FullBodyActive)
         {
-            if (activeOneShotState != null && activeOneShotState.IsPlaying && activeOneShotState.NormalizedTime < 1f)
-                return;
+            if (character.IsMeleeing) return; // melee swing 进行中，继续锁 fullbody
             layer0FullBodyActive = false;
             float recoverFade = (weaponAnimSet != null && weaponAnimSet.MeleeRecoverFade > 0f) ? weaponAnimSet.MeleeRecoverFade : fade;
             overrideNextLocomotionFade = recoverFade;

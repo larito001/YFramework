@@ -234,6 +234,11 @@ public class WeaponComponent : ICharacterComponent
         if (Owner == null) return;
         if (Weapons == null || slot < 0 || slot >= Weapons.Count) return;
 
+        // 死亡 / melee swing 中静默忽略（手部 / 全身被占用）。playAnim=false 分支是 Factory 强制 spawn 路径，不走这两条门控。
+        // **不**拦 IsReloading：换弹中切枪打断 reload 是设计内的（ApplySwap 主动清旧武器 IsReloading=false）。
+        if (playAnim && Owner.IsDead) return;
+        if (playAnim && Owner.IsMeleeing) return;
+
         // mid-swap 守卫：动画切枪期间禁止再切。用 Owner.IsSwapping（由 swapLockTimer 覆盖全 Holster+Equip 时长驱动）
         // 比 holsterTimer/mountToHandTimer 更严密 —— 当 BackSocketName 空或 MountToHandDelay<=0 时两个 timer 可能没启动，
         // 但 IsSwapping 始终覆盖整段过场。

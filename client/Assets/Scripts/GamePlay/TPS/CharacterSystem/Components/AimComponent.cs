@@ -45,6 +45,12 @@ public class AimComponent : ICharacterComponent
         // dt<=0 = 卡肉/局部冻结。AimComponent 的工作是 dt-独立的（鼠标→Rotation），
         // 冻结期间继续跑会让角色"动画停了但还在转身瞄准"，穿帮。早退。
         if (dt <= 0f) return;
+        // 死亡时清掉瞄准状态并停止转身——否则按住右键死了角色还会一直 LookAt 鼠标，IsAiming 残留也会影响 WeaponComponent / view 门控
+        if (Owner.IsDead)
+        {
+            Owner.IsAiming = false;
+            return;
+        }
 
         Owner.IsAiming = input.AimHeld;
 
