@@ -43,14 +43,19 @@ public class CharacterFactory
                 BuildMissileLauncher(),
                 // 第四槽：突击步枪——示范不同 WeaponAnimSet。Shoot clip 用 Rifle_ShootBurst（连发风格）跟 Pistol 视觉明显不同
                 BuildBurstRifle(),
+                // 第五槽（数字键 5）：近战 knife——无 FireComponent（不开火），左键放技能 1、V 放技能 2（见 BuildKnife + SkillPaths）
+                BuildKnife(),
             },
         });
-        // 技能：玩家近战 = Skills[0]，由 InputComponent 的 OnCastSkill(V 键→0) 触发。技能段/命中窗/位移在 SkillDef 资产里配。
-        // **依赖资产**：Resources/Skill/PlayerMelee.asset（菜单 Tools/TPS/Build Skill & Anim Assets 一键生成）。
-        //   资产建好前按 V 报 warning（Cast 找不到 SkillDef）。Add 顺序在 Move 之后、Gravity 之前——位移覆写 WishVelocity.xz 后由 Gravity 定 y。
+        // 技能列表（下标即 OnCastSkill/Cast 索引，必须与下方武器的 PrimarySkillIndex/SecondarySkillIndex 对齐）：
+        //   [0] PlayerMelee  —— 常规枪 V 键近战（WeaponSecondarySkill=-1 回退到这）
+        //   [1] PlayerKnife  —— knife 左键技能（BuildKnife.PrimarySkillIndex=1）；2 段连击
+        //   [2] PlayerKnifeV —— knife V 键技能（BuildKnife.SecondarySkillIndex=2）
+        // **依赖资产**（Resources 相对路径，缺失则 Cast 报 warning 不崩）：Skill/PlayerMelee/PlayerKnife/PlayerKnifeV.asset 均已有。
+        // Add 顺序在 Move 之后、Gravity 之前——位移覆写 WishVelocity.xz 后由 Gravity 定 y。
         character.AddAfter<SkillCastComponent, MoveComponent>(new SkillCastComponent
         {
-            SkillPaths = new List<string> { "Skill/PlayerMelee" },
+            SkillPaths = new List<string> { "Skill/PlayerMelee", "Skill/PlayerKnife", "Skill/PlayerKnifeV" },
             // HitLayers 默认全开。生产期建议改成只含敌人层。
         });
         // 重力 + 贴地。写 WishVelocity.y，放在所有写 x/z 的组件之后
@@ -322,5 +327,39 @@ public class CharacterFactory
         });
         w.Add(new ReloadComponent { ReloadDuration = 1.8f });
         return w;
+    }
+
+    /// <summary>近战 knife：**纯技能武器**——不装 FireComponent / ReloadComponent，所以左键不开火、R 不换弹。
+    /// 左键（OnFireDown）放技能 1、V 键放技能 2（PrimarySkillIndex/SecondarySkillIndex 指向玩家 SkillCastComponent.SkillPaths 的下标）。
+    /// 上身持刀 pose 走 WeaponAnimSet（IdleGunPose）；两个技能动作走 SkillDef（全身），跟枪的开火/换弹无关。
+    ///
+    /// **依赖资产**（均已就绪）：
+    ///   - Weapon/knife.prefab（刀模型，mesh-only）
+    ///   - Weapon/Anim/Knife.asset（WeaponAnimSet：IdleGunPose/AimPose=持刀待机 + Equip/Holster；无 Shoot/Reload）
+    ///   - Skill/PlayerKnife.asset（SkillDef）= 左键技能（SkillPaths[1]）
+    ///   - Skill/PlayerKnifeV.asset（SkillDef）= V 键技能（SkillPaths[2]）</summary>
+    private static Weapon BuildKnife()
+    {
+        return new Weapon
+        {
+            Name = "Knife",
+            ModelPath = "Weapon/knife",
+            AnimSetPath = "Weapon/Anim/Knife",
+            HandLocalPosition = Vector3.zero,
+            HandLocalEuler = new Vector3(150f, 10f, 0f),   // 刀握持朝向
+            BackLocalPosition = new Vector3(0f, 0.15f, -0.2f),
+            BackLocalEuler = new Vector3(0f, 90f, 0f),
+            // 近战不开火、不换弹：无 FireComponent / ReloadComponent，无弹药概念
+            MagCapacity = 0,
+            CurrentAmmo = 0,
+            // 刀单独配完整的拔刀/收刀过场（枪走全局快切 0.7/1.3，会截短；刀要播完整 1.8s clip）。
+            // EquipRifle/HolsterRifle = 54帧@30fps ≈ 1.8s。想更快可加大 SwapAnimSpeed（动画仍完整），如 1.8→各约1秒。
+            HolsterDuration = 1.8f,
+            EquipDuration = 1.8f,
+            SwapAnimSpeed = 1f,
+            // 左键→技能 PlayerKnife（SkillPaths[1]）；V→技能 PlayerKnifeV（SkillPaths[2]）
+            PrimarySkillIndex = 1,
+            SecondarySkillIndex = 2,
+        };
     }
 }

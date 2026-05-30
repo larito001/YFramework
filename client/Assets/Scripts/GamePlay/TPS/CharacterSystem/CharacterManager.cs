@@ -70,9 +70,9 @@ public class CharacterManager : IGameService, ITickable
 
         // 测试用：在玩家前方铺 3 个 Dummy 站桩靶，便于验证近战/子弹/导弹/射线四种伤害源都能扣血。
         // 不想要就删这三行。
-        SpawnDummy(new Vector3(0f, 0f, 5f));
-        SpawnDummy(new Vector3(2f, 0f, 6f));
-        SpawnDummy(new Vector3(-2f, 0f, 6f));
+        SpawnDummy(new Vector3(0f, 0f, 10f));
+        SpawnDummy(new Vector3(4f, 0f, 12f));
+        SpawnDummy(new Vector3(-4f, 0f, 12f));
 
         // 测试用：spawn 2 个会随机行动（idle/走/跑/攻击/飞扑）的僵尸。
         // 需先用菜单 Tools/TPS/Build Skill & Anim Assets 生成 Resources 下的 ZombieAnimSet + 技能资产。

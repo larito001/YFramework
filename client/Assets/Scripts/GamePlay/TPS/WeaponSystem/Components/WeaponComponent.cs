@@ -25,13 +25,16 @@ public class WeaponComponent : ICharacterComponent
     /// 等 MountToHandDelay 到点直接出现在手里）。RifleAnimsetPro 默认 rig 没有专门的"背"骨，
     /// 用 Spine1 凑（位置/朝向需要每把武器在 Factory 里调 BackLocalPosition/BackLocalEuler）。</summary>
     public string BackSocketName = "Spine1";
-    /// <summary>Equip（取出新枪）阶段时长（秒），近似匹配 EquipRifle 动画长度。</summary>
+    /// <summary>Equip（取出新枪）阶段**默认**时长（秒）。枪走快切手感（短于 1.8s 的 Equip clip，取出动画会被截短——枪可接受）。
+    /// 想播完整 clip（如近战刀）：在 Weapon.EquipDuration 按武器覆盖成 clip 长度（EquipRifle=54帧@30fps≈1.8s），或调 Weapon.SwapAnimSpeed。
+    /// 实际过场 = (Weapon.EquipDuration 或本默认) / Weapon.SwapAnimSpeed。</summary>
     public float WeaponSwapDuration = 1.3f;
-    /// <summary>Holster（收回旧枪）阶段时长（秒），近似匹配 HolsterRifle 动画长度。
-    /// 切枪总锁开火时长 = HolsterDuration + WeaponSwapDuration。Holster 阶段结束后才把新武器挂到背上并触发 Equip 动画。</summary>
+    /// <summary>Holster（收回旧枪）阶段**默认**时长（秒）。枪走快切手感（短于 Holster clip，收回动画会被截短——枪可接受）。
+    /// 切枪总锁开火时长 = HolsterDuration + WeaponSwapDuration。Holster 阶段结束后才把新武器挂到背上并触发 Equip 动画。
+    /// 想播完整 clip：Weapon.HolsterDuration 覆盖成 clip 长度（≈1.8s），或调 Weapon.SwapAnimSpeed。</summary>
     public float HolsterDuration = 0.7f;
     /// <summary>Equip 阶段开始后多少秒把新武器 reparent 到手（"抽枪到位"那一刻）。
-    /// 默认 0.5s = EquipRifle 大约一半的时长。&lt;=0 立即挂手（关闭过场效果）。</summary>
+    /// 默认 0.5s = EquipRifle 抽枪到手大约的时机。&lt;=0 立即挂手（关闭过场效果）。</summary>
     public float MountToHandDelay = 0.5f;
 
     private InputComponentBase input;
@@ -93,6 +96,9 @@ public class WeaponComponent : ICharacterComponent
             Owner.CurrentWeaponSlot = -1;
             Owner.HeavyRecoil = false;
             Owner.RecoilAnimSpeed = 1f;
+            Owner.SwapAnimSpeed = 1f;
+            Owner.WeaponPrimarySkill = -1;
+            Owner.WeaponSecondarySkill = -1;
             // 清动画 set 链：触发 view 回 idle pose
             Owner.CurrentWeaponAnimSetPath = null;
             Owner.WeaponAnimDirty = true;
@@ -141,8 +147,9 @@ public class WeaponComponent : ICharacterComponent
         prevReloading = currReloading;
 
         // 开火条件：瞄准 + 没在切枪 + 没在近战 + 没在换弹 + 没死 + 有弹（MagCapacity=0 是无限弹药武器，跳过弹药门控）
+        //   + 非近战武器（WeaponPrimarySkill<0；近战/技能武器左键放技能，永不开火）
         bool hasAmmo = currentWeapon == null || currentWeapon.MagCapacity <= 0 || currentWeapon.CurrentAmmo > 0;
-        Owner.IsShooting = input.FireHeld && Owner.IsAiming && !Owner.IsSwapping && !Owner.IsCastingSkill && !Owner.IsReloading && !Owner.IsDead && hasAmmo;
+        Owner.IsShooting = input.FireHeld && Owner.IsAiming && !Owner.IsSwapping && !Owner.IsCastingSkill && !Owner.IsReloading && !Owner.IsDead && hasAmmo && Owner.WeaponPrimarySkill < 0;
 
         // 射击一次性 trigger 镜像：FireComponent 每发射成功置 ShootEvent，view 端 SetTrigger("Shoot") 重启 Recoil 动画
         if (currentWeapon != null && currentWeapon.ShootEvent)
@@ -244,8 +251,17 @@ public class WeaponComponent : ICharacterComponent
             pendingSwapSlot = slot;
             Owner.WeaponHolster = true;
             Owner.IsSwapping = true;
-            holsterTimer = HolsterDuration;
-            swapLockTimer = HolsterDuration + WeaponSwapDuration;
+            // 过场时长 = clip 自然长度 / SwapAnimSpeed（动画完整播完、速度由武器配置定）。
+            //   Holster 跟"被收起的旧武器"走、Equip 跟"取出的新武器"走；时长 <0 回退组件默认，速度 <=0 视作 1。
+            var newWeapon = Weapons[slot];
+            float holsterBase = currentWeapon.HolsterDuration >= 0f ? currentWeapon.HolsterDuration : HolsterDuration;
+            float holsterSpeed = currentWeapon.SwapAnimSpeed > 0f ? currentWeapon.SwapAnimSpeed : 1f;
+            float equipBase = (newWeapon != null && newWeapon.EquipDuration >= 0f) ? newWeapon.EquipDuration : WeaponSwapDuration;
+            float equipSpeed = (newWeapon != null && newWeapon.SwapAnimSpeed > 0f) ? newWeapon.SwapAnimSpeed : 1f;
+            float holsterDur = holsterBase / holsterSpeed;
+            float equipDur = equipBase / equipSpeed;
+            holsterTimer = holsterDur;
+            swapLockTimer = holsterDur + equipDur;
             return;
         }
 
@@ -287,7 +303,12 @@ public class WeaponComponent : ICharacterComponent
         {
             Owner.HeavyRecoil = currentWeapon.HeavyRecoil;
             Owner.RecoilAnimSpeed = currentWeapon.RecoilAnimSpeed;
+            // 取出/收回速度倍率：driver 据此设 Equip/Holster one-shot 的 Speed（过场时长在 EquipInternal 已同步缩放）
+            Owner.SwapAnimSpeed = currentWeapon.SwapAnimSpeed > 0f ? currentWeapon.SwapAnimSpeed : 1f;
         }
+        // 武器的技能映射推给 Owner（InputComponent 据此决定左键/V 放哪个技能、近战武器免开火）。无武器回 -1。
+        Owner.WeaponPrimarySkill = currentWeapon?.PrimarySkillIndex ?? -1;
+        Owner.WeaponSecondarySkill = currentWeapon?.SecondarySkillIndex ?? -1;
 
         // 通知 view 切 WeaponAnimSet（path 空 = 回退默认 idle pose）
         // CharacterView 检测 WeaponAnimDirty trigger 后 ResMgr.Load<WeaponAnimSet> + Animancer.Play 替代原 Animator state
@@ -300,7 +321,9 @@ public class WeaponComponent : ICharacterComponent
             if (mountToBack && MountToHandDelay > 0f)
             {
                 pendingHandMount = currentWeapon;
-                mountToHandTimer = MountToHandDelay;
+                // 挂手时机也按取出速度缩放（Equip 动画快了，抽枪到手也提前）
+                float swapSpeed = currentWeapon != null && currentWeapon.SwapAnimSpeed > 0f ? currentWeapon.SwapAnimSpeed : 1f;
+                mountToHandTimer = MountToHandDelay / swapSpeed;
             }
         }
         // 注：IsSwapping / swapLockTimer 在 EquipInternal 启动阶段就设好覆盖 Holster+Equip 总时长，这里不重写

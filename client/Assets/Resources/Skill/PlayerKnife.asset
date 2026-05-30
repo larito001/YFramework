@@ -17,72 +17,109 @@ MonoBehaviour:
   ShakeIntensity: 0.18
   ShakeDuration: 0.15
   Segments:
-  - Clip: {fileID: 7400002, guid: 899ccc5bb593a7f43aa8c65d4178d9fc, type: 3}
-    Fade: 0.1
-    HoldDuration: 0
-    ForwardDistance: 1.2
-    DistanceProfile:
-      serializedVersion: 2
-      m_Curve: []
-      m_PreInfinity: 2
-      m_PostInfinity: 2
-      m_RotationOrder: 4
-    HitWindows:
-    - StartNorm: 0.3
-      EndNorm: 0.4
-      Radius: 1
-      ForwardOffset: 0.8
-      Height: 1
-      Damage:
-        BaseDamage: 20
-        HitstopTier: 2
-        CritChance: 0
-        CritMultiplier: 0
-        Element: 0
-        AppliedBuffs: []
-    - StartNorm: 0.5
-      EndNorm: 0.6
-      Radius: 1
-      ForwardOffset: 0.8
-      Height: 1
-      Damage:
-        BaseDamage: 20
-        HitstopTier: 2
-        CritChance: 0
-        CritMultiplier: 0
-        Element: 0
-        AppliedBuffs: []
   - Clip: {fileID: 7400002, guid: 6ee5c0f8025162c428ad98b2cfcd7526, type: 3}
     Fade: 0.1
     HoldDuration: 0
     ForwardDistance: 1.2
     DistanceProfile:
       serializedVersion: 2
-      m_Curve: []
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0
+        inSlope: 0.03282429
+        outSlope: 0.03282429
+        tangentMode: 34
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0.33333334
+      - serializedVersion: 3
+        time: 0.09487286
+        value: 0.003114134
+        inSlope: 0.122949354
+        outSlope: 0.122949354
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0.33333334
+        outWeight: 0.23632361
+      - serializedVersion: 3
+        time: 0.13697112
+        value: 0.5235306
+        inSlope: 0.031837862
+        outSlope: 0.031837862
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0.37115538
+        outWeight: 0.13653633
+      - serializedVersion: 3
+        time: 0.32045424
+        value: 0.5252451
+        inSlope: 0.10564618
+        outSlope: 0.10564618
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0.3068233
+        outWeight: 0.33333334
+      - serializedVersion: 3
+        time: 0.33072835
+        value: 0.8729058
+        inSlope: 0.04554167
+        outSlope: 0.04554167
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0.33333334
+        outWeight: 0.69398403
+      - serializedVersion: 3
+        time: 0.6404732
+        value: 0.8721717
+        inSlope: 0.051590744
+        outSlope: 0.051590744
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0.33333334
+        outWeight: 0.5390517
+      - serializedVersion: 3
+        time: 0.7169873
+        value: 0.9832565
+        inSlope: -0.061870504
+        outSlope: -0.061870504
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0.33333334
+        outWeight: 0.45509708
+      - serializedVersion: 3
+        time: 1
+        value: 1
+        inSlope: 0.059161592
+        outSlope: 0.059161592
+        tangentMode: 34
+        weightedMode: 0
+        inWeight: 0.33333334
+        outWeight: 0
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
     HitWindows:
-    - StartNorm: 0.5
-      EndNorm: 0.6
+    - StartNorm: 0.1
+      EndNorm: 0.2
       Radius: 1
       ForwardOffset: 0.8
       Height: 1
       Damage:
         BaseDamage: 20
-        HitstopTier: 2
+        HitstopTier: 0
         CritChance: 0
         CritMultiplier: 0
         Element: 0
         AppliedBuffs: []
-    - StartNorm: 0.7
-      EndNorm: 0.8
+    - StartNorm: 0.4
+      EndNorm: 0.5
       Radius: 1
       ForwardOffset: 0.8
       Height: 1
       Damage:
         BaseDamage: 20
-        HitstopTier: 2
+        HitstopTier: 0
         CritChance: 0
         CritMultiplier: 0
         Element: 0

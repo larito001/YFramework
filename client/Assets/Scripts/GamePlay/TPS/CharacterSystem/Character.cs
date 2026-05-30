@@ -65,11 +65,23 @@ public class Character : Actor
     /// view 写到 Animator Float 参数 RecoilSpeed，Recoil 层的 Shoot 状态 speedParameter 引用它。</summary>
     public float RecoilAnimSpeed = 1f;
 
+    /// <summary>取出/收回(Equip/Holster)动画播放速度倍率。WeaponComponent 切枪时从对应武器 SwapAnimSpeed 写入
+    /// （收回阶段=旧武器、取出阶段=新武器，随阶段切换自然对上）。driver 把它设到 Equip/Holster one-shot 的 Speed，
+    /// 切枪过场时长同步 = clip 长度 / 本倍率，保证动画完整播放、只改快慢。1=原速。</summary>
+    public float SwapAnimSpeed = 1f;
+
     /// <summary>瞄准点世界坐标。AimComponent 写入，射击/UI 用它做命中检测、画准星等。</summary>
     public Vector3 AimTargetWorldPos;
 
     /// <summary>当前持有武器槽位。WeaponComponent 写入，HUD/业务读取。实际武器模型挂载走 Weapon Actor + WeaponView。</summary>
     public int CurrentWeaponSlot;
+
+    /// <summary>当前武器的左键技能下标（指向 <see cref="SkillCastComponent"/>.SkillPaths）。WeaponComponent 切枪时从 currentWeapon.PrimarySkillIndex 镜像写入，InputComponent 读。
+    /// -1 = 左键正常开火（常规枪）；&gt;=0 = 近战/技能武器：左键放该技能、不开火。</summary>
+    public int WeaponPrimarySkill = -1;
+    /// <summary>当前武器的 V 键技能下标。WeaponComponent 切枪时从 currentWeapon.SecondarySkillIndex 镜像写入，InputComponent 读。
+    /// -1 = 回退技能 0（保持旧"V 近战"行为）。</summary>
+    public int WeaponSecondarySkill = -1;
 
     /// <summary>当前武器对应的 <see cref="WeaponAnimSet"/> 资源路径（Resources 相对路径）。WeaponComponent.ApplySwap 时
     /// 从 currentWeapon.AnimSetPath 镜像写入。空 / null = 持有者 view 走默认 idle pose。</summary>

@@ -143,8 +143,9 @@ public class UpperBodyLayerDriver
         out AnimationClip clip, out float fade, out float speed)
     {
         clip = null; fade = defaultFade; speed = 0f;
-        if (character.WeaponHolster) { character.WeaponHolster = false; clip = weapon.Holster; return true; }
-        if (character.WeaponSwap)    { character.WeaponSwap = false;    clip = weapon.Equip;   return true; }
+        // 取出/收回按 Character.SwapAnimSpeed 倍率播（过场时长在 WeaponComponent 已同步缩放，clip 完整不被切）
+        if (character.WeaponHolster) { character.WeaponHolster = false; clip = weapon.Holster; speed = character.SwapAnimSpeed; return true; }
+        if (character.WeaponSwap)    { character.WeaponSwap = false;    clip = weapon.Equip;   speed = character.SwapAnimSpeed; return true; }
         if (character.Reload)        { character.Reload = false;        clip = weapon.Reload;  return true; }
         if (character.Shoot)
         {

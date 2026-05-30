@@ -17,7 +17,8 @@ public class InputComponent : InputComponentBase
         Ctx?.TryGet(out cameraMgr);
         if (input != null)
         {
-            input.OnMeleeDown += HandleMelee;        // V 键 → 释放近战技能（下标 0）
+            input.OnFireDown += HandleFireDown;      // 左键按下 → 近战武器放第一个技能（常规枪走 FireHeld 开火）
+            input.OnMeleeDown += HandleMelee;        // V 键 → 释放第二个技能（常规枪回退技能 0 近战）
             input.OnReloadDown += RaiseReload;
             input.OnWeaponSelect += RaiseWeaponSelect;
         }
@@ -27,6 +28,7 @@ public class InputComponent : InputComponentBase
     {
         if (input != null)
         {
+            input.OnFireDown -= HandleFireDown;
             input.OnMeleeDown -= HandleMelee;
             input.OnReloadDown -= RaiseReload;
             input.OnWeaponSelect -= RaiseWeaponSelect;
@@ -54,7 +56,8 @@ public class InputComponent : InputComponentBase
 
         SprintHeld = input.SprintHeld;
         AimHeld = input.AimHeld;
-        FireHeld = input.FireHeld;
+        // 近战/技能武器（WeaponPrimarySkill>=0）：左键改放技能（见 HandleFireDown），不写开火意图。常规枪正常持续开火。
+        FireHeld = Owner.WeaponPrimarySkill >= 0 ? false : input.FireHeld;
 
         // 瞄准世界点：仅瞄准时算（非瞄准不做无谓射线，且 AimWorldPoint 契约就是"AimHeld 时有效"）。
         // 鼠标射线 ∩ 枪口高度平面（俯视倾斜相机下"点哪打哪"靠这层平面）。
@@ -79,5 +82,13 @@ public class InputComponent : InputComponentBase
         }
     }
 
-    private void HandleMelee() => RaiseCastSkill(0);
+    /// <summary>左键按下：仅近战/技能武器（WeaponPrimarySkill&gt;=0）放第一个技能（一次按一下）。常规枪左键开火走 FireHeld，不在此处理。</summary>
+    private void HandleFireDown()
+    {
+        if (Owner != null && Owner.WeaponPrimarySkill >= 0) RaiseCastSkill(Owner.WeaponPrimarySkill);
+    }
+
+    /// <summary>V 键：放当前武器的第二个技能（WeaponSecondarySkill）。常规枪 = -1 → 回退技能 0（保持旧"V 近战"）。</summary>
+    private void HandleMelee()
+        => RaiseCastSkill(Owner != null && Owner.WeaponSecondarySkill >= 0 ? Owner.WeaponSecondarySkill : 0);
 }

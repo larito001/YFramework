@@ -38,6 +38,27 @@ public class Weapon : Actor
     /// 详见 ARCHITECTURE "动画接口协议" + docs/Animancer 武器动画指南.md。</summary>
     public string AnimSetPath;
 
+    // ── 切枪过场时长（覆盖 WeaponComponent 默认；<0 = 用组件默认值）──
+    /// <summary>收回(Holster)本武器的过场时长（秒）。**应 >= Holster clip 长度**，否则收刀/收枪动画没播完就被切到取出阶段。
+    /// 收回播的是"被收起的旧武器"的 Holster，所以这个值跟旧武器走。&lt;0 = 用 <see cref="WeaponComponent.HolsterDuration"/> 默认。</summary>
+    public float HolsterDuration = -1f;
+    /// <summary>取出(Equip)本武器的过场时长（秒）= **Equip clip 自然长度**（原速）。一般不用动（默认即所有武器共用的 ≈1.8s）；
+    /// 仅当本武器的取出动画长度不同才覆盖。&lt;0 = 用 <see cref="WeaponComponent.WeaponSwapDuration"/> 默认。实际过场 = 本值 / <see cref="SwapAnimSpeed"/>。</summary>
+    public float EquipDuration = -1f;
+
+    /// <summary>取出/收回(Equip/Holster)动画播放倍率（**切枪/收枪速度旋钮**）。1=原速；>1=更快（如 1.5=快 50%）；&lt;1=更慢。
+    /// 过场时长按本倍率自动缩放（= clip 长度 / 倍率），动画始终完整播放、不被切。切枪时写到 Character.SwapAnimSpeed。</summary>
+    public float SwapAnimSpeed = 1f;
+
+    // ── 技能映射（近战 / 武器专属技能）──
+    /// <summary>左键（OnFireDown）释放的技能下标，指向持枪人 <see cref="SkillCastComponent"/>.SkillPaths。
+    /// -1（默认）= 左键正常开火（常规枪）。&gt;=0 = 近战/技能武器：左键改放该技能、且永不开火（WeaponComponent 门控 + InputComponent 不写 FireHeld）。
+    /// 切枪时 WeaponComponent.ApplySwap 写到 Character.WeaponPrimarySkill，InputComponent 读。</summary>
+    public int PrimarySkillIndex = -1;
+    /// <summary>V 键释放的技能下标。-1（默认）= 回退技能 0（保持旧"V 近战"行为，不必每把枪显式配）。
+    /// 切枪时写到 Character.WeaponSecondarySkill。</summary>
+    public int SecondarySkillIndex = -1;
+
     // ── 开火几何（武器自配，持枪人读着算 FireOrigin） ──
     /// <summary>枪口相对持有者 (Position + Rotation) 的本地坐标偏移（米）。x=横向、y=高度、z=朝前推。
     /// 持枪人组件（玩家 WeaponComponent / 塔 TowerWeaponComponent）算 FireOrigin 都是：
