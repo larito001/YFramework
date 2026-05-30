@@ -60,8 +60,15 @@ public sealed class ItemShape
                     if (row[x] == '1') list.Add(new Vector2Int(x, y));
             }
 
-            if (list.Count > 0) return list;
+            if (list.Count > 0)
+            {
+                // 校验:掩码包围盒应与配表 width×height 一致,不符多半是配表填错(数据仍以掩码为准)
+                if ((baseW > 0 && baseW != w) || (baseH > 0 && baseH != h))
+                    Debug.LogWarning($"[ItemShape] 形状掩码尺寸 {w}x{h} 与配表 width×height({baseW}x{baseH})不一致,以掩码为准。mask=\"{mask}\"");
+                return list;
+            }
             // 掩码全 0 → 回退矩形
+            Debug.LogWarning($"[ItemShape] 形状掩码全为 0,回退为 {Mathf.Max(1, baseW)}x{Mathf.Max(1, baseH)} 矩形。mask=\"{mask}\"");
         }
 
         // 无掩码 / 非法掩码:填满 baseW×baseH 矩形

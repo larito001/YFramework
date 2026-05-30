@@ -37,7 +37,6 @@ public class BagPanel : UIPageBase
     private EventMgr eventMgr;
     private Canvas canvas;
 
-    private readonly List<GameObject> cellBgs = new List<GameObject>();
     private readonly Dictionary<int, BagItemWidget> widgets = new Dictionary<int, BagItemWidget>();
     private readonly Dictionary<string, Sprite> iconCache = new Dictionary<string, Sprite>();
 
@@ -72,6 +71,15 @@ public class BagPanel : UIPageBase
     {
         eventMgr.Remove(YOTOEventType.RefreshBagList, Refresh);
         EndDragState();
+        ReleaseIcons();
+    }
+
+    /// <summary>释放图标资源句柄(每个 LoadIcon 命中前都 Load 过一次,引用计数 +1,这里逐一归还)。</summary>
+    private void ReleaseIcons()
+    {
+        foreach (var kv in iconCache)
+            if (kv.Value != null) resMgr.Release<Sprite>(kv.Key);
+        iconCache.Clear();
     }
 
     public override void OnResize() { }
@@ -114,7 +122,6 @@ public class BagPanel : UIPageBase
                 var img = go.GetComponent<Image>();
                 img.color = cellColor;
                 img.raycastTarget = false;
-                cellBgs.Add(go);
             }
 
         // 高亮层:在格背景之上、物品之下(物品在 Refresh 时后加入,渲染更晚)
@@ -199,13 +206,19 @@ public class BagPanel : UIPageBase
 
     public void OnWidgetEndDrag(BagItemWidget widget, PointerEventData e)
     {
+        // 注意时序:PlaceOrSwap 成功会同步触发 OnChanged → Refresh,Refresh 会 Destroy 所有 widget
+        // (含本 widget)。因此先把需要的值取出,调用后不要再解引用 widget。
         GetTargetAnchor(widget, out int tx, out int ty);
-        bool ok = bagSystem.PlaceOrSwap(widget.InstanceId, tx, ty, dragRotation);
-        EndDragState();
-        if (!ok) Refresh(); // 失败:从模型重绘,贴回原位/原朝向(成功时 OnChanged 已触发 Refresh)
+        int instanceId = widget.InstanceId;
+        EndDragState();                  // 先清拖拽态(置空 dragWidget),避免悬空引用
+        bool ok = bagSystem.PlaceOrSwap(instanceId, tx, ty, dragRotation);
+        if (!ok) Refresh();              // 失败:模型未变,手动重绘把 widget 贴回原位/原朝向
     }
 
     public void OnWidgetClick(BagItemWidget widget) => bagSystem.UseItem(widget.InstanceId);
+
+    /// <summary>右键原地旋转。成功时 RotateItem 内部已触发 OnChanged→Refresh 重画;
+    /// 失败(旋转后放不下)时模型不变、UI 无需变动,故忽略返回值。</summary>
     public void OnWidgetRotate(BagItemWidget widget) => bagSystem.RotateItem(widget.InstanceId);
 
     private void EndDragState()

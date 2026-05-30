@@ -58,7 +58,8 @@ public class GridBag
     public int EffW(int itemId, int rotation) => GetShape(itemId).WByRot[rotation & 3];
     /// <summary>某物品某朝向的包围盒高。</summary>
     public int EffH(int itemId, int rotation) => GetShape(itemId).HByRot[rotation & 3];
-    /// <summary>某物品某朝向的本地占格集合(相对锚点)。</summary>
+    /// <summary>某物品某朝向的本地占格集合(相对锚点)。
+    /// 注意:返回的是内部缓存数组的引用,**只读**,调用方不得修改其元素(会污染所有同 itemId 物品的形状)。</summary>
     public Vector2Int[] LocalCells(int itemId, int rotation) => GetShape(itemId).CellsByRot[rotation & 3];
 
     private int Idx(int x, int y) => y * Width + x;
