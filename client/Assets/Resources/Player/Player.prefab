@@ -50,6 +50,11 @@ MonoBehaviour:
   AnimMoveDampTime: 0.1
   HitFlashColor: {r: 1, g: 1, b: 1, a: 1}
   HitFlashDuration: 0.12
+  FlyTextHeight: 1.8
+  DissolveDuration: 3
+  DissolveEdgeColor: {r: 1, g: 0.45, b: 0.05, a: 1}
+  DissolveEdgeWidth: 0.08
+  DissolveEdgeEmission: 3
 --- !u!143 &7428160783874567544
 CharacterController:
   m_ObjectHideFlags: 0
@@ -143,7 +148,7 @@ PrefabInstance:
     - target: {fileID: 13700000, guid: 2ee7862adf5ebec47b65425f3cee9079, type: 3}
       propertyPath: m_Materials.Array.data[0]
       value: 
-      objectReference: {fileID: 2100000, guid: 835e773c15d77eb4ba045835e71d81a4, type: 2}
+      objectReference: {fileID: 2100000, guid: 3f6dc20f5f84e044cb9df6efb7bec07a, type: 2}
     - target: {fileID: 13700000, guid: 2ee7862adf5ebec47b65425f3cee9079, type: 3}
       propertyPath: m_Materials.Array.data[1]
       value: 

@@ -99,10 +99,11 @@ public class SkillCastComponent : ICharacterComponent
         base.Detach();
     }
 
-    /// <summary>释放第 index 个技能。已在释放中（不可打断）/ 死亡 静默忽略；越界 / 资产空 报 warning。</summary>
+    /// <summary>释放第 index 个技能。已在释放中（不可打断）/ 死亡 / 切枪过场中 静默忽略；越界 / 资产空 报 warning。</summary>
     public void Cast(int index)
     {
         if (Owner == null || Owner.IsDead) return;
+        if (Owner.IsSwapping) return;                        // 切枪过场中不能放技能（与"技能中不能切枪"对称）
         if (active != null) return;                          // 不可打断
         if (index < 0 || index >= skills.Count)
         {
