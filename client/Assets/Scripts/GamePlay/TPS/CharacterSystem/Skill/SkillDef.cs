@@ -23,11 +23,6 @@ public class SkillDef : ScriptableObject
     [Tooltip("整技能结束、回 locomotion 的淡入时长（秒）。0=用 CharacterAnimSet.DefaultFade")]
     public float RecoverFade;
 
-    [Header("相机震屏（命中窗开启那帧触发，kickback 风格，与是否打中解耦）")]
-    [Tooltip("震屏强度（米级位移）。0=不震。常见 0.1~0.3。")]
-    public float ShakeIntensity;
-    [Tooltip("震屏从满到 0 的衰减时长（秒）。0.1~0.2 典型。")]
-    public float ShakeDuration = 0.15f;
     [Tooltip("按顺序播放的段。每段播完（clip 自然结束或 HoldDuration 到点）进下一段，最后一段完回 locomotion。")]
     public SkillSegment[] Segments;
 
@@ -48,6 +43,21 @@ public class SkillDef : ScriptableObject
         public HitWindow[] HitWindows;
         [Tooltip("本段的动效（可多个，与 HitWindows 平级）。按段内归一化时间 [0,1] 触发：到 StartNorm 生成，跟随型到 EndNorm 销毁。")]
         public SkillVfx[] Vfx;
+        [Tooltip("本段的相机震屏（可多个，与 HitWindows/Vfx 平级）。到各自 StartNorm 触发一次，按 Intensity/Duration 衰减。")]
+        public SkillShake[] Shake;
+    }
+
+    /// <summary>技能相机震屏：段内某归一化时间触发一次 kickback 风格震屏（相机往技能反向顿一下）。
+    /// 与 <see cref="HitWindow"/> / <see cref="SkillVfx"/> 平级，由 <see cref="SkillCastComponent"/> 驱动。</summary>
+    [Serializable]
+    public class SkillShake
+    {
+        [Tooltip("段内归一化时间 [0,1]：何时触发（触发一次，不是窗口）")]
+        public float StartNorm;
+        [Tooltip("震屏强度（米级位移）。常见 0.1~0.3")]
+        public float Intensity = 0.18f;
+        [Tooltip("震屏从满到 0 的衰减时长（秒）。0.1~0.2 典型")]
+        public float Duration = 0.15f;
     }
 
     /// <summary>技能动效：段内某归一化时间生成一个特效 prefab（位置/朝向相对角色，可选跟随角色移动）。

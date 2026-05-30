@@ -114,9 +114,10 @@ public class CameraManager : IGameService, ILateTickable
         var k = 1f - Mathf.Exp(-FollowSmoothing * dt); // 指数平滑，与帧率无关
         baseFollowPosition = Vector3.Lerp(baseFollowPosition, desired, k);
 
-        // 1. 先用未抖动的 base 位置确定朝向：LookAt 看角色 → 朝向稳定，不会绕角色旋转
+        // 1. 朝向：LookAt **平滑后的**目标（baseFollowPosition - FollowOffset），视线方向恒 = -FollowOffset，
+        //    固定俯视角不随角色位置抖。盯原始 FollowTarget.position 会在快速移动(技能前冲)/贴地噪声下让朝向高频抖动。
         t.position = baseFollowPosition;
-        t.LookAt(FollowTarget.position, Vector3.up);
+        t.LookAt(baseFollowPosition - FollowOffset, Vector3.up);
 
         // 2. 叠加震屏偏移。CurrentOffset 是世界向量（调用方按 kickback 方向传入），
         //    平面化（y=0）避免相机上下颠：俯视角下垂直分量会让 LookAt 角度抖，看起来很恶心。

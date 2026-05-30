@@ -97,14 +97,13 @@ public static class ZombieAssetBuilder
         var attack = ScriptableObject.CreateInstance<SkillDef>();
         attack.Name = "ZombieAttack";
         attack.RecoverFade = 0.2f;
-        attack.ShakeIntensity = 0.15f; attack.ShakeDuration = 0.12f;
         attack.Segments = new[]
         {
             Seg(atkStart, 0.1f, 0f, 0f, null),
             Seg(atkLoop, 0.05f, 0.7f, 0f, new[]
             {
                 Hit(0.15f, 0.6f, 1.2f, 1.0f, 1.0f, 25f, HitstopTier.Long),
-            }),
+            }, new[] { Shake(0.15f, 0.15f, 0.12f) }),
             Seg(atkEnd, 0.05f, 0f, 0f, null),
         };
         CreateOrReplace(attack, "Assets/Resources/Skill/ZombieAttack.asset");
@@ -113,7 +112,6 @@ public static class ZombieAssetBuilder
         var leap = ScriptableObject.CreateInstance<SkillDef>();
         leap.Name = "ZombieLeap";
         leap.RecoverFade = 0.25f;
-        leap.ShakeIntensity = 0.3f; leap.ShakeDuration = 0.2f; // 落地重击大震
         leap.Segments = new[]
         {
             Seg(jumpStart, 0.1f, 0f, 0.5f, null),
@@ -121,7 +119,7 @@ public static class ZombieAssetBuilder
             Seg(jumpEnd, 0.0f, 0f, 0f, new[]
             {
                 Hit(0.0f, 0.4f, 1.8f, 1.0f, 1.0f, 40f, HitstopTier.Long),
-            }),
+            }, new[] { Shake(0.0f, 0.3f, 0.2f) }), // 落地重击大震
         };
         CreateOrReplace(leap, "Assets/Resources/Skill/ZombieLeap.asset");
 
@@ -202,23 +200,23 @@ public static class ZombieAssetBuilder
         var melee = ScriptableObject.CreateInstance<SkillDef>();
         melee.Name = "PlayerMelee";
         melee.RecoverFade = 0.2f;
-        melee.ShakeIntensity = 0.18f; melee.ShakeDuration = 0.15f; // 复刻旧 MeleeComponent 震屏
+        // 震屏改为按段配（与 HitWindow 平级），复刻旧 MeleeComponent：每段命中帧各震一下
         melee.Segments = kick != null
             ? new[]
             {
-                Seg(hard, 0.1f, 0f, 1.2f, new[] { Hit(0.25f, 0.55f, 1.0f, 0.8f, 1.0f, 30f, HitstopTier.Long) }),
-                Seg(kick, 0.08f, 0f, 1.0f, new[] { Hit(0.20f, 0.50f, 1.0f, 0.8f, 1.0f, 25f, HitstopTier.Long) }),
+                Seg(hard, 0.1f, 0f, 1.2f, new[] { Hit(0.25f, 0.55f, 1.0f, 0.8f, 1.0f, 30f, HitstopTier.Long) }, new[] { Shake(0.25f, 0.18f, 0.15f) }),
+                Seg(kick, 0.08f, 0f, 1.0f, new[] { Hit(0.20f, 0.50f, 1.0f, 0.8f, 1.0f, 25f, HitstopTier.Long) }, new[] { Shake(0.20f, 0.18f, 0.15f) }),
             }
             : new[]
             {
-                Seg(hard, 0.1f, 0f, 1.2f, new[] { Hit(0.25f, 0.55f, 1.0f, 0.8f, 1.0f, 30f, HitstopTier.Long) }),
+                Seg(hard, 0.1f, 0f, 1.2f, new[] { Hit(0.25f, 0.55f, 1.0f, 0.8f, 1.0f, 30f, HitstopTier.Long) }, new[] { Shake(0.25f, 0.18f, 0.15f) }),
             };
         CreateOrReplace(melee, "Assets/Resources/Skill/PlayerMelee.asset");
     }
 
     // ── helpers ──
 
-    private static SkillDef.SkillSegment Seg(AnimationClip clip, float fade, float hold, float fwd, SkillDef.HitWindow[] windows)
+    private static SkillDef.SkillSegment Seg(AnimationClip clip, float fade, float hold, float fwd, SkillDef.HitWindow[] windows, SkillDef.SkillShake[] shakes = null)
         => new SkillDef.SkillSegment
         {
             Clip = clip,
@@ -227,7 +225,11 @@ public static class ZombieAssetBuilder
             ForwardDistance = fwd,
             DistanceProfile = null,
             HitWindows = windows,
+            Shake = shakes,
         };
+
+    private static SkillDef.SkillShake Shake(float startN, float intensity, float duration)
+        => new SkillDef.SkillShake { StartNorm = startN, Intensity = intensity, Duration = duration };
 
     private static SkillDef.HitWindow Hit(float startN, float endN, float radius, float fwdOff, float height, float dmg, HitstopTier tier)
         => new SkillDef.HitWindow

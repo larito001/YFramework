@@ -32,12 +32,13 @@ public class SkillCastComponent : ICharacterComponent
     private float segDuration;          // 当前段时长（HoldDuration 或 clip.length）
     private float segPrevDistFrac;      // 上帧已位移占比
     private Vector3 castForward;        // 起技能时锁定的水平前向（释放途中 Aim 被门控，朝向冻结）
-    // per-window 去重 + 已震屏标记（StartSegment 清）
+    // per-window 命中去重（StartSegment 清）
     private readonly Dictionary<SkillDef.HitWindow, HashSet<int>> windowHits = new Dictionary<SkillDef.HitWindow, HashSet<int>>();
-    private readonly HashSet<SkillDef.HitWindow> shakenWindows = new HashSet<SkillDef.HitWindow>();
     // VFX：本段已触发的动效（防重复生成）+ 跟随型动效的活跃 handle（到 EndNorm / 段切换 / 结束时 Stop）
     private readonly HashSet<SkillDef.SkillVfx> firedVfx = new HashSet<SkillDef.SkillVfx>();
     private readonly Dictionary<SkillDef.SkillVfx, int> activeAttachedVfx = new Dictionary<SkillDef.SkillVfx, int>();
+    // 震屏：本段已触发的震屏（防重复，每项到 StartNorm 触发一次）
+    private readonly HashSet<SkillDef.SkillShake> firedShake = new HashSet<SkillDef.SkillShake>();
 
     private YOTO.ResMgr resMgr;
     private ActorWorld world;
@@ -87,8 +88,8 @@ public class SkillCastComponent : ICharacterComponent
         active = null;
         StopAllAttachedVfx(); // 离场前回收跟随型动效（vfxMgr 置 null 之前）
         firedVfx.Clear();
+        firedShake.Clear();
         windowHits.Clear();
-        shakenWindows.Clear();
         skills.Clear();
         resMgr = null;
         world = null;
@@ -150,20 +151,22 @@ public class SkillCastComponent : ICharacterComponent
         float v = (dt > 0f && Mathf.Abs(seg.ForwardDistance) > 1e-5f) ? seg.ForwardDistance * dFrac / dt : 0f;
         Owner.WishVelocity = new Vector3(castForward.x * v, Owner.WishVelocity.y, castForward.z * v);
 
-        // 2. 伤害 + 相机震屏：遍历所有含 n 的命中窗（支持同段多窗），每窗独立去重，窗首次开启震一下
+        // 2. 伤害：遍历所有含 n 的命中窗（支持同段多窗），每窗独立去重
         if (seg.HitWindows != null)
         {
             for (int i = 0; i < seg.HitWindows.Length; i++)
             {
                 var w = seg.HitWindows[i];
                 if (w == null || n < w.StartNorm || n > w.EndNorm) continue;
-                TryShake(w);
                 DoHit(w);
             }
         }
 
         // 2b. 动效：到 StartNorm 生成（世界点一次性 / 跟随角色），跟随型到 EndNorm 销毁
         DriveVfx(seg, n);
+
+        // 2c. 相机震屏：到各自 StartNorm 触发一次（与 HitWindow 解耦，独立配置）
+        DriveShake(seg, n);
 
         // 3. 段结束 → 下一段 / 结束技能
         if (segElapsed >= segDuration) AdvanceOrEnd();
@@ -181,9 +184,9 @@ public class SkillCastComponent : ICharacterComponent
         segElapsed = 0f;
         segPrevDistFrac = 0f;
         windowHits.Clear();
-        shakenWindows.Clear();
-        // 进新段：清本段动效触发记录 + 停掉上一段残留的跟随型动效
+        // 进新段：清本段动效/震屏触发记录 + 停掉上一段残留的跟随型动效
         firedVfx.Clear();
+        firedShake.Clear();
         StopAllAttachedVfx();
         var seg = active.Segments[i];
         segDuration = seg.HoldDuration > 0f ? seg.HoldDuration : (seg.Clip != null ? seg.Clip.length : 0f);
@@ -207,18 +210,22 @@ public class SkillCastComponent : ICharacterComponent
         active = null;
         StopAllAttachedVfx(); // 技能结束回收跟随型动效（世界一次性动效自销毁不管）
         firedVfx.Clear();
+        firedShake.Clear();
         windowHits.Clear();
-        shakenWindows.Clear();
     }
 
-    /// <summary>命中窗首次开启那帧触发一次相机震屏（kickback：相机往挥击反向顿一下），与是否打中解耦。</summary>
-    private void TryShake(SkillDef.HitWindow w)
+    /// <summary>段内相机震屏驱动：到各自 StartNorm 触发一次 kickback 震屏（相机往技能反向顿一下），每项一段内只触发一次。</summary>
+    private void DriveShake(SkillDef.SkillSegment seg, float n)
     {
-        if (active == null || active.ShakeIntensity <= 0f) return;
-        if (shakenWindows.Contains(w)) return;
-        shakenWindows.Add(w);
-        if (cameraMgr?.Shake != null)
-            cameraMgr.Shake.Shake(-castForward, active.ShakeDuration, active.ShakeIntensity);
+        if (seg.Shake == null || cameraMgr?.Shake == null) return;
+        for (int i = 0; i < seg.Shake.Length; i++)
+        {
+            var s = seg.Shake[i];
+            if (s == null || s.Intensity <= 0f) continue;
+            if (n < s.StartNorm || firedShake.Contains(s)) continue;
+            firedShake.Add(s);
+            cameraMgr.Shake.Shake(-castForward, s.Duration, s.Intensity);
+        }
     }
 
     private void DoHit(SkillDef.HitWindow w)
