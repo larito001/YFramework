@@ -8,7 +8,7 @@ using YOTO;
 /// <summary>
 /// 网格空间背包面板(<see cref="UIPageBase"/>,注册为 <see cref="UIEnum.BagPanel"/>)。
 /// 把 <see cref="BagSystem"/> 的网格背包画成 W×H 格盘,物品按形状(可 L/T 多边形)成块显示,可叠加物品显示数量。
-/// 交互:左键=使用,右键=打开菜单(使用/旋转/拆分/丢弃),拖拽=移动/合并/交换,悬停按 R=旋转(拖拽中按 R 旋转 ghost)。
+/// 交互:左键=使用,右键=打开菜单(使用/旋转/拆分/丢弃),拖拽=移动/合并/交换。所有操作走 UI,不用快捷键。
 /// 拖到同种可叠加物品上=合并;拖到异物上=交换。拖拽时绿/红落点高亮。监听 RefreshBagList 整体重绘。
 ///
 /// 坐标:gridRoot 轴心左上(0,1)居中于窗口;第 (x,y) 格左上 anchoredPosition=(x*cell+gap/2, -(y*cell)-gap/2)。
@@ -43,7 +43,6 @@ public class BagPanel : UIPageBase
     public Color cellColor = new Color(1f, 1f, 1f, 0.06f);
 
     [Header("交互")]
-    public KeyCode rotateKey = KeyCode.R;
     public Color validColor = new Color(0.2f, 1f, 0.2f, 0.4f);
     public Color invalidColor = new Color(1f, 0.2f, 0.2f, 0.4f);
 
@@ -72,8 +71,7 @@ public class BagPanel : UIPageBase
     private int dragRotation;
     private bool isDragging;
 
-    // 悬停 + 菜单/拆分上下文
-    private BagItemWidget hoveredWidget;
+    // 菜单/拆分上下文
     private int contextInstanceId;
     private int splitInstanceId;
 
@@ -131,32 +129,6 @@ public class BagPanel : UIPageBase
 
     public override void OnResize() { }
 
-    private void Update()
-    {
-        if (!Input.GetKeyDown(rotateKey)) return;
-
-        // 拖拽中按 R:旋转 ghost
-        if (isDragging && dragWidget != null)
-        {
-            dragRotation = (dragRotation + 1) & 3;
-            var cells = bagSystem.Bag.LocalCells(dragWidget.ItemId, dragRotation);
-            int cnt = bagSystem.Bag.GetByInstance(dragWidget.InstanceId)?.count ?? 1;
-            dragWidget.Build(cells, cellSize, cellGap, cnt);
-            UpdateHighlight();
-            return;
-        }
-
-        // 悬停按 R:原地旋转该物品
-        if (hoveredWidget != null)
-        {
-            bagSystem.RotateItem(hoveredWidget.InstanceId); // 成功会 OnChanged→Refresh
-            hoveredWidget = null; // 重建后引用失效,等鼠标移动重新 enter
-        }
-    }
-
-    public void SetHoveredWidget(BagItemWidget w) => hoveredWidget = w;
-    public void ClearHoveredWidget(BagItemWidget w) { if (hoveredWidget == w) hoveredWidget = null; }
-
     // ---------------- 格盘背景 ----------------
 
     private void BuildGrid()
@@ -205,7 +177,6 @@ public class BagPanel : UIPageBase
         foreach (var w in widgets.Values)
             if (w != null) Destroy(w.gameObject);
         widgets.Clear();
-        hoveredWidget = null; // 旧引用随重建失效
 
         var bag = bagSystem.Bag;
         int used = 0;
@@ -301,7 +272,23 @@ public class BagPanel : UIPageBase
         if (ctxSplitBtn != null) ctxSplitBtn.interactable = canSplit;
 
         contextMenu.SetActive(true);
-        if (contextMenuPanel != null) contextMenuPanel.position = e.position; // 移到鼠标处(Overlay 画布)
+        PlaceContextMenuAt(e.position);
+    }
+
+    /// <summary>把右键菜单移到鼠标处(Overlay 画布),并钳制在屏幕内不越界。
+    /// 菜单 pivot 为左上(0,1):向右(+x)、向下(-y)展开。</summary>
+    private void PlaceContextMenuAt(Vector2 screenPos)
+    {
+        if (contextMenuPanel == null) return;
+        if (canvas == null) canvas = GetComponentInParent<Canvas>();
+        float scale = canvas != null ? canvas.scaleFactor : 1f;
+        if (scale <= 0f) scale = 1f;
+
+        float w = contextMenuPanel.sizeDelta.x * scale;
+        float h = contextMenuPanel.sizeDelta.y * scale;
+        float px = Mathf.Clamp(screenPos.x, 0f, Mathf.Max(0f, Screen.width - w));
+        float py = Mathf.Clamp(screenPos.y, h, Screen.height); // pivot 在顶,向下展开 → 底边=py-h≥0
+        contextMenuPanel.position = new Vector3(px, py, 0f);
     }
 
     private void HideContextMenu() { if (contextMenu != null) contextMenu.SetActive(false); }
@@ -365,8 +352,11 @@ public class BagPanel : UIPageBase
 
     private void OnSplitConfirm()
     {
-        int amount = splitSlider != null ? Mathf.RoundToInt(splitSlider.value) : 1;
         HideSplitDialog();
+        var item = bagSystem.Bag.GetByInstance(splitInstanceId);
+        if (item == null || item.count <= 1) return; // 弹窗期间该堆可能已变化
+        int amount = splitSlider != null ? Mathf.RoundToInt(splitSlider.value) : 1;
+        amount = Mathf.Clamp(amount, 1, item.count - 1); // 以当前实际数量为准夹取
         bagSystem.SplitStack(splitInstanceId, amount); // 成功 OnChanged→Refresh
     }
 

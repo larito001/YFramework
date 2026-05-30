@@ -11,14 +11,12 @@ using UnityEngine.UI;
 ///   - 左键点击 = 使用
 ///   - 右键点击 = 打开右键菜单(使用/旋转/拆分/丢弃)
 ///   - 拖拽     = 移动 / 合并 / 交换
-///   - 悬停时按 R = 旋转(由面板在 Update 里处理)
 ///
 /// 预制体只需一个挂了本组件的空 RectTransform(BagPrefabBuilder 生成);格块/图标/数量运行时构建,
 /// 旋转或数量变化时由面板调 <see cref="Build"/> 重建。
 /// </summary>
 public class BagItemWidget : MonoBehaviour,
-    IBeginDragHandler, IDragHandler, IEndDragHandler, IPointerClickHandler,
-    IPointerEnterHandler, IPointerExitHandler
+    IBeginDragHandler, IDragHandler, IEndDragHandler, IPointerClickHandler
 {
     public RectTransform Rect { get; private set; }
     public int InstanceId { get; private set; }
@@ -147,7 +145,4 @@ public class BagItemWidget : MonoBehaviour,
         else
             panel?.OnWidgetClick(this);
     }
-
-    public void OnPointerEnter(PointerEventData e) => panel?.SetHoveredWidget(this);
-    public void OnPointerExit(PointerEventData e) => panel?.ClearHoveredWidget(this);
 }

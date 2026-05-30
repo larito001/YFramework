@@ -84,7 +84,7 @@ public static class BagPrefabBuilder
         var titleGo = NewUI("Title", out var titleRt, window.transform);
         titleRt.anchorMin = new Vector2(0, 1); titleRt.anchorMax = new Vector2(1, 1); titleRt.pivot = new Vector2(0.5f, 1);
         titleRt.anchoredPosition = new Vector2(20, -16); titleRt.sizeDelta = new Vector2(-40, 44);
-        NewText(titleGo, "背包  (左键使用 / 右键旋转 / 拖拽移动)", 26, TextAlignmentOptions.Left);
+        NewText(titleGo, "背包  (左键使用 / 右键菜单 / 拖拽移动)", 26, TextAlignmentOptions.Left);
 
         var capGo = NewUI("CapacityText", out var capRt, window.transform);
         capRt.anchorMin = new Vector2(1, 1); capRt.anchorMax = new Vector2(1, 1); capRt.pivot = new Vector2(1, 1);
