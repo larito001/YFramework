@@ -50,6 +50,26 @@ public abstract class LocomotionAnimController
     /// 解决"全身攻击 → 跑步"切换 DefaultFade 太短突兀。</summary>
     protected float overrideNextLocomotionFade;
 
+    // ────────────────────────── 分层契约（命名层访问器，替代 Layers[0]/[1] 魔法数字） ──────────────────────────
+    //
+    //   ┌─ Layer 0  (BaseLayer)  —— 无 mask = 全身 ──────────────────────────────┐
+    //   │  下身 locomotion（非瞄准 1D / 瞄准 2D strafe） + 全身覆盖（死亡 / 技能）  │
+    //   │  weight 恒 1                                                            │
+    //   ├─ Layer 1  (UpperLayer) —— UpperBodyMask = 仅上身骨骼 ───────────────────┤
+    //   │  持武器上身：持枪/瞄准 pose（常驻） + 换弹/后坐力/拿出/收回（one-shot）   │
+    //   │  weight：持武器=1 / 无武器=0 / 死亡·技能=0                                │
+    //   │  玩家：全部交给 UpperBodyLayerDriver；僵尸/无 mask：本层不存在            │
+    //   └────────────────────────────────────────────────────────────────────────┘
+
+    /// <summary>Layer 0：下身 locomotion + 全身覆盖。所有持骨架 actor 都有，weight 恒 1。</summary>
+    protected AnimancerLayer BaseLayer => Animancer.Layers[0];
+
+    /// <summary>Layer 1：上身（mask）。仅 <see cref="useUpperBodyLayer"/> 时有效——访问前用 <see cref="HasUpperLayer"/> 守护。</summary>
+    protected AnimancerLayer UpperLayer => Animancer.Layers[1];
+
+    /// <summary>上身层是否存在且可用（配了 UpperBodyMask 且 Animancer 已建出该层）。</summary>
+    protected bool HasUpperLayer => useUpperBodyLayer && Animancer != null && Animancer.Layers.Count > 1;
+
     /// <summary>view 在 Bind 后立即调一次。characterAnimSetPath 一次性加载（spawn 时设定，运行时不换）。</summary>
     public void Init(AnimancerComponent animancer, ResMgr resMgr, string characterAnimSetPath)
     {
@@ -120,14 +140,21 @@ public abstract class LocomotionAnimController
     protected virtual void UpdateUpperBody(Character character) { }
 
     /// <summary>从 Layer 0 全身覆盖（技能）恢复时，让 Layer 1 回到常驻 base pose 而非空层。
-    /// 默认 = 旧行为 StartFade(1)。玩家 override 改为重建 base pose。</summary>
+    /// 默认 = 旧行为 StartFade(1)。玩家 override 转发给 UpperBodyLayerDriver 重建 base pose。</summary>
     protected virtual void RestoreUpperBodyAfterFullBody(Character character, float recoverFade)
     {
-        if (useUpperBodyLayer && Animancer.Layers.Count > 1) Animancer.Layers[1].StartFade(1f, recoverFade);
+        if (HasUpperLayer) UpperLayer.StartFade(1f, recoverFade);
     }
 
-    /// <summary>进入 Layer 0 全身覆盖（死亡/技能）时调，让派生类清上身常驻缓存（避免恢复时残留 one-shot / 旧 pose）。默认空。</summary>
-    protected virtual void OnFullBodyOverrideEnter() { }
+    /// <summary>进入 Layer 0 全身覆盖（死亡/技能）：让上身层让位——降 weight 静默 + 派生类清常驻缓存。
+    /// immediate=死亡（立即 SetWeight 0）；否则技能（StartFade 0）。默认只降 weight（无常驻缓存可清）。
+    /// 玩家 override 转发给 UpperBodyLayerDriver（同时清 base/one-shot 缓存，保证技能后干净重建）。</summary>
+    protected virtual void EnterFullBodyOverride(float fade, bool immediate)
+    {
+        if (!HasUpperLayer) return;
+        if (immediate) UpperLayer.SetWeight(0f);
+        else UpperLayer.StartFade(0f, fade);
+    }
 
     /// <summary>Layer 1 初始权重（<see cref="SetupUpperBodyLayer"/> 加载时设）。
     /// 基类默认 1f（旧行为：mask 配了即 weight 1）。玩家 override 返 0f（初始无武器静默，由装备跃迁升起）。</summary>
@@ -141,7 +168,7 @@ public abstract class LocomotionAnimController
         float fade = overrideNextLocomotionFade > 0f ? overrideNextLocomotionFade : GetDefaultFade();
         if (currentLayer0Mixer != locomotionMixer)
         {
-            Animancer.Layers[0].Play(locomotionMixer, fade);
+            BaseLayer.Play(locomotionMixer, fade);
             currentLayer0Mixer = locomotionMixer;
             overrideNextLocomotionFade = 0f;
         }
@@ -214,9 +241,8 @@ public abstract class LocomotionAnimController
         useUpperBodyLayer = characterAnimSet != null && characterAnimSet.UpperBodyMask != null;
         if (useUpperBodyLayer)
         {
-            var layer = Animancer.Layers[1];
-            layer.Mask = characterAnimSet.UpperBodyMask;
-            layer.SetWeight(GetInitialUpperBodyWeight());
+            UpperLayer.Mask = characterAnimSet.UpperBodyMask;
+            UpperLayer.SetWeight(GetInitialUpperBodyWeight());
         }
         else if (Animancer.Layers.Count > 1)
         {
@@ -229,20 +255,19 @@ public abstract class LocomotionAnimController
     {
         float fade = GetDefaultFade();
 
-        // 1. 死亡：全身 Layer 0 覆盖 + Layer 1 weight=0 + fade=0 立即切。clip 来自 CharacterAnimSet。
+        // 1. 死亡：Layer 0 全身覆盖 DeathL/R（fade=0 立即切）；Layer 1 立即静默让位。clip 来自 CharacterAnimSet。
         if (character.Die)
         {
             character.Die = false;
             var clip = character.DeathVariant == 0 ? characterAnimSet.DeathL : characterAnimSet.DeathR;
             if (clip != null)
             {
-                Animancer.Layers[0].SetWeight(1f);
-                activeOneShotState = Animancer.Layers[0].Play(clip, 0f);
+                BaseLayer.SetWeight(1f);
+                activeOneShotState = BaseLayer.Play(clip, 0f);
             }
-            if (useUpperBodyLayer && Animancer.Layers.Count > 1) Animancer.Layers[1].SetWeight(0f);
+            EnterFullBodyOverride(0f, immediate: true); // Layer 1 让位（立即）
             currentLayer0Mixer = null;
             layer0FullBodyActive = true;
-            OnFullBodyOverrideEnter();
             OnDeathTriggered?.Invoke();
             return;
         }
@@ -256,15 +281,14 @@ public abstract class LocomotionAnimController
             // 全身锁定无条件置位（即使本段无 clip——退化段也要保持锁定 + 走统一退出逻辑）
             layer0FullBodyActive = true;
             currentLayer0Mixer = null;
-            OnFullBodyOverrideEnter();
+            float f = character.SkillClipFade > 0f ? character.SkillClipFade : fade;
             if (character.SkillClip != null)
             {
-                float f = character.SkillClipFade > 0f ? character.SkillClipFade : fade;
-                var s = Animancer.Layers[0].Play(character.SkillClip, f);
+                var s = BaseLayer.Play(character.SkillClip, f);
                 if (s != null) s.Time = 0f; // 每段从头播
                 activeOneShotState = s;
-                if (useUpperBodyLayer && Animancer.Layers.Count > 1) Animancer.Layers[1].StartFade(0f, f);
             }
+            EnterFullBodyOverride(f, immediate: false); // Layer 1 让位（淡出）
         }
         if (character.IsCastingSkill) return; // 技能播放中：锁全身，跳过 combat + locomotion
 
@@ -283,8 +307,8 @@ public abstract class LocomotionAnimController
             layer0FullBodyActive = false;
             float recoverFade = character.SkillRecoverFade > 0f ? character.SkillRecoverFade : GetFullBodyRecoverFade(fade);
             overrideNextLocomotionFade = recoverFade;
-            if (upperBase) RestoreUpperBodyAfterFullBody(character, recoverFade); // 玩家：Layer1->weight1 + 当帧重建 base
-            else if (useUpperBodyLayer && Animancer.Layers.Count > 1) Animancer.Layers[1].StartFade(1f, recoverFade);
+            if (upperBase) RestoreUpperBodyAfterFullBody(character, recoverFade); // 玩家：driver 把 Layer1 拉回 weight1 + 当帧重建 base
+            else if (HasUpperLayer) UpperLayer.StartFade(1f, recoverFade);
             activeOneShotState = null;
         }
         // 3b/3c. 旧模型（无 base pose：僵尸/单层/无武器）的 one-shot 生命周期。upperBase 模式跳过。
@@ -298,7 +322,7 @@ public abstract class LocomotionAnimController
             // 3c. 双层模式 + one-shot 播完：淡出 Layer 1
             else if (activeOneShotState != null && (activeOneShotState.NormalizedTime >= 1f || !activeOneShotState.IsPlaying))
             {
-                if (useUpperBodyLayer && Animancer.Layers.Count > 1) Animancer.Layers[1].StartFade(0f, fade);
+                if (HasUpperLayer) UpperLayer.StartFade(0f, fade);
                 activeOneShotState = null;
             }
         }

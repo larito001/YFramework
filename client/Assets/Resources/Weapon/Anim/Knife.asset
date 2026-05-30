@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 200ad57813736ff46a71d8dc83e7ecf1, type: 3}
+  m_Name: Knife
+  m_EditorClassIdentifier: 
+  IdleGunPose: {fileID: 7400000, guid: f201e2d4e2a045d49967113ec855b231, type: 3}
+  AimPose: {fileID: 7400000, guid: f201e2d4e2a045d49967113ec855b231, type: 3}
+  ShootLight: {fileID: 0}
+  ShootHeavy: {fileID: 0}
+  Reload: {fileID: 0}
+  Equip: {fileID: 7400000, guid: 6d0b268b0bd91c44eb369715ba96d320, type: 3}
+  Holster: {fileID: 7400002, guid: 6d0b268b0bd91c44eb369715ba96d320, type: 3}
+  ShootFade: 0
+  AimPoseFade: 0.15
+  UpperBodyEnterFade: 0.15
+  UpperBodyExitFade: 0.15
