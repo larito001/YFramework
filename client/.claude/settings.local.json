@@ -55,7 +55,13 @@
       "Bash(python publish_config.py)",
       "Bash(python -)",
       "Bash(python3 -)",
-      "Bash(grep -c 'private static.*__TRACKED_VAR__\\(' Editor/UI/BagPrefabBuilder.cs)"
+      "Bash(grep -c 'private static.*__TRACKED_VAR__\\(' Editor/UI/BagPrefabBuilder.cs)",
+      "Bash(python /tmp/gen_item5.py)",
+      "Bash(python tools/_publish/../../tmp_decode.py)",
+      "Bash(python -c *)",
+      "Bash(ls DOCS)",
+      "Bash(ls docs *)",
+      "Bash(ls client/DOCS)"
     ]
   }
 }

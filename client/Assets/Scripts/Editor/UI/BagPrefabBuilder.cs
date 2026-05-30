@@ -118,6 +118,7 @@ public static class BagPrefabBuilder
 
         BuildContextMenu(root.transform, panel);
         BuildSplitDialog(root.transform, panel);
+        BuildTooltip(root.transform, panel);
 
         PrefabUtility.SaveAsPrefabAsset(root, PanelPrefabPath);
         Object.DestroyImmediate(root);
@@ -251,6 +252,51 @@ public static class BagPrefabBuilder
         slider.maxValue = 2;
         slider.value = 1;
         return slider;
+    }
+
+    // ============================ Tooltip ============================
+
+    private static void BuildTooltip(Transform parent, BagPanel panel)
+    {
+        // 根:整屏容器但完全不挡射线(否则会盖住物品导致 hover-exit 抖动)
+        var tip = NewUI("Tooltip", out var tipRt, parent);
+        Stretch(tipRt, 0);
+
+        // 本体:深色卡片,pivot 左上,运行时移到鼠标右下
+        var box = NewUI("Panel", out var boxRt, tip.transform);
+        boxRt.pivot = new Vector2(0, 1);
+        boxRt.sizeDelta = new Vector2(320, 168);
+        var boxImg = box.AddComponent<Image>();
+        boxImg.color = new Color(0.08f, 0.09f, 0.11f, 0.96f);
+        boxImg.raycastTarget = false;
+
+        // 名称(顶部,品质色运行时设)
+        var nameGo = NewUI("Name", out var nameRt, box.transform);
+        nameRt.anchorMin = new Vector2(0, 1); nameRt.anchorMax = new Vector2(1, 1); nameRt.pivot = new Vector2(0.5f, 1);
+        nameRt.anchoredPosition = new Vector2(0, -10); nameRt.sizeDelta = new Vector2(-24, 34);
+        var nameText = NewText(nameGo, "", 24, TextAlignmentOptions.TopLeft);
+
+        // 描述(中部,自动换行)
+        var descGo = NewUI("Desc", out var descRt, box.transform);
+        descRt.anchorMin = new Vector2(0, 1); descRt.anchorMax = new Vector2(1, 1); descRt.pivot = new Vector2(0.5f, 1);
+        descRt.anchoredPosition = new Vector2(0, -50); descRt.sizeDelta = new Vector2(-24, 78);
+        var descText = NewText(descGo, "", 18, TextAlignmentOptions.TopLeft);
+        descText.color = new Color(0.8f, 0.8f, 0.82f, 1f);
+        descText.enableWordWrapping = true;
+        descText.overflowMode = TextOverflowModes.Truncate;
+
+        // 价值(底部)
+        var valGo = NewUI("Value", out var valRt, box.transform);
+        valRt.anchorMin = new Vector2(0, 0); valRt.anchorMax = new Vector2(1, 0); valRt.pivot = new Vector2(0.5f, 0);
+        valRt.anchoredPosition = new Vector2(0, 10); valRt.sizeDelta = new Vector2(-24, 28);
+        var valText = NewText(valGo, "", 18, TextAlignmentOptions.BottomLeft);
+        valText.color = new Color(0.95f, 0.85f, 0.4f, 1f);
+
+        panel.tooltip = tip;
+        panel.tooltipPanel = boxRt;
+        panel.tipNameText = nameText;
+        panel.tipDescText = descText;
+        panel.tipValueText = valText;
     }
 
     // ============================ 工具 ============================

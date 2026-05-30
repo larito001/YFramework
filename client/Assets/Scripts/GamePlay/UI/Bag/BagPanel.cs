@@ -37,6 +37,13 @@ public class BagPanel : UIPageBase
     public Button splitConfirmBtn;
     public Button splitCancelBtn;
 
+    [Header("Tooltip")]
+    public GameObject tooltip;              // 根(不挡射线)
+    public RectTransform tooltipPanel;      // 本体(移到鼠标处)
+    public TextMeshProUGUI tipNameText;
+    public TextMeshProUGUI tipDescText;
+    public TextMeshProUGUI tipValueText;
+
     [Header("布局")]
     public float cellSize = 80f;
     public float cellGap = 4f;
@@ -102,6 +109,8 @@ public class BagPanel : UIPageBase
             if (splitCancelBtn != null) splitCancelBtn.onClick.AddListener(HideSplitDialog);
             splitDialog.SetActive(false);
         }
+
+        if (tooltip != null) tooltip.SetActive(false);
     }
 
     public override void OnShow()
@@ -117,6 +126,7 @@ public class BagPanel : UIPageBase
         EndDragState();
         HideContextMenu();
         HideSplitDialog();
+        HideTooltip();
         ReleaseIcons();
     }
 
@@ -193,6 +203,8 @@ public class BagPanel : UIPageBase
 
         // 高亮层始终保持在所有物品之上,确保拖拽落点可见
         if (highlightRoot != null) highlightRoot.SetAsLastSibling();
+
+        HideTooltip(); // 旧 widget 已销毁,tooltip 引用的悬停目标失效
     }
 
     private void CreateWidget(PlacedItem item)
@@ -205,7 +217,8 @@ public class BagPanel : UIPageBase
 
         var cfg = bagSystem.GetItem(item.itemId);
         var sprite = cfg != null ? LoadIcon(cfg.IconPath) : null;
-        widget.Init(this, item.instanceId, item.itemId, sprite, BlockColor(item.itemId));
+        widget.Init(this, item.instanceId, item.itemId, sprite, BlockColor(item.itemId),
+            cfg != null ? cfg.Name : string.Empty);
 
         var cells = bagSystem.Bag.LocalCells(item.itemId, item.rotation);
         widget.Build(cells, cellSize, cellGap, item.count);
@@ -223,6 +236,7 @@ public class BagPanel : UIPageBase
     public void OnWidgetBeginDrag(BagItemWidget widget, PointerEventData e)
     {
         if (canvas == null) canvas = GetComponentInParent<Canvas>();
+        HideTooltip(); // 拖拽时不显示 tooltip
         widget.Rect.SetAsLastSibling();
         if (highlightRoot != null) highlightRoot.SetAsLastSibling();
         dragWidget = widget;
@@ -292,6 +306,46 @@ public class BagPanel : UIPageBase
     }
 
     private void HideContextMenu() { if (contextMenu != null) contextMenu.SetActive(false); }
+
+    // ---------------- Tooltip ----------------
+
+    public void OnWidgetHoverEnter(BagItemWidget widget, PointerEventData e)
+    {
+        if (tooltip == null || isDragging) return; // 拖拽中不弹
+        var cfg = bagSystem.GetItem(widget.ItemId);
+        if (cfg == null) return;
+
+        if (tipNameText != null)
+        {
+            tipNameText.text = cfg.Name;
+            tipNameText.color = ItemQualityPalette.Accent((ItemQuality)cfg.Quality); // 名称按品质染色
+        }
+        if (tipDescText != null) tipDescText.text = cfg.Desc;
+        if (tipValueText != null) tipValueText.text = $"预估价值: {cfg.Value}";
+
+        tooltip.SetActive(true);
+        PlaceTooltipAt(e.position);
+    }
+
+    public void OnWidgetHoverExit(BagItemWidget widget) => HideTooltip();
+
+    private void HideTooltip() { if (tooltip != null) tooltip.SetActive(false); }
+
+    /// <summary>把 tooltip 移到鼠标右下,并钳制在屏幕内。tooltipPanel pivot 取左上(0,1)。</summary>
+    private void PlaceTooltipAt(Vector2 screenPos)
+    {
+        if (tooltipPanel == null) return;
+        if (canvas == null) canvas = GetComponentInParent<Canvas>();
+        float scale = canvas != null ? canvas.scaleFactor : 1f;
+        if (scale <= 0f) scale = 1f;
+
+        float w = tooltipPanel.sizeDelta.x * scale;
+        float h = tooltipPanel.sizeDelta.y * scale;
+        const float off = 16f; // 与光标错开,避免遮挡
+        float px = Mathf.Clamp(screenPos.x + off, 0f, Mathf.Max(0f, Screen.width - w));
+        float py = Mathf.Clamp(screenPos.y - off, h, Screen.height); // pivot 在顶,向下展开
+        tooltipPanel.position = new Vector3(px, py, 0f);
+    }
 
     private void OnCtxUse()
     {
@@ -437,19 +491,8 @@ public class BagPanel : UIPageBase
     private Vector2 CellPos(int x, int y) =>
         new Vector2(x * cellSize + cellGap * 0.5f, -(y * cellSize) - cellGap * 0.5f);
 
-    /// <summary>按物品类型给个区分色(占位美术;有正式图标后图标会盖在上面)。</summary>
-    private Color BlockColor(int itemId)
-    {
-        switch (bagSystem.GetItemType(itemId))
-        {
-            case ItemType.Consumable: return new Color(0.3f, 0.6f, 0.35f, 0.9f);
-            case ItemType.Equipment:  return new Color(0.35f, 0.45f, 0.7f, 0.9f);
-            case ItemType.Material:   return new Color(0.6f, 0.5f, 0.3f, 0.9f);
-            case ItemType.QuestItem:  return new Color(0.6f, 0.4f, 0.65f, 0.9f);
-            case ItemType.Currency:   return new Color(0.7f, 0.65f, 0.3f, 0.9f);
-            default:                  return new Color(0.4f, 0.4f, 0.45f, 0.9f);
-        }
-    }
+    /// <summary>按物品品质给格背景色(暗黑/泰科斯基风格;有正式图标后图标盖在上面)。</summary>
+    private Color BlockColor(int itemId) => ItemQualityPalette.Background(bagSystem.GetItemQuality(itemId));
 
     private Sprite LoadIcon(string path)
     {

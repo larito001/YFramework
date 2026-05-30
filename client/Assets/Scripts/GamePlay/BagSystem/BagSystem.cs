@@ -64,6 +64,13 @@ public class BagSystem : IGameService
         return cfg != null ? (ItemType)cfg.Type : ItemType.Other;
     }
 
+    /// <summary>读取某物品的品质(配表不存在时返回 <see cref="ItemQuality.Common"/>)。</summary>
+    public ItemQuality GetItemQuality(int itemId)
+    {
+        var cfg = GetItem(itemId);
+        return cfg != null ? (ItemQuality)cfg.Quality : ItemQuality.Common;
+    }
+
     // ---------------- 对外操作 ----------------
 
     /// <summary>

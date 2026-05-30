@@ -6,17 +6,19 @@ using UnityEngine.UI;
 
 /// <summary>
 /// 网格背包里的单个物品控件:按形状(可不规则多边形)自建一组「格块」子物体显示,图标盖在包围盒上,
-/// 可叠加物品在右下角显示数量。只有占格的格块带 raycast,所以点击/拖拽是**形状精确**的。
+/// 左上角显示名称、可叠加物品右下角显示数量。只有占格的格块带 raycast,所以点击/拖拽是**形状精确**的。
 /// 交互全部转交 <see cref="BagPanel"/>:
 ///   - 左键点击 = 使用
 ///   - 右键点击 = 打开右键菜单(使用/旋转/拆分/丢弃)
 ///   - 拖拽     = 移动 / 合并 / 交换
+///   - 悬停     = 显示 tooltip(名称/描述/价值)
 ///
 /// 预制体只需一个挂了本组件的空 RectTransform(BagPrefabBuilder 生成);格块/图标/数量运行时构建,
 /// 旋转或数量变化时由面板调 <see cref="Build"/> 重建。
 /// </summary>
 public class BagItemWidget : MonoBehaviour,
-    IBeginDragHandler, IDragHandler, IEndDragHandler, IPointerClickHandler
+    IBeginDragHandler, IDragHandler, IEndDragHandler, IPointerClickHandler,
+    IPointerEnterHandler, IPointerExitHandler
 {
     public RectTransform Rect { get; private set; }
     public int InstanceId { get; private set; }
@@ -25,8 +27,10 @@ public class BagItemWidget : MonoBehaviour,
     private BagPanel panel;
     private Sprite sprite;
     private Color blockColor = Color.white;
+    private string displayName = string.Empty;
     private readonly List<GameObject> blocks = new List<GameObject>();
     private Image icon;
+    private TextMeshProUGUI nameLabel;
     private TextMeshProUGUI countLabel;
 
     private void Awake()
@@ -34,14 +38,15 @@ public class BagItemWidget : MonoBehaviour,
         Rect = (RectTransform)transform;
     }
 
-    /// <summary>绑定数据(图标/配色),不含形状;形状与数量由 <see cref="Build"/> 给。</summary>
-    public void Init(BagPanel owner, int instanceId, int itemId, Sprite spr, Color color)
+    /// <summary>绑定数据(图标/配色/名称),不含形状;形状与数量由 <see cref="Build"/> 给。</summary>
+    public void Init(BagPanel owner, int instanceId, int itemId, Sprite spr, Color color, string name)
     {
         panel = owner;
         InstanceId = instanceId;
         ItemId = itemId;
         sprite = spr;
         blockColor = color;
+        displayName = name ?? string.Empty;
     }
 
     /// <summary>按占格集合(重)建外观;count&gt;1 时右下角显示数量。</summary>
@@ -83,6 +88,10 @@ public class BagItemWidget : MonoBehaviour,
         icon.enabled = sprite != null;
         icon.sprite = sprite;
 
+        EnsureNameLabel();
+        nameLabel.transform.SetAsLastSibling(); // 盖在图标之上
+        nameLabel.text = displayName;
+
         EnsureCountLabel();
         countLabel.transform.SetAsLastSibling();
         bool showCount = count > 1;
@@ -103,6 +112,29 @@ public class BagItemWidget : MonoBehaviour,
         icon = go.GetComponent<Image>();
         icon.raycastTarget = false;
         icon.preserveAspect = true;
+    }
+
+    private void EnsureNameLabel()
+    {
+        if (nameLabel != null) return;
+        var go = new GameObject("Name", typeof(RectTransform));
+        var rt = (RectTransform)go.transform;
+        rt.SetParent(Rect, false);
+        rt.anchorMin = new Vector2(0, 1);
+        rt.anchorMax = new Vector2(1, 1);
+        rt.pivot = new Vector2(0, 1);
+        rt.offsetMin = new Vector2(4, -24);   // 顶部高 24,左右各留 4
+        rt.offsetMax = new Vector2(-4, -2);
+        nameLabel = go.AddComponent<TextMeshProUGUI>();
+        nameLabel.fontSize = 16;
+        nameLabel.alignment = TextAlignmentOptions.TopLeft;
+        nameLabel.color = Color.white;
+        nameLabel.raycastTarget = false;
+        nameLabel.enableWordWrapping = false;
+        nameLabel.overflowMode = TextOverflowModes.Ellipsis; // 名字过长省略
+        var font = panel != null ? panel.UiFont : null;
+        if (font == null) font = TMP_Settings.defaultFontAsset;
+        if (font != null) nameLabel.font = font;
     }
 
     private void EnsureCountLabel()
@@ -145,4 +177,7 @@ public class BagItemWidget : MonoBehaviour,
         else
             panel?.OnWidgetClick(this);
     }
+
+    public void OnPointerEnter(PointerEventData e) => panel?.OnWidgetHoverEnter(this, e);
+    public void OnPointerExit(PointerEventData e) => panel?.OnWidgetHoverExit(this);
 }
