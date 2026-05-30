@@ -15,17 +15,19 @@ public class PlacedItem
     public int x;        // 锚点列(包围盒左上)
     public int y;        // 锚点行(包围盒左上)
     public int rotation; // 0..3,顺时针 90° 步数
+    public int count;    // 堆叠数量(>=1);不可叠加物品恒为 1
 
     public PlacedItem() { }
 
-    public PlacedItem(int instanceId, int itemId, int x, int y, int rotation = 0)
+    public PlacedItem(int instanceId, int itemId, int x, int y, int rotation = 0, int count = 1)
     {
         this.instanceId = instanceId;
         this.itemId = itemId;
         this.x = x;
         this.y = y;
         this.rotation = rotation & 3;
+        this.count = count < 1 ? 1 : count;
     }
 
-    public override string ToString() => $"#{instanceId} item={itemId} @({x},{y}) rot={rotation}";
+    public override string ToString() => $"#{instanceId} item={itemId} @({x},{y}) rot={rotation} x{count}";
 }

@@ -25,16 +25,17 @@ namespace YFramework.Config {
       byte[] descriptorData = global::System.Convert.FromBase64String(
           string.Concat(
             "CgppdGVtLnByb3RvEhF5ZnJhbWV3b3JrLmNvbmZpZxoUQ29uZmlnQmFzZVR5",
-            "cGUucHJvdG8ikgEKBEl0ZW0SCgoCaWQYASABKA0SDAoEbmFtZRgCIAEoCRIM",
+            "cGUucHJvdG8ipAEKBEl0ZW0SCgoCaWQYASABKA0SDAoEbmFtZRgCIAEoCRIM",
             "CgRkZXNjGAMgASgJEgwKBHR5cGUYBCABKA0SEAoIaWNvblBhdGgYBSABKAkS",
             "DQoFd2lkdGgYBiABKAUSDgoGaGVpZ2h0GAcgASgFEg0KBXNoYXBlGAggASgJ",
-            "EhQKDHNvcnRQcmlvcml0eRgJIAEoBSJBChdJdGVtX0xJU1RfVE9PTF9SRVNF",
-            "UlZFRBImCgVpdGVtcxgBIAMoCzIXLnlmcmFtZXdvcmsuY29uZmlnLkl0ZW1C",
-            "FKoCEVlGcmFtZXdvcmsuQ29uZmlnYgZwcm90bzM="));
+            "EhAKCG1heFN0YWNrGAkgASgFEhQKDHNvcnRQcmlvcml0eRgKIAEoBSJBChdJ",
+            "dGVtX0xJU1RfVE9PTF9SRVNFUlZFRBImCgVpdGVtcxgBIAMoCzIXLnlmcmFt",
+            "ZXdvcmsuY29uZmlnLkl0ZW1CFKoCEVlGcmFtZXdvcmsuQ29uZmlnYgZwcm90",
+            "bzM="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::YFramework.Config.ConfigBaseTypeReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(null, new pbr::GeneratedClrTypeInfo[] {
-            new pbr::GeneratedClrTypeInfo(typeof(global::YFramework.Config.Item), global::YFramework.Config.Item.Parser, new[]{ "Id", "Name", "Desc", "Type", "IconPath", "Width", "Height", "Shape", "SortPriority" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::YFramework.Config.Item), global::YFramework.Config.Item.Parser, new[]{ "Id", "Name", "Desc", "Type", "IconPath", "Width", "Height", "Shape", "MaxStack", "SortPriority" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::YFramework.Config.Item_LIST_TOOL_RESERVED), global::YFramework.Config.Item_LIST_TOOL_RESERVED.Parser, new[]{ "Items" }, null, null, null)
           }));
     }
@@ -75,6 +76,7 @@ namespace YFramework.Config {
       width_ = other.width_;
       height_ = other.height_;
       shape_ = other.shape_;
+      maxStack_ = other.maxStack_;
       sortPriority_ = other.sortPriority_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
@@ -196,8 +198,22 @@ namespace YFramework.Config {
       }
     }
 
+    /// <summary>Field number for the "maxStack" field.</summary>
+    public const int MaxStackFieldNumber = 9;
+    private int maxStack_;
+    /// <summary>
+    ///叠加上限
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public int MaxStack {
+      get { return maxStack_; }
+      set {
+        maxStack_ = value;
+      }
+    }
+
     /// <summary>Field number for the "sortPriority" field.</summary>
-    public const int SortPriorityFieldNumber = 9;
+    public const int SortPriorityFieldNumber = 10;
     private int sortPriority_;
     /// <summary>
     ///排序权重
@@ -231,6 +247,7 @@ namespace YFramework.Config {
       if (Width != other.Width) return false;
       if (Height != other.Height) return false;
       if (Shape != other.Shape) return false;
+      if (MaxStack != other.MaxStack) return false;
       if (SortPriority != other.SortPriority) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
@@ -246,6 +263,7 @@ namespace YFramework.Config {
       if (Width != 0) hash ^= Width.GetHashCode();
       if (Height != 0) hash ^= Height.GetHashCode();
       if (Shape.Length != 0) hash ^= Shape.GetHashCode();
+      if (MaxStack != 0) hash ^= MaxStack.GetHashCode();
       if (SortPriority != 0) hash ^= SortPriority.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
@@ -292,8 +310,12 @@ namespace YFramework.Config {
         output.WriteRawTag(66);
         output.WriteString(Shape);
       }
-      if (SortPriority != 0) {
+      if (MaxStack != 0) {
         output.WriteRawTag(72);
+        output.WriteInt32(MaxStack);
+      }
+      if (SortPriority != 0) {
+        output.WriteRawTag(80);
         output.WriteInt32(SortPriority);
       }
       if (_unknownFields != null) {
@@ -327,6 +349,9 @@ namespace YFramework.Config {
       }
       if (Shape.Length != 0) {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(Shape);
+      }
+      if (MaxStack != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeInt32Size(MaxStack);
       }
       if (SortPriority != 0) {
         size += 1 + pb::CodedOutputStream.ComputeInt32Size(SortPriority);
@@ -365,6 +390,9 @@ namespace YFramework.Config {
       }
       if (other.Shape.Length != 0) {
         Shape = other.Shape;
+      }
+      if (other.MaxStack != 0) {
+        MaxStack = other.MaxStack;
       }
       if (other.SortPriority != 0) {
         SortPriority = other.SortPriority;
@@ -413,6 +441,10 @@ namespace YFramework.Config {
             break;
           }
           case 72: {
+            MaxStack = input.ReadInt32();
+            break;
+          }
+          case 80: {
             SortPriority = input.ReadInt32();
             break;
           }

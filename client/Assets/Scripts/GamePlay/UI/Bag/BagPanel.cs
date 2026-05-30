@@ -7,9 +7,9 @@ using YOTO;
 
 /// <summary>
 /// 网格空间背包面板(<see cref="UIPageBase"/>,注册为 <see cref="UIEnum.BagPanel"/>)。
-/// 把 <see cref="BagSystem"/> 的网格背包画成 W×H 格盘,物品按形状(可 L/T 多边形)成块显示。
-/// 交互:左键=使用,右键=原地旋转,拖拽=移动;拖拽中按 <see cref="rotateKey"/>(默认 R)旋转;
-/// 拖到别的物品上=快速交换。拖拽时显示绿(可放)/红(不可放)落点高亮。监听 RefreshBagList 整体重绘。
+/// 把 <see cref="BagSystem"/> 的网格背包画成 W×H 格盘,物品按形状(可 L/T 多边形)成块显示,可叠加物品显示数量。
+/// 交互:左键=使用,右键=打开菜单(使用/旋转/拆分/丢弃),拖拽=移动/合并/交换,悬停按 R=旋转(拖拽中按 R 旋转 ghost)。
+/// 拖到同种可叠加物品上=合并;拖到异物上=交换。拖拽时绿/红落点高亮。监听 RefreshBagList 整体重绘。
 ///
 /// 坐标:gridRoot 轴心左上(0,1)居中于窗口;第 (x,y) 格左上 anchoredPosition=(x*cell+gap/2, -(y*cell)-gap/2)。
 /// </summary>
@@ -22,6 +22,21 @@ public class BagPanel : UIPageBase
     public Button closeBtn;
     public TextMeshProUGUI capacityText;
 
+    [Header("右键菜单")]
+    public GameObject contextMenu;          // 根(全屏 blocker),点空白处关闭
+    public RectTransform contextMenuPanel;  // 小菜单本体(移到鼠标处)
+    public Button ctxUseBtn;
+    public Button ctxRotateBtn;
+    public Button ctxSplitBtn;
+    public Button ctxDiscardBtn;
+
+    [Header("拆分弹窗")]
+    public GameObject splitDialog;          // 根(全屏 dim)
+    public Slider splitSlider;
+    public TextMeshProUGUI splitAmountText;
+    public Button splitConfirmBtn;
+    public Button splitCancelBtn;
+
     [Header("布局")]
     public float cellSize = 80f;
     public float cellGap = 4f;
@@ -31,6 +46,13 @@ public class BagPanel : UIPageBase
     public KeyCode rotateKey = KeyCode.R;
     public Color validColor = new Color(0.2f, 1f, 0.2f, 0.4f);
     public Color invalidColor = new Color(1f, 0.2f, 0.2f, 0.4f);
+
+    [Header("字体")]
+    [Tooltip("UI 字体(SIMHEI SDF),由 BagPrefabBuilder 序列化注入;运行时数量标签用它")]
+    public TMP_FontAsset uiFont;
+
+    /// <summary>UI 字体(供 BagItemWidget 运行时创建数量标签用)。</summary>
+    public TMP_FontAsset UiFont => uiFont;
 
     private BagSystem bagSystem;
     private ResMgr resMgr;
@@ -50,6 +72,11 @@ public class BagPanel : UIPageBase
     private int dragRotation;
     private bool isDragging;
 
+    // 悬停 + 菜单/拆分上下文
+    private BagItemWidget hoveredWidget;
+    private int contextInstanceId;
+    private int splitInstanceId;
+
     public override void OnLoad()
     {
         bagSystem = GetService<BagSystem>();
@@ -58,6 +85,25 @@ public class BagPanel : UIPageBase
 
         if (sortBtn != null) sortBtn.onClick.AddListener(OnClickSort);
         if (closeBtn != null) closeBtn.onClick.AddListener(CloseSelf);
+
+        if (contextMenu != null)
+        {
+            var blockerBtn = contextMenu.GetComponent<Button>();
+            if (blockerBtn != null) blockerBtn.onClick.AddListener(HideContextMenu);
+            if (ctxUseBtn != null) ctxUseBtn.onClick.AddListener(OnCtxUse);
+            if (ctxRotateBtn != null) ctxRotateBtn.onClick.AddListener(OnCtxRotate);
+            if (ctxSplitBtn != null) ctxSplitBtn.onClick.AddListener(OnCtxSplit);
+            if (ctxDiscardBtn != null) ctxDiscardBtn.onClick.AddListener(OnCtxDiscard);
+            contextMenu.SetActive(false);
+        }
+
+        if (splitDialog != null)
+        {
+            if (splitSlider != null) splitSlider.onValueChanged.AddListener(OnSplitSliderChanged);
+            if (splitConfirmBtn != null) splitConfirmBtn.onClick.AddListener(OnSplitConfirm);
+            if (splitCancelBtn != null) splitCancelBtn.onClick.AddListener(HideSplitDialog);
+            splitDialog.SetActive(false);
+        }
     }
 
     public override void OnShow()
@@ -71,10 +117,11 @@ public class BagPanel : UIPageBase
     {
         eventMgr.Remove(YOTOEventType.RefreshBagList, Refresh);
         EndDragState();
+        HideContextMenu();
+        HideSplitDialog();
         ReleaseIcons();
     }
 
-    /// <summary>释放图标资源句柄(每个 LoadIcon 命中前都 Load 过一次,引用计数 +1,这里逐一归还)。</summary>
     private void ReleaseIcons()
     {
         foreach (var kv in iconCache)
@@ -86,15 +133,29 @@ public class BagPanel : UIPageBase
 
     private void Update()
     {
-        // 拖拽中按旋转键:改朝向 + 重建被拖控件 + 刷新高亮
-        if (isDragging && dragWidget != null && Input.GetKeyDown(rotateKey))
+        if (!Input.GetKeyDown(rotateKey)) return;
+
+        // 拖拽中按 R:旋转 ghost
+        if (isDragging && dragWidget != null)
         {
             dragRotation = (dragRotation + 1) & 3;
             var cells = bagSystem.Bag.LocalCells(dragWidget.ItemId, dragRotation);
-            dragWidget.Build(cells, cellSize, cellGap);
+            int cnt = bagSystem.Bag.GetByInstance(dragWidget.InstanceId)?.count ?? 1;
+            dragWidget.Build(cells, cellSize, cellGap, cnt);
             UpdateHighlight();
+            return;
+        }
+
+        // 悬停按 R:原地旋转该物品
+        if (hoveredWidget != null)
+        {
+            bagSystem.RotateItem(hoveredWidget.InstanceId); // 成功会 OnChanged→Refresh
+            hoveredWidget = null; // 重建后引用失效,等鼠标移动重新 enter
         }
     }
+
+    public void SetHoveredWidget(BagItemWidget w) => hoveredWidget = w;
+    public void ClearHoveredWidget(BagItemWidget w) { if (hoveredWidget == w) hoveredWidget = null; }
 
     // ---------------- 格盘背景 ----------------
 
@@ -124,7 +185,6 @@ public class BagPanel : UIPageBase
                 img.raycastTarget = false;
             }
 
-        // 高亮层:在格背景之上、物品之下(物品在 Refresh 时后加入,渲染更晚)
         var hr = new GameObject("HighlightRoot", typeof(RectTransform));
         highlightRoot = (RectTransform)hr.transform;
         highlightRoot.SetParent(gridRoot, false);
@@ -145,6 +205,7 @@ public class BagPanel : UIPageBase
         foreach (var w in widgets.Values)
             if (w != null) Destroy(w.gameObject);
         widgets.Clear();
+        hoveredWidget = null; // 旧引用随重建失效
 
         var bag = bagSystem.Bag;
         int used = 0;
@@ -158,6 +219,9 @@ public class BagPanel : UIPageBase
 
         if (capacityText != null)
             capacityText.text = $"{used}/{bag.Width * bag.Height}";
+
+        // 高亮层始终保持在所有物品之上,确保拖拽落点可见
+        if (highlightRoot != null) highlightRoot.SetAsLastSibling();
     }
 
     private void CreateWidget(PlacedItem item)
@@ -173,7 +237,7 @@ public class BagPanel : UIPageBase
         widget.Init(this, item.instanceId, item.itemId, sprite, BlockColor(item.itemId));
 
         var cells = bagSystem.Bag.LocalCells(item.itemId, item.rotation);
-        widget.Build(cells, cellSize, cellGap);
+        widget.Build(cells, cellSize, cellGap, item.count);
         LayoutAt(widget, item.x, item.y);
         widgets[item.instanceId] = widget;
     }
@@ -183,12 +247,13 @@ public class BagPanel : UIPageBase
         widget.Rect.anchoredPosition = new Vector2(x * cellSize + cellGap * 0.5f, -(y * cellSize) - cellGap * 0.5f);
     }
 
-    // ---------------- 拖拽(由 BagItemWidget 转发)----------------
+    // ---------------- 拖拽 ----------------
 
     public void OnWidgetBeginDrag(BagItemWidget widget, PointerEventData e)
     {
         if (canvas == null) canvas = GetComponentInParent<Canvas>();
         widget.Rect.SetAsLastSibling();
+        if (highlightRoot != null) highlightRoot.SetAsLastSibling();
         dragWidget = widget;
         isDragging = true;
         var item = bagSystem.Bag.GetByInstance(widget.InstanceId);
@@ -206,26 +271,103 @@ public class BagPanel : UIPageBase
 
     public void OnWidgetEndDrag(BagItemWidget widget, PointerEventData e)
     {
-        // 注意时序:PlaceOrSwap 成功会同步触发 OnChanged → Refresh,Refresh 会 Destroy 所有 widget
-        // (含本 widget)。因此先把需要的值取出,调用后不要再解引用 widget。
+        // 时序:PlaceOrSwap 成功会同步 OnChanged→Refresh,Refresh 会 Destroy 本 widget。
+        // 因此先取值、先清拖拽态,调用后不要再解引用 widget。
         GetTargetAnchor(widget, out int tx, out int ty);
         int instanceId = widget.InstanceId;
-        EndDragState();                  // 先清拖拽态(置空 dragWidget),避免悬空引用
+        EndDragState();
         bool ok = bagSystem.PlaceOrSwap(instanceId, tx, ty, dragRotation);
-        if (!ok) Refresh();              // 失败:模型未变,手动重绘把 widget 贴回原位/原朝向
+        if (!ok) Refresh(); // 失败:模型未变,手动重绘把 widget 贴回原位/原朝向
     }
 
     public void OnWidgetClick(BagItemWidget widget) => bagSystem.UseItem(widget.InstanceId);
-
-    /// <summary>右键原地旋转。成功时 RotateItem 内部已触发 OnChanged→Refresh 重画;
-    /// 失败(旋转后放不下)时模型不变、UI 无需变动,故忽略返回值。</summary>
-    public void OnWidgetRotate(BagItemWidget widget) => bagSystem.RotateItem(widget.InstanceId);
 
     private void EndDragState()
     {
         isDragging = false;
         dragWidget = null;
         HideHighlight();
+    }
+
+    // ---------------- 右键菜单 ----------------
+
+    public void OnWidgetContextMenu(BagItemWidget widget, PointerEventData e)
+    {
+        if (contextMenu == null) return;
+        contextInstanceId = widget.InstanceId;
+
+        var item = bagSystem.Bag.GetByInstance(contextInstanceId);
+        bool canSplit = item != null && bagSystem.IsStackable(item.itemId) && item.count > 1;
+        if (ctxSplitBtn != null) ctxSplitBtn.interactable = canSplit;
+
+        contextMenu.SetActive(true);
+        if (contextMenuPanel != null) contextMenuPanel.position = e.position; // 移到鼠标处(Overlay 画布)
+    }
+
+    private void HideContextMenu() { if (contextMenu != null) contextMenu.SetActive(false); }
+
+    private void OnCtxUse()
+    {
+        HideContextMenu();
+        bagSystem.UseItem(contextInstanceId);
+    }
+
+    private void OnCtxRotate()
+    {
+        HideContextMenu();
+        bagSystem.RotateItem(contextInstanceId);
+    }
+
+    private void OnCtxDiscard()
+    {
+        HideContextMenu();
+        bagSystem.Discard(contextInstanceId);
+    }
+
+    private void OnCtxSplit()
+    {
+        HideContextMenu();
+        ShowSplitDialog(contextInstanceId);
+    }
+
+    // ---------------- 拆分弹窗 ----------------
+
+    private void ShowSplitDialog(int instanceId)
+    {
+        if (splitDialog == null) return;
+        var item = bagSystem.Bag.GetByInstance(instanceId);
+        if (item == null || item.count <= 1) return;
+
+        splitInstanceId = instanceId;
+        splitDialog.SetActive(true);
+        if (splitSlider != null)
+        {
+            splitSlider.wholeNumbers = true;
+            splitSlider.minValue = 1;
+            splitSlider.maxValue = item.count - 1; // 至少给原堆留 1
+            splitSlider.value = item.count / 2;    // 默认对半
+        }
+        UpdateSplitText();
+    }
+
+    private void HideSplitDialog() { if (splitDialog != null) splitDialog.SetActive(false); }
+
+    private void OnSplitSliderChanged(float _) => UpdateSplitText();
+
+    private void UpdateSplitText()
+    {
+        if (splitAmountText == null) return;
+        int amount = splitSlider != null ? Mathf.RoundToInt(splitSlider.value) : 1;
+        var item = bagSystem.Bag.GetByInstance(splitInstanceId);
+        int rest = item != null ? item.count - amount : 0;
+        splitAmountText.text = $"拆出 {amount}  /  留 {rest}";
+    }
+
+    private void OnSplitConfirm()
+    {
+        int amount = splitSlider != null ? Mathf.RoundToInt(splitSlider.value) : 1;
+        HideSplitDialog();
+        bagSystem.SplitStack(splitInstanceId, amount); // 成功 OnChanged→Refresh
     }
 
     // ---------------- 落点高亮 ----------------

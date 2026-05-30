@@ -1,18 +1,24 @@
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 /// <summary>
-/// 网格背包里的单个物品控件:按形状(可不规则多边形)自建一组「格块」子物体显示,图标盖在包围盒上。
-/// 只有占格的格块带 raycast,所以点击/拖拽是**形状精确**的——L/T 凹缺处的点击会穿透到下层。
-/// 交互全部转交 <see cref="BagPanel"/>:左键=使用,右键=旋转,拖拽=移动/交换。
+/// 网格背包里的单个物品控件:按形状(可不规则多边形)自建一组「格块」子物体显示,图标盖在包围盒上,
+/// 可叠加物品在右下角显示数量。只有占格的格块带 raycast,所以点击/拖拽是**形状精确**的。
+/// 交互全部转交 <see cref="BagPanel"/>:
+///   - 左键点击 = 使用
+///   - 右键点击 = 打开右键菜单(使用/旋转/拆分/丢弃)
+///   - 拖拽     = 移动 / 合并 / 交换
+///   - 悬停时按 R = 旋转(由面板在 Update 里处理)
 ///
-/// 预制体只需一个挂了本组件的空 RectTransform(BagPrefabBuilder 生成);格块与图标运行时构建,
-/// 旋转拖拽时由面板调 <see cref="Build"/> 重建。
+/// 预制体只需一个挂了本组件的空 RectTransform(BagPrefabBuilder 生成);格块/图标/数量运行时构建,
+/// 旋转或数量变化时由面板调 <see cref="Build"/> 重建。
 /// </summary>
 public class BagItemWidget : MonoBehaviour,
-    IBeginDragHandler, IDragHandler, IEndDragHandler, IPointerClickHandler
+    IBeginDragHandler, IDragHandler, IEndDragHandler, IPointerClickHandler,
+    IPointerEnterHandler, IPointerExitHandler
 {
     public RectTransform Rect { get; private set; }
     public int InstanceId { get; private set; }
@@ -23,13 +29,14 @@ public class BagItemWidget : MonoBehaviour,
     private Color blockColor = Color.white;
     private readonly List<GameObject> blocks = new List<GameObject>();
     private Image icon;
+    private TextMeshProUGUI countLabel;
 
     private void Awake()
     {
         Rect = (RectTransform)transform;
     }
 
-    /// <summary>绑定数据(图标/配色),不含形状;形状由 <see cref="Build"/> 给。</summary>
+    /// <summary>绑定数据(图标/配色),不含形状;形状与数量由 <see cref="Build"/> 给。</summary>
     public void Init(BagPanel owner, int instanceId, int itemId, Sprite spr, Color color)
     {
         panel = owner;
@@ -39,8 +46,8 @@ public class BagItemWidget : MonoBehaviour,
         blockColor = color;
     }
 
-    /// <summary>按占格集合(重)建外观。旋转拖拽时面板用新朝向的 cells 再调一次即可。</summary>
-    public void Build(Vector2Int[] cells, float cellSize, float gap)
+    /// <summary>按占格集合(重)建外观;count&gt;1 时右下角显示数量。</summary>
+    public void Build(Vector2Int[] cells, float cellSize, float gap, int count)
     {
         for (int i = 0; i < blocks.Count; i++)
             if (blocks[i] != null) Destroy(blocks[i]);
@@ -73,22 +80,53 @@ public class BagItemWidget : MonoBehaviour,
             blocks.Add(go);
         }
 
-        if (icon == null)
-        {
-            var go = new GameObject("Icon", typeof(RectTransform), typeof(Image));
-            var rt = (RectTransform)go.transform;
-            rt.SetParent(Rect, false);
-            rt.anchorMin = Vector2.zero;
-            rt.anchorMax = Vector2.one;
-            rt.offsetMin = new Vector2(gap * 0.5f, gap * 0.5f);
-            rt.offsetMax = new Vector2(-gap * 0.5f, -gap * 0.5f);
-            icon = go.GetComponent<Image>();
-            icon.raycastTarget = false;
-            icon.preserveAspect = true;
-        }
-        icon.transform.SetAsLastSibling(); // 盖在格块之上
+        EnsureIcon(gap);
+        icon.transform.SetAsLastSibling();
         icon.enabled = sprite != null;
         icon.sprite = sprite;
+
+        EnsureCountLabel();
+        countLabel.transform.SetAsLastSibling();
+        bool showCount = count > 1;
+        countLabel.gameObject.SetActive(showCount);
+        if (showCount) countLabel.text = count.ToString();
+    }
+
+    private void EnsureIcon(float gap)
+    {
+        if (icon != null) return;
+        var go = new GameObject("Icon", typeof(RectTransform), typeof(Image));
+        var rt = (RectTransform)go.transform;
+        rt.SetParent(Rect, false);
+        rt.anchorMin = Vector2.zero;
+        rt.anchorMax = Vector2.one;
+        rt.offsetMin = new Vector2(gap * 0.5f, gap * 0.5f);
+        rt.offsetMax = new Vector2(-gap * 0.5f, -gap * 0.5f);
+        icon = go.GetComponent<Image>();
+        icon.raycastTarget = false;
+        icon.preserveAspect = true;
+    }
+
+    private void EnsureCountLabel()
+    {
+        if (countLabel != null) return;
+        var go = new GameObject("Count", typeof(RectTransform));
+        var rt = (RectTransform)go.transform;
+        rt.SetParent(Rect, false);
+        rt.anchorMin = new Vector2(1, 0);
+        rt.anchorMax = new Vector2(1, 0);
+        rt.pivot = new Vector2(1, 0);
+        rt.anchoredPosition = new Vector2(-4, 2);
+        rt.sizeDelta = new Vector2(60, 26);
+        countLabel = go.AddComponent<TextMeshProUGUI>();
+        countLabel.fontSize = 20;
+        countLabel.alignment = TextAlignmentOptions.BottomRight;
+        countLabel.color = Color.white;
+        countLabel.fontStyle = FontStyles.Bold;
+        countLabel.raycastTarget = false;
+        var font = panel != null ? panel.UiFont : null;
+        if (font == null) font = TMP_Settings.defaultFontAsset;
+        if (font != null) countLabel.font = font;
     }
 
     private static void TopLeft(RectTransform rt)
@@ -105,8 +143,11 @@ public class BagItemWidget : MonoBehaviour,
     public void OnPointerClick(PointerEventData e)
     {
         if (e.button == PointerEventData.InputButton.Right)
-            panel?.OnWidgetRotate(this);
+            panel?.OnWidgetContextMenu(this, e);
         else
             panel?.OnWidgetClick(this);
     }
+
+    public void OnPointerEnter(PointerEventData e) => panel?.SetHoveredWidget(this);
+    public void OnPointerExit(PointerEventData e) => panel?.ClearHoveredWidget(this);
 }

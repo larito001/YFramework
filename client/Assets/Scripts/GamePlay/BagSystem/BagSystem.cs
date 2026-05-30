@@ -66,34 +66,33 @@ public class BagSystem : IGameService
 
     // ---------------- 对外操作 ----------------
 
-    /// <summary>自动找空位放入一个物品(各朝向择优)。返回实例,背包满返回 null。</summary>
-    public PlacedItem AddItem(int itemId)
+    /// <summary>
+    /// 放入若干个物品(可叠加物品自动并堆,其余逐个占格)。返回**未能放入**的剩余数量(0 = 全部放入)。
+    /// </summary>
+    public int AddItem(int itemId, int count = 1)
     {
-        if (bag == null) return null;
+        if (bag == null) return count;
         if (GetItem(itemId) == null)
         {
             Debug.LogWarning($"[BagSystem] 配表中不存在物品 id: {itemId}");
-            return null;
+            return count;
         }
-        var placed = bag.TryAddItem(itemId);
-        if (placed == null) Debug.Log($"[BagSystem] 背包放不下物品 {itemId}(空间不足)");
-        return placed;
+        int leftover = bag.TryAddItem(itemId, count);
+        if (leftover > 0) Debug.Log($"[BagSystem] 背包放不下物品 {itemId} x{leftover}(空间不足)");
+        return leftover;
     }
 
-    /// <summary>批量放入同种物品,返回成功放入的个数。</summary>
-    public int AddItems(int itemId, int count)
-    {
-        int ok = 0;
-        for (int i = 0; i < count; i++)
-        {
-            if (AddItem(itemId) == null) break;
-            ok++;
-        }
-        return ok;
-    }
+    /// <summary>在指定锚点+朝向放入一堆物品,返回实例或 null。</summary>
+    public PlacedItem AddItemAt(int itemId, int x, int y, int rotation = 0, int count = 1) => bag?.TryAddItemAt(itemId, x, y, rotation, count);
 
-    /// <summary>在指定锚点+朝向放入一个物品,返回实例或 null。</summary>
-    public PlacedItem AddItemAt(int itemId, int x, int y, int rotation = 0) => bag?.TryAddItemAt(itemId, x, y, rotation);
+    /// <summary>从某堆拆出 amount 个到空位,返回新堆实例或 null(不可叠加/数量非法/无空位)。</summary>
+    public PlacedItem SplitStack(int instanceId, int amount) => bag?.SplitStack(instanceId, amount);
+
+    /// <summary>某物品堆叠上限(&lt;=1 为不可叠加)。</summary>
+    public int MaxStack(int itemId) => bag != null ? bag.MaxStack(itemId) : 1;
+
+    /// <summary>某物品是否可叠加。</summary>
+    public bool IsStackable(int itemId) => bag != null && bag.IsStackable(itemId);
 
     /// <summary>放置或交换实例到锚点 (x,y)+朝向(UI 拖放调用)。非法返回 false。</summary>
     public bool PlaceOrSwap(int instanceId, int x, int y, int rotation) => bag != null && bag.PlaceOrSwap(instanceId, x, y, rotation);

@@ -52,7 +52,10 @@
       "Bash(grep -iE \"item|~\\\\\\\\\\\\$\")",
       "WebFetch(domain:github.com)",
       "WebFetch(domain:api.github.com)",
-      "Bash(python publish_config.py)"
+      "Bash(python publish_config.py)",
+      "Bash(python -)",
+      "Bash(python3 -)",
+      "Bash(grep -c 'private static.*__TRACKED_VAR__\\(' Editor/UI/BagPrefabBuilder.cs)"
     ]
   }
 }

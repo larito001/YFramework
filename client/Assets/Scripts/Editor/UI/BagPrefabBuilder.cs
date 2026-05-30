@@ -23,11 +23,17 @@ public static class BagPrefabBuilder
     private const string Dir = "Assets/Resources/UI/Bag";
     private const string ItemPrefabPath = Dir + "/BagItem.prefab";
     private const string PanelPrefabPath = Dir + "/BagPanel.prefab";
+    private const string FontPath = "Assets/Art/Fonts/SIMHEI SDF.asset";
+
+    private static TMP_FontAsset _font; // 本次生成用的 UI 字体(SIMHEI)
 
     [MenuItem("Tools/Bag/Build Bag UI Prefabs")]
     public static void BuildAll()
     {
         if (!Directory.Exists(Dir)) Directory.CreateDirectory(Dir);
+
+        _font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(FontPath);
+        if (_font == null) Debug.LogWarning($"[BagPrefabBuilder] 未找到字体 {FontPath},回退默认字体。");
 
         BuildItemPrefab();
         AssetDatabase.SaveAssets();
@@ -108,10 +114,143 @@ public static class BagPrefabBuilder
         panel.capacityText = capText;
         panel.cellSize = 80f;
         panel.cellGap = 4f;
+        panel.uiFont = _font; // 序列化注入,运行时数量标签用
+
+        BuildContextMenu(root.transform, panel);
+        BuildSplitDialog(root.transform, panel);
 
         PrefabUtility.SaveAsPrefabAsset(root, PanelPrefabPath);
         Object.DestroyImmediate(root);
         Debug.Log($"[BagPrefabBuilder] Built {PanelPrefabPath}");
+    }
+
+    // ============================ 右键菜单 ============================
+
+    private static void BuildContextMenu(Transform parent, BagPanel panel)
+    {
+        // 全屏 blocker(点空白关闭):近透明 Image + Button
+        var menu = NewUI("ContextMenu", out var menuRt, parent);
+        Stretch(menuRt, 0);
+        var blockerImg = menu.AddComponent<Image>();
+        blockerImg.color = new Color(0, 0, 0, 0.01f);
+        var blockerBtn = menu.AddComponent<Button>();
+        blockerBtn.targetGraphic = blockerImg;
+
+        // 小菜单本体(运行时移到鼠标处),竖排 4 个按钮
+        var box = NewUI("Panel", out var boxRt, menu.transform);
+        boxRt.pivot = new Vector2(0, 1); // 左上为锚,出现在鼠标右下
+        boxRt.sizeDelta = new Vector2(160, 232);
+        box.AddComponent<Image>().color = new Color(0.16f, 0.17f, 0.2f, 0.98f);
+
+        var use = BuildStackedButton("UseBtn", "使用", box.transform, 0, new Color(0.25f, 0.4f, 0.3f, 1f));
+        var rotate = BuildStackedButton("RotateBtn", "旋转", box.transform, 1, new Color(0.3f, 0.4f, 0.5f, 1f));
+        var split = BuildStackedButton("SplitBtn", "拆分", box.transform, 2, new Color(0.3f, 0.35f, 0.5f, 1f));
+        var discard = BuildStackedButton("DiscardBtn", "丢弃", box.transform, 3, new Color(0.5f, 0.25f, 0.25f, 1f));
+
+        panel.contextMenu = menu;
+        panel.contextMenuPanel = boxRt;
+        panel.ctxUseBtn = use;
+        panel.ctxRotateBtn = rotate;
+        panel.ctxSplitBtn = split;
+        panel.ctxDiscardBtn = discard;
+    }
+
+    /// <summary>菜单内竖排按钮:高 52,按 index 往下排,左右各留 8 边距。</summary>
+    private static Button BuildStackedButton(string name, string label, Transform parent, int index, Color color)
+    {
+        var go = NewUI(name, out var rt, parent);
+        rt.anchorMin = new Vector2(0, 1); rt.anchorMax = new Vector2(1, 1); rt.pivot = new Vector2(0.5f, 1);
+        rt.offsetMin = new Vector2(8, 0); rt.offsetMax = new Vector2(-8, 0);
+        rt.sizeDelta = new Vector2(rt.sizeDelta.x, 52);
+        rt.anchoredPosition = new Vector2(0, -8 - index * 56);
+
+        var img = go.AddComponent<Image>();
+        img.color = color;
+        var btn = go.AddComponent<Button>();
+        btn.targetGraphic = img;
+
+        var labelGo = NewUI("Label", out var labelRt, go.transform);
+        Stretch(labelRt, 0);
+        NewText(labelGo, label, 24, TextAlignmentOptions.Center);
+        return btn;
+    }
+
+    // ============================ 拆分弹窗 ============================
+
+    private static void BuildSplitDialog(Transform parent, BagPanel panel)
+    {
+        var dlg = NewUI("SplitDialog", out var dlgRt, parent);
+        Stretch(dlgRt, 0);
+        dlg.AddComponent<Image>().color = new Color(0, 0, 0, 0.5f); // 半透 dim,拦截背后点击
+
+        var box = NewUI("Panel", out var boxRt, dlg.transform);
+        boxRt.anchorMin = boxRt.anchorMax = boxRt.pivot = new Vector2(0.5f, 0.5f);
+        boxRt.sizeDelta = new Vector2(420, 240);
+        box.AddComponent<Image>().color = new Color(0.16f, 0.17f, 0.2f, 0.99f);
+
+        var titleGo = NewUI("Title", out var titleRt, box.transform);
+        titleRt.anchorMin = new Vector2(0, 1); titleRt.anchorMax = new Vector2(1, 1); titleRt.pivot = new Vector2(0.5f, 1);
+        titleRt.anchoredPosition = new Vector2(0, -14); titleRt.sizeDelta = new Vector2(-24, 40);
+        NewText(titleGo, "拆分堆叠", 26, TextAlignmentOptions.Center);
+
+        var amtGo = NewUI("Amount", out var amtRt, box.transform);
+        amtRt.anchorMin = new Vector2(0, 1); amtRt.anchorMax = new Vector2(1, 1); amtRt.pivot = new Vector2(0.5f, 1);
+        amtRt.anchoredPosition = new Vector2(0, -64); amtRt.sizeDelta = new Vector2(-24, 36);
+        var amtText = NewText(amtGo, "拆出 1  /  留 1", 22, TextAlignmentOptions.Center);
+
+        var slider = BuildSlider("Slider", box.transform, new Vector2(0, 36), new Vector2(360, 30));
+
+        var confirm = BuildButton("Confirm", "确认", box.transform,
+            new Vector2(0.5f, 0), new Vector2(-100, 30), new Vector2(160, 54), new Color(0.25f, 0.45f, 0.3f, 1f));
+        var cancel = BuildButton("Cancel", "取消", box.transform,
+            new Vector2(0.5f, 0), new Vector2(100, 30), new Vector2(160, 54), new Color(0.45f, 0.3f, 0.3f, 1f));
+
+        panel.splitDialog = dlg;
+        panel.splitSlider = slider;
+        panel.splitAmountText = amtText;
+        panel.splitConfirmBtn = confirm;
+        panel.splitCancelBtn = cancel;
+    }
+
+    /// <summary>构建水平 Slider(背景 + 填充 + 手柄),返回 Slider 组件。</summary>
+    private static Slider BuildSlider(string name, Transform parent, Vector2 anchoredPos, Vector2 size)
+    {
+        var go = NewUI(name, out var rt, parent);
+        rt.anchorMin = new Vector2(0.5f, 0); rt.anchorMax = new Vector2(0.5f, 0); rt.pivot = new Vector2(0.5f, 0);
+        rt.anchoredPosition = anchoredPos;
+        rt.sizeDelta = size;
+        var slider = go.AddComponent<Slider>();
+
+        var bg = NewUI("Background", out var bgRt, go.transform);
+        bgRt.anchorMin = new Vector2(0, 0.25f); bgRt.anchorMax = new Vector2(1, 0.75f);
+        bgRt.offsetMin = Vector2.zero; bgRt.offsetMax = Vector2.zero;
+        bg.AddComponent<Image>().color = new Color(0.3f, 0.3f, 0.35f, 1f);
+
+        var fillArea = NewUI("Fill Area", out var faRt, go.transform);
+        faRt.anchorMin = new Vector2(0, 0.25f); faRt.anchorMax = new Vector2(1, 0.75f);
+        faRt.offsetMin = new Vector2(8, 0); faRt.offsetMax = new Vector2(-8, 0);
+        var fill = NewUI("Fill", out var fillRt, fillArea.transform);
+        fillRt.anchorMin = new Vector2(0, 0); fillRt.anchorMax = new Vector2(0, 1);
+        fillRt.sizeDelta = new Vector2(10, 0);
+        fill.AddComponent<Image>().color = new Color(0.4f, 0.6f, 0.9f, 1f);
+
+        var handleArea = NewUI("Handle Slide Area", out var haRt, go.transform);
+        haRt.anchorMin = Vector2.zero; haRt.anchorMax = Vector2.one;
+        haRt.offsetMin = new Vector2(8, 0); haRt.offsetMax = new Vector2(-8, 0);
+        var handle = NewUI("Handle", out var handleRt, handleArea.transform);
+        handleRt.sizeDelta = new Vector2(22, 0);
+        var handleImg = handle.AddComponent<Image>();
+        handleImg.color = Color.white;
+
+        slider.fillRect = fillRt;
+        slider.handleRect = handleRt;
+        slider.targetGraphic = handleImg;
+        slider.direction = Slider.Direction.LeftToRight;
+        slider.wholeNumbers = true;
+        slider.minValue = 1;
+        slider.maxValue = 2;
+        slider.value = 1;
+        return slider;
     }
 
     // ============================ 工具 ============================
@@ -140,7 +279,8 @@ public static class BagPrefabBuilder
         tmp.alignment = align;
         tmp.color = Color.white;
         tmp.raycastTarget = false;
-        if (TMP_Settings.defaultFontAsset != null) tmp.font = TMP_Settings.defaultFontAsset;
+        var font = _font != null ? _font : TMP_Settings.defaultFontAsset;
+        if (font != null) tmp.font = font;
         return tmp;
     }
 

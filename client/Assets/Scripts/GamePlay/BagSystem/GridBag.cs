@@ -7,7 +7,7 @@ using Vector2Int = UnityEngine.Vector2Int;
 /// <summary>
 /// 2D 网格空间背包核心逻辑(纯逻辑,不依赖 MonoBehaviour,可单测)。
 /// 模型:固定 <see cref="Width"/>×<see cref="Height"/> 网格,物品按 <see cref="ItemShape"/> 占一组格子
-/// (支持 L/T 等不规则多边形),**不堆叠**,可自由拖放、可 4 向旋转。
+/// (支持 L/T 等不规则多边形),可 4 向旋转、可拖放/合并/交换;可叠加物品按 <see cref="MaxStack"/> 堆叠。
 /// 用一维占位表 <c>_occ</c>(0=空,否则=实例 id)做 O(占格数) 的重叠检测。
 /// 物品定义通过构造时传入的 resolver 查询(由 <see cref="BagSystem"/> 接 ConfigManager 提供),
 /// 形状按 itemId 缓存。任意变化触发一次 <see cref="OnChanged"/>,桥接到 EventMgr.RefreshBagList。
@@ -39,7 +39,7 @@ public class GridBag
         _occ = new int[Width * Height];
     }
 
-    // ---------------- 形状 ----------------
+    // ---------------- 形状 / 堆叠 ----------------
 
     /// <summary>取物品形状(按 itemId 缓存)。</summary>
     public ItemShape GetShape(int itemId)
@@ -53,6 +53,16 @@ public class GridBag
         _shapeCache[itemId] = s;
         return s;
     }
+
+    /// <summary>某物品的堆叠上限(&lt;=1 视为不可叠加)。</summary>
+    public int MaxStack(int itemId)
+    {
+        var cfg = _resolve(itemId);
+        return cfg != null && cfg.MaxStack > 1 ? cfg.MaxStack : 1;
+    }
+
+    /// <summary>某物品是否可叠加。</summary>
+    public bool IsStackable(int itemId) => MaxStack(itemId) > 1;
 
     /// <summary>某物品某朝向的包围盒宽。</summary>
     public int EffW(int itemId, int rotation) => GetShape(itemId).WByRot[rotation & 3];
@@ -81,11 +91,12 @@ public class GridBag
         return id == 0 ? null : GetByInstance(id);
     }
 
+    /// <summary>统计某物品的总数量(累加各堆 count)。</summary>
     public int CountItem(int itemId)
     {
         int n = 0;
         for (int i = 0; i < _items.Count; i++)
-            if (_items[i].itemId == itemId) n++;
+            if (_items[i].itemId == itemId) n += _items[i].count;
         return n;
     }
 
@@ -108,26 +119,58 @@ public class GridBag
     public bool CanPlace(int itemId, int x, int y, int rotation, int ignoreInstance = 0)
         => FitsCells(itemId, x, y, rotation, ignoreInstance);
 
-    // ---------------- 增 / 删 ----------------
+    // ---------------- 增 / 删 / 拆 ----------------
 
-    /// <summary>在指定锚点+朝向放入一个新物品实例。失败(越界/重叠/无配置)返回 null。</summary>
-    public PlacedItem TryAddItemAt(int itemId, int x, int y, int rotation = 0)
+    /// <summary>在指定锚点+朝向放入一个新物品实例(指定数量,夹到上限)。失败(越界/重叠/无配置)返回 null。</summary>
+    public PlacedItem TryAddItemAt(int itemId, int x, int y, int rotation = 0, int count = 1)
     {
         if (_resolve(itemId) == null) return null;
         if (!FitsCells(itemId, x, y, rotation, 0)) return null;
-        var item = new PlacedItem(_nextInstanceId++, itemId, x, y, rotation);
+        count = Math.Clamp(count, 1, MaxStack(itemId));
+        var item = new PlacedItem(_nextInstanceId++, itemId, x, y, rotation, count);
         _items.Add(item);
         Stamp(item, item.instanceId);
         OnChanged?.Invoke();
         return item;
     }
 
-    /// <summary>自动找第一个能放下的位置(扫描朝向 + 格位)放入新物品。背包无空位返回 null。</summary>
-    public PlacedItem TryAddItem(int itemId)
+    /// <summary>
+    /// 放入若干个某物品:可叠加物品先并入已有未满堆叠,再为剩余开新堆叠(每堆不超过上限);
+    /// 不可叠加物品逐个占格放置。返回**未能放入**的剩余数量(0 = 全部放入)。
+    /// </summary>
+    public int TryAddItem(int itemId, int count = 1)
     {
-        var item = PlaceFirstFit(itemId);
-        if (item != null) OnChanged?.Invoke();
-        return item;
+        if (_resolve(itemId) == null || count <= 0) return count;
+        int max = MaxStack(itemId);
+        int remaining = count;
+        bool changed = false;
+
+        // 1) 并入已有未满堆叠(仅可叠加物品)
+        if (max > 1)
+        {
+            for (int i = 0; i < _items.Count && remaining > 0; i++)
+            {
+                var it = _items[i];
+                if (it.itemId != itemId || it.count >= max) continue;
+                int add = Math.Min(max - it.count, remaining);
+                it.count += add;
+                remaining -= add;
+                changed = true;
+            }
+        }
+
+        // 2) 为剩余开新堆叠(每堆最多 max),逐堆找空位
+        while (remaining > 0)
+        {
+            int stack = Math.Min(max, remaining);
+            var placed = PlaceFirstFit(itemId, stack);
+            if (placed == null) break; // 没空位了
+            remaining -= stack;
+            changed = true;
+        }
+
+        if (changed) OnChanged?.Invoke();
+        return remaining;
     }
 
     public bool RemoveItem(int instanceId)
@@ -140,6 +183,36 @@ public class GridBag
         return true;
     }
 
+    /// <summary>
+    /// 从某堆拆出 <paramref name="amount"/> 个,新建一堆放到首个空位(优先沿原朝向)。
+    /// 要求物品可叠加、amount 在 [1, count-1] 内、且有空位。成功返回新实例,否则 null(原堆不变)。
+    /// </summary>
+    public PlacedItem SplitStack(int instanceId, int amount)
+    {
+        var item = GetByInstance(instanceId);
+        if (item == null) return null;
+        if (!IsStackable(item.itemId)) return null;
+        if (amount < 1 || amount >= item.count) return null;
+
+        var spot = FindFirstFit(item.itemId, item.rotation);
+        if (spot != null)
+        {
+            var created = new PlacedItem(_nextInstanceId++, item.itemId, spot.Value.x, spot.Value.y, item.rotation, amount);
+            _items.Add(created);
+            Stamp(created, created.instanceId);
+            item.count -= amount;
+            OnChanged?.Invoke();
+            return created;
+        }
+
+        // 原朝向无空位,退化到任意朝向找空位
+        var fallback = PlaceFirstFit(item.itemId, amount);
+        if (fallback == null) return null;
+        item.count -= amount;
+        OnChanged?.Invoke();
+        return fallback;
+    }
+
     public void Clear()
     {
         _items.Clear();
@@ -147,12 +220,13 @@ public class GridBag
         OnChanged?.Invoke();
     }
 
-    // ---------------- 移动 / 交换 / 旋转 ----------------
+    // ---------------- 移动 / 合并 / 交换 / 旋转 ----------------
 
     /// <summary>
-    /// 放置或交换(UI 拖放落点调用):把实例移到锚点 (x,y) + 指定朝向。
+    /// 放置/合并/交换(UI 拖放落点调用):把实例移到锚点 (x,y) + 指定朝向。
     ///   - 目标区域空 → 直接移动(锚点越界自动夹回界内)。
-    ///   - 目标区域恰好只压住「另一个」物品 → 尝试快速交换:对方移到本实例原位;两边都放得下才成功。
+    ///   - 目标恰好只压住一个「同种可叠加且未满」的物品 → 合并(超出上限的部分留在原位)。
+    ///   - 目标恰好只压住一个其它物品 → 快速交换(对方移到本实例原位;干净不重叠才成功)。
     ///   - 其它(压住多个 / 交换放不下)→ 失败,原位不动。
     /// </summary>
     public bool PlaceOrSwap(int instanceId, int x, int y, int rotation)
@@ -171,7 +245,7 @@ public class GridBag
 
         Stamp(item, 0); // 先把自己从占位表抬走
 
-        // 1) 直接放下
+        // 1) 直接放下(目标区域空)
         if (FitsCells(item.itemId, ax, ay, rotation, 0))
         {
             if (noChange) { Stamp(item, item.instanceId); return false; }
@@ -181,18 +255,31 @@ public class GridBag
             return true;
         }
 
-        // 2) 快速交换:目标占格恰好只覆盖一个其它实例
+        // 2) 落在唯一其它实例上:先试合并,否则交换
         var other = FindSingleCovered(item.itemId, ax, ay, rotation);
         if (other != null)
         {
+            // 2a) 合并:同一物品 + 可叠加 + 对方未满 + 不是自己
+            int mergeMax = MaxStack(item.itemId);
+            if (other.itemId == item.itemId && mergeMax > 1 && other.count < mergeMax && other.instanceId != item.instanceId)
+            {
+                int move = Math.Min(item.count, mergeMax - other.count);
+                other.count += move;
+                item.count -= move;
+                if (item.count <= 0) _items.Remove(item); // A 全部并入 B(已 Stamp 0),移除 A
+                else Stamp(item, item.instanceId);        // A 还有剩余,留原位
+                OnChanged?.Invoke();
+                return true;
+            }
+
+            // 2b) 快速交换
             Stamp(other, 0); // 把对方也抬走,网格此时不含 A、B
 
-            // 先把 A 落到目标(更新坐标后 stamp)
+            // 先把 A 落到目标
             item.x = ax; item.y = ay; item.rotation = rotation;
             Stamp(item, item.instanceId);
 
-            // 关键:对方去 A 的原位时,必须在「A 已就位」的网格上判定。
-            // 否则当拖动距离小于物品尺寸时,A 的新占格与 B 的目标占格(A 原占格)会共享格子 → 重叠。
+            // 对方去 A 原位时,必须在「A 已就位」的网格上判定,否则拖动距离小于物品尺寸会重叠
             if (FitsCells(other.itemId, oldX, oldY, oldRot, 0))
             {
                 other.x = oldX; other.y = oldY; other.rotation = oldRot;
@@ -201,11 +288,11 @@ public class GridBag
                 return true;
             }
 
-            // 交换不干净(会重叠):撤销 A 的临时落位,A、B 全部归位
+            // 交换不干净:撤销 A 的临时落位,A、B 全部归位
             Stamp(item, 0);
             item.x = oldX; item.y = oldY; item.rotation = oldRot;
             Stamp(item, item.instanceId);
-            Stamp(other, other.instanceId); // B 坐标未动过,原位重新占格
+            Stamp(other, other.instanceId);
             return false;
         }
 
@@ -242,27 +329,55 @@ public class GridBag
 
     // ---------------- 整理 ----------------
 
-    /// <summary>整理:按占格面积降序、逐个首适配(各朝向择优)放回,紧凑重排。</summary>
+    /// <summary>
+    /// 整理:先合并同种可叠加物品的零散堆叠,再按占格面积降序、逐个首适配(各朝向择优)放回,紧凑重排。
+    /// </summary>
     public void SortBag()
     {
-        var ids = new List<int>(_items.Count);
-        foreach (var it in _items) ids.Add(it.itemId);
-
-        ids.Sort((a, b) =>
+        // 1) 收集 (itemId, 总数);可叠加物品合并总数,不可叠加物品每个实例各记一份
+        var stacks = new List<(int itemId, int count)>();
+        var mergeIndex = new Dictionary<int, int>(); // 可叠加物品 itemId → stacks 下标
+        foreach (var it in _items)
         {
-            int areaA = LocalCells(a, 0).Length;
-            int areaB = LocalCells(b, 0).Length;
+            int max = MaxStack(it.itemId);
+            if (max > 1 && mergeIndex.TryGetValue(it.itemId, out int idx))
+            {
+                stacks[idx] = (it.itemId, stacks[idx].count + it.count);
+            }
+            else
+            {
+                if (max > 1) mergeIndex[it.itemId] = stacks.Count;
+                stacks.Add((it.itemId, it.count));
+            }
+        }
+
+        // 2) 按面积降序 → SortPriority 降序 → id
+        stacks.Sort((a, b) =>
+        {
+            int areaA = LocalCells(a.itemId, 0).Length;
+            int areaB = LocalCells(b.itemId, 0).Length;
             if (areaB != areaA) return areaB.CompareTo(areaA);
-            var ca = _resolve(a); var cb = _resolve(b);
+            var ca = _resolve(a.itemId); var cb = _resolve(b.itemId);
             int pa = ca != null ? ca.SortPriority : 0;
             int pb = cb != null ? cb.SortPriority : 0;
             if (pb != pa) return pb.CompareTo(pa);
-            return a.CompareTo(b);
+            return a.itemId.CompareTo(b.itemId);
         });
 
+        // 3) 清空重放;合并后的总数若超过单堆上限,拆成多堆放置
         _items.Clear();
         Array.Clear(_occ, 0, _occ.Length);
-        foreach (var id in ids) PlaceFirstFit(id);
+        foreach (var s in stacks)
+        {
+            int max = MaxStack(s.itemId);
+            int left = s.count;
+            do
+            {
+                int stack = Math.Min(max, left);
+                if (PlaceFirstFit(s.itemId, stack) == null) break; // 放不下,丢弃剩余(背包已满)
+                left -= stack;
+            } while (left > 0);
+        }
         OnChanged?.Invoke();
     }
 
@@ -280,7 +395,7 @@ public class GridBag
             var it = _items[i];
             data.items.Add(new PlacedItemSaveData
             {
-                instanceId = it.instanceId, itemId = it.itemId, x = it.x, y = it.y, rotation = it.rotation
+                instanceId = it.instanceId, itemId = it.itemId, x = it.x, y = it.y, rotation = it.rotation, count = it.count
             });
         }
         return data;
@@ -298,7 +413,8 @@ public class GridBag
         {
             if (_resolve(s.itemId) == null) continue;             // 配表已删除
             if (!FitsCells(s.itemId, s.x, s.y, s.rotation, 0)) continue; // 位置非法
-            var item = new PlacedItem(s.instanceId, s.itemId, s.x, s.y, s.rotation);
+            int cnt = Math.Clamp(s.count <= 0 ? 1 : s.count, 1, MaxStack(s.itemId));
+            var item = new PlacedItem(s.instanceId, s.itemId, s.x, s.y, s.rotation, cnt);
             _items.Add(item);
             Stamp(item, item.instanceId);
             if (s.instanceId > maxId) maxId = s.instanceId;
@@ -308,6 +424,18 @@ public class GridBag
     }
 
     // ---------------- 私有 ----------------
+
+    /// <summary>在指定朝向下扫描首个能放下的锚点;无则 null。</summary>
+    private Vector2Int? FindFirstFit(int itemId, int rotation)
+    {
+        int ew = EffW(itemId, rotation), eh = EffH(itemId, rotation);
+        if (ew > Width || eh > Height) return null;
+        for (int y = 0; y + eh <= Height; y++)
+            for (int x = 0; x + ew <= Width; x++)
+                if (FitsCells(itemId, x, y, rotation, 0))
+                    return new Vector2Int(x, y);
+        return null;
+    }
 
     /// <summary>目标占格覆盖的「唯一」其它实例(覆盖 0 个或多于 1 个都返回 null)。</summary>
     private PlacedItem FindSingleCovered(int itemId, int ax, int ay, int rotation)
@@ -326,23 +454,18 @@ public class GridBag
         return foundId == 0 ? null : GetByInstance(foundId);
     }
 
-    /// <summary>首适配放入(扫描 4 朝向 + 全部格位),不触发 OnChanged。失败返回 null。</summary>
-    private PlacedItem PlaceFirstFit(int itemId)
+    /// <summary>首适配放入(扫描 4 朝向 + 全部格位)指定数量的一堆,不触发 OnChanged。失败返回 null。</summary>
+    private PlacedItem PlaceFirstFit(int itemId, int count = 1)
     {
         if (_resolve(itemId) == null) return null;
         for (int rot = 0; rot < 4; rot++)
         {
-            int ew = EffW(itemId, rot), eh = EffH(itemId, rot);
-            if (ew > Width || eh > Height) continue;
-            for (int y = 0; y + eh <= Height; y++)
-                for (int x = 0; x + ew <= Width; x++)
-                {
-                    if (!FitsCells(itemId, x, y, rot, 0)) continue;
-                    var item = new PlacedItem(_nextInstanceId++, itemId, x, y, rot);
-                    _items.Add(item);
-                    Stamp(item, item.instanceId);
-                    return item;
-                }
+            var spot = FindFirstFit(itemId, rot);
+            if (spot == null) continue;
+            var item = new PlacedItem(_nextInstanceId++, itemId, spot.Value.x, spot.Value.y, rot, count);
+            _items.Add(item);
+            Stamp(item, item.instanceId);
+            return item;
         }
         return null;
     }
@@ -369,7 +492,7 @@ public class GridBagSaveData
     public List<PlacedItemSaveData> items;
 }
 
-/// <summary>单个已放置物品的存档结构(形状不存,读档时按配表重算;存朝向)。</summary>
+/// <summary>单个已放置物品的存档结构(形状不存,读档时按配表重算;存朝向 + 数量)。</summary>
 [Serializable]
 public class PlacedItemSaveData
 {
@@ -378,4 +501,5 @@ public class PlacedItemSaveData
     public int x;
     public int y;
     public int rotation;
+    public int count;
 }
