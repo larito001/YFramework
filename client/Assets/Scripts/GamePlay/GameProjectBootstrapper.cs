@@ -44,6 +44,9 @@ public static partial class GameBootstrapper
     static partial void RegisterProjectServices(GameContext ctx)
     {
         ctx.Register(new InputService());
+        // 背包系统：纯逻辑 service，不需要 Tick。EventMgr 已在 BuildContext 中先行注册，
+        // BagSystem.Init 里 ctx.Get<EventMgr>() 取得后桥接 RefreshBagList 给 UI。
+        ctx.Register(new BagSystem());
         // ctx.Register(new EnemiesManager());
         // ctx.Register(new SceneResManager());
     }
@@ -61,11 +64,18 @@ public static partial class GameBootstrapper
         uiConfig.Register<GameMainPanel>(UIEnum.GameMainPanel, UILayerEnum.Normal, "UI/Main/GameMainPanel");
         uiConfig.Register<FinishPanel>(UIEnum.FinishPanel, UILayerEnum.Normal, "UI/Main/FinishPanel");
         uiConfig.Register<SettingPanel>(UIEnum.SettingPanel, UILayerEnum.Normal, "UI/Setting/SettingPanel");
+        uiConfig.Register<BagPanel>(UIEnum.BagPanel, UILayerEnum.Normal, "UI/Bag/BagPanel");
     }
 
     static partial void RunProjectStartup(GameContext ctx)
     {
         ctx.Get<UIMgr>().Show<StartPanel>();
+
+        // 注册物品使用处理器（示例）：治疗药水按 id 绑回血量。
+        // 处理器内部延迟查找玩家，注册时机不要求玩家已 spawn。
+        var bag = ctx.Get<BagSystem>();
+        bag.RegisterUseHandler(1001, new HealItemUseHandler(ctx, 30f));  // 小型治疗药水
+        bag.RegisterUseHandler(1002, new HealItemUseHandler(ctx, 80f));  // 大型治疗药水
     }
 
     static partial void ConfigureProjectNetwork(MessageRegistry registry)

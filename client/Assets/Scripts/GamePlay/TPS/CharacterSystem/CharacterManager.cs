@@ -21,6 +21,9 @@ public class CharacterManager : IGameService, ITickable
     private Vector3 playerSpawnPos;
     private bool respawnPlayerPending;
 
+    /// <summary>当前玩家 Character（未 spawn 或重生间隙可能为 null）。供背包等外部系统找玩家用。</summary>
+    public Character Player => player;
+
     public void Init(GameContext context)
     {
         ctx = context;

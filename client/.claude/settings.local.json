@@ -37,7 +37,18 @@
       "Bash(sed 's/\\\\.fbx$//')",
       "Bash(mv \"Zombie_27/Animation/In_Place\" \"Art/Animations/Zombie\")",
       "Bash(mv \"Zombie_27/Animation/In_Place.meta\" \"Art/Animations/Zombie.meta\")",
-      "Bash(rm -rf \"Zombie_27/Animation/Root_Motion\" \"Zombie_27/Animation/Root_Motion.meta\")"
+      "Bash(rm -rf \"Zombie_27/Animation/Root_Motion\" \"Zombie_27/Animation/Root_Motion.meta\")",
+      "PowerShell(Get-ChildItem -Path Assets\\\\Scripts -Recurse -Directory | ForEach-Object { $_.FullName.Replace\\(\\(Get-Location\\).Path + '\\\\', ''\\) })",
+      "Bash(echo \"exit=$?\")",
+      "Bash(./tools/3rdparty/protobuf/protoc.exe --proto_path=tools/_publish/proto --csharp_out=client/Assets/ScriptGenerated/Proto tools/_publish/proto/item.proto)",
+      "Bash(python3 -c \"import os; print\\(os.path.abspath\\('tools/../excel'\\)\\)\")",
+      "Bash(ls -la excel)",
+      "Bash(find excel *)",
+      "Bash(python -c \"import openpyxl; print\\('openpyxl', openpyxl.__version__\\)\")",
+      "Bash(python -c \"import grpc_tools.protoc; print\\('grpc_tools OK'\\)\")",
+      "Bash(python -c ' *)",
+      "Bash(cat ProjectSettings/ProjectVersion.txt)",
+      "Bash(ls -la Temp/UnityLockfile)"
     ]
   }
 }
