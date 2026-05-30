@@ -44,8 +44,8 @@ public static partial class GameBootstrapper
     static partial void RegisterProjectServices(GameContext ctx)
     {
         ctx.Register(new InputService());
-        // 背包系统：纯逻辑 service，不需要 Tick。EventMgr 已在 BuildContext 中先行注册，
-        // BagSystem.Init 里 ctx.Get<EventMgr>() 取得后桥接 RefreshBagList 给 UI。
+        // 背包系统：纯逻辑 service，不需要 Tick。EventMgr / ConfigManager 已在 BuildContext 中先行注册，
+        // BagSystem.Init 里 ctx.Get 取得后接配表 + 桥接 RefreshBagList 给 UI。
         ctx.Register(new BagSystem());
         // ctx.Register(new EnemiesManager());
         // ctx.Register(new SceneResManager());

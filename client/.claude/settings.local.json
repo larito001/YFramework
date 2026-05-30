@@ -48,7 +48,8 @@
       "Bash(python -c \"import grpc_tools.protoc; print\\('grpc_tools OK'\\)\")",
       "Bash(python -c ' *)",
       "Bash(cat ProjectSettings/ProjectVersion.txt)",
-      "Bash(ls -la Temp/UnityLockfile)"
+      "Bash(ls -la Temp/UnityLockfile)",
+      "Bash(grep -iE \"item|~\\\\\\\\\\\\$\")"
     ]
   }
 }
