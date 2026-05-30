@@ -46,6 +46,29 @@ public class SkillDef : ScriptableObject
         public AnimationCurve DistanceProfile;
         [Tooltip("本段的命中窗（可多个，做多段连击伤害）。窗内每帧做球形 OverlapSphere，同一目标在一个窗内只扣一次。")]
         public HitWindow[] HitWindows;
+        [Tooltip("本段的动效（可多个，与 HitWindows 平级）。按段内归一化时间 [0,1] 触发：到 StartNorm 生成，跟随型到 EndNorm 销毁。")]
+        public SkillVfx[] Vfx;
+    }
+
+    /// <summary>技能动效：段内某归一化时间生成一个特效 prefab（位置/朝向相对角色，可选跟随角色移动）。
+    /// 与 <see cref="HitWindow"/> 平级，由 <see cref="SkillCastComponent"/> 驱动、底层走 <see cref="VfxManager"/> 池化播放。</summary>
+    [Serializable]
+    public class SkillVfx
+    {
+        [Tooltip("特效 prefab 的 Resources 相对路径，如 \"VFX/SwordSlash\"。空=跳过。")]
+        public string Path;
+        [Tooltip("段内归一化时间 [0,1]：何时生成")]
+        public float StartNorm;
+        [Tooltip("段内归一化时间 [0,1]：何时结束。AttachToOwner=true（跟随型）到此销毁；false（世界一次性）忽略此值，prefab 自己播完回收")]
+        public float EndNorm = 1f;
+        [Tooltip("相对角色释放朝向的本地偏移：x=右, y=上, z=前（米）")]
+        public Vector3 LocalOffset;
+        [Tooltip("相对角色释放朝向的旋转（欧拉角）")]
+        public Vector3 RotationEuler;
+        [Tooltip("缩放倍率。0=用 prefab 原始缩放")]
+        public float Scale = 1f;
+        [Tooltip("是否跟随角色移动：true=挂到角色身上跟着走、到 EndNorm 销毁（光环/充能）；false=生成在世界点不跟随（命中爆点/挥砍残影）")]
+        public bool AttachToOwner;
     }
 
     /// <summary>命中窗：段内某个归一化时间区间开启伤害检测 + 球形 hitbox + 伤害配方。</summary>

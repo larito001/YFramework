@@ -14,8 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Name: PlayerMelee
   RecoverFade: 0.2
-  ShakeIntensity: 0.18
-  ShakeDuration: 0.15
+  ShakeIntensity: 0
+  ShakeDuration: 0
   Segments:
   - Clip: {fileID: 7400002, guid: 899ccc5bb593a7f43aa8c65d4178d9fc, type: 3}
     Fade: 0.1
@@ -154,8 +154,8 @@ MonoBehaviour:
         CritMultiplier: 0
         Element: 0
         AppliedBuffs: []
-    - StartNorm: 0.5
-      EndNorm: 0.6
+    - StartNorm: 0.45
+      EndNorm: 0.5
       Radius: 1
       ForwardOffset: 0.8
       Height: 1
@@ -166,3 +166,11 @@ MonoBehaviour:
         CritMultiplier: 0
         Element: 0
         AppliedBuffs: []
+    Vfx:
+    - Path: 
+      StartNorm: 0
+      EndNorm: 0
+      LocalOffset: {x: 0, y: 0, z: 0}
+      RotationEuler: {x: 0, y: 0, z: 0}
+      Scale: 0
+      AttachToOwner: 0

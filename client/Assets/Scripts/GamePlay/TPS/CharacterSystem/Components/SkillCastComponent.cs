@@ -35,10 +35,14 @@ public class SkillCastComponent : ICharacterComponent
     // per-window 去重 + 已震屏标记（StartSegment 清）
     private readonly Dictionary<SkillDef.HitWindow, HashSet<int>> windowHits = new Dictionary<SkillDef.HitWindow, HashSet<int>>();
     private readonly HashSet<SkillDef.HitWindow> shakenWindows = new HashSet<SkillDef.HitWindow>();
+    // VFX：本段已触发的动效（防重复生成）+ 跟随型动效的活跃 handle（到 EndNorm / 段切换 / 结束时 Stop）
+    private readonly HashSet<SkillDef.SkillVfx> firedVfx = new HashSet<SkillDef.SkillVfx>();
+    private readonly Dictionary<SkillDef.SkillVfx, int> activeAttachedVfx = new Dictionary<SkillDef.SkillVfx, int>();
 
     private YOTO.ResMgr resMgr;
     private ActorWorld world;
     private CameraManager cameraMgr;
+    private VfxManager vfxMgr;
     private InputComponentBase input;
     private static readonly Collider[] overlapBuf = new Collider[16];
 
@@ -48,6 +52,7 @@ public class SkillCastComponent : ICharacterComponent
         Ctx?.TryGet(out resMgr);
         Ctx?.TryGet(out world);
         Ctx?.TryGet(out cameraMgr);
+        Ctx?.TryGet(out vfxMgr);
 
         // 加载技能资产
         skills.Clear();
@@ -80,12 +85,15 @@ public class SkillCastComponent : ICharacterComponent
             Owner.SkillRecoverFade = 0f;
         }
         active = null;
+        StopAllAttachedVfx(); // 离场前回收跟随型动效（vfxMgr 置 null 之前）
+        firedVfx.Clear();
         windowHits.Clear();
         shakenWindows.Clear();
         skills.Clear();
         resMgr = null;
         world = null;
         cameraMgr = null;
+        vfxMgr = null;
         input = null;
         base.Detach();
     }
@@ -154,6 +162,9 @@ public class SkillCastComponent : ICharacterComponent
             }
         }
 
+        // 2b. 动效：到 StartNorm 生成（世界点一次性 / 跟随角色），跟随型到 EndNorm 销毁
+        DriveVfx(seg, n);
+
         // 3. 段结束 → 下一段 / 结束技能
         if (segElapsed >= segDuration) AdvanceOrEnd();
     }
@@ -171,6 +182,9 @@ public class SkillCastComponent : ICharacterComponent
         segPrevDistFrac = 0f;
         windowHits.Clear();
         shakenWindows.Clear();
+        // 进新段：清本段动效触发记录 + 停掉上一段残留的跟随型动效
+        firedVfx.Clear();
+        StopAllAttachedVfx();
         var seg = active.Segments[i];
         segDuration = seg.HoldDuration > 0f ? seg.HoldDuration : (seg.Clip != null ? seg.Clip.length : 0f);
         if (segDuration <= 0f)
@@ -191,6 +205,8 @@ public class SkillCastComponent : ICharacterComponent
             Owner.WishVelocity = new Vector3(0f, Owner.WishVelocity.y, 0f);
         }
         active = null;
+        StopAllAttachedVfx(); // 技能结束回收跟随型动效（世界一次性动效自销毁不管）
+        firedVfx.Clear();
         windowHits.Clear();
         shakenWindows.Clear();
     }
@@ -223,6 +239,49 @@ public class SkillCastComponent : ICharacterComponent
             var info = DamageInfo.Build(in w.Damage, Owner.ID, Owner.TeamId);
             DamageRouter.ApplyToActor(world, id, in info);
         }
+    }
+
+    /// <summary>段内动效驱动：到 StartNorm 生成（世界点一次性 / 跟随角色），每个动效一段内只生成一次；跟随型到 EndNorm 销毁。</summary>
+    private void DriveVfx(SkillDef.SkillSegment seg, float n)
+    {
+        if (seg.Vfx == null || vfxMgr == null) return;
+        for (int i = 0; i < seg.Vfx.Length; i++)
+        {
+            var v = seg.Vfx[i];
+            if (v == null || string.IsNullOrEmpty(v.Path)) continue;
+
+            if (n >= v.StartNorm && !firedVfx.Contains(v))
+            {
+                firedVfx.Add(v);
+                var localRot = Quaternion.Euler(v.RotationEuler);
+                if (v.AttachToOwner)
+                {
+                    int h = vfxMgr.PlayAttached(v.Path, Owner.ID, v.LocalOffset, localRot, v.Scale);
+                    if (h != 0) activeAttachedVfx[v] = h;
+                }
+                else
+                {
+                    // 世界点：相对释放朝向(castForward)定位/旋转，生成后不跟随
+                    var faceRot = castForward.sqrMagnitude > 1e-4f ? Quaternion.LookRotation(castForward) : Owner.Rotation;
+                    vfxMgr.Play(v.Path, Owner.Position + faceRot * v.LocalOffset, faceRot * localRot, v.Scale);
+                }
+            }
+
+            // 跟随型到 EndNorm 销毁
+            if (v.AttachToOwner && n > v.EndNorm && activeAttachedVfx.TryGetValue(v, out var hh))
+            {
+                vfxMgr.Stop(hh);
+                activeAttachedVfx.Remove(v);
+            }
+        }
+    }
+
+    /// <summary>停掉并回收所有活跃的跟随型动效（段切换 / 技能结束 / 离场时调）。世界一次性动效不归这里管（自销毁）。</summary>
+    private void StopAllAttachedVfx()
+    {
+        if (vfxMgr != null)
+            foreach (var h in activeAttachedVfx.Values) vfxMgr.Stop(h);
+        activeAttachedVfx.Clear();
     }
 
     /// <summary>位移分布曲线采样：有效曲线（≥2 帧）按曲线，否则线性。</summary>

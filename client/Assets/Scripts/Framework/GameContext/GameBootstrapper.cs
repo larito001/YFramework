@@ -73,6 +73,8 @@ public static partial class GameBootstrapper
         Debug.Log(ctx.Get<ConfigManager>().heroConfig.Get(1001).HeroName);
         ctx.Register(new ActorWorld());
         ctx.Register(new ViewManager());
+        // 通用特效服务：按路径池化播放 VFX prefab（技能动效等调它）。在 ViewManager / ResMgr 之后注册（Init 里 Get 它们）。
+        ctx.Register(new VfxManager());
         // TimeScaleService 必须在 CharacterManager 之前注册：它用 GameLoop 未缩放 dt 推进卡肉 timer，
         // 同帧写完 character.TimeScale 后，CharacterManager.Tick 读到的就是当帧的缩放值。
         ctx.Register(new TimeScaleService());
