@@ -45,29 +45,11 @@ public static class BagPrefabBuilder
 
     private static void BuildItemPrefab()
     {
+        // 只需一个挂了 BagItemWidget 的空根:格块与图标由 widget 在运行时按形状自建。
+        // 拖拽/点击落在子格块(带 raycast)上,事件冒泡到根上的 BagItemWidget 处理。
         var root = NewUI("BagItem", out var rootRt);
-        rootRt.sizeDelta = new Vector2(80, 80); // 占位,运行时按有效占格尺寸覆盖
-
-        // 背景必须 raycastTarget=true 才能接收拖拽/点击
-        var bg = root.AddComponent<Image>();
-        bg.color = new Color(0.25f, 0.5f, 0.7f, 0.85f);
-        bg.raycastTarget = true;
-
-        var iconGo = NewUI("Icon", out var iconRt, root.transform);
-        Stretch(iconRt, 4);
-        var icon = iconGo.AddComponent<Image>();
-        icon.preserveAspect = true;
-        icon.raycastTarget = false;
-
-        var nameGo = NewUI("Name", out var nameRt, root.transform);
-        nameRt.anchorMin = new Vector2(0, 0); nameRt.anchorMax = new Vector2(1, 0); nameRt.pivot = new Vector2(0.5f, 0);
-        nameRt.anchoredPosition = new Vector2(0, 2); nameRt.sizeDelta = new Vector2(-4, 22);
-        var nameText = NewText(nameGo, "", 16, TextAlignmentOptions.Bottom);
-
-        var widget = root.AddComponent<BagItemWidget>();
-        widget.background = bg;
-        widget.icon = icon;
-        widget.nameText = nameText;
+        rootRt.sizeDelta = new Vector2(80, 80); // 占位,运行时按包围盒覆盖
+        root.AddComponent<BagItemWidget>();
 
         PrefabUtility.SaveAsPrefabAsset(root, ItemPrefabPath);
         Object.DestroyImmediate(root);

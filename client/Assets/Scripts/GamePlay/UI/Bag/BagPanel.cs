@@ -7,14 +7,11 @@ using YOTO;
 
 /// <summary>
 /// 网格空间背包面板(<see cref="UIPageBase"/>,注册为 <see cref="UIEnum.BagPanel"/>)。
-/// 把 <see cref="BagSystem"/> 的网格背包画成一张 W×H 的格盘:每个物品按有效占格尺寸显示成一块矩形。
-/// 交互:左键点击=使用,右键点击=原地旋转,拖拽=移动。监听 <see cref="YOTOEventType.RefreshBagList"/> 整体重绘。
+/// 把 <see cref="BagSystem"/> 的网格背包画成 W×H 格盘,物品按形状(可 L/T 多边形)成块显示。
+/// 交互:左键=使用,右键=原地旋转,拖拽=移动;拖拽中按 <see cref="rotateKey"/>(默认 R)旋转;
+/// 拖到别的物品上=快速交换。拖拽时显示绿(可放)/红(不可放)落点高亮。监听 RefreshBagList 整体重绘。
 ///
-/// 坐标:gridRoot 轴心取左上(0,1)且居中于窗口;第 (x,y) 格左上角 anchoredPosition =
-/// (x*cell + gap/2, -(y*cell) - gap/2)。拖放命中即用此式反算目标格。
-///
-/// 预制体(BagPrefabBuilder 生成):窗口下含 GridRoot(空 RectTransform)、整理/关闭按钮、容量文本;
-/// 格背景与物品控件均在运行时按背包尺寸生成。
+/// 坐标:gridRoot 轴心左上(0,1)居中于窗口;第 (x,y) 格左上 anchoredPosition=(x*cell+gap/2, -(y*cell)-gap/2)。
 /// </summary>
 public class BagPanel : UIPageBase
 {
@@ -30,16 +27,29 @@ public class BagPanel : UIPageBase
     public float cellGap = 4f;
     public Color cellColor = new Color(1f, 1f, 1f, 0.06f);
 
+    [Header("交互")]
+    public KeyCode rotateKey = KeyCode.R;
+    public Color validColor = new Color(0.2f, 1f, 0.2f, 0.4f);
+    public Color invalidColor = new Color(1f, 0.2f, 0.2f, 0.4f);
+
     private BagSystem bagSystem;
     private ResMgr resMgr;
     private EventMgr eventMgr;
+    private Canvas canvas;
 
     private readonly List<GameObject> cellBgs = new List<GameObject>();
     private readonly Dictionary<int, BagItemWidget> widgets = new Dictionary<int, BagItemWidget>();
     private readonly Dictionary<string, Sprite> iconCache = new Dictionary<string, Sprite>();
 
+    private RectTransform highlightRoot;
+    private readonly List<Image> highlightPool = new List<Image>();
+
     private bool gridBuilt;
-    private Vector2 dragOffset; // 拖拽起点:控件锚点 - 指针在 gridRoot 的本地坐标
+
+    // 拖拽态
+    private BagItemWidget dragWidget;
+    private int dragRotation;
+    private bool isDragging;
 
     public override void OnLoad()
     {
@@ -61,9 +71,22 @@ public class BagPanel : UIPageBase
     public override void OnHide()
     {
         eventMgr.Remove(YOTOEventType.RefreshBagList, Refresh);
+        EndDragState();
     }
 
     public override void OnResize() { }
+
+    private void Update()
+    {
+        // 拖拽中按旋转键:改朝向 + 重建被拖控件 + 刷新高亮
+        if (isDragging && dragWidget != null && Input.GetKeyDown(rotateKey))
+        {
+            dragRotation = (dragRotation + 1) & 3;
+            var cells = bagSystem.Bag.LocalCells(dragWidget.ItemId, dragRotation);
+            dragWidget.Build(cells, cellSize, cellGap);
+            UpdateHighlight();
+        }
+    }
 
     // ---------------- 格盘背景 ----------------
 
@@ -72,8 +95,6 @@ public class BagPanel : UIPageBase
         if (gridBuilt || bagSystem?.Bag == null || gridRoot == null) return;
         var bag = bagSystem.Bag;
 
-        // gridRoot 轴心取左上(0,1)、居中于父级:布局坐标与拖拽 ScreenToLocal 坐标
-        // 同以"左上角为原点、向右+x、向下-y",换算一致,无需在预制体里手调。
         float gw = bag.Width * cellSize;
         float gh = bag.Height * cellSize;
         gridRoot.anchorMin = gridRoot.anchorMax = new Vector2(0.5f, 0.5f);
@@ -95,6 +116,15 @@ public class BagPanel : UIPageBase
                 img.raycastTarget = false;
                 cellBgs.Add(go);
             }
+
+        // 高亮层:在格背景之上、物品之下(物品在 Refresh 时后加入,渲染更晚)
+        var hr = new GameObject("HighlightRoot", typeof(RectTransform));
+        highlightRoot = (RectTransform)hr.transform;
+        highlightRoot.SetParent(gridRoot, false);
+        TopLeft(highlightRoot);
+        highlightRoot.sizeDelta = new Vector2(gw, gh);
+        highlightRoot.anchoredPosition = Vector2.zero;
+
         gridBuilt = true;
     }
 
@@ -105,7 +135,6 @@ public class BagPanel : UIPageBase
         if (bagSystem?.Bag == null || gridRoot == null) return;
         if (!gridBuilt) BuildGrid();
 
-        // 物品数量级很小,直接清掉旧控件全量重建,逻辑最简也最不易出错
         foreach (var w in widgets.Values)
             if (w != null) Destroy(w.gameObject);
         widgets.Clear();
@@ -116,7 +145,7 @@ public class BagPanel : UIPageBase
         for (int i = 0; i < items.Count; i++)
         {
             var item = items[i];
-            used += item.W * item.H;
+            used += bag.LocalCells(item.itemId, item.rotation).Length;
             CreateWidget(item);
         }
 
@@ -134,60 +163,117 @@ public class BagPanel : UIPageBase
 
         var cfg = bagSystem.GetItem(item.itemId);
         var sprite = cfg != null ? LoadIcon(cfg.IconPath) : null;
-        widget.Setup(this, item, sprite, cfg != null ? cfg.Name : string.Empty);
+        widget.Init(this, item.instanceId, item.itemId, sprite, BlockColor(item.itemId));
 
-        Layout(widget, item);
+        var cells = bagSystem.Bag.LocalCells(item.itemId, item.rotation);
+        widget.Build(cells, cellSize, cellGap);
+        LayoutAt(widget, item.x, item.y);
         widgets[item.instanceId] = widget;
     }
 
-    /// <summary>把控件摆到物品当前位置,大小按有效占格 W×H。</summary>
-    private void Layout(BagItemWidget widget, PlacedItem item)
+    private void LayoutAt(BagItemWidget widget, int x, int y)
     {
-        var rt = widget.Rect;
-        TopLeft(rt);
-        rt.sizeDelta = new Vector2(item.W * cellSize - cellGap, item.H * cellSize - cellGap);
-        rt.anchoredPosition = new Vector2(item.x * cellSize + cellGap * 0.5f, -(item.y * cellSize) - cellGap * 0.5f);
+        widget.Rect.anchoredPosition = new Vector2(x * cellSize + cellGap * 0.5f, -(y * cellSize) - cellGap * 0.5f);
     }
 
     // ---------------- 拖拽(由 BagItemWidget 转发)----------------
 
     public void OnWidgetBeginDrag(BagItemWidget widget, PointerEventData e)
     {
-        widget.Rect.SetAsLastSibling(); // 拖动中浮到最上层
-        if (ScreenToGrid(e, out var p))
-            dragOffset = widget.Rect.anchoredPosition - p;
+        if (canvas == null) canvas = GetComponentInParent<Canvas>();
+        widget.Rect.SetAsLastSibling();
+        dragWidget = widget;
+        isDragging = true;
+        var item = bagSystem.Bag.GetByInstance(widget.InstanceId);
+        dragRotation = item != null ? item.rotation : 0;
+        UpdateHighlight();
     }
 
     public void OnWidgetDrag(BagItemWidget widget, PointerEventData e)
     {
-        if (ScreenToGrid(e, out var p))
-            widget.Rect.anchoredPosition = p + dragOffset;
+        float scale = canvas != null ? canvas.scaleFactor : 1f;
+        if (scale <= 0f) scale = 1f;
+        widget.Rect.anchoredPosition += e.delta / scale;
+        UpdateHighlight();
     }
 
     public void OnWidgetEndDrag(BagItemWidget widget, PointerEventData e)
     {
-        // 由控件当前左上角锚点反算目标格(CellPos 的逆运算)
+        GetTargetAnchor(widget, out int tx, out int ty);
+        bool ok = bagSystem.PlaceOrSwap(widget.InstanceId, tx, ty, dragRotation);
+        EndDragState();
+        if (!ok) Refresh(); // 失败:从模型重绘,贴回原位/原朝向(成功时 OnChanged 已触发 Refresh)
+    }
+
+    public void OnWidgetClick(BagItemWidget widget) => bagSystem.UseItem(widget.InstanceId);
+    public void OnWidgetRotate(BagItemWidget widget) => bagSystem.RotateItem(widget.InstanceId);
+
+    private void EndDragState()
+    {
+        isDragging = false;
+        dragWidget = null;
+        HideHighlight();
+    }
+
+    // ---------------- 落点高亮 ----------------
+
+    private void UpdateHighlight()
+    {
+        if (!isDragging || dragWidget == null) { HideHighlight(); return; }
+        var bag = bagSystem.Bag;
+
+        GetTargetAnchor(dragWidget, out int tx, out int ty);
+        var cells = bag.LocalCells(dragWidget.ItemId, dragRotation);
+        bool valid = bag.CanPlace(dragWidget.ItemId, tx, ty, dragRotation, dragWidget.InstanceId);
+        var color = valid ? validColor : invalidColor;
+
+        EnsureHighlight(cells.Length);
+        for (int i = 0; i < highlightPool.Count; i++)
+        {
+            if (i < cells.Length)
+            {
+                var c = cells[i];
+                var rt = (RectTransform)highlightPool[i].transform;
+                rt.anchoredPosition = CellPos(tx + c.x, ty + c.y);
+                highlightPool[i].color = color;
+                highlightPool[i].gameObject.SetActive(true);
+            }
+            else highlightPool[i].gameObject.SetActive(false);
+        }
+    }
+
+    private void HideHighlight()
+    {
+        for (int i = 0; i < highlightPool.Count; i++)
+            if (highlightPool[i] != null) highlightPool[i].gameObject.SetActive(false);
+    }
+
+    private void EnsureHighlight(int count)
+    {
+        while (highlightPool.Count < count)
+        {
+            var go = new GameObject("HL", typeof(RectTransform), typeof(Image));
+            var rt = (RectTransform)go.transform;
+            rt.SetParent(highlightRoot, false);
+            TopLeft(rt);
+            rt.sizeDelta = new Vector2(cellSize - cellGap, cellSize - cellGap);
+            var img = go.GetComponent<Image>();
+            img.raycastTarget = false;
+            highlightPool.Add(img);
+        }
+    }
+
+    /// <summary>由被拖控件当前位置反算落点锚点,并按朝向包围盒夹回界内。</summary>
+    private void GetTargetAnchor(BagItemWidget widget, out int tx, out int ty)
+    {
         var pos = widget.Rect.anchoredPosition;
-        int tx = Mathf.RoundToInt((pos.x - cellGap * 0.5f) / cellSize);
-        int ty = Mathf.RoundToInt((-pos.y - cellGap * 0.5f) / cellSize);
-
-        if (bagSystem.MoveItem(widget.InstanceId, tx, ty))
-            return; // 成功:OnChanged → Refresh 重排,无需再动
-
-        // 失败(越界/重叠/原地):贴回真实位置
-        var item = bagSystem.Bag.GetByInstance(widget.InstanceId);
-        if (item != null) Layout(widget, item);
-    }
-
-    public void OnWidgetClick(BagItemWidget widget)
-    {
-        bagSystem.UseItem(widget.InstanceId);
-    }
-
-    public void OnWidgetRotate(BagItemWidget widget)
-    {
-        // 旋转成功 → OnChanged → Refresh 自动重画;失败(放不下)什么都不做
-        bagSystem.RotateItem(widget.InstanceId);
+        tx = Mathf.RoundToInt((pos.x - cellGap * 0.5f) / cellSize);
+        ty = Mathf.RoundToInt((-pos.y - cellGap * 0.5f) / cellSize);
+        var bag = bagSystem.Bag;
+        int ew = bag.EffW(widget.ItemId, dragRotation);
+        int eh = bag.EffH(widget.ItemId, dragRotation);
+        tx = Mathf.Clamp(tx, 0, Mathf.Max(0, bag.Width - ew));
+        ty = Mathf.Clamp(ty, 0, Mathf.Max(0, bag.Height - eh));
     }
 
     // ---------------- 按钮 ----------------
@@ -196,7 +282,6 @@ public class BagPanel : UIPageBase
 
     // ---------------- 工具 ----------------
 
-    /// <summary>左上角锚点/轴心(0,1):anchoredPosition.x 向右为正,y 向下为负。</summary>
     private static void TopLeft(RectTransform rt)
     {
         rt.anchorMin = new Vector2(0, 1);
@@ -207,10 +292,19 @@ public class BagPanel : UIPageBase
     private Vector2 CellPos(int x, int y) =>
         new Vector2(x * cellSize + cellGap * 0.5f, -(y * cellSize) - cellGap * 0.5f);
 
-    /// <summary>屏幕坐标 → gridRoot 本地坐标。Overlay 画布 pressEventCamera 为 null,API 兼容。</summary>
-    private bool ScreenToGrid(PointerEventData e, out Vector2 local) =>
-        RectTransformUtility.ScreenPointToLocalPointInRectangle(
-            gridRoot, e.position, e.pressEventCamera, out local);
+    /// <summary>按物品类型给个区分色(占位美术;有正式图标后图标会盖在上面)。</summary>
+    private Color BlockColor(int itemId)
+    {
+        switch (bagSystem.GetItemType(itemId))
+        {
+            case ItemType.Consumable: return new Color(0.3f, 0.6f, 0.35f, 0.9f);
+            case ItemType.Equipment:  return new Color(0.35f, 0.45f, 0.7f, 0.9f);
+            case ItemType.Material:   return new Color(0.6f, 0.5f, 0.3f, 0.9f);
+            case ItemType.QuestItem:  return new Color(0.6f, 0.4f, 0.65f, 0.9f);
+            case ItemType.Currency:   return new Color(0.7f, 0.65f, 0.3f, 0.9f);
+            default:                  return new Color(0.4f, 0.4f, 0.45f, 0.9f);
+        }
+    }
 
     private Sprite LoadIcon(string path)
     {

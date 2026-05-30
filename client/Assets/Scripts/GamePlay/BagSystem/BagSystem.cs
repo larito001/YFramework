@@ -5,19 +5,20 @@ using YFramework.Config;
 
 /// <summary>
 /// 背包系统(<see cref="IGameService"/>,由 <see cref="GameProjectBootstrapper"/> 注册到 <see cref="GameContext"/>)。
-/// 持有玩家的 2D 网格空间背包 <see cref="GridBag"/>,对外提供放入/移动/旋转/移除/使用等 API。
+/// 持有玩家的 2D 网格空间背包 <see cref="GridBag"/>,对外提供放入/移动/交换/旋转/移除/使用等 API。
 ///
-/// **模型**:物品按配表宽高占一片矩形格子,**不堆叠**,可自由拖放、可 90° 旋转(类似暗黑/塔科夫)。
-/// **数据来源**:物品定义全部走配表——<c>ConfigManager.itemConfig.Get(id)</c> 读 protobuf 生成的 <see cref="Item"/>
-/// (含 Width/Height 字段),不使用 ScriptableObject。
+/// **模型**:物品按配表形状(<c>Width/Height/Shape</c>,支持 L/T 等不规则多边形)占一组格子,
+/// **不堆叠**,可自由拖放、可 4 向旋转、拖到他人上可快速交换(类似暗黑/塔科夫)。
+/// **数据来源**:全部走配表——<c>ConfigManager.itemConfig.Get(id)</c> 读 protobuf 生成的 <see cref="Item"/>,
+/// 不使用 ScriptableObject。
 /// **事件**:背包变化桥接到 <see cref="EventMgr"/> 的 <see cref="YOTOEventType.RefreshBagList"/>,UI 据此刷新。
 /// **使用逻辑**:消耗品等效果实现 <see cref="IItemUseHandler"/>,以物品 <c>Item.Id</c> 为键调
 ///   <see cref="RegisterUseHandler"/> 注册。
-/// **存档**:背包内容用 PlayerPrefs + JsonUtility 持久化(物品定义不存,只存 实例 id/物品 id/坐标/朝向)。
+/// **存档**:PlayerPrefs + JsonUtility(只存 实例 id/物品 id/坐标/朝向)。
 /// </summary>
 public class BagSystem : IGameService
 {
-    private const string SaveKey = "BAG_SYSTEM_SAVE_V2"; // 空间背包模型,换 key 避免读旧槽位存档
+    private const string SaveKey = "BAG_SYSTEM_SAVE_V3"; // 多边形+4向旋转模型,换 key 避免读旧存档
     private const int DefaultGridWidth = 10;
     private const int DefaultGridHeight = 8;
 
@@ -65,7 +66,7 @@ public class BagSystem : IGameService
 
     // ---------------- 对外操作 ----------------
 
-    /// <summary>自动找空位放入一个物品(放不下会尝试旋转)。返回实例,背包满返回 null。</summary>
+    /// <summary>自动找空位放入一个物品(各朝向择优)。返回实例,背包满返回 null。</summary>
     public PlacedItem AddItem(int itemId)
     {
         if (bag == null) return null;
@@ -92,24 +93,24 @@ public class BagSystem : IGameService
     }
 
     /// <summary>在指定锚点+朝向放入一个物品,返回实例或 null。</summary>
-    public PlacedItem AddItemAt(int itemId, int x, int y, bool rotated = false) => bag?.TryAddItemAt(itemId, x, y, rotated);
+    public PlacedItem AddItemAt(int itemId, int x, int y, int rotation = 0) => bag?.TryAddItemAt(itemId, x, y, rotation);
 
-    /// <summary>移动实例到新锚点(朝向不变,UI 拖放调用)。非法位置返回 false。</summary>
-    public bool MoveItem(int instanceId, int x, int y) => bag != null && bag.MoveItem(instanceId, x, y);
+    /// <summary>放置或交换实例到锚点 (x,y)+朝向(UI 拖放调用)。非法返回 false。</summary>
+    public bool PlaceOrSwap(int instanceId, int x, int y, int rotation) => bag != null && bag.PlaceOrSwap(instanceId, x, y, rotation);
 
-    /// <summary>原地旋转实例 90°(UI 右键调用)。旋转后放不下返回 false。</summary>
+    /// <summary>旋转实例 90°(顺时针)。放不下返回 false。</summary>
     public bool RotateItem(int instanceId) => bag != null && bag.RotateItem(instanceId);
 
-    /// <summary>某物品(指定朝向)能否放在锚点 (x,y);移动校验时传 ignoreInstance 忽略自身。</summary>
-    public bool CanPlace(int itemId, int x, int y, bool rotated, int ignoreInstance = 0)
-        => bag != null && bag.CanPlace(itemId, x, y, rotated, ignoreInstance);
+    /// <summary>某物品(指定朝向)能否放在锚点 (x,y);校验拖放预览时传 ignoreInstance 忽略自身。</summary>
+    public bool CanPlace(int itemId, int x, int y, int rotation, int ignoreInstance = 0)
+        => bag != null && bag.CanPlace(itemId, x, y, rotation, ignoreInstance);
 
     /// <summary>移除实例。</summary>
     public bool RemoveItem(int instanceId) => bag != null && bag.RemoveItem(instanceId);
 
     public int CountItem(int itemId) => bag != null ? bag.CountItem(itemId) : 0;
 
-    /// <summary>整理(自动旋转 + 紧凑重排)。</summary>
+    /// <summary>整理(各朝向择优 + 紧凑重排)。</summary>
     public void SortBag() => bag?.SortBag();
 
     /// <summary>丢弃实例(<see cref="ItemType.QuestItem"/> 任务物品不可丢弃)。</summary>

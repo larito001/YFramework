@@ -49,7 +49,10 @@
       "Bash(python -c ' *)",
       "Bash(cat ProjectSettings/ProjectVersion.txt)",
       "Bash(ls -la Temp/UnityLockfile)",
-      "Bash(grep -iE \"item|~\\\\\\\\\\\\$\")"
+      "Bash(grep -iE \"item|~\\\\\\\\\\\\$\")",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:api.github.com)",
+      "Bash(python publish_config.py)"
     ]
   }
 }
