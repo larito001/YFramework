@@ -1,16 +1,18 @@
 # Animancer 武器动画指南（给美工）
 
 **两个 .asset 分工**：
-- **CharacterAnimSet**（角色级，每个角色一份）：通用 Locomotion (Idle/Walk/Run/Sprint) + Death + UpperBodyMask
-- **WeaponAnimSet**（武器级，每把枪一份）：Aim 8 方向 strafe + Shoot/Reload/Equip/Holster/Melee（**只上半身相关**）
+- **CharacterAnimSet**（角色级，每个角色一份）：**全部下半身 locomotion**——非瞄准 Idle/Walk/Run/Sprint（1D）+ 瞄准 Aim 8 方向 strafe（2D）+ Death + UpperBodyMask + 速度阈值
+- **WeaponAnimSet**（武器级，每把枪一份）：**只含上半身**——IdleGunPose/AimPose 常驻持枪 pose + Shoot/Reload/Equip/Holster one-shot
 
-切武器只换 WeaponAnimSet，下半身走路 mixer 保持连续。每把枪只需要配自己的上半身 clip，不重复配 locomotion / death。
+切武器只换 WeaponAnimSet（上半身），下半身 locomotion / 瞄准 strafe mixer 保持连续不重建。每把枪只需要配自己的上半身 clip，不重复配 locomotion / aim / death。
+
+> **近战不在这里**：近战、僵尸飞扑等"全身不可打断战斗动作"已上移为通用**技能系统**（`SkillDef` + `SkillCastComponent`），不再随武器配置。见 `Docs/技能系统使用指南.md` 与 `Docs/SkillDef 技能编辑指南.md`。
 
 ---
 
 ## 第一部分：CharacterAnimSet（角色动画包）
 
-每个角色（Player / Enemy / NPC 等）建一份，含通用 locomotion + death + UpperBodyMask。
+每个角色（Player / Enemy / NPC 等）建一份，含**全部下半身 locomotion**（非瞄准 + 瞄准 strafe）+ death + UpperBodyMask + 阈值。
 
 ### 创建
 
@@ -20,16 +22,36 @@
 
 ### 配字段
 
+**非瞄准 Locomotion（LinearMixerState 1D，4 档）**
 | 字段 | 拖什么 |
 |---|---|
 | Idle | 静止 idle |
 | Walk | 慢走 |
 | Run | 跑步 |
 | Sprint | 冲刺 |
-| DeathL | 死亡变体 0 |
-| DeathR | 死亡变体 1 |
-| UpperBodyMask | 上半身 AvatarMask（让 Combat layer 只影响上半身，下半身走 Locomotion） |
-| 阈值字段 | locomotion mixer 4 档对应速度（一般 0/WalkSpeed/RunSpeed/SprintSpeed） |
+
+**瞄准下身 Locomotion（CartesianMixerState 2D，右键瞄准时下半身）** — 上半身被 WeaponAnimSet 的 AimPose 覆盖，这里只剩腿
+| 字段 | 拖什么 |
+|---|---|
+| AimIdle | 瞄准静立（中心 (0,0)），也作 8 方向缺失时的兜底 |
+| AimWalk | 1D 兜底：8 方向缺失时走任意方向用此 clip |
+| AimWalkFwd / AimWalkBwd | 前 (0,1) / 后 (0,-1) |
+| AimStrafeLeft / AimStrafeRight | 左 (-1,0) / 右 (1,0) |
+| AimStrafeFL / FR / BL / BR | 4 对角线 |
+
+**死亡 / 分层 / 阈值**
+| 字段 | 拖什么 / 含义 |
+|---|---|
+| DeathL | 死亡变体 0（DeathVariant=0） |
+| DeathR | 死亡变体 1（DeathVariant=1） |
+| UpperBodyMask | 上半身 AvatarMask（让 WeaponAnimSet 的上身 Layer 1 只影响上半身，下半身走 Locomotion） |
+| IdleThreshold | 默认 `0`（Idle 对应速度，一般 0） |
+| WalkThreshold | 默认 `5`（一般 = `MoveComponent.WalkSpeed`） |
+| RunThreshold | 默认 `6` |
+| SprintThreshold | 默认 `7`（一般 = `MoveComponent.SprintSpeed`） |
+| DefaultFade | locomotion 之间 / 触发 state 进入的淡入时长 |
+
+> mixer 按 `AnimSpeedRatio`（角色当前真实 m/s）在相邻两档 clip 间平滑 blend，不是硬切。
 
 ### 告诉程序员路径
 
@@ -72,52 +94,32 @@
 
 ### 第 2 步：拖 clip 进字段
 
-选中刚建的 `.asset`，Inspector 里逐个拖：
+选中刚建的 `.asset`，Inspector 里逐个拖。**WeaponAnimSet 只有上半身字段**——下半身 locomotion / 瞄准 8 方向 strafe / Death / UpperBodyMask / 速度阈值都在 **CharacterAnimSet**（见第一部分），这里不配。
 
-**Aim Locomotion（持枪瞄准时）** — 玩家右键按住时
+**上身常驻 Pose（Layer 1 base，持武器时常驻；mask 取自 CharacterAnimSet.UpperBodyMask）**
 | 字段 | 拖什么 |
 |---|---|
-| AimIdle | 持枪静立瞄准 |
-| AimWalk | 1D fallback：8 方向缺失时兜底 |
-| AimWalkFwd / Bwd / StrafeLeft / Right | 4 主轴 |
-| AimStrafeFL / FR / BL / BR | 4 对角线 |
+| IdleGunPose | 站立持枪（未瞄准）的常驻 pose（上身循环）。持武器且未瞄准时 Layer 1 常驻这条 |
+| AimPose | 瞄准持枪的常驻 pose（上身循环）。IsAiming=true 时切到这里。IdleGunPose / AimPose 互为兜底 |
 
-**Combat 触发** — 一次性动作
+**Combat 触发（上身 one-shot，叠在常驻 pose 上，播完回 base）**
 | 字段 | 拖什么 |
 |---|---|
-| ShootLight | 单次开火（小后坐力） |
-| ShootHeavy | 单次开火（大后坐力，火箭筒类） |
+| ShootLight | 单次开火（小后坐力，`HeavyRecoil=false` 走这条） |
+| ShootHeavy | 单次开火（大后坐力，火箭筒类，`HeavyRecoil=true` 走这条） |
 | Reload | 换弹 |
-| Equip | 取出武器到手中 |
-| Holster | 收回武器 |
-
-**近战变体** — 玩家按 V 触发
-| 字段 | 触发条件 |
-|---|---|
-| MeleeHard | MeleeType=0（默认枪托砸） |
-| MeleeKick | MeleeType=1（前踢） |
-
-**死亡变体** — HP 归零触发
-| 字段 | 触发条件 |
-|---|---|
-| DeathL | DeathVariant=0 |
-| DeathR | DeathVariant=1 |
-
-**Locomotion 阈值**（LinearMixerState 在相邻 clip 间平滑 blend，不是硬切）
-- `IdleThreshold` 默认 0（Idle / AimIdle 对应的速度，一般 0）
-- `WalkThreshold` 默认 1（Walk / AimWalk 对应的速度，建议等于 MoveComponent.WalkSpeed）
-- `RunThreshold` 默认 1.6（Run 对应的速度）
-- `SprintThreshold` 默认 2（Sprint 对应的速度）
-- 数值含义：mixer 按 `AnimSpeedRatio`（角色当前速度）找最近两档 clip 平滑 blend——例如 Parameter=1.3 时 60% Walk + 40% Run blend
-
-**分上下身（可选，AvatarMask）**
-- `UpperBodyMask` 留空 → 单层模式（Combat 覆盖 Locomotion，开火 / 换弹时下半身停）
-- 拖入上半身 AvatarMask → Combat 走 Layer 1（上半身），Locomotion 走 Layer 0（全身）—— 边跑边射 / 边走边换弹
-- 创建上半身 mask：Project 右键 → Create → Avatar Mask → 选中 → Humanoid → 勾选上半身骨骼（Head/Body/Left Arm/Right Arm，取消 Root/Left Leg/Right Leg）
+| Equip | 切到这把武器时播（拿出） |
+| Holster | 切走这把武器时播（收回） |
 
 **Fade 时长**
-- `DefaultFade` 0.1s：state 之间淡入时长，过小会硬切，过大会"软糖"
-- `ShootFade` 0s：开火紧凑感，默认 0 立即切（按需调小 0.02-0.05 平滑）
+| 字段 | 默认 | 含义 |
+|---|---|---|
+| `ShootFade` | `0` | 开火触发的淡入时长。0=立即切让连发紧凑；0.05~0.1=轻微淡入平滑 |
+| `AimPoseFade` | `0.15` | IdleGunPose ↔ AimPose 互切 / one-shot 播完回 base pose 的淡入时长（建议 0.12~0.2） |
+| `UpperBodyEnterFade` | `0.15` | 装备瞬间（无武器→有）Layer 1 从 weight 0 升到常驻 base pose 的淡入（建议 0.1~0.2） |
+| `UpperBodyExitFade` | `0.15` | 卸下武器（有→无）Layer 1 淡出到 weight 0 的时长（建议 0.15） |
+
+> **未配任一持枪 pose（IdleGunPose / AimPose）** 时退化为旧式 Layer 1 one-shot（开火/换弹播完淡出整层）。要常驻持枪手感至少配一条 pose。
 
 ### 第 3 步：不想配的字段留空
 
@@ -141,11 +143,11 @@
 2. 看角色是否按配置播 clip：
    - 站着不动 → Idle 循环
    - WASD 跑 → Walk → Run → Sprint 按速度切
-   - 鼠标右键 → AimIdle / AimWalk
-   - 鼠标左键 → ShootLight / Heavy
+   - 鼠标右键 → 上身切 AimPose，下身走 AimIdle / 8 方向 strafe（瞄准 locomotion 在 CharacterAnimSet）
+   - 鼠标左键 → ShootLight / Heavy（叠在上身 pose 上）
    - R 键 → Reload
-   - V 键 → MeleeHard
    - 切别的武器 → Holster → Equip 链
+   - V 键近战 → 走**技能系统**（SkillDef），不在本 .asset，见技能文档
 
 ---
 
@@ -157,9 +159,10 @@
 | 控制台 `WeaponAnimSet 加载失败` | path 拼写错 / .asset 不在 Resources 下 | 检查程序员配的 path 跟资源实际路径 |
 | 某个动作没切换 | 对应字段留空（null） | 拖 clip 进对应字段 |
 | Shoot 动画播完前被打断 | 武器射速（FireInterval）很快 + clip 太长 | 让程序员调 `RecoilAnimSpeed`（武器字段）加速 clip 播放，或缩短 clip |
-| Run / Sprint 不切 | `RunStartSpeed` / `SprintStartSpeed` 阈值设错 | 调小阈值，或者检查 Walk/Run/Sprint clip 是否拖了 |
-| Aim 状态下角色继续播 Sprint | Aim 模式下只有 AimIdle / AimWalk 两档（无 AimRun / AimSprint） | 这是当前 MVP 设计，未来可加 Aim 时多档 |
-| 切武器有顿挫感 | `DefaultFade` 太小（硬切）或 clip 时长差距大 | 调大 DefaultFade（0.15s 平滑），或对齐 clip 长度 |
+| Run / Sprint 不切 | CharacterAnimSet 的 `RunThreshold` / `SprintThreshold` 设错 | 调阈值（默认 6 / 7），或检查 Walk/Run/Sprint clip 是否拖了 |
+| Aim 状态下走太快档位不对 | 瞄准下身是 8 方向 strafe 2D mixer（按 AnimMoveX/Y 选向，不分跑/冲档） | 这是当前设计；补全 8 方向 strafe clip 让各方向有动画 |
+| 切武器有顿挫感 | CharacterAnimSet 的 `DefaultFade` 太小（硬切）或 clip 时长差距大 | 调大 DefaultFade（0.15s 平滑），或对齐 clip 长度 |
+| 持枪上身没动 / 没常驻 pose | WeaponAnimSet 未配 IdleGunPose / AimPose | 至少配一条持枪 pose（互为兜底） |
 | Reload 被走路打断 | （不该发生）一次性 state 自动锁定 | 如果发生反馈给程序，可能是 view 状态机 bug |
 
 ---
@@ -175,9 +178,9 @@
 
 ## 边界
 
-- 当前**不分上下身**——Shoot 时会暂时覆盖 Locomotion（边跑边射的视觉效果不完美）。未来分 Animancer Layer + Avatar Mask 可让上半身 Shoot 跟下半身 Run 同时播
-- 当前 Locomotion 是**阈值切 clip**（不是 BlendTree 平滑 blend）。Walk → Run 临界点会有微小切感。未来升级 LinearMixerState 平滑
-- 弓箭 / 蓄力武器：当前没"蓄力" state 字段。需要加新字段+程序员加 view 状态机分支
+- **分上下身已支持**：在 CharacterAnimSet 配 `UpperBodyMask` 后，WeaponAnimSet 的持枪 pose / Shoot / Reload 走 Layer 1（上半身），locomotion 走 Layer 0（全身）——可边跑边射、边走边换弹。不配 mask 则退化为单层（上身 one-shot 覆盖全身）
+- **Locomotion 已平滑 blend**：非瞄准走 LinearMixerState（1D），瞄准走 CartesianMixerState（2D 8 方向），按角色真实 m/s（`AnimSpeedRatio`）在相邻 clip 间平滑过渡，不是硬切
+- 弓箭 / 蓄力武器：当前没"蓄力" state 字段。需要加新字段 + 程序员加 view 状态机分支
 
 ---
 

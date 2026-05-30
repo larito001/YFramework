@@ -42,7 +42,6 @@ Register services in `GameContext`:
 ```csharp
 ctx.Register(new EventMgr());
 ctx.Register(new UIMgr(BuildUiConfig()));
-ctx.Register(new PlayerManager());
 ```
 
 Supported lifecycle interfaces:
@@ -64,7 +63,7 @@ Prefer injected or cached dependencies over global lookups.
 Recommended patterns:
 
 - services: use `Init(GameContext ctx)`
-- UI pages: use `Initialize(GameContext context, UIMgr manager)`
+- UI pages: use `Initialize(GameContext context, IUIService manager)`
 - scenes: use `Initialize(GameContext context)`
 - plain C# objects created by managers: prefer constructor injection
 
@@ -80,15 +79,15 @@ Reasonable exception:
 ## Scenes
 Scene flow is handled by:
 
-- `GotSceneManager`
-- `GotSceneBase`
+- `YSceneManager`
+- `YSceneBase`
 
 Gameplay scenes should live in `GamePlay/Scene` and be registered from `GameProjectBootstrapper`.
 
 Add a new scene:
 
-1. create a class derived from `GotSceneBase`
-2. implement `SceneType` and `SceneName`
+1. create a class derived from `YSceneBase`
+2. implement `SceneType` (a `YSceneType` value) and `SceneName`
 3. register it in `ConfigureProjectScenes`
 
 ## UI
@@ -118,10 +117,9 @@ Page guidance:
 ## Pooled Objects
 Pooled object flow is handled by:
 
-- `ObjectPool`
-- `ObjectBase`
+- `AsyncPooledObject`
 
-Create a pooled object by deriving from `ObjectBase` and implementing:
+Create a pooled object by deriving from `AsyncPooledObject` and implementing:
 
 - `AfterInstanceGObj()`
 - `BeforeRecover(bool isDelete)`
@@ -135,13 +133,11 @@ InstanceGObj();
 ```
 
 ## Runtime Config
-`GameRuntimeConfig` carries startup-time data that used to live directly on `GameLoop`.
+Startup-time flags live directly on the `GameLoop` host component (inspector fields), for example:
 
-Use it for:
+- `isTest` — enables test/debug startup behavior
 
-- test flags
-- buff config assets
-- other startup-only runtime settings
+Read these from the bootstrap path (`GameLoop.Instance`). Keep them limited to startup-only switches; per-system data assets (buff configs, anim sets, etc.) are loaded by the system that owns them, not held globally on `GameLoop`.
 
 ## Placeholder Scripts
 Some gameplay pages are intentionally registered as placeholders so prefab routes stay valid.
