@@ -6,11 +6,15 @@ using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
-/// 一键生成开始界面预制体 StartPanel.prefab 到 Resources/UI/Boot 下,供 UIMgr/ResMgr 按路径加载。
+/// 一键生成主界面(大厅)预制体 StartPanel.prefab 到 Resources/UI/Boot 下,供 UIMgr/ResMgr 按路径加载。
 /// 程序化构建:Unity 自动解析脚本 GUID / TMP 字体,脚本字段引用在此接好,避免手写 .prefab YAML。
 ///
-/// 复用项目通用按钮 <c>Resources/UI/Common/CommonButton.prefab</c>(挂 YOTOButton,带悬停/点击缩放),
-/// 保持与其它界面一致的按钮风格;四个按钮纵向居中排列:新游戏 / 读取存档 / 设置 / 退出游戏。
+/// 竖屏手机布局(对应设计稿):
+///   左上:头像框 + 等级        右上:资源/金币
+///   左侧:设置(方形按钮)      底部一排:商店 / 准备 / 图鉴 / 出发
+///
+/// 五个按钮复用项目通用按钮 <c>Resources/UI/Common/CommonButton.prefab</c>(挂 YOTOButton,带悬停/点击缩放),
+/// 与其它界面保持一致的按钮风格。底部四按钮用 HorizontalLayoutGroup 均分,自适应屏宽。
 ///
 /// 菜单:Tools/UI/Build StartPanel Prefab
 /// </summary>
@@ -20,8 +24,6 @@ public static class StartPanelBuilder
     private const string PrefabPath = Dir + "/StartPanel.prefab";
     private const string ButtonPrefabPath = "Assets/Resources/UI/Common/CommonButton.prefab";
     private const string FontPath = "Assets/Art/Fonts/SIMHEI SDF.asset";
-
-    private const float ButtonGap = 130f; // 按钮纵向间距(CommonButton 高约 99)
 
     private static TMP_FontAsset _font;
 
@@ -46,30 +48,71 @@ public static class StartPanelBuilder
         var cg = root.AddComponent<CanvasGroup>();
         root.AddComponent<YOTOUIShow>();
 
-        // ---------- 标题 ----------
-        var titleGo = NewUI("Title", out var titleRt, root.transform);
-        titleRt.anchorMin = new Vector2(0.5f, 1f);
-        titleRt.anchorMax = new Vector2(0.5f, 1f);
-        titleRt.pivot = new Vector2(0.5f, 1f);
-        titleRt.anchoredPosition = new Vector2(0, -160);
-        titleRt.sizeDelta = new Vector2(900, 160);
-        NewText(titleGo, "YFramework", 90, TextAlignmentOptions.Center);
+        // 尺寸按"宽度恒为 1920 单位"的画布(CanvasScaler match=width,refWidth=1920)来定;
+        // 竖屏时画布高约 4000+ 单位,故元素普遍偏大才不至于在手机上显得很小。
 
-        // ---------- 四个按钮(纵向居中)----------
-        // 四个按钮整体围绕中心对称排布:上 1.5/0.5 格、下 -0.5/-1.5 格
-        var btnNew = BuildButton(btnPrefab, "Btn_New", "新游戏", root.transform, ButtonGap * 1.5f);
-        var btnContinue = BuildButton(btnPrefab, "Btn_Continue", "读取存档", root.transform, ButtonGap * 0.5f);
-        var btnSetting = BuildButton(btnPrefab, "Btn_Setting", "设置", root.transform, ButtonGap * -0.5f);
-        var btnQuit = BuildButton(btnPrefab, "Btn_Quit", "退出游戏", root.transform, ButtonGap * -1.5f);
+        // ---------- 左上:头像框 + 等级 ----------
+        var avatarGo = NewUI("AvatarFrame", out var avatarRt, root.transform);
+        TopLeft(avatarRt, new Vector2(60, -80), new Vector2(220, 220));
+        var avatarImg = avatarGo.AddComponent<Image>();
+        avatarImg.sprite = BuiltinSprite("UI/Skin/Knob.psd");
+        avatarImg.color = new Color(0.85f, 0.85f, 0.9f, 1f);
+
+        var levelGo = NewUI("Level", out var levelRt, root.transform);
+        TopLeft(levelRt, new Vector2(60, -320), new Vector2(220, 80));
+        var levelBg = levelGo.AddComponent<Image>();
+        levelBg.sprite = BuiltinSprite("UI/Skin/UISprite.psd");
+        levelBg.type = Image.Type.Sliced;
+        levelBg.color = new Color(0.25f, 0.27f, 0.33f, 1f);
+        var levelText = NewChildText(levelGo, "等级", "Lv.1", 44, TextAlignmentOptions.Center);
+
+        // ---------- 右上:资源/金币 ----------
+        var coinGo = NewUI("Coin", out var coinRt, root.transform);
+        coinRt.anchorMin = coinRt.anchorMax = new Vector2(1, 1);
+        coinRt.pivot = new Vector2(1, 1);
+        coinRt.anchoredPosition = new Vector2(-60, -80);
+        coinRt.sizeDelta = new Vector2(360, 110);
+        var coinBg = coinGo.AddComponent<Image>();
+        coinBg.sprite = BuiltinSprite("UI/Skin/UISprite.psd");
+        coinBg.type = Image.Type.Sliced;
+        coinBg.color = new Color(0.25f, 0.27f, 0.33f, 1f);
+        var coinText = NewChildText(coinGo, "资源金币", "0", 48, TextAlignmentOptions.Right);
+        ((RectTransform)coinText.transform).offsetMax = new Vector2(-28, 0); // 右侧留点边距
+
+        // ---------- 左侧:设置(方形按钮)----------
+        var btnSetting = BuildButton(btnPrefab, "Btn_Setting", "设置", root.transform, 52);
+        var settingRt = (RectTransform)btnSetting.transform;
+        TopLeft(settingRt, new Vector2(60, -480), new Vector2(200, 200));
+
+        // ---------- 底部一排:商店 / 准备(居中主按钮) / 图鉴 ----------
+        var bar = NewUI("BottomBar", out var barRt, root.transform);
+        barRt.anchorMin = new Vector2(0, 0);
+        barRt.anchorMax = new Vector2(1, 0);
+        barRt.pivot = new Vector2(0.5f, 0);
+        barRt.offsetMin = new Vector2(60, 120);  // 左/下边距(下方留安全区)
+        barRt.offsetMax = new Vector2(-60, 420); // 右边距 + 高度 300
+        var hlg = bar.AddComponent<HorizontalLayoutGroup>();
+        hlg.spacing = 30;
+        hlg.childControlWidth = true;
+        hlg.childControlHeight = true;
+        hlg.childForceExpandWidth = true;
+        hlg.childForceExpandHeight = true;
+
+        var btnShop = BuildButton(btnPrefab, "Btn_Shop", "商店", bar.transform, 56);
+        var btnPrepare = BuildButton(btnPrefab, "Btn_Prepare", "准备", bar.transform, 56); // 居中
+        var btnCodex = BuildButton(btnPrefab, "Btn_Codex", "图鉴", bar.transform, 56);
 
         // ---------- 接脚本字段 ----------
         var panel = root.AddComponent<StartPanel>();
         panel.canvasGroup = cg;
         panel.uiType = UIEnum.StartPanel;
-        panel.btn_new = btnNew;
-        panel.btn_continue = btnContinue;
+        panel.avatarFrame = avatarImg;
+        panel.levelText = levelText;
+        panel.coinText = coinText;
         panel.btn_setting = btnSetting;
-        panel.btn_quit = btnQuit;
+        panel.btn_shop = btnShop;
+        panel.btn_prepare = btnPrepare;
+        panel.btn_codex = btnCodex;
 
         PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
         Object.DestroyImmediate(root);
@@ -80,19 +123,19 @@ public static class StartPanelBuilder
 
     // ============================ 工具 ============================
 
-    /// <summary>实例化通用按钮预制体,设置名称/文本/居中位置,返回其 Button(YOTOButton)。</summary>
-    private static Button BuildButton(GameObject prefab, string name, string label, Transform parent, float y)
+    /// <summary>实例化通用按钮预制体,设置名称/文本/字号,返回其 Button(YOTOButton)。位置/尺寸由调用方或布局组决定。</summary>
+    private static Button BuildButton(GameObject prefab, string name, string label, Transform parent, float fontSize)
     {
         var go = (GameObject)PrefabUtility.InstantiatePrefab(prefab, parent);
         go.name = name;
         go.SetActive(true);
 
-        var rt = (RectTransform)go.transform;
-        rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0.5f, 0.5f);
-        rt.anchoredPosition = new Vector2(0, y);
-
         var text = go.GetComponentInChildren<TextMeshProUGUI>(true);
-        if (text != null) text.text = label;
+        if (text != null)
+        {
+            text.text = label;
+            text.fontSize = fontSize; // 通用按钮默认 24pt,在 1920 宽画布上偏小
+        }
 
         return go.GetComponent<Button>(); // YOTOButton : Button
     }
@@ -113,6 +156,23 @@ public static class StartPanelBuilder
         rt.offsetMax = Vector2.zero;
     }
 
+    /// <summary>锚定到左上角:anchoredPosition 以左上为原点(向右为 +x,向下为 -y)。</summary>
+    private static void TopLeft(RectTransform rt, Vector2 anchoredPos, Vector2 size)
+    {
+        rt.anchorMin = rt.anchorMax = new Vector2(0, 1);
+        rt.pivot = new Vector2(0, 1);
+        rt.anchoredPosition = anchoredPos;
+        rt.sizeDelta = size;
+    }
+
+    /// <summary>在父物体内铺满一个 TMP 文本子物体,返回它(用于给 Image 容器加文字标签)。</summary>
+    private static TextMeshProUGUI NewChildText(GameObject parent, string name, string text, float size, TextAlignmentOptions align)
+    {
+        var go = NewUI(name, out var rt, parent.transform);
+        Stretch(rt);
+        return NewText(go, text, size, align);
+    }
+
     private static TextMeshProUGUI NewText(GameObject go, string text, float size, TextAlignmentOptions align)
     {
         var tmp = go.AddComponent<TextMeshProUGUI>();
@@ -124,6 +184,12 @@ public static class StartPanelBuilder
         var font = _font != null ? _font : TMP_Settings.defaultFontAsset;
         if (font != null) tmp.font = font;
         return tmp;
+    }
+
+    /// <summary>加载 Unity 内置 UI 精灵(Knob / UISprite 等),失败返回 null(Image 退化为纯色块)。</summary>
+    private static Sprite BuiltinSprite(string path)
+    {
+        return AssetDatabase.GetBuiltinExtraResource<Sprite>(path);
     }
 }
 #endif

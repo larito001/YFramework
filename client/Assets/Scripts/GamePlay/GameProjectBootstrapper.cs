@@ -53,11 +53,17 @@ public static partial class GameBootstrapper
         ctx.Register(new InputService());
         // 画面设置服务:全屏/垂直同步/画质/分辨率,改动即应用并存盘(Settings 分类)。
         ctx.Register(new GraphicsSettings());
+        // 货币系统:独立钱包(多币种),与背包解耦。纯逻辑 service,Init 里只取 EventMgr/StoreMgr(均已先注册),
+        // 余额变化桥接 RefreshCurrency 给 UI。按 Progress 随存档槽存档。
+        ctx.Register(new CurrencySystem());
         // 背包系统：纯逻辑 service，不需要 Tick。EventMgr / ConfigManager 已在 BuildContext 中先行注册，
         // BagSystem.Init 里 ctx.Get 取得后接配表 + 桥接 RefreshBagList 给 UI。
         ctx.Register(new BagSystem());
         // 宝箱系统在 BagSystem 之后注册：Init 里 ctx.Get<BagSystem>() 复用其物品配置。
         ctx.Register(new ChestSystem());
+        // 商店系统:撮合 CurrencySystem(钱包)与 BagSystem(物品),目录读 item 配表 price>0 的物品。
+        // 注册在二者之后,Init 里 ctx.Get 取得它们 + ConfigManager。
+        ctx.Register(new ShopSystem());
         // 世界交互（靠近宝箱 + F 打开）：Init 只订阅 InputService 的 F 键，靠近参照点用主相机（旧 TPS 玩家系统已移除）。
         ctx.Register(new WorldInteractionSystem());
         // ctx.Register(new EnemiesManager());
@@ -80,6 +86,7 @@ public static partial class GameBootstrapper
         uiConfig.Register<SettingPanel>(UIEnum.SettingPanel, UILayerEnum.Normal, "UI/Setting/SettingPanel");
         uiConfig.Register<BagPanel>(UIEnum.BagPanel, UILayerEnum.Normal, "UI/Bag/BagPanel");
         uiConfig.Register<ChestPanel>(UIEnum.ChestPanel, UILayerEnum.Normal, "UI/Bag/ChestPanel");
+        uiConfig.Register<ShopPanel>(UIEnum.ShopPanel, UILayerEnum.Normal, "UI/Shop/ShopPanel");
         // 通用确认弹窗:放 Top 层,叠在普通界面之上。通过 ConfirmParam 传标题/内容/回调。
         uiConfig.Register<ConfirmPanel>(UIEnum.ConfirmPanel, UILayerEnum.Top, "UI/Common/ConfirmPanel");
     }

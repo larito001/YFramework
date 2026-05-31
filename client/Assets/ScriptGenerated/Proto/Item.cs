@@ -25,17 +25,18 @@ namespace YFramework.Config {
       byte[] descriptorData = global::System.Convert.FromBase64String(
           string.Concat(
             "CgppdGVtLnByb3RvEhF5ZnJhbWV3b3JrLmNvbmZpZxoUQ29uZmlnQmFzZVR5",
-            "cGUucHJvdG8ixAEKBEl0ZW0SCgoCaWQYASABKA0SDAoEbmFtZRgCIAEoCRIM",
+            "cGUucHJvdG8i/AEKBEl0ZW0SCgoCaWQYASABKA0SDAoEbmFtZRgCIAEoCRIM",
             "CgRkZXNjGAMgASgJEgwKBHR5cGUYBCABKA0SDwoHcXVhbGl0eRgFIAEoDRIQ",
             "CghpY29uUGF0aBgGIAEoCRINCgV3aWR0aBgHIAEoBRIOCgZoZWlnaHQYCCAB",
             "KAUSDQoFc2hhcGUYCSABKAkSEAoIbWF4U3RhY2sYCiABKAUSDQoFdmFsdWUY",
-            "CyABKAUSFAoMc29ydFByaW9yaXR5GAwgASgFIkEKF0l0ZW1fTElTVF9UT09M",
-            "X1JFU0VSVkVEEiYKBWl0ZW1zGAEgAygLMhcueWZyYW1ld29yay5jb25maWcu",
-            "SXRlbUIUqgIRWUZyYW1ld29yay5Db25maWdiBnByb3RvMw=="));
+            "CyABKAUSFAoMc29ydFByaW9yaXR5GAwgASgFEhEKCXByaWNlVHlwZRgNIAEo",
+            "DRINCgVwcmljZRgOIAEoBRIUCgxzaG9wQ2F0ZWdvcnkYDyABKA0iQQoXSXRl",
+            "bV9MSVNUX1RPT0xfUkVTRVJWRUQSJgoFaXRlbXMYASADKAsyFy55ZnJhbWV3",
+            "b3JrLmNvbmZpZy5JdGVtQhSqAhFZRnJhbWV3b3JrLkNvbmZpZ2IGcHJvdG8z"));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::YFramework.Config.ConfigBaseTypeReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(null, new pbr::GeneratedClrTypeInfo[] {
-            new pbr::GeneratedClrTypeInfo(typeof(global::YFramework.Config.Item), global::YFramework.Config.Item.Parser, new[]{ "Id", "Name", "Desc", "Type", "Quality", "IconPath", "Width", "Height", "Shape", "MaxStack", "Value", "SortPriority" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::YFramework.Config.Item), global::YFramework.Config.Item.Parser, new[]{ "Id", "Name", "Desc", "Type", "Quality", "IconPath", "Width", "Height", "Shape", "MaxStack", "Value", "SortPriority", "PriceType", "Price", "ShopCategory" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::YFramework.Config.Item_LIST_TOOL_RESERVED), global::YFramework.Config.Item_LIST_TOOL_RESERVED.Parser, new[]{ "Items" }, null, null, null)
           }));
     }
@@ -80,6 +81,9 @@ namespace YFramework.Config {
       maxStack_ = other.maxStack_;
       value_ = other.value_;
       sortPriority_ = other.sortPriority_;
+      priceType_ = other.priceType_;
+      price_ = other.price_;
+      shopCategory_ = other.shopCategory_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -256,6 +260,48 @@ namespace YFramework.Config {
       }
     }
 
+    /// <summary>Field number for the "priceType" field.</summary>
+    public const int PriceTypeFieldNumber = 13;
+    private uint priceType_;
+    /// <summary>
+    ///购买货币
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public uint PriceType {
+      get { return priceType_; }
+      set {
+        priceType_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "price" field.</summary>
+    public const int PriceFieldNumber = 14;
+    private int price_;
+    /// <summary>
+    ///购买价格
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public int Price {
+      get { return price_; }
+      set {
+        price_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "shopCategory" field.</summary>
+    public const int ShopCategoryFieldNumber = 15;
+    private uint shopCategory_;
+    /// <summary>
+    ///商店分类
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public uint ShopCategory {
+      get { return shopCategory_; }
+      set {
+        shopCategory_ = value;
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public override bool Equals(object other) {
       return Equals(other as Item);
@@ -281,6 +327,9 @@ namespace YFramework.Config {
       if (MaxStack != other.MaxStack) return false;
       if (Value != other.Value) return false;
       if (SortPriority != other.SortPriority) return false;
+      if (PriceType != other.PriceType) return false;
+      if (Price != other.Price) return false;
+      if (ShopCategory != other.ShopCategory) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -299,6 +348,9 @@ namespace YFramework.Config {
       if (MaxStack != 0) hash ^= MaxStack.GetHashCode();
       if (Value != 0) hash ^= Value.GetHashCode();
       if (SortPriority != 0) hash ^= SortPriority.GetHashCode();
+      if (PriceType != 0) hash ^= PriceType.GetHashCode();
+      if (Price != 0) hash ^= Price.GetHashCode();
+      if (ShopCategory != 0) hash ^= ShopCategory.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -360,6 +412,18 @@ namespace YFramework.Config {
         output.WriteRawTag(96);
         output.WriteInt32(SortPriority);
       }
+      if (PriceType != 0) {
+        output.WriteRawTag(104);
+        output.WriteUInt32(PriceType);
+      }
+      if (Price != 0) {
+        output.WriteRawTag(112);
+        output.WriteInt32(Price);
+      }
+      if (ShopCategory != 0) {
+        output.WriteRawTag(120);
+        output.WriteUInt32(ShopCategory);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -403,6 +467,15 @@ namespace YFramework.Config {
       }
       if (SortPriority != 0) {
         size += 1 + pb::CodedOutputStream.ComputeInt32Size(SortPriority);
+      }
+      if (PriceType != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeUInt32Size(PriceType);
+      }
+      if (Price != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeInt32Size(Price);
+      }
+      if (ShopCategory != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeUInt32Size(ShopCategory);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -450,6 +523,15 @@ namespace YFramework.Config {
       }
       if (other.SortPriority != 0) {
         SortPriority = other.SortPriority;
+      }
+      if (other.PriceType != 0) {
+        PriceType = other.PriceType;
+      }
+      if (other.Price != 0) {
+        Price = other.Price;
+      }
+      if (other.ShopCategory != 0) {
+        ShopCategory = other.ShopCategory;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -508,6 +590,18 @@ namespace YFramework.Config {
           }
           case 96: {
             SortPriority = input.ReadInt32();
+            break;
+          }
+          case 104: {
+            PriceType = input.ReadUInt32();
+            break;
+          }
+          case 112: {
+            Price = input.ReadInt32();
+            break;
+          }
+          case 120: {
+            ShopCategory = input.ReadUInt32();
             break;
           }
         }
