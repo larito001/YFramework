@@ -27,12 +27,41 @@ namespace YOTO
     // ============================================================================
 
     /// <summary>
+    /// 存档分类。开新游戏只清 <see cref="Progress"/>(背包/技能树等进度),
+    /// 不动 <see cref="Settings"/>(音量/画质等玩家偏好)。
+    /// </summary>
+    public enum SaveCategory
+    {
+        Progress,
+        Settings,
+    }
+
+    /// <summary>单个存档槽的元信息(展示用)。进度数据本身按 <c>slot{id}_{key}</c> 分文件存,不在这里。</summary>
+    [Serializable]
+    public class SaveSlotInfo
+    {
+        public int id;             // 槽唯一 id(也是 Progress 落盘键前缀)
+        public string name;        // 玩家自定义名(留空则 UI 用"存档{序号}")
+        public long createdUnix;   // 创建时间(Unix 秒)
+        public long lastPlayedUnix; // 最后游玩/写档时间(Unix 秒)
+    }
+
+    /// <summary>存档槽清单。按 Settings 全局存盘(键 <c>__saveslots</c>),记录所有槽 + 下一个可用 id。</summary>
+    [Serializable]
+    public class SaveSlotManifest
+    {
+        public int nextId = 1;
+        public List<SaveSlotInfo> slots = new List<SaveSlotInfo>();
+    }
+
+    /// <summary>
     /// 一份存档数据的句柄。<see cref="StoreMgr.Register{T}"/> 返回它,业务侧持有以按需读/写;
     /// 同时被 <see cref="StoreMgr.SaveAll"/> / <see cref="StoreMgr.LoadAll"/> 统一调度。
     /// </summary>
     public interface ISaveHandle
     {
         string Key { get; }
+        SaveCategory Category { get; }
         void Save(Action onComplete = null);
         void Load(Action onComplete = null);
     }
@@ -47,6 +76,7 @@ namespace YOTO
     {
         IEnumerator WriteCoroutine(string key, string content, Action onComplete = null);
         IEnumerator ReadCoroutine<T>(string key, ISaveStrategy strategy, Action<T> onComplete) where T : class;
+        bool Exists(string key);
         void Delete(string key);
     }
 
@@ -103,6 +133,8 @@ namespace YOTO
             onComplete?.Invoke(data);
         }
 
+        public bool Exists(string key) => File.Exists(GetPath(key));
+
         public void Delete(string key)
         {
             string path = GetPath(key);
@@ -158,6 +190,8 @@ namespace YOTO
         public IEnumerator ReadCoroutine<T>(string key, ISaveStrategy strategy, Action<T> onComplete) where T : class
             => Resolve(key).ReadCoroutine(key, strategy, onComplete);
 
+        public bool Exists(string key) => Resolve(key).Exists(key);
+
         public void Delete(string key) => Resolve(key).Delete(key);
     }
 
@@ -188,6 +222,15 @@ namespace YOTO
         private readonly List<ISaveHandle> _handles = new List<ISaveHandle>();
         private readonly Dictionary<string, ISaveHandle> _byKey = new Dictionary<string, ISaveHandle>();
 
+        // ---- 多存档槽 ----
+        // Progress 数据按"激活存档槽"隔离落盘(键加 slot{id}_ 前缀);Settings 永远全局不随槽变。
+        // 槽清单(SaveSlotManifest)自身按 Settings 全局存盘,启动时异步读入缓存。
+        private const string ManifestKey = "__saveslots";
+        private SaveSlotManifest _manifest;          // 内存缓存(启动异步读入)
+        private bool _manifestLoaded;
+        private readonly List<Action> _pendingReady = new List<Action>(); // 清单就绪前排队的回调
+        private int _activeSlot;                      // 0 = 尚未选择存档槽
+
         /// <summary>默认实现:本地文件 + JSON。</summary>
         public StoreMgr() { }
 
@@ -210,13 +253,16 @@ namespace YOTO
         /// <param name="key">存档键(同时是文件名),全局唯一。</param>
         /// <param name="capture">采集快照:返回当前要存的对象(每次 Save 时调用)。</param>
         /// <param name="restore">还原:套用读到的数据;无存档时收到 <c>new T()</c>,绝不为 null。</param>
-        public ISaveHandle Register<T>(string key, Func<T> capture, Action<T> restore) where T : class, new()
+        /// <param name="category">存档分类。进度数据用默认 <see cref="SaveCategory.Progress"/>(开新游戏会清);
+        /// 玩家偏好(音量/画质)用 <see cref="SaveCategory.Settings"/>(开新游戏不动)。</param>
+        public ISaveHandle Register<T>(string key, Func<T> capture, Action<T> restore,
+            SaveCategory category = SaveCategory.Progress) where T : class, new()
         {
             if (string.IsNullOrEmpty(key)) throw new ArgumentException("存档 Key 不能为空", nameof(key));
             if (capture == null) throw new ArgumentNullException(nameof(capture));
             if (restore == null) throw new ArgumentNullException(nameof(restore));
 
-            var handle = new LambdaHandle<T>(this, key, capture, restore);
+            var handle = new LambdaHandle<T>(this, key, capture, restore, category);
             AddHandle(handle);
             return handle;
         }
@@ -245,19 +291,133 @@ namespace YOTO
 
         public void Delete(string key)
         {
-            _storage.Delete(key);
+            _storage?.Delete(key);
         }
+
+        /// <summary>当前激活存档槽下,该分类是否存在任意一份已落盘存档。</summary>
+        public bool HasSave(SaveCategory category = SaveCategory.Progress)
+        {
+            if (_storage == null) return false;
+            foreach (var h in _handles)
+            {
+                if (h.Category == category && _storage.Exists(EffectiveKey(h.Key, category))) return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// 删除当前激活存档槽下该分类的所有落盘文件(默认只清 <see cref="SaveCategory.Progress"/>,不动设置)。
+        /// 只清文件;内存状态需配合 <see cref="LoadAll"/>(清后读到空档 → restore 收 new T() → 内存随之重置)。
+        /// </summary>
+        public void ClearSaves(SaveCategory category = SaveCategory.Progress)
+        {
+            if (_storage == null) return;
+            foreach (var h in _handles)
+            {
+                if (h.Category == category) _storage.Delete(EffectiveKey(h.Key, category));
+            }
+        }
+
+        // ---------------- 多存档槽 ----------------
+
+        /// <summary>当前激活存档槽 id(0 = 尚未选择)。Progress 数据读写都落到此槽。</summary>
+        public int ActiveSlot => _activeSlot;
+
+        /// <summary>已有存档槽列表(按创建顺序)。清单未就绪时为空,先用 <see cref="WhenSlotsReady"/> 等待。</summary>
+        public IReadOnlyList<SaveSlotInfo> Slots => _manifest != null ? _manifest.slots : Array.Empty<SaveSlotInfo>();
+
+        /// <summary>存档槽清单是否已从磁盘读入。</summary>
+        public bool SlotsReady => _manifestLoaded;
+
+        /// <summary>清单就绪后回调(已就绪则立即回调)。读档界面在 OnShow 里用它再刷新列表。</summary>
+        public void WhenSlotsReady(Action onReady)
+        {
+            if (_manifestLoaded) { onReady?.Invoke(); return; }
+            if (onReady != null) _pendingReady.Add(onReady);
+        }
+
+        /// <summary>新建一个空存档槽并设为激活(用于"新游戏")。返回槽信息。</summary>
+        public SaveSlotInfo CreateSlot()
+        {
+            EnsureManifest();
+            var info = new SaveSlotInfo { id = _manifest.nextId++, createdUnix = NowUnix(), lastPlayedUnix = NowUnix() };
+            _manifest.slots.Add(info);
+            _activeSlot = info.id;
+            PersistManifest();
+            return info;
+        }
+
+        /// <summary>切换激活存档槽(用于"读取某存档")。之后 <see cref="LoadAll"/> 会读该槽数据。</summary>
+        public void SetActiveSlot(int slotId) => _activeSlot = slotId;
+
+        /// <summary>删除存档槽:抹掉它的所有 Progress 落盘文件并从清单移除。</summary>
+        public void DeleteSlot(int slotId)
+        {
+            if (_manifest == null) return;
+            if (_storage != null)
+            {
+                foreach (var h in _handles)
+                {
+                    if (h.Category == SaveCategory.Progress) _storage.Delete($"slot{slotId}_{h.Key}");
+                }
+            }
+            _manifest.slots.RemoveAll(s => s.id == slotId);
+            if (_activeSlot == slotId) _activeSlot = 0;
+            PersistManifest();
+        }
+
+        /// <summary>Progress 键按激活槽加前缀;Settings 永远全局。槽=0(未选择)时也走全局键。</summary>
+        internal string EffectiveKey(string key, SaveCategory category)
+        {
+            return category == SaveCategory.Progress && _activeSlot > 0 ? $"slot{_activeSlot}_{key}" : key;
+        }
+
+        /// <summary>某份进度存档刚写盘:更新激活槽的"最后游玩时间"(同一秒内多次只持久化一次)。</summary>
+        internal void NotifyProgressSaved(SaveCategory category)
+        {
+            if (category != SaveCategory.Progress || _activeSlot <= 0 || _manifest == null) return;
+            var info = FindSlot(_activeSlot);
+            if (info == null) return;
+            long now = NowUnix();
+            if (info.lastPlayedUnix == now) return;
+            info.lastPlayedUnix = now;
+            PersistManifest();
+        }
+
+        private SaveSlotInfo FindSlot(int id)
+        {
+            var list = _manifest?.slots;
+            if (list == null) return null;
+            for (int i = 0; i < list.Count; i++)
+            {
+                if (list[i].id == id) return list[i];
+            }
+            return null;
+        }
+
+        private void EnsureManifest()
+        {
+            if (_manifest == null) _manifest = new SaveSlotManifest();
+            if (_manifest.slots == null) _manifest.slots = new List<SaveSlotInfo>();
+        }
+
+        private void PersistManifest()
+        {
+            if (_manifest != null) WriteData(ManifestKey, _manifest, null); // Settings 全局键,不走 EffectiveKey
+        }
+
+        private static long NowUnix() => DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 
         // ---------------- 兼容旧 DataContaner<T> 写法 ----------------
 
         public void Save<T>(DataContaner<T> container, Action onComplete = null) where T : class, new()
         {
-            WriteData(container.SaveKey, container.GetData(), onComplete);
+            WriteData(EffectiveKey(container.SaveKey, container.Category), container.GetData(), onComplete);
         }
 
         public void Load<T>(DataContaner<T> container, Action onComplete = null) where T : class, new()
         {
-            ReadData<T>(container.SaveKey, data =>
+            ReadData<T>(EffectiveKey(container.SaveKey, container.Category), data =>
             {
                 container.__SetData(data ?? new T());
                 onComplete?.Invoke();
@@ -296,12 +456,30 @@ namespace YOTO
             _strategy = _strategyOverride ?? new JsonSaveStrategy();
             _storage = _storageOverride ?? new FileStorageDriver();
             _coroutineRunner = ctx.Get<ICoroutineRunner>();
+
+            // 异步读入存档槽清单;就绪后冲刷等待中的回调(读档界面等)。
+            _manifest = null;
+            _manifestLoaded = false;
+            _activeSlot = 0;
+            ReadData<SaveSlotManifest>(ManifestKey, m =>
+            {
+                _manifest = m ?? new SaveSlotManifest();
+                if (_manifest.slots == null) _manifest.slots = new List<SaveSlotInfo>();
+                _manifestLoaded = true;
+                var cbs = _pendingReady.ToArray();
+                _pendingReady.Clear();
+                foreach (var cb in cbs) cb?.Invoke();
+            });
         }
 
         public void Shutdown()
         {
             _handles.Clear();
             _byKey.Clear();
+            _pendingReady.Clear();
+            _manifest = null;
+            _manifestLoaded = false;
+            _activeSlot = 0;
             _strategy = null;
             _storage = null;
             _coroutineRunner = null;
@@ -353,20 +531,26 @@ namespace YOTO
             private readonly Action<T> restore;
 
             public string Key { get; }
+            public SaveCategory Category { get; }
 
-            public LambdaHandle(StoreMgr store, string key, Func<T> capture, Action<T> restore)
+            public LambdaHandle(StoreMgr store, string key, Func<T> capture, Action<T> restore, SaveCategory category)
             {
                 this.store = store;
                 this.capture = capture;
                 this.restore = restore;
                 Key = key;
+                Category = category;
             }
 
-            public void Save(Action onComplete = null) => store.WriteData(Key, capture(), onComplete);
+            public void Save(Action onComplete = null)
+            {
+                store.NotifyProgressSaved(Category); // 进度存档则刷新激活槽的最后游玩时间
+                store.WriteData(store.EffectiveKey(Key, Category), capture(), onComplete);
+            }
 
             public void Load(Action onComplete = null)
             {
-                store.ReadData<T>(Key, data =>
+                store.ReadData<T>(store.EffectiveKey(Key, Category), data =>
                 {
                     restore(data ?? new T()); // 无存档时给空对象,restore 永远不必判 null
                     onComplete?.Invoke();
@@ -388,10 +572,14 @@ namespace YOTO
         public abstract T GetData();
         public abstract void __SetData(T data);
 
+        /// <summary>存档分类。旧容器默认按 <see cref="SaveCategory.Settings"/>(历史用法多为音量/画质等偏好,
+        /// 开新游戏不应清掉);若某容器存的是进度,子类可覆盖为 <see cref="SaveCategory.Progress"/>。</summary>
+        public virtual SaveCategory Category => SaveCategory.Settings;
+
         public void BindStore(StoreMgr store)
         {
             storeMgr = store;
-            store?.AddHandle(new ContainerHandle(this)); // 旧容器也纳入统一注册表
+            store?.AddHandle(new ContainerHandle(this, Category)); // 旧容器也纳入统一注册表
         }
 
         public void Save(Action onComplete = null)
@@ -408,8 +596,9 @@ namespace YOTO
         private sealed class ContainerHandle : ISaveHandle
         {
             private readonly IDataContainerBase container;
-            public ContainerHandle(IDataContainerBase c) { container = c; }
+            public ContainerHandle(IDataContainerBase c, SaveCategory category) { container = c; Category = category; }
             public string Key => container.SaveKey;
+            public SaveCategory Category { get; }
             public void Save(Action onComplete = null) => container.Save(onComplete);
             public void Load(Action onComplete = null) => container.Load(onComplete);
         }

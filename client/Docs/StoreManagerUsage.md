@@ -100,17 +100,87 @@ store.LoadAll(() => {...});
 
 适合「点继续游戏 → `LoadAll` → 进场景」「退出前 `SaveAll`」这类整体操作。
 
+## 存档分类与「新游戏 / 读取存档」
+
+每份存档有个分类 `SaveCategory`：
+
+- `Progress`（默认）—— 进度数据（背包、技能树……），**开新游戏要清掉**。
+- `Settings` —— 玩家偏好（音量、画质……），**开新游戏要保留**。
+
+注册时指定（不传即 `Progress`）：
+
+```csharp
+store.Register("SkillTree", () => data, (SkillTreeData d) => data = d);                       // 进度(默认)
+store.Register("Graphics",  () => gfx,  (GraphicsData d) => gfx = d, SaveCategory.Settings);  // 设置
+```
+
+> 旧 `DataContaner<T>` 默认按 `Settings`（历史用法多为设置，如 `SoundSettingsContainer`）；
+> 若某容器存的是进度，覆盖 `Category` 返回 `Progress` 即可。
+
+## 多存档槽（新游戏 / 读取存档）
+
+进度数据（`Progress`）按**存档槽**隔离落盘：键自动加 `slot{id}_` 前缀，每个槽是一套独立进度。
+设置数据（`Settings`，含槽清单本身）全局共享，不随槽变。
+
+槽清单（`SaveSlotManifest`）启动时**异步**读入缓存，所以查询前先用 `WhenSlotsReady` 等就绪：
+
+```csharp
+store.WhenSlotsReady(() =>
+{
+    bool hasAny = store.Slots.Count > 0;   // 有没有存档(决定"读取存档"按钮)
+    foreach (var s in store.Slots) { /* s.id / s.name / s.lastPlayedUnix 列表展示 */ }
+});
+```
+
+开始界面的接法（`StartPanel` / `SaveSlotPanel` 已按此实现）：
+
+```csharp
+// 新游戏:开一个新空槽(即激活)→ LoadAll(空槽无文件 → 进度系统 restore 收 new T() 重置)→ 进场景
+store.CreateSlot();
+store.LoadAll(() => sceneManager.SwitchScene(YSceneType.Home));
+
+// 读取某存档:激活该槽 → LoadAll 读该槽进度 → 进场景
+store.SetActiveSlot(slotId);
+store.LoadAll(() => sceneManager.SwitchScene(YSceneType.Home));
+
+// 删除某存档:抹掉该槽所有进度文件并从清单移除
+store.DeleteSlot(slotId);
+```
+
+游戏内保存照常 `handle.Save()` / `store.SaveAll()`：自动落到**当前激活槽**，并刷新该槽"最后游玩时间"。
+
+> **扩展性**:新增进度系统只要用默认 `Progress` 注册（`store.Register("SkillTree", …)`),
+> 就自动按槽隔离、被新游戏重置、随读档加载、跟着 `DeleteSlot` 一起删——**存档/读档界面一行都不用改**。
+
+### 分类速记
+
+- `Progress`（默认）—— 进度,按槽隔离,新游戏开新槽。
+- `Settings` —— 偏好(音量/画质),全局,永不随槽变。注册时传 `SaveCategory.Settings`;
+  旧 `DataContaner<T>` 默认即 `Settings`(如 `SoundSettingsContainer`),存进度的容器覆盖 `Category` 为 `Progress`。
+
 ## 其它 API
 
 ```csharp
-ISaveHandle h = store.GetHandle("SkillTree"); // 按 Key 取句柄，未注册返回 null
-store.Unregister("SkillTree");                // 注销（不删盘）
-store.Delete("SkillTree");                    // 删除已落盘文件（清档用）
+// 存档槽
+store.WhenSlotsReady(cb);          // 槽清单就绪后回调(已就绪立即)
+IReadOnlyList<SaveSlotInfo> s = store.Slots; // 所有槽(就绪后才有内容)
+store.CreateSlot();                // 新建空槽并激活(新游戏)
+store.SetActiveSlot(id);           // 切换激活槽(读档)
+store.DeleteSlot(id);              // 删除槽及其进度文件
+int active = store.ActiveSlot;     // 当前激活槽(0=未选)
+
+// 单 Key
+ISaveHandle h = store.GetHandle("SkillTree");      // 按 Key 取句柄，未注册返回 null
+bool has = store.HasSave(SaveCategory.Progress);   // 当前激活槽该分类是否有存档
+store.ClearSaves(SaveCategory.Progress);           // 清当前激活槽该分类的文件
+store.Unregister("SkillTree");                      // 注销（不删盘）
+store.Delete("SkillTree");                          // 删除单个已落盘文件
 ```
 
 ## 存档位置
 
 - 路径：`Application.persistentDataPath/<Key>.json`
+  - 进度按槽隔离 → 文件名为 `slot{槽id}_<Key>.json`；设置为全局 `<Key>.json`；槽清单为 `__saveslots.json`。
   - Windows：`%userprofile%\AppData\LocalLow\<公司名>\<产品名>\`
 - 格式：JSON（默认 `JsonSaveStrategy`，带缩进，便于调试）。
 
@@ -144,6 +214,12 @@ public class SteamCloudStorageDriver : IStorageDriver
         //     data = strategy.Deserialize<T>(json);
         // }
         onComplete?.Invoke(data);
+    }
+
+    public bool Exists(string key)
+    {
+        // return SteamRemoteStorage.FileExists($"{key}.json");
+        return false;
     }
 
     public void Delete(string key)
@@ -224,6 +300,9 @@ container.Save();
 | 读档 | `h.Load();` |
 | 存档 | `h.Save();` |
 | 全部存 / 读 | `store.SaveAll();` / `store.LoadAll();` |
-| 清档 | `store.Delete("Key");` |
+| 新游戏 | `store.CreateSlot();` 然后 `store.LoadAll(...)` |
+| 读取某存档 | `store.SetActiveSlot(id);` 然后 `store.LoadAll(...)` |
+| 列出/删除存档 | `store.Slots` / `store.DeleteSlot(id)`(先 `WhenSlotsReady`) |
+| 清单个档 | `store.Delete("Key");` |
 | 换 Steam/加密 | 实现 `IStorageDriver` / `ISaveStrategy`，`new StoreMgr(driver, strategy)` 注入 |
 | 按 Key 分流 | `new RoutingStorageDriver(local).Route(cloud, "BagSave", "SkillTree")` 注入 |
