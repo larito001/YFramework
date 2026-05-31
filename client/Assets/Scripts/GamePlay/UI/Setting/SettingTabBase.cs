@@ -13,6 +13,9 @@ public abstract class SettingTabBase : MonoBehaviour
 
     private bool built;
 
+    /// <summary>子类把控件加到这里(滚动内容容器),而非直接加到自身。</summary>
+    protected RectTransform Content { get; private set; }
+
     protected T Resolve<T>() where T : class
         => GameLoop.Instance != null && GameLoop.Instance.Ctx != null ? GameLoop.Instance.Ctx.Get<T>() : null;
 
@@ -42,8 +45,25 @@ public abstract class SettingTabBase : MonoBehaviour
 
     private void SetupRoot()
     {
-        var vlg = GetComponent<VerticalLayoutGroup>();
-        if (vlg == null) vlg = gameObject.AddComponent<VerticalLayoutGroup>();
+        // 容器做成 ScrollRect:内容超出可视区(如按键 8 行)时纵向滚动,不会向下溢出压到返回按钮。
+        var scroll = gameObject.AddComponent<ScrollRect>();
+        scroll.horizontal = false;
+        scroll.vertical = true;
+        scroll.movementType = ScrollRect.MovementType.Clamped;
+        scroll.scrollSensitivity = 30f;
+
+        var viewport = NewUI("Viewport", transform);
+        var vpRt = (RectTransform)viewport.transform;
+        vpRt.anchorMin = Vector2.zero; vpRt.anchorMax = Vector2.one; vpRt.offsetMin = Vector2.zero; vpRt.offsetMax = Vector2.zero;
+        viewport.AddComponent<RectMask2D>();
+        viewport.AddComponent<Image>().color = new Color(0f, 0f, 0f, 0.001f); // 透明底,空白处也能接拖拽滚动
+
+        var contentGo = NewUI("Content", viewport.transform);
+        var contentRt = (RectTransform)contentGo.transform;
+        contentRt.anchorMin = new Vector2(0, 1); contentRt.anchorMax = new Vector2(1, 1); contentRt.pivot = new Vector2(0.5f, 1);
+        contentRt.anchoredPosition = Vector2.zero; contentRt.sizeDelta = Vector2.zero;
+
+        var vlg = contentGo.AddComponent<VerticalLayoutGroup>();
         vlg.spacing = 12;
         vlg.padding = new RectOffset(28, 28, 24, 24);
         vlg.childAlignment = TextAnchor.UpperCenter;
@@ -51,6 +71,12 @@ public abstract class SettingTabBase : MonoBehaviour
         vlg.childControlHeight = true;
         vlg.childForceExpandWidth = true;
         vlg.childForceExpandHeight = false;
+        var fitter = contentGo.AddComponent<ContentSizeFitter>();
+        fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+        scroll.viewport = vpRt;
+        scroll.content = contentRt;
+        Content = contentRt;
     }
 
     protected static GameObject NewUI(string name, Transform parent)

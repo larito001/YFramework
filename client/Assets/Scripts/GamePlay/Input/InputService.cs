@@ -3,14 +3,12 @@ using System.Collections.Generic;
 using UnityEngine;
 using YOTO;
 
-/// <summary>可重绑定的离散按键动作(鼠标开火/瞄准、移动/视角轴不在此列,仍走固定绑定)。</summary>
+/// <summary>可重绑定的离散按键动作(鼠标开火/瞄准、移动/视角轴不在此列,仍走固定绑定)。
+/// 只列已实现的功能——跳跃/下蹲/E 交互等当前没有对应玩法,不在此暴露。</summary>
 public enum InputAction
 {
     Sprint,
-    Crouch,
-    Jump,
     Reload,
-    Interact,
     InteractWorld,
     ToggleBag,
     Melee,
@@ -25,20 +23,21 @@ public enum InputAction
 ///
 /// 用法：
 ///   连续值（移动/视角/滚轮）→ 直接读属性 Move / LookDelta / ScrollDelta
-///   离散事件（开火/换弹/跳）→ 订阅 OnFireDown / OnReloadDown / OnJumpDown ...
-///   持续按住（瞄准/冲刺/蹲）→ 读 AimHeld / SprintHeld / CrouchHeld + 订阅 OnDown/OnUp 事件
+///   离散事件（开火/换弹/近战）→ 订阅 OnFireDown / OnReloadDown / OnMeleeDown ...
+///   持续按住（瞄准/冲刺）→ 读 AimHeld / SprintHeld + 订阅 OnDown/OnUp 事件
 ///
-/// IsEnabled = false 时 Move/LookDelta 归零、状态归 false、事件不再触发；
-/// 重新启用前正在按下的键，下次 GetKeyUp 仍会触发 Up 事件（Unity 输入层负责）。
+/// IsEnabled = false 时 Move/LookDelta 归零、状态归 false、事件不再触发；默认 false，
+/// 由 <see cref="InputSceneGate"/> 仅在游戏场景开启（菜单/启动界面屏蔽快捷键）。
 ///
-/// CombatEnabled = false 时只屏蔽“战斗相关”输入（移动/视角/滚轮/开火/瞄准/冲刺/蹲/跳/
-/// 换弹/近战技能/选武器），但保留 UI/交互键（B 开关背包、E 交互、F 世界交互）——
+/// CombatEnabled = false 时只屏蔽“战斗相关”输入（移动/视角/滚轮/开火/瞄准/冲刺/
+/// 换弹/近战/选武器），但保留 UI/交互键（B 开关背包、F 世界交互）——
 /// 这样背包等面板打开时玩家仍能用 B 把它关掉。由 <see cref="CombatInputGate"/> 按 UI 状态驱动。
 /// </summary>
 public class InputService : IGameService, ITickable
 {
-    /// <summary>输入总开关。false 时连 UI/交互键一并屏蔽。</summary>
-    public bool IsEnabled { get; set; } = true;
+    /// <summary>输入总开关。false 时连 UI/交互键(背包/世界交互)一并屏蔽。
+    /// 默认 false:只有进入游戏场景后由 <see cref="InputSceneGate"/> 打开,菜单/启动界面按 B 不会唤起背包。</summary>
+    public bool IsEnabled { get; set; } = false;
 
     /// <summary>战斗输入闸门。false 时仅屏蔽战斗子集，UI/交互键仍有效（见类注释）。</summary>
     public bool CombatEnabled { get; set; } = true;
@@ -55,8 +54,6 @@ public class InputService : IGameService, ITickable
     public bool FireHeld { get; private set; }
     public bool AimHeld { get; private set; }
     public bool SprintHeld { get; private set; }
-    public bool CrouchHeld { get; private set; }
-    public bool JumpHeld { get; private set; }
 
     public event Action OnFireDown;
     public event Action OnFireUp;
@@ -64,12 +61,8 @@ public class InputService : IGameService, ITickable
     public event Action OnAimUp;
     public event Action OnSprintDown;
     public event Action OnSprintUp;
-    public event Action OnCrouchDown;
-    public event Action OnCrouchUp;
-    public event Action OnJumpDown;
     public event Action OnReloadDown;
-    public event Action OnInteractDown;
-    /// <summary>世界交互键(默认 F):开宝箱、拾取等。与 <see cref="OnInteractDown"/>(E)分开。</summary>
+    /// <summary>世界交互键(默认 F):开宝箱、拾取等。</summary>
     public event Action OnInteractWorldDown;
     /// <summary>打开/关闭背包键(默认 B)。</summary>
     public event Action OnToggleBagDown;
@@ -93,10 +86,7 @@ public class InputService : IGameService, ITickable
     private static readonly Dictionary<InputAction, KeyCode> DefaultBindings = new Dictionary<InputAction, KeyCode>
     {
         { InputAction.Sprint, KeyCode.LeftShift },
-        { InputAction.Crouch, KeyCode.LeftControl },
-        { InputAction.Jump, KeyCode.Space },
         { InputAction.Reload, KeyCode.R },
-        { InputAction.Interact, KeyCode.E },
         { InputAction.InteractWorld, KeyCode.F },
         { InputAction.ToggleBag, KeyCode.B },
         { InputAction.Melee, KeyCode.V },
@@ -111,15 +101,28 @@ public class InputService : IGameService, ITickable
     /// <summary>所有可重绑定的动作(展示顺序固定)。</summary>
     public static IReadOnlyList<InputAction> RebindableActions { get; } = new[]
     {
-        InputAction.Sprint, InputAction.Crouch, InputAction.Jump, InputAction.Reload,
-        InputAction.Interact, InputAction.InteractWorld, InputAction.ToggleBag, InputAction.Melee,
+        InputAction.Sprint, InputAction.Reload, InputAction.InteractWorld, InputAction.ToggleBag, InputAction.Melee,
     };
 
     public KeyCode GetBinding(InputAction action) => _bindings.TryGetValue(action, out var k) ? k : DefaultBindings[action];
 
-    /// <summary>重绑某动作到指定键,立即生效并存盘。</summary>
+    /// <summary>
+    /// 重绑某动作到指定键,立即生效并存盘。若该键已被别的动作占用,则与之**交换**
+    /// (对方拿到本动作原来的键)——保证不出现重键,也不会把某个动作弄成无键。
+    /// </summary>
     public void SetBinding(InputAction action, KeyCode key)
     {
+        if (_bindings.TryGetValue(action, out var old) && old == key) return; // 没变
+
+        foreach (var other in RebindableActions)
+        {
+            if (other != action && GetBinding(other) == key)
+            {
+                _bindings[other] = old; // 把本动作原来的键让给冲突动作(交换)
+                break;
+            }
+        }
+
         _bindings[action] = key;
         _bindingsHandle?.Save();
         BindingsChanged?.Invoke();
@@ -173,11 +176,7 @@ public class InputService : IGameService, ITickable
         OnAimUp = null;
         OnSprintDown = null;
         OnSprintUp = null;
-        OnCrouchDown = null;
-        OnCrouchUp = null;
-        OnJumpDown = null;
         OnReloadDown = null;
-        OnInteractDown = null;
         OnInteractWorldDown = null;
         OnToggleBagDown = null;
         OnMeleeDown = null;
@@ -201,7 +200,6 @@ public class InputService : IGameService, ITickable
 
         // UI / 交互键不属于战斗输入：CombatEnabled=false（背包等面板打开）时仍然有效，
         // 否则背包打开后就没法用 B 关掉了。
-        if (Input.GetKeyDown(GetBinding(InputAction.Interact))) OnInteractDown?.Invoke();
         if (Input.GetKeyDown(GetBinding(InputAction.InteractWorld))) OnInteractWorldDown?.Invoke();
         if (Input.GetKeyDown(GetBinding(InputAction.ToggleBag))) OnToggleBagDown?.Invoke();
 
@@ -229,15 +227,6 @@ public class InputService : IGameService, ITickable
         if (Input.GetKeyDown(keySprint)) OnSprintDown?.Invoke();
         if (Input.GetKeyUp(keySprint)) OnSprintUp?.Invoke();
 
-        var keyCrouch = GetBinding(InputAction.Crouch);
-        CrouchHeld = Input.GetKey(keyCrouch);
-        if (Input.GetKeyDown(keyCrouch)) OnCrouchDown?.Invoke();
-        if (Input.GetKeyUp(keyCrouch)) OnCrouchUp?.Invoke();
-
-        var keyJump = GetBinding(InputAction.Jump);
-        JumpHeld = Input.GetKey(keyJump);
-        if (Input.GetKeyDown(keyJump)) OnJumpDown?.Invoke();
-
         if (Input.GetKeyDown(GetBinding(InputAction.Reload))) OnReloadDown?.Invoke();
         if (Input.GetKeyDown(GetBinding(InputAction.Melee))) OnMeleeDown?.Invoke();
 
@@ -257,8 +246,6 @@ public class InputService : IGameService, ITickable
         FireHeld = false;
         AimHeld = false;
         SprintHeld = false;
-        CrouchHeld = false;
-        JumpHeld = false;
     }
 
     /// <summary>

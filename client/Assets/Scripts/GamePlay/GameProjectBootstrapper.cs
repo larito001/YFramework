@@ -47,6 +47,9 @@ public static partial class GameBootstrapper
         // 非主界面 UI（背包/宝箱/设置等）打开时屏蔽战斗按键，关闭后恢复。
         // Init 走 InitAll 延迟阶段（此时所有 service 已注册），ctx.Get<InputService>/<UIMgr> 均可取到。
         ctx.Register(new CombatInputGate());
+        // 场景输入闸门:仅游戏场景开启输入总开关,菜单/启动界面屏蔽快捷键(避免非游戏场景按 B 唤起背包)。
+        // 注册早于 InputService,同帧先设好 IsEnabled。
+        ctx.Register(new InputSceneGate());
         ctx.Register(new InputService());
         // 画面设置服务:全屏/垂直同步/画质/分辨率,改动即应用并存盘(Settings 分类)。
         ctx.Register(new GraphicsSettings());
@@ -77,6 +80,8 @@ public static partial class GameBootstrapper
         uiConfig.Register<SettingPanel>(UIEnum.SettingPanel, UILayerEnum.Normal, "UI/Setting/SettingPanel");
         uiConfig.Register<BagPanel>(UIEnum.BagPanel, UILayerEnum.Normal, "UI/Bag/BagPanel");
         uiConfig.Register<ChestPanel>(UIEnum.ChestPanel, UILayerEnum.Normal, "UI/Bag/ChestPanel");
+        // 通用确认弹窗:放 Top 层,叠在普通界面之上。通过 ConfirmParam 传标题/内容/回调。
+        uiConfig.Register<ConfirmPanel>(UIEnum.ConfirmPanel, UILayerEnum.Top, "UI/Common/ConfirmPanel");
     }
 
     static partial void RunProjectStartup(GameContext ctx)

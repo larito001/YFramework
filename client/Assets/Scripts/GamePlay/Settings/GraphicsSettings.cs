@@ -44,10 +44,34 @@ public class GraphicsSettings : IGameService
 
     // ---------------- 对外设置(UI 调用)----------------
 
-    public void SetFullscreen(bool v) { data.fullscreen = v; ApplyAndSave(); }
-    public void SetVSync(bool v) { data.vSync = v; ApplyAndSave(); }
-    public void SetQualityLevel(int level) { data.qualityLevel = Mathf.Clamp(level, 0, QualitySettings.names.Length - 1); ApplyAndSave(); }
-    public void SetResolution(int width, int height) { data.resWidth = width; data.resHeight = height; ApplyAndSave(); }
+    // 每个 setter 只做自己那一项,避免改画质/垂直同步时也跟着重设分辨率(会触发屏幕重置/闪烁)。
+    public void SetFullscreen(bool v)
+    {
+        data.fullscreen = v;
+        Screen.SetResolution(data.resWidth, data.resHeight, v);
+        Save();
+    }
+
+    public void SetVSync(bool v)
+    {
+        data.vSync = v;
+        QualitySettings.vSyncCount = v ? 1 : 0;
+        Save();
+    }
+
+    public void SetQualityLevel(int level)
+    {
+        data.qualityLevel = Mathf.Clamp(level, 0, QualitySettings.names.Length - 1);
+        QualitySettings.SetQualityLevel(data.qualityLevel, true);
+        Save();
+    }
+
+    public void SetResolution(int width, int height)
+    {
+        data.resWidth = width; data.resHeight = height;
+        Screen.SetResolution(width, height, data.fullscreen);
+        Save();
+    }
 
     // ---------------- 内部 ----------------
 
@@ -66,9 +90,5 @@ public class GraphicsSettings : IGameService
         Screen.SetResolution(data.resWidth, data.resHeight, data.fullscreen);
     }
 
-    private void ApplyAndSave()
-    {
-        Apply();
-        handle?.Save();
-    }
+    private void Save() => handle?.Save();
 }

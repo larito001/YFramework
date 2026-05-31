@@ -48,9 +48,10 @@ public class SaveSlotPanel : UIPageBase
         {
             var info = slots[i];
             int slotId = info.id; // 捕获 id,删除/移位后仍正确
+            string display = string.IsNullOrEmpty(info.name) ? $"存档 {i + 1}" : info.name;
             var row = Instantiate(rowTemplate, content);
             row.gameObject.SetActive(true);
-            row.Bind(info, i, () => OnLoadSlot(slotId), () => OnDeleteSlot(slotId));
+            row.Bind(info, i, () => OnLoadSlot(slotId), () => OnDeleteSlot(slotId, display));
             spawned.Add(row);
         }
     }
@@ -67,10 +68,21 @@ public class SaveSlotPanel : UIPageBase
         });
     }
 
-    private void OnDeleteSlot(int slotId)
+    private void OnDeleteSlot(int slotId, string display)
     {
-        store.DeleteSlot(slotId);
-        Refresh();
+        // 删除前弹通用确认框,确认后才真正删并刷新列表。
+        Show<ConfirmPanel, ConfirmParam>(new ConfirmParam
+        {
+            title = "删除存档",
+            message = $"确定删除「{display}」吗?\n此操作不可撤销。",
+            confirmText = "删除",
+            cancelText = "取消",
+            onConfirm = () =>
+            {
+                store.DeleteSlot(slotId);
+                Refresh();
+            },
+        });
     }
 
     public override void OnHide()

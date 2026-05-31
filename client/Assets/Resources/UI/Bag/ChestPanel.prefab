@@ -1856,11 +1856,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   useEnterAnim: 1
-  enterDuration: 0.5
+  enterDuration: 0.18
   enterEase: 9
   useExitAnim: 1
-  exitDuration: 0.5
-  exitEase: 8
+  exitDuration: 0.1
+  exitEase: 6
 --- !u!222 &477060502104693997
 CanvasRenderer:
   m_ObjectHideFlags: 0

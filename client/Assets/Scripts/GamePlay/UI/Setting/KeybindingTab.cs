@@ -12,10 +12,7 @@ public class KeybindingTab : SettingTabBase
     private static readonly Dictionary<InputAction, string> DisplayNames = new Dictionary<InputAction, string>
     {
         { InputAction.Sprint, "冲刺" },
-        { InputAction.Crouch, "蹲下" },
-        { InputAction.Jump, "跳跃" },
         { InputAction.Reload, "换弹" },
-        { InputAction.Interact, "交互" },
         { InputAction.InteractWorld, "世界交互" },
         { InputAction.ToggleBag, "背包" },
         { InputAction.Melee, "近战" },
@@ -26,12 +23,12 @@ public class KeybindingTab : SettingTabBase
 
     protected override void Build()
     {
-        NewLabel(transform, "按键设置", 400, 30, TextAlignmentOptions.Left);
+        NewLabel(Content, "按键设置", 400, 30, TextAlignmentOptions.Left);
 
         foreach (var action in InputService.RebindableActions)
         {
             var captured = action;
-            var row = NewRow(transform);
+            var row = NewRow(Content);
             NewLabel(row.transform, DisplayNames.TryGetValue(action, out var n) ? n : action.ToString(), 200, 24, TextAlignmentOptions.Left);
             var btn = NewButton(row.transform, "-", 220, 44);
             var label = btn.GetComponentInChildren<TextMeshProUGUI>();
@@ -39,7 +36,7 @@ public class KeybindingTab : SettingTabBase
             rows.Add((action, label, btn));
         }
 
-        var resetRow = NewRow(transform, 64);
+        var resetRow = NewRow(Content, 64);
         NewButton(resetRow.transform, "恢复默认", 220, 52).onClick.AddListener(() =>
         {
             CancelCapture();

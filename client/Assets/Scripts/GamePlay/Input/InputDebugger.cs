@@ -44,11 +44,7 @@ public class InputDebugger : MonoBehaviour
         input.OnAimUp += HandleAimUp;
         input.OnSprintDown += HandleSprintDown;
         input.OnSprintUp += HandleSprintUp;
-        input.OnCrouchDown += HandleCrouchDown;
-        input.OnCrouchUp += HandleCrouchUp;
-        input.OnJumpDown += HandleJumpDown;
         input.OnReloadDown += HandleReloadDown;
-        input.OnInteractDown += HandleInteractDown;
         input.OnScroll += HandleScroll;
     }
 
@@ -61,11 +57,7 @@ public class InputDebugger : MonoBehaviour
         input.OnAimUp -= HandleAimUp;
         input.OnSprintDown -= HandleSprintDown;
         input.OnSprintUp -= HandleSprintUp;
-        input.OnCrouchDown -= HandleCrouchDown;
-        input.OnCrouchUp -= HandleCrouchUp;
-        input.OnJumpDown -= HandleJumpDown;
         input.OnReloadDown -= HandleReloadDown;
-        input.OnInteractDown -= HandleInteractDown;
         input.OnScroll -= HandleScroll;
     }
 
@@ -89,11 +81,7 @@ public class InputDebugger : MonoBehaviour
     private void HandleAimUp() => PushEvent("Aim ↑");
     private void HandleSprintDown() => PushEvent("Sprint ↓");
     private void HandleSprintUp() => PushEvent("Sprint ↑");
-    private void HandleCrouchDown() => PushEvent("Crouch ↓");
-    private void HandleCrouchUp() => PushEvent("Crouch ↑");
-    private void HandleJumpDown() => PushEvent("Jump ↓");
     private void HandleReloadDown() => PushEvent("Reload");
-    private void HandleInteractDown() => PushEvent("Interact");
     private void HandleScroll(float v) => PushEvent($"Scroll {v:+0.00;-0.00}");
 
     private void PushEvent(string msg)
@@ -132,7 +120,7 @@ public class InputDebugger : MonoBehaviour
         DrawLine(ref y, $"ScrollDelta : {input.ScrollDelta:+0.00;-0.00}");
         DrawSep(ref y);
         DrawLine(ref y, $"Fire   {Mark(input.FireHeld)}    Aim    {Mark(input.AimHeld)}");
-        DrawLine(ref y, $"Sprint {Mark(input.SprintHeld)}    Crouch {Mark(input.CrouchHeld)}    Jump {Mark(input.JumpHeld)}");
+        DrawLine(ref y, $"Sprint {Mark(input.SprintHeld)}");
         DrawSep(ref y);
         DrawLine(ref y, $"Events (latest {EventLogCapacity}):");
         foreach (var e in eventLog)

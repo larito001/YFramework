@@ -60,14 +60,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3691f3bed3562fc4b9c13a6d0edd86cd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  tweenList:
-  - {fileID: 0}
   uiType: 0
-  TweenEnter: 0
-  TweenExit: 0
-  isEnable: 0
   canvasGroup: {fileID: 0}
-  winName: {fileID: 0}
 --- !u!225 &3217369827796116936
 CanvasGroup:
   m_ObjectHideFlags: 0
@@ -93,11 +87,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   useEnterAnim: 1
-  enterDuration: 0.5
+  enterDuration: 0.18
   enterEase: 9
   useExitAnim: 1
-  exitDuration: 0.5
-  exitEase: 8
+  exitDuration: 0.1
+  exitEase: 6
 --- !u!114 &3228978581702135819
 MonoBehaviour:
   m_ObjectHideFlags: 0

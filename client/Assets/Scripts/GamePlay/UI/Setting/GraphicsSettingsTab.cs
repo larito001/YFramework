@@ -19,29 +19,29 @@ public class GraphicsSettingsTab : SettingTabBase
     {
         BuildResolutionList();
 
-        NewLabel(transform, "画面设置", 400, 30, TextAlignmentOptions.Left);
+        NewLabel(Content, "画面设置", 400, 30, TextAlignmentOptions.Left);
 
         // 全屏
-        var fsRow = NewRow(transform);
+        var fsRow = NewRow(Content);
         NewLabel(fsRow.transform, "全屏", 160, 24, TextAlignmentOptions.Left);
         fullscreenToggle = NewToggle(fsRow.transform);
         fullscreenToggle.onValueChanged.AddListener(v => Resolve<GraphicsSettings>()?.SetFullscreen(v));
 
         // 垂直同步
-        var vsRow = NewRow(transform);
+        var vsRow = NewRow(Content);
         NewLabel(vsRow.transform, "垂直同步", 160, 24, TextAlignmentOptions.Left);
         vsyncToggle = NewToggle(vsRow.transform);
         vsyncToggle.onValueChanged.AddListener(v => Resolve<GraphicsSettings>()?.SetVSync(v));
 
         // 画质(用 < > 而非 ◀ ▶:SIMHEI SDF 字符集没有箭头符号,会回退到别的字体显示)
-        var qRow = NewRow(transform);
+        var qRow = NewRow(Content);
         NewLabel(qRow.transform, "画质", 160, 24, TextAlignmentOptions.Left);
         NewButton(qRow.transform, "<", 56, 44).onClick.AddListener(() => StepQuality(-1));
         qualityValue = NewLabel(qRow.transform, "-", 220, 22, TextAlignmentOptions.Center);
         NewButton(qRow.transform, ">", 56, 44).onClick.AddListener(() => StepQuality(1));
 
         // 分辨率
-        var rRow = NewRow(transform);
+        var rRow = NewRow(Content);
         NewLabel(rRow.transform, "分辨率", 160, 24, TextAlignmentOptions.Left);
         NewButton(rRow.transform, "<", 56, 44).onClick.AddListener(() => StepResolution(-1));
         resValue = NewLabel(rRow.transform, "-", 220, 22, TextAlignmentOptions.Center);
@@ -117,6 +117,12 @@ public class GraphicsSettingsTab : SettingTabBase
         for (int i = 0; i < resolutions.Count; i++)
         {
             if (resolutions[i].x == w && resolutions[i].y == h) return i;
+        }
+        // 当前/存档分辨率不在枚举列表里(换了显示器/编辑器窗口):补进列表,显示与实际一致且可切回。
+        if (w > 0 && h > 0)
+        {
+            resolutions.Add(new Vector2Int(w, h));
+            return resolutions.Count - 1;
         }
         return 0;
     }
