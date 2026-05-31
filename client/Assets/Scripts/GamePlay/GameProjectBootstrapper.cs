@@ -47,6 +47,10 @@ public static partial class GameBootstrapper
         // 背包系统：纯逻辑 service，不需要 Tick。EventMgr / ConfigManager 已在 BuildContext 中先行注册，
         // BagSystem.Init 里 ctx.Get 取得后接配表 + 桥接 RefreshBagList 给 UI。
         ctx.Register(new BagSystem());
+        // 宝箱系统在 BagSystem 之后注册：Init 里 ctx.Get<BagSystem>() 复用其物品配置。
+        ctx.Register(new ChestSystem());
+        // 世界交互（靠近宝箱 + F 打开）：Init 只订阅 InputService 的 F 键，CharacterManager/ViewManager 在 Tick 里懒取。
+        ctx.Register(new WorldInteractionSystem());
         // ctx.Register(new EnemiesManager());
         // ctx.Register(new SceneResManager());
     }
@@ -65,6 +69,7 @@ public static partial class GameBootstrapper
         uiConfig.Register<FinishPanel>(UIEnum.FinishPanel, UILayerEnum.Normal, "UI/Main/FinishPanel");
         uiConfig.Register<SettingPanel>(UIEnum.SettingPanel, UILayerEnum.Normal, "UI/Setting/SettingPanel");
         uiConfig.Register<BagPanel>(UIEnum.BagPanel, UILayerEnum.Normal, "UI/Bag/BagPanel");
+        uiConfig.Register<ChestPanel>(UIEnum.ChestPanel, UILayerEnum.Normal, "UI/Bag/ChestPanel");
     }
 
     static partial void RunProjectStartup(GameContext ctx)

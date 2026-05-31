@@ -61,7 +61,14 @@
       "Bash(python -c *)",
       "Bash(ls DOCS)",
       "Bash(ls docs *)",
-      "Bash(ls client/DOCS)"
+      "Bash(ls client/DOCS)",
+      "Bash(python gen_chest_tables.py)",
+      "Bash(cat tools/publish_single.bat)",
+      "Bash(ls tools/gen_*.py)",
+      "Bash(rm -f publish_single.bat)",
+      "Bash(rmdir config *)",
+      "Bash(awk 'NR<=5 || \\(NR>=182 && NR<=200\\){print NR\": \"$0}' Assets/Scripts/GamePlay/BagSystem/BagSystem.cs)",
+      "PowerShell(cmd /c \"C:\\\\UnityProject\\\\YFramework\\\\tools\\\\build_tables.bat\" 2>&1 | Select-Object -First 15)"
     ]
   }
 }

@@ -1,7 +1,7 @@
 # Item 物品配表说明
 
 物品数据走打表工具(Excel → protobuf),**不使用 ScriptableObject**。
-源表:`excel/3xlsx/item.xlsx`,发布后产物:
+源表:`tools/excel/3xlsx/item.xlsx`,发布后产物:
 
 | 产物 | 路径 | 用途 |
 |---|---|---|
@@ -110,8 +110,8 @@
 
 ## 修改流程
 
-1. 编辑 `excel/3xlsx/item.xlsx`(**先关掉 Excel,否则发布会因文件占用失败**)。
-2. 跑发布:`cd tools && python publish_config.py`(或单表 `python publish_config.py ../excel/3xlsx/item.xlsx`)。
+1. 编辑 `tools/excel/3xlsx/item.xlsx`(**先关掉 Excel,否则发布会因文件占用失败**)。
+2. 一键发布全部配表:双击 `tools/build_tables.bat`(等价于 `cd tools && python publish_config.py`)。
 3. 回 Unity 等编译;新增/改 `type`/`quality` 取值时,记得同步 `ItemType`/`ItemQuality` 枚举。
 4. 图标:把 Sprite 放到 `iconPath` 指向的 `Resources` 路径下。
 

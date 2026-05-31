@@ -6,26 +6,31 @@ using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
-/// 一键生成网格空间背包 UI 预制体到 Resources/UI/Bag 下,供 UIMgr/ResMgr 按路径加载。
-/// 程序化构建(同 <see cref="WeaponPrefabBuilder"/> 约定):Unity 自动解析脚本 GUID / TMP 字体,
-/// 比手写 .prefab YAML 可靠。脚本字段引用在此接好,生成后无需在 Inspector 手动拖。
+/// 一键生成网格背包/宝箱 UI 预制体到 Resources/UI/Bag 下,供 UIMgr/ResMgr 按路径加载。
+/// 程序化构建:Unity 自动解析脚本 GUID / TMP 字体,比手写 .prefab YAML 可靠;脚本字段引用在此接好。
 ///
 /// 菜单:Tools/Bag/Build Bag UI Prefabs
 /// 产物:
-///   - Assets/Resources/UI/Bag/BagItem.prefab   可拖拽/旋转物品控件(BagItemWidget)
-///   - Assets/Resources/UI/Bag/BagPanel.prefab  背包面板(BagPanel,含 GridRoot)
+///   - BagItem.prefab        物品控件(BagItemWidget)
+///   - BagPanel.prefab       纯背包面板(BagPanel:单网格)
+///   - ChestPanel.prefab     宝箱面板(ChestPanel:左背包 + 右宝箱 双网格)
+///   - InteractPrompt.prefab 世界交互提示("按 F 打开宝箱")
 ///
-/// 物品尺寸/格盘大小是运行时按配表与 BagSystem 网格尺寸生成的,这里窗口给足够大即可。
-/// 美术后续替换背景/按钮 Sprite、把物品图标放到 item 配表 IconPath 指向的位置。
+/// 共享 UI(右键菜单/拆分弹窗/tooltip)挂在 <see cref="GridHostPanelBase"/> 字段上,背包与宝箱面板都用。
 /// </summary>
 public static class BagPrefabBuilder
 {
     private const string Dir = "Assets/Resources/UI/Bag";
     private const string ItemPrefabPath = Dir + "/BagItem.prefab";
-    private const string PanelPrefabPath = Dir + "/BagPanel.prefab";
+    private const string BagPanelPath = Dir + "/BagPanel.prefab";
+    private const string ChestPanelPath = Dir + "/ChestPanel.prefab";
+    private const string PromptPath = Dir + "/InteractPrompt.prefab";
     private const string FontPath = "Assets/Art/Fonts/SIMHEI SDF.asset";
 
-    private static TMP_FontAsset _font; // 本次生成用的 UI 字体(SIMHEI)
+    private const float Cell = 80f;
+    private const float Gap = 4f;
+
+    private static TMP_FontAsset _font;
 
     [MenuItem("Tools/Bag/Build Bag UI Prefabs")]
     public static void BuildAll()
@@ -40,7 +45,9 @@ public static class BagPrefabBuilder
         AssetDatabase.Refresh();
 
         var itemPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(ItemPrefabPath);
-        BuildPanelPrefab(itemPrefab);
+        BuildBagPanel(itemPrefab);
+        BuildChestPanel(itemPrefab);
+        BuildPromptPrefab();
 
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
@@ -51,85 +58,142 @@ public static class BagPrefabBuilder
 
     private static void BuildItemPrefab()
     {
-        // 只需一个挂了 BagItemWidget 的空根:格块与图标由 widget 在运行时按形状自建。
-        // 拖拽/点击落在子格块(带 raycast)上,事件冒泡到根上的 BagItemWidget 处理。
         var root = NewUI("BagItem", out var rootRt);
-        rootRt.sizeDelta = new Vector2(80, 80); // 占位,运行时按包围盒覆盖
+        rootRt.sizeDelta = new Vector2(Cell, Cell);
         root.AddComponent<BagItemWidget>();
-
         PrefabUtility.SaveAsPrefabAsset(root, ItemPrefabPath);
         Object.DestroyImmediate(root);
         Debug.Log($"[BagPrefabBuilder] Built {ItemPrefabPath}");
     }
 
-    // ============================ 面板 ============================
+    // ============================ 纯背包面板 ============================
 
-    private static void BuildPanelPrefab(GameObject itemPrefab)
+    private static void BuildBagPanel(GameObject itemPrefab)
     {
-        var root = NewUI("BagPanel", out var rootRt);
-        Stretch(rootRt, 0);
+        // 背包网格 10×8 = 800×640px。窗口 920×900,网格区(去边距)820×700 容纳之,不与标题/按钮重叠。
+        var root = MakeWindowRoot("BagPanel", new Vector2(920, 900), out var window);
 
-        var cg = root.AddComponent<CanvasGroup>();
-        root.AddComponent<YOTOUIShow>(); // UIPageBase 要求;内部自取 CanvasGroup
-
-        var dim = root.AddComponent<Image>(); // 半透遮罩 + 拦截点击
-        dim.color = new Color(0f, 0f, 0f, 0.6f);
-
-        var window = NewUI("Window", out var winRt, root.transform);
-        winRt.anchorMin = winRt.anchorMax = winRt.pivot = new Vector2(0.5f, 0.5f);
-        winRt.sizeDelta = new Vector2(980, 760);
-        winRt.anchoredPosition = Vector2.zero;
-        window.AddComponent<Image>().color = new Color(0.12f, 0.13f, 0.16f, 0.96f);
-
-        var titleGo = NewUI("Title", out var titleRt, window.transform);
-        titleRt.anchorMin = new Vector2(0, 1); titleRt.anchorMax = new Vector2(1, 1); titleRt.pivot = new Vector2(0.5f, 1);
-        titleRt.anchoredPosition = new Vector2(20, -16); titleRt.sizeDelta = new Vector2(-40, 44);
-        NewText(titleGo, "背包  (左键使用 / 右键菜单 / 拖拽移动)", 26, TextAlignmentOptions.Left);
+        Title(window, "背包  (左键使用 / 右键菜单 / 拖拽移动)");
 
         var capGo = NewUI("CapacityText", out var capRt, window.transform);
         capRt.anchorMin = new Vector2(1, 1); capRt.anchorMax = new Vector2(1, 1); capRt.pivot = new Vector2(1, 1);
-        capRt.anchoredPosition = new Vector2(-90, -22); capRt.sizeDelta = new Vector2(220, 36);
+        capRt.anchoredPosition = new Vector2(-110, -22); capRt.sizeDelta = new Vector2(200, 36);
         var capText = NewText(capGo, "0/80", 24, TextAlignmentOptions.Right);
 
         var closeBtn = BuildButton("CloseBtn", "X", window.transform,
             new Vector2(1, 1), new Vector2(-36, -36), new Vector2(56, 56), new Color(0.5f, 0.2f, 0.2f, 1f));
-
         var sortBtn = BuildButton("SortBtn", "整理", window.transform,
-            new Vector2(0.5f, 0), new Vector2(0, 40), new Vector2(180, 60), new Color(0.2f, 0.4f, 0.55f, 1f));
+            new Vector2(0.5f, 0), new Vector2(0, 42), new Vector2(180, 60), new Color(0.2f, 0.4f, 0.55f, 1f));
 
-        // 格盘容器:空 RectTransform,轴心/大小/位置由 BagPanel.BuildGrid 运行时按背包尺寸覆盖
-        var gridGo = NewUI("GridRoot", out var gridRt, window.transform);
-        gridRt.anchorMin = gridRt.anchorMax = new Vector2(0.5f, 0.5f);
-        gridRt.pivot = new Vector2(0f, 1f);
-        gridRt.anchoredPosition = Vector2.zero;
-        gridRt.sizeDelta = new Vector2(800, 640);
+        // 单网格区:上留 90(标题) 下留 110(整理按钮),BagGridView 居中其内
+        var gridArea = NewUI("GridArea", out var gaRt, window.transform);
+        gaRt.anchorMin = new Vector2(0, 0); gaRt.anchorMax = new Vector2(1, 1);
+        gaRt.offsetMin = new Vector2(50, 110); gaRt.offsetMax = new Vector2(-50, -90);
+        var bagGrid = NewUI("BagGrid", out _, gridArea.transform).AddComponent<BagGridView>();
+        Stretch((RectTransform)bagGrid.transform, 0);
 
         var panel = root.AddComponent<BagPanel>();
+        var cg = root.GetComponent<CanvasGroup>();
         panel.canvasGroup = cg;
         panel.uiType = UIEnum.BagPanel;
-        panel.gridRoot = gridRt;
-        panel.itemWidgetPrefab = itemPrefab;
+        panel.bagGrid = bagGrid;
         panel.sortBtn = sortBtn;
         panel.closeBtn = closeBtn;
         panel.capacityText = capText;
-        panel.cellSize = 80f;
-        panel.cellGap = 4f;
-        panel.uiFont = _font; // 序列化注入,运行时数量标签用
+        ApplyHostCommon(panel, itemPrefab, root.transform);
 
-        BuildContextMenu(root.transform, panel);
-        BuildSplitDialog(root.transform, panel);
-        BuildTooltip(root.transform, panel);
-
-        PrefabUtility.SaveAsPrefabAsset(root, PanelPrefabPath);
+        PrefabUtility.SaveAsPrefabAsset(root, BagPanelPath);
         Object.DestroyImmediate(root);
-        Debug.Log($"[BagPrefabBuilder] Built {PanelPrefabPath}");
+        Debug.Log($"[BagPrefabBuilder] Built {BagPanelPath}");
     }
 
-    // ============================ 右键菜单 ============================
+    // ============================ 宝箱面板(双网格)============================
 
-    private static void BuildContextMenu(Transform parent, BagPanel panel)
+    private static void BuildChestPanel(GameObject itemPrefab)
     {
-        // 全屏 blocker(点空白关闭):近透明 Image + Button
+        // 左:背包 10×8=800×640;右:宝箱(默认 8×6=640×480)。窗口 1760×900,左右各半 880 宽,
+        // 去边距后每半约 810,分别容纳 800/640 宽网格,左右两半不重叠。
+        var root = MakeWindowRoot("ChestPanel", new Vector2(1760, 900), out var window);
+
+        // 左半标题(只占左半,不越界压到右半)
+        var titleGo = NewUI("Title", out var titleRt, window.transform);
+        titleRt.anchorMin = new Vector2(0, 1); titleRt.anchorMax = new Vector2(0.5f, 1); titleRt.pivot = new Vector2(0, 1);
+        titleRt.anchoredPosition = new Vector2(40, -16); titleRt.sizeDelta = new Vector2(-60, 44);
+        NewText(titleGo, "背包", 26, TextAlignmentOptions.Left);
+
+        var closeBtn = BuildButton("CloseBtn", "X", window.transform,
+            new Vector2(1, 1), new Vector2(-36, -36), new Vector2(56, 56), new Color(0.5f, 0.2f, 0.2f, 1f));
+
+        // 宝箱侧标题(暖色,居中于右半;留出右上角关闭按钮),运行时填宝箱名
+        var ctGo = NewUI("ChestTitle", out var ctRt, window.transform);
+        ctRt.anchorMin = new Vector2(0.5f, 1); ctRt.anchorMax = new Vector2(1, 1); ctRt.pivot = new Vector2(0.5f, 1);
+        ctRt.anchoredPosition = new Vector2(-30, -16); ctRt.sizeDelta = new Vector2(-100, 44);
+        var chestTitle = NewText(ctGo, "宝箱", 26, TextAlignmentOptions.Center);
+        chestTitle.color = new Color(0.95f, 0.8f, 0.4f, 1f);
+
+        // 左半 = 背包:上留 90(标题) 下留 110
+        var leftArea = NewUI("LeftArea", out var laRt, window.transform);
+        laRt.anchorMin = new Vector2(0, 0); laRt.anchorMax = new Vector2(0.5f, 1);
+        laRt.offsetMin = new Vector2(40, 110); laRt.offsetMax = new Vector2(-30, -90);
+        var bagGrid = NewUI("BagGrid", out _, leftArea.transform).AddComponent<BagGridView>();
+        Stretch((RectTransform)bagGrid.transform, 0);
+
+        // 右半 = 宝箱(暖色背景板强化区分)
+        var rightArea = NewUI("RightArea", out var raRt, window.transform);
+        raRt.anchorMin = new Vector2(0.5f, 0); raRt.anchorMax = new Vector2(1, 1);
+        raRt.offsetMin = new Vector2(30, 110); raRt.offsetMax = new Vector2(-40, -90);
+        rightArea.AddComponent<Image>().color = new Color(0.18f, 0.14f, 0.10f, 0.5f);
+        var chestGrid = NewUI("ChestGrid", out _, rightArea.transform).AddComponent<BagGridView>();
+        Stretch((RectTransform)chestGrid.transform, 0);
+
+        var panel = root.AddComponent<ChestPanel>();
+        panel.canvasGroup = root.GetComponent<CanvasGroup>();
+        panel.uiType = UIEnum.ChestPanel;
+        panel.bagGrid = bagGrid;
+        panel.chestGrid = chestGrid;
+        panel.chestTitle = chestTitle;
+        panel.closeBtn = closeBtn;
+        ApplyHostCommon(panel, itemPrefab, root.transform);
+
+        PrefabUtility.SaveAsPrefabAsset(root, ChestPanelPath);
+        Object.DestroyImmediate(root);
+        Debug.Log($"[BagPrefabBuilder] Built {ChestPanelPath}");
+    }
+
+    // ============================ 交互提示 ============================
+
+    private static void BuildPromptPrefab()
+    {
+        var root = NewUI("InteractPrompt", out var rootRt);
+        rootRt.anchorMin = new Vector2(0.5f, 0); rootRt.anchorMax = new Vector2(0.5f, 0); rootRt.pivot = new Vector2(0.5f, 0);
+        rootRt.anchoredPosition = new Vector2(0, 180); rootRt.sizeDelta = new Vector2(360, 56);
+        root.AddComponent<Image>().color = new Color(0f, 0f, 0f, 0.6f);
+        // 文本作为子物体(一个 GameObject 只能有一个 Graphic,不能 Image+TMP 同挂)
+        var labelGo = NewUI("Label", out var labelRt, root.transform);
+        Stretch(labelRt, 0);
+        NewText(labelGo, "按 F 打开宝箱", 26, TextAlignmentOptions.Center);
+
+        PrefabUtility.SaveAsPrefabAsset(root, PromptPath);
+        Object.DestroyImmediate(root);
+        Debug.Log($"[BagPrefabBuilder] Built {PromptPath}");
+    }
+
+    // ============================ 共享 UI(挂到 GridHostPanelBase)============================
+
+    /// <summary>设置 host 基类公共字段 + 构建右键菜单/拆分弹窗/tooltip。</summary>
+    private static void ApplyHostCommon(GridHostPanelBase panel, GameObject itemPrefab, Transform root)
+    {
+        panel.itemWidgetPrefab = itemPrefab;
+        panel.cellSize = Cell;
+        panel.cellGap = Gap;
+        panel.uiFont = _font;
+        BuildContextMenu(root, panel);
+        BuildSplitDialog(root, panel);
+        BuildTooltip(root, panel);
+    }
+
+    private static void BuildContextMenu(Transform parent, GridHostPanelBase panel)
+    {
         var menu = NewUI("ContextMenu", out var menuRt, parent);
         Stretch(menuRt, 0);
         var blockerImg = menu.AddComponent<Image>();
@@ -137,9 +201,8 @@ public static class BagPrefabBuilder
         var blockerBtn = menu.AddComponent<Button>();
         blockerBtn.targetGraphic = blockerImg;
 
-        // 小菜单本体(运行时移到鼠标处),竖排 4 个按钮
         var box = NewUI("Panel", out var boxRt, menu.transform);
-        boxRt.pivot = new Vector2(0, 1); // 左上为锚,出现在鼠标右下
+        boxRt.pivot = new Vector2(0, 1);
         boxRt.sizeDelta = new Vector2(160, 232);
         box.AddComponent<Image>().color = new Color(0.16f, 0.17f, 0.2f, 0.98f);
 
@@ -156,7 +219,6 @@ public static class BagPrefabBuilder
         panel.ctxDiscardBtn = discard;
     }
 
-    /// <summary>菜单内竖排按钮:高 52,按 index 往下排,左右各留 8 边距。</summary>
     private static Button BuildStackedButton(string name, string label, Transform parent, int index, Color color)
     {
         var go = NewUI(name, out var rt, parent);
@@ -176,13 +238,11 @@ public static class BagPrefabBuilder
         return btn;
     }
 
-    // ============================ 拆分弹窗 ============================
-
-    private static void BuildSplitDialog(Transform parent, BagPanel panel)
+    private static void BuildSplitDialog(Transform parent, GridHostPanelBase panel)
     {
         var dlg = NewUI("SplitDialog", out var dlgRt, parent);
         Stretch(dlgRt, 0);
-        dlg.AddComponent<Image>().color = new Color(0, 0, 0, 0.5f); // 半透 dim,拦截背后点击
+        dlg.AddComponent<Image>().color = new Color(0, 0, 0, 0.5f);
 
         var box = NewUI("Panel", out var boxRt, dlg.transform);
         boxRt.anchorMin = boxRt.anchorMax = boxRt.pivot = new Vector2(0.5f, 0.5f);
@@ -213,7 +273,6 @@ public static class BagPrefabBuilder
         panel.splitCancelBtn = cancel;
     }
 
-    /// <summary>构建水平 Slider(背景 + 填充 + 手柄),返回 Slider 组件。</summary>
     private static Slider BuildSlider(string name, Transform parent, Vector2 anchoredPos, Vector2 size)
     {
         var go = NewUI(name, out var rt, parent);
@@ -254,15 +313,11 @@ public static class BagPrefabBuilder
         return slider;
     }
 
-    // ============================ Tooltip ============================
-
-    private static void BuildTooltip(Transform parent, BagPanel panel)
+    private static void BuildTooltip(Transform parent, GridHostPanelBase panel)
     {
-        // 根:整屏容器但完全不挡射线(否则会盖住物品导致 hover-exit 抖动)
         var tip = NewUI("Tooltip", out var tipRt, parent);
         Stretch(tipRt, 0);
 
-        // 本体:深色卡片,pivot 左上,运行时移到鼠标右下
         var box = NewUI("Panel", out var boxRt, tip.transform);
         boxRt.pivot = new Vector2(0, 1);
         boxRt.sizeDelta = new Vector2(320, 168);
@@ -270,13 +325,11 @@ public static class BagPrefabBuilder
         boxImg.color = new Color(0.08f, 0.09f, 0.11f, 0.96f);
         boxImg.raycastTarget = false;
 
-        // 名称(顶部,品质色运行时设)
         var nameGo = NewUI("Name", out var nameRt, box.transform);
         nameRt.anchorMin = new Vector2(0, 1); nameRt.anchorMax = new Vector2(1, 1); nameRt.pivot = new Vector2(0.5f, 1);
         nameRt.anchoredPosition = new Vector2(0, -10); nameRt.sizeDelta = new Vector2(-24, 34);
         var nameText = NewText(nameGo, "", 24, TextAlignmentOptions.TopLeft);
 
-        // 描述(中部,自动换行)
         var descGo = NewUI("Desc", out var descRt, box.transform);
         descRt.anchorMin = new Vector2(0, 1); descRt.anchorMax = new Vector2(1, 1); descRt.pivot = new Vector2(0.5f, 1);
         descRt.anchoredPosition = new Vector2(0, -50); descRt.sizeDelta = new Vector2(-24, 78);
@@ -285,7 +338,6 @@ public static class BagPrefabBuilder
         descText.enableWordWrapping = true;
         descText.overflowMode = TextOverflowModes.Truncate;
 
-        // 价值(底部)
         var valGo = NewUI("Value", out var valRt, box.transform);
         valRt.anchorMin = new Vector2(0, 0); valRt.anchorMax = new Vector2(1, 0); valRt.pivot = new Vector2(0.5f, 0);
         valRt.anchoredPosition = new Vector2(0, 10); valRt.sizeDelta = new Vector2(-24, 28);
@@ -300,6 +352,32 @@ public static class BagPrefabBuilder
     }
 
     // ============================ 工具 ============================
+
+    /// <summary>建一个 UIPageBase 标准根(全屏遮罩 + CanvasGroup + YOTOUIShow)+ 居中窗口,返回 root,out window。</summary>
+    private static GameObject MakeWindowRoot(string name, Vector2 windowSize, out GameObject window)
+    {
+        var root = NewUI(name, out var rootRt);
+        Stretch(rootRt, 0);
+        root.AddComponent<CanvasGroup>();
+        root.AddComponent<YOTOUIShow>();
+        var dim = root.AddComponent<Image>();
+        dim.color = new Color(0f, 0f, 0f, 0.6f);
+
+        window = NewUI("Window", out var winRt, root.transform);
+        winRt.anchorMin = winRt.anchorMax = winRt.pivot = new Vector2(0.5f, 0.5f);
+        winRt.sizeDelta = windowSize;
+        winRt.anchoredPosition = Vector2.zero;
+        window.AddComponent<Image>().color = new Color(0.12f, 0.13f, 0.16f, 0.96f);
+        return root;
+    }
+
+    private static void Title(GameObject window, string text)
+    {
+        var titleGo = NewUI("Title", out var titleRt, window.transform);
+        titleRt.anchorMin = new Vector2(0, 1); titleRt.anchorMax = new Vector2(0.5f, 1); titleRt.pivot = new Vector2(0, 1);
+        titleRt.anchoredPosition = new Vector2(20, -16); titleRt.sizeDelta = new Vector2(-40, 44);
+        NewText(titleGo, text, 26, TextAlignmentOptions.Left);
+    }
 
     private static GameObject NewUI(string name, out RectTransform rt, Transform parent = null)
     {

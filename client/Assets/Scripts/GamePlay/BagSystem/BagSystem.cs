@@ -14,16 +14,19 @@ using YFramework.Config;
 /// **事件**:背包变化桥接到 <see cref="EventMgr"/> 的 <see cref="YOTOEventType.RefreshBagList"/>,UI 据此刷新。
 /// **使用逻辑**:消耗品等效果实现 <see cref="IItemUseHandler"/>,以物品 <c>Item.Id</c> 为键调
 ///   <see cref="RegisterUseHandler"/> 注册。
-/// **存档**:PlayerPrefs + JsonUtility(只存 实例 id/物品 id/坐标/朝向)。
+/// **存档**:走框架 <see cref="StoreMgr"/>(<see cref="BagDataContainer"/> + 异步 JSON 文件,只存 实例 id/物品 id/坐标/朝向/数量)。
 /// </summary>
 public class BagSystem : IGameService
 {
-    private const string SaveKey = "BAG_SYSTEM_SAVE_V3"; // 多边形+4向旋转模型,换 key 避免读旧存档
     private const int DefaultGridWidth = 10;
     private const int DefaultGridHeight = 8;
 
     private ConfigManager config;
     private EventMgr eventMgr;
+    private InputService input;
+    private UIMgr uiMgr;
+    private StoreMgr store;
+    private BagDataContainer dataContainer;
     private GridBag bag;
     private readonly Dictionary<int, IItemUseHandler> useHandlers = new Dictionary<int, IItemUseHandler>();
 
@@ -34,6 +37,14 @@ public class BagSystem : IGameService
     {
         config = ctx.Get<ConfigManager>();
         eventMgr = ctx.Get<EventMgr>();
+        // InputService 在本系统之前注册、UIMgr 框架层先注册,此处可直接取。
+        input = ctx.Get<InputService>();
+        uiMgr = ctx.Get<UIMgr>();
+        store = ctx.Get<StoreMgr>(); // 框架自带存储服务(DataContaner + 异步文件读写)
+        input.OnToggleBagDown += ToggleBagPanel;
+
+        dataContainer = new BagDataContainer();
+        dataContainer.BindStore(store);
 
         bag = new GridBag(DefaultGridWidth, DefaultGridHeight, GetItem);
         bag.OnChanged += OnBagChanged;
@@ -44,8 +55,22 @@ public class BagSystem : IGameService
     public void Shutdown()
     {
         Save();
+        if (input != null) input.OnToggleBagDown -= ToggleBagPanel;
         if (bag != null) bag.OnChanged -= OnBagChanged;
         useHandlers.Clear();
+    }
+
+    /// <summary>B 键开/关背包:已开则关;否则先关宝箱面板(互斥)再开背包。</summary>
+    private void ToggleBagPanel()
+    {
+        if (uiMgr == null) return;
+        if (uiMgr.IsShown(UIEnum.BagPanel))
+        {
+            uiMgr.Hide<BagPanel>();
+            return;
+        }
+        uiMgr.Hide<ChestPanel>(); // 背包与宝箱面板互斥,打开背包前先关宝箱
+        uiMgr.Show<BagPanel>();
     }
 
     // ---------------- 配表查询 ----------------
@@ -168,29 +193,44 @@ public class BagSystem : IGameService
 
     // ---------------- 存档 ----------------
 
+    /// <summary>保存背包到本地文件(StoreMgr 异步写,JSON)。</summary>
     public void Save()
     {
-        if (bag == null) return;
-        string json = JsonUtility.ToJson(bag.ToSaveData());
-        PlayerPrefs.SetString(SaveKey, json);
-        PlayerPrefs.Save();
+        if (bag == null || dataContainer == null) return;
+        dataContainer.Snapshot(bag.ToSaveData()); // 把当前背包快照塞进容器,供 StoreMgr 序列化
+        dataContainer.Save();
     }
 
+    /// <summary>从本地文件读档(StoreMgr 异步读)。读到后套用到背包;无存档则容器给空数据,背包保持空。</summary>
     public void Load()
     {
-        if (bag == null || !PlayerPrefs.HasKey(SaveKey)) return;
-        try
+        if (bag == null || dataContainer == null) return;
+        dataContainer.Load(() =>
         {
-            var data = JsonUtility.FromJson<GridBagSaveData>(PlayerPrefs.GetString(SaveKey));
-            bag.LoadFromSaveData(data);
-        }
-        catch (System.Exception e)
-        {
-            Debug.LogWarning($"[BagSystem] 读取背包存档失败: {e.Message}");
-        }
+            var data = dataContainer.GetData();
+            if (data != null) bag.LoadFromSaveData(data);
+        });
     }
 
     // ---------------- 内部 ----------------
 
     private void OnBagChanged() => eventMgr?.Trigger(YOTOEventType.RefreshBagList);
+}
+
+/// <summary>
+/// 背包存档容器:适配框架 <see cref="StoreMgr"/> 的 <see cref="DataContaner{T}"/> 模式。
+/// SaveKey 即落盘文件名(persistentDataPath/BagSave.json)。存档结构是 <see cref="GridBagSaveData"/>。
+/// 保存前由 <see cref="BagSystem"/> 调 <see cref="Snapshot"/> 把当前背包快照灌入。
+/// </summary>
+public class BagDataContainer : DataContaner<GridBagSaveData>
+{
+    private GridBagSaveData data = new GridBagSaveData();
+
+    public override string SaveKey => "BagSave"; // → persistentDataPath/BagSave.json
+
+    public override GridBagSaveData GetData() => data;
+    public override void __SetData(GridBagSaveData d) => data = d; // StoreMgr 读档后回填(无档时传 new())
+
+    /// <summary>保存前把当前背包快照塞入,供 StoreMgr 序列化。</summary>
+    public void Snapshot(GridBagSaveData snapshot) => data = snapshot;
 }

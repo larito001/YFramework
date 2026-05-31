@@ -220,6 +220,43 @@ public class GridBag
         OnChanged?.Invoke();
     }
 
+    // ---------------- 跨容器转移 ----------------
+
+    /// <summary>对外触发一次变更事件(跨容器转移后,源容器手动刷新用)。</summary>
+    public void RaiseChanged() => OnChanged?.Invoke();
+
+    /// <summary>
+    /// 把 <paramref name="from"/> 里的某实例转移到 <paramref name="to"/>(背包↔宝箱拖拽用)。
+    /// 优先放到目标锚点 (x,y)+朝向;放不下则自动并堆/找空位(<see cref="TryAddItem"/>)。
+    /// 成功后从源移除已转移数量;一个都放不下则源不变、返回 false(UI 贴回原位)。
+    /// from==to 退化为同容器 <see cref="PlaceOrSwap"/>。
+    /// </summary>
+    public static bool Transfer(GridBag from, int instanceId, GridBag to, int x, int y, int rotation)
+    {
+        if (from == null || to == null) return false;
+        if (from == to) return to.PlaceOrSwap(instanceId, x, y, rotation);
+
+        var item = from.GetByInstance(instanceId);
+        if (item == null) return false;
+        int itemId = item.itemId, count = item.count;
+        rotation &= 3;
+
+        // 1) 先试目标锚点精确落位(整堆)
+        if (to.CanPlace(itemId, x, y, rotation, 0) && to.TryAddItemAt(itemId, x, y, rotation, count) != null)
+        {
+            from.RemoveItem(instanceId);
+            return true;
+        }
+
+        // 2) 退化:自动并堆 + 找空位
+        int leftover = to.TryAddItem(itemId, count);
+        if (leftover >= count) return false; // 一个都没进(目标满),源不变
+        int moved = count - leftover;
+        if (moved >= count) from.RemoveItem(instanceId);
+        else { item.count -= moved; from.RaiseChanged(); } // 目标没全放下,源留剩余
+        return true;
+    }
+
     // ---------------- 移动 / 合并 / 交换 / 旋转 ----------------
 
     /// <summary>

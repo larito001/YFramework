@@ -19,3 +19,6 @@ SkillDef 技能定义与 SkillCastComponent 驱动的全身战斗动作。
 
 ### [Item 配表说明](Item配表说明.md)
 背包物品配表(字段 / 类型 / 品质 / 形状掩码 / 修改流程)与 BagSystem API。
+
+### [背包与宝箱系统说明](背包与宝箱系统说明.md)
+网格空间背包 + 宝箱:目录职责、GridBag 核心 API、宝箱掉落/刷新、UI 交互、接入与扩展。

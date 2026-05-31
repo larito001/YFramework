@@ -7,14 +7,10 @@ using UnityEngine.UI;
 /// <summary>
 /// 网格背包里的单个物品控件:按形状(可不规则多边形)自建一组「格块」子物体显示,图标盖在包围盒上,
 /// 左上角显示名称、可叠加物品右下角显示数量。只有占格的格块带 raycast,所以点击/拖拽是**形状精确**的。
-/// 交互全部转交 <see cref="BagPanel"/>:
-///   - 左键点击 = 使用
-///   - 右键点击 = 打开右键菜单(使用/旋转/拆分/丢弃)
-///   - 拖拽     = 移动 / 合并 / 交换
-///   - 悬停     = 显示 tooltip(名称/描述/价值)
+/// 交互全部转交所属 <see cref="BagGridView"/>(再由其转发给宿主页面):
+///   - 左键点击 = 使用 / 右键 = 菜单 / 拖拽 = 移动·合并·交换·跨容器转移 / 悬停 = tooltip
 ///
-/// 预制体只需一个挂了本组件的空 RectTransform(BagPrefabBuilder 生成);格块/图标/数量运行时构建,
-/// 旋转或数量变化时由面板调 <see cref="Build"/> 重建。
+/// 预制体只需一个挂了本组件的空 RectTransform(BagPrefabBuilder 生成);格块/图标/名称/数量运行时构建。
 /// </summary>
 public class BagItemWidget : MonoBehaviour,
     IBeginDragHandler, IDragHandler, IEndDragHandler, IPointerClickHandler,
@@ -24,10 +20,11 @@ public class BagItemWidget : MonoBehaviour,
     public int InstanceId { get; private set; }
     public int ItemId { get; private set; }
 
-    private BagPanel panel;
+    private BagGridView view;
     private Sprite sprite;
     private Color blockColor = Color.white;
     private string displayName = string.Empty;
+    private TMP_FontAsset font;
     private readonly List<GameObject> blocks = new List<GameObject>();
     private Image icon;
     private TextMeshProUGUI nameLabel;
@@ -38,18 +35,19 @@ public class BagItemWidget : MonoBehaviour,
         Rect = (RectTransform)transform;
     }
 
-    /// <summary>绑定数据(图标/配色/名称),不含形状;形状与数量由 <see cref="Build"/> 给。</summary>
-    public void Init(BagPanel owner, int instanceId, int itemId, Sprite spr, Color color, string name)
+    /// <summary>绑定数据(所属视图/图标/配色/名称/字体),不含形状;形状与数量由 <see cref="Build"/> 给。</summary>
+    public void Init(BagGridView owner, int instanceId, int itemId, Sprite spr, Color color, string name, TMP_FontAsset uiFont)
     {
-        panel = owner;
+        view = owner;
         InstanceId = instanceId;
         ItemId = itemId;
         sprite = spr;
         blockColor = color;
         displayName = name ?? string.Empty;
+        font = uiFont;
     }
 
-    /// <summary>按占格集合(重)建外观;count&gt;1 时右下角显示数量。</summary>
+    /// <summary>按占格集合(重)建外观;左上角名称,count&gt;1 时右下角数量。</summary>
     public void Build(Vector2Int[] cells, float cellSize, float gap, int count)
     {
         for (int i = 0; i < blocks.Count; i++)
@@ -89,7 +87,7 @@ public class BagItemWidget : MonoBehaviour,
         icon.sprite = sprite;
 
         EnsureNameLabel();
-        nameLabel.transform.SetAsLastSibling(); // 盖在图标之上
+        nameLabel.transform.SetAsLastSibling();
         nameLabel.text = displayName;
 
         EnsureCountLabel();
@@ -123,7 +121,7 @@ public class BagItemWidget : MonoBehaviour,
         rt.anchorMin = new Vector2(0, 1);
         rt.anchorMax = new Vector2(1, 1);
         rt.pivot = new Vector2(0, 1);
-        rt.offsetMin = new Vector2(4, -24);   // 顶部高 24,左右各留 4
+        rt.offsetMin = new Vector2(4, -24);
         rt.offsetMax = new Vector2(-4, -2);
         nameLabel = go.AddComponent<TextMeshProUGUI>();
         nameLabel.fontSize = 16;
@@ -131,10 +129,8 @@ public class BagItemWidget : MonoBehaviour,
         nameLabel.color = Color.white;
         nameLabel.raycastTarget = false;
         nameLabel.enableWordWrapping = false;
-        nameLabel.overflowMode = TextOverflowModes.Ellipsis; // 名字过长省略
-        var font = panel != null ? panel.UiFont : null;
-        if (font == null) font = TMP_Settings.defaultFontAsset;
-        if (font != null) nameLabel.font = font;
+        nameLabel.overflowMode = TextOverflowModes.Ellipsis;
+        ApplyFont(nameLabel);
     }
 
     private void EnsureCountLabel()
@@ -154,9 +150,13 @@ public class BagItemWidget : MonoBehaviour,
         countLabel.color = Color.white;
         countLabel.fontStyle = FontStyles.Bold;
         countLabel.raycastTarget = false;
-        var font = panel != null ? panel.UiFont : null;
-        if (font == null) font = TMP_Settings.defaultFontAsset;
-        if (font != null) countLabel.font = font;
+        ApplyFont(countLabel);
+    }
+
+    private void ApplyFont(TextMeshProUGUI t)
+    {
+        var f = font != null ? font : TMP_Settings.defaultFontAsset;
+        if (f != null) t.font = f;
     }
 
     private static void TopLeft(RectTransform rt)
@@ -166,18 +166,17 @@ public class BagItemWidget : MonoBehaviour,
         rt.pivot = new Vector2(0, 1);
     }
 
-    public void OnBeginDrag(PointerEventData e) => panel?.OnWidgetBeginDrag(this, e);
-    public void OnDrag(PointerEventData e) => panel?.OnWidgetDrag(this, e);
-    public void OnEndDrag(PointerEventData e) => panel?.OnWidgetEndDrag(this, e);
+    public void OnBeginDrag(PointerEventData e) => view?.WidgetBeginDrag(this, e);
+    public void OnDrag(PointerEventData e) => view?.WidgetDrag(this, e);
+    public void OnEndDrag(PointerEventData e) => view?.WidgetEndDrag(this, e);
 
     public void OnPointerClick(PointerEventData e)
     {
-        if (e.button == PointerEventData.InputButton.Right)
-            panel?.OnWidgetContextMenu(this, e);
-        else
-            panel?.OnWidgetClick(this);
+        if (e.button == PointerEventData.InputButton.Right) view?.WidgetRightClick(this, e);
+        else if (e.clickCount >= 2) view?.WidgetDoubleClick(this); // 双击:快速移到另一面板
+        else view?.WidgetClick(this);
     }
 
-    public void OnPointerEnter(PointerEventData e) => panel?.OnWidgetHoverEnter(this, e);
-    public void OnPointerExit(PointerEventData e) => panel?.OnWidgetHoverExit(this);
+    public void OnPointerEnter(PointerEventData e) => view?.WidgetHoverEnter(this, e);
+    public void OnPointerExit(PointerEventData e) => view?.WidgetHoverExit(this);
 }

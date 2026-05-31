@@ -7,4 +7,5 @@ public enum UIEnum
     FinishPanel,
     SettingPanel,
     BagPanel,
+    ChestPanel,
 }

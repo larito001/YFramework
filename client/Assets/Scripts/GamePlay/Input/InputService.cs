@@ -43,6 +43,10 @@ public class InputService : IGameService, ITickable
     public event Action OnJumpDown;
     public event Action OnReloadDown;
     public event Action OnInteractDown;
+    /// <summary>世界交互键(默认 F):开宝箱、拾取等。与 <see cref="OnInteractDown"/>(E)分开。</summary>
+    public event Action OnInteractWorldDown;
+    /// <summary>打开/关闭背包键(默认 B)。</summary>
+    public event Action OnToggleBagDown;
     public event Action OnMeleeDown;
     /// <summary>数字键 1~9 选择武器槽位，参数为 slot 索引（0..8）。</summary>
     public event Action<int> OnWeaponSelect;
@@ -63,6 +67,8 @@ public class InputService : IGameService, ITickable
     private const KeyCode KeyJump = KeyCode.Space;
     private const KeyCode KeyReload = KeyCode.R;
     private const KeyCode KeyInteract = KeyCode.E;
+    private const KeyCode KeyInteractWorld = KeyCode.F;
+    private const KeyCode KeyToggleBag = KeyCode.B;
     private const KeyCode KeyMelee = KeyCode.V;
     private const int WeaponSlotCount = 9;
 
@@ -83,6 +89,8 @@ public class InputService : IGameService, ITickable
         OnJumpDown = null;
         OnReloadDown = null;
         OnInteractDown = null;
+        OnInteractWorldDown = null;
+        OnToggleBagDown = null;
         OnMeleeDown = null;
         OnWeaponSelect = null;
         OnScroll = null;
@@ -131,6 +139,8 @@ public class InputService : IGameService, ITickable
 
         if (Input.GetKeyDown(KeyReload)) OnReloadDown?.Invoke();
         if (Input.GetKeyDown(KeyInteract)) OnInteractDown?.Invoke();
+        if (Input.GetKeyDown(KeyInteractWorld)) OnInteractWorldDown?.Invoke();
+        if (Input.GetKeyDown(KeyToggleBag)) OnToggleBagDown?.Invoke();
         if (Input.GetKeyDown(KeyMelee)) OnMeleeDown?.Invoke();
 
         for (int i = 0; i < WeaponSlotCount; i++)
