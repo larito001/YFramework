@@ -1,66 +1,55 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
-using YOTO;
 
+/// <summary>
+/// 设置界面:三个页签——声音 / 按键 / 画面。页签内容各自挂 <see cref="SettingTabBase"/> 子类,激活时懒构建并绑定服务。
+/// 本类只负责页签切换与返回;预制体由 <c>Tools/UI/Build SettingPanel Prefab</c> 生成。
+/// </summary>
 public class SettingPanel : UIPageBase
 {
     public Button backBtn;
-    public YOTOScrollView scrollView;
-    public List<BaseSettingCtrl> settingCtrlList =new List<BaseSettingCtrl>();
-    public List<string> settingList = new List<string>()
-    {
-        "视频",
-        "音频",
-        "游戏设置",
-    };
+    public Button tabSoundBtn;
+    public Button tabKeyBtn;
+    public Button tabGraphicsBtn;
+    public GameObject soundTab;
+    public GameObject keyTab;
+    public GameObject graphicsTab;
+
+    private static readonly Color TabOn = new Color(0.30f, 0.55f, 0.85f, 1f);
+    private static readonly Color TabOff = new Color(0.25f, 0.27f, 0.33f, 1f);
+
     public override void OnLoad()
     {
-        scrollView.Initialize();
-        for (int i = 0; i < settingCtrlList.Count; i++)
-        {
-            settingCtrlList[i]?.Initialize(this);
-        }
-    }
-
-    private void GoBack()
-    {
-        CloseSelf();
+        backBtn.onClick.AddListener(CloseSelf);
+        tabSoundBtn.onClick.AddListener(() => ShowTab(0));
+        tabKeyBtn.onClick.AddListener(() => ShowTab(1));
+        tabGraphicsBtn.onClick.AddListener(() => ShowTab(2));
     }
 
     public override void OnShow()
     {
-        scrollView.SetRenderer( ItemRender);
-        backBtn.onClick.AddListener(GoBack);
-        scrollView.SetData(settingList.Count);
-        ShowSetting(0);
+        ShowTab(0);
     }
 
-    private void ItemRender(YOTOScrollViewItem item, int index)
+    private void ShowTab(int index)
     {
-        var btn = (item as SettingItemBtn);
-        btn?.SetBtnData(this,index);
+        if (soundTab != null) soundTab.SetActive(index == 0);
+        if (keyTab != null) keyTab.SetActive(index == 1);
+        if (graphicsTab != null) graphicsTab.SetActive(index == 2);
+        SetTabColor(tabSoundBtn, index == 0);
+        SetTabColor(tabKeyBtn, index == 1);
+        SetTabColor(tabGraphicsBtn, index == 2);
     }
 
-    public void ShowSetting(int index)
+    private static void SetTabColor(Button btn, bool on)
     {
-        for (int i = 0; i < settingCtrlList.Count; i++)
-        {
-            if (index == i)
-            {
-                settingCtrlList[i].gameObject.SetActive(true);
-            }
-            else
-            {
-                settingCtrlList[i].gameObject.SetActive(false);
-            }
-            
-        }
+        if (btn == null) return;
+        var img = btn.targetGraphic as Image;
+        if (img != null) img.color = on ? TabOn : TabOff;
     }
+
     public override void OnHide()
     {
-        backBtn.onClick.RemoveAllListeners();
     }
 
     public override void OnResize()

@@ -48,6 +48,8 @@ public static partial class GameBootstrapper
         // Init 走 InitAll 延迟阶段（此时所有 service 已注册），ctx.Get<InputService>/<UIMgr> 均可取到。
         ctx.Register(new CombatInputGate());
         ctx.Register(new InputService());
+        // 画面设置服务:全屏/垂直同步/画质/分辨率,改动即应用并存盘(Settings 分类)。
+        ctx.Register(new GraphicsSettings());
         // 背包系统：纯逻辑 service，不需要 Tick。EventMgr / ConfigManager 已在 BuildContext 中先行注册，
         // BagSystem.Init 里 ctx.Get 取得后接配表 + 桥接 RefreshBagList 给 UI。
         ctx.Register(new BagSystem());

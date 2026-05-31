@@ -1,9 +1,27 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
+using YOTO;
+
+/// <summary>可重绑定的离散按键动作(鼠标开火/瞄准、移动/视角轴不在此列,仍走固定绑定)。</summary>
+public enum InputAction
+{
+    Sprint,
+    Crouch,
+    Jump,
+    Reload,
+    Interact,
+    InteractWorld,
+    ToggleBag,
+    Melee,
+}
 
 /// <summary>
 /// TPS 输入抽象层：把 Unity 的 Input.* 收敛到一处，玩法层只依赖事件 + 状态字段。
 /// 后续要换 InputSystem 或加 Gamepad，改这一个文件，调用方不动。
+///
+/// 离散按键(见 <see cref="InputAction"/>)可在设置里重绑定：绑定表走 StoreMgr 的 Settings 分类持久化，
+/// 改键即存盘并触发 <see cref="BindingsChanged"/>。
 ///
 /// 用法：
 ///   连续值（移动/视角/滚轮）→ 直接读属性 Move / LookDelta / ScrollDelta
@@ -60,7 +78,7 @@ public class InputService : IGameService, ITickable
     public event Action<int> OnWeaponSelect;
     public event Action<float> OnScroll;
 
-    // 按键绑定：后续接 Settings/Remap 时把这些挪到配置层
+    // 固定绑定(暂不开放重绑)：移动/视角轴 + 鼠标开火/瞄准。
     private const string AxisMoveX = "Horizontal";
     private const string AxisMoveY = "Vertical";
     private const string AxisLookX = "Mouse X";
@@ -69,19 +87,82 @@ public class InputService : IGameService, ITickable
 
     private const int MouseFire = 0;
     private const int MouseAim = 1;
-
-    private const KeyCode KeySprint = KeyCode.LeftShift;
-    private const KeyCode KeyCrouch = KeyCode.LeftControl;
-    private const KeyCode KeyJump = KeyCode.Space;
-    private const KeyCode KeyReload = KeyCode.R;
-    private const KeyCode KeyInteract = KeyCode.E;
-    private const KeyCode KeyInteractWorld = KeyCode.F;
-    private const KeyCode KeyToggleBag = KeyCode.B;
-    private const KeyCode KeyMelee = KeyCode.V;
     private const int WeaponSlotCount = 9;
+
+    /// <summary>各动作的默认键。重绑表缺省/重置时回退到这里。</summary>
+    private static readonly Dictionary<InputAction, KeyCode> DefaultBindings = new Dictionary<InputAction, KeyCode>
+    {
+        { InputAction.Sprint, KeyCode.LeftShift },
+        { InputAction.Crouch, KeyCode.LeftControl },
+        { InputAction.Jump, KeyCode.Space },
+        { InputAction.Reload, KeyCode.R },
+        { InputAction.Interact, KeyCode.E },
+        { InputAction.InteractWorld, KeyCode.F },
+        { InputAction.ToggleBag, KeyCode.B },
+        { InputAction.Melee, KeyCode.V },
+    };
+
+    private readonly Dictionary<InputAction, KeyCode> _bindings = new Dictionary<InputAction, KeyCode>(DefaultBindings);
+    private ISaveHandle _bindingsHandle;
+
+    /// <summary>按键绑定变化(重绑/重置)时触发,设置界面据此刷新显示。</summary>
+    public event Action BindingsChanged;
+
+    /// <summary>所有可重绑定的动作(展示顺序固定)。</summary>
+    public static IReadOnlyList<InputAction> RebindableActions { get; } = new[]
+    {
+        InputAction.Sprint, InputAction.Crouch, InputAction.Jump, InputAction.Reload,
+        InputAction.Interact, InputAction.InteractWorld, InputAction.ToggleBag, InputAction.Melee,
+    };
+
+    public KeyCode GetBinding(InputAction action) => _bindings.TryGetValue(action, out var k) ? k : DefaultBindings[action];
+
+    /// <summary>重绑某动作到指定键,立即生效并存盘。</summary>
+    public void SetBinding(InputAction action, KeyCode key)
+    {
+        _bindings[action] = key;
+        _bindingsHandle?.Save();
+        BindingsChanged?.Invoke();
+    }
+
+    /// <summary>恢复全部默认键。</summary>
+    public void ResetBindings()
+    {
+        foreach (var kv in DefaultBindings) _bindings[kv.Key] = kv.Value;
+        _bindingsHandle?.Save();
+        BindingsChanged?.Invoke();
+    }
 
     public void Init(GameContext ctx)
     {
+        // 绑定表持久化:Settings 分类(全局,不随存档槽)。
+        _bindingsHandle = ctx.Get<StoreMgr>().Register<KeyBindingData>("keybindings",
+            CaptureBindings, RestoreBindings, SaveCategory.Settings);
+        _bindingsHandle.Load();
+    }
+
+    private KeyBindingData CaptureBindings()
+    {
+        var data = new KeyBindingData();
+        foreach (var kv in _bindings)
+        {
+            data.bindings.Add(new KeyBindingEntry { action = kv.Key.ToString(), key = (int)kv.Value });
+        }
+        return data;
+    }
+
+    private void RestoreBindings(KeyBindingData data)
+    {
+        // 先铺默认,再用存档覆盖已知动作(忽略未知/已删动作,保证向后兼容)。
+        foreach (var kv in DefaultBindings) _bindings[kv.Key] = kv.Value;
+        if (data?.bindings != null)
+        {
+            foreach (var e in data.bindings)
+            {
+                if (Enum.TryParse(e.action, out InputAction action)) _bindings[action] = (KeyCode)e.key;
+            }
+        }
+        BindingsChanged?.Invoke();
     }
 
     public void Shutdown()
@@ -102,6 +183,8 @@ public class InputService : IGameService, ITickable
         OnMeleeDown = null;
         OnWeaponSelect = null;
         OnScroll = null;
+        BindingsChanged = null;
+        _bindingsHandle = null;
     }
 
     public void Tick(float dt)
@@ -118,9 +201,9 @@ public class InputService : IGameService, ITickable
 
         // UI / 交互键不属于战斗输入：CombatEnabled=false（背包等面板打开）时仍然有效，
         // 否则背包打开后就没法用 B 关掉了。
-        if (Input.GetKeyDown(KeyInteract)) OnInteractDown?.Invoke();
-        if (Input.GetKeyDown(KeyInteractWorld)) OnInteractWorldDown?.Invoke();
-        if (Input.GetKeyDown(KeyToggleBag)) OnToggleBagDown?.Invoke();
+        if (Input.GetKeyDown(GetBinding(InputAction.Interact))) OnInteractDown?.Invoke();
+        if (Input.GetKeyDown(GetBinding(InputAction.InteractWorld))) OnInteractWorldDown?.Invoke();
+        if (Input.GetKeyDown(GetBinding(InputAction.ToggleBag))) OnToggleBagDown?.Invoke();
 
         if (!CombatEnabled)
         {
@@ -141,19 +224,22 @@ public class InputService : IGameService, ITickable
         if (Input.GetMouseButtonDown(MouseAim)) OnAimDown?.Invoke();
         if (Input.GetMouseButtonUp(MouseAim)) OnAimUp?.Invoke();
 
-        SprintHeld = Input.GetKey(KeySprint);
-        if (Input.GetKeyDown(KeySprint)) OnSprintDown?.Invoke();
-        if (Input.GetKeyUp(KeySprint)) OnSprintUp?.Invoke();
+        var keySprint = GetBinding(InputAction.Sprint);
+        SprintHeld = Input.GetKey(keySprint);
+        if (Input.GetKeyDown(keySprint)) OnSprintDown?.Invoke();
+        if (Input.GetKeyUp(keySprint)) OnSprintUp?.Invoke();
 
-        CrouchHeld = Input.GetKey(KeyCrouch);
-        if (Input.GetKeyDown(KeyCrouch)) OnCrouchDown?.Invoke();
-        if (Input.GetKeyUp(KeyCrouch)) OnCrouchUp?.Invoke();
+        var keyCrouch = GetBinding(InputAction.Crouch);
+        CrouchHeld = Input.GetKey(keyCrouch);
+        if (Input.GetKeyDown(keyCrouch)) OnCrouchDown?.Invoke();
+        if (Input.GetKeyUp(keyCrouch)) OnCrouchUp?.Invoke();
 
-        JumpHeld = Input.GetKey(KeyJump);
-        if (Input.GetKeyDown(KeyJump)) OnJumpDown?.Invoke();
+        var keyJump = GetBinding(InputAction.Jump);
+        JumpHeld = Input.GetKey(keyJump);
+        if (Input.GetKeyDown(keyJump)) OnJumpDown?.Invoke();
 
-        if (Input.GetKeyDown(KeyReload)) OnReloadDown?.Invoke();
-        if (Input.GetKeyDown(KeyMelee)) OnMeleeDown?.Invoke();
+        if (Input.GetKeyDown(GetBinding(InputAction.Reload))) OnReloadDown?.Invoke();
+        if (Input.GetKeyDown(GetBinding(InputAction.Melee))) OnMeleeDown?.Invoke();
 
         for (int i = 0; i < WeaponSlotCount; i++)
         {
