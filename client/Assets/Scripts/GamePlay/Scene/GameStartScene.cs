@@ -15,11 +15,20 @@ public class GameStartScene : YSceneBase
     protected override void OnLoadingEnd()
     {
         base.OnLoadingEnd();
-        UI.Hide<StartPanel>();      
+        UI.Hide<StartPanel>();
         var manager = Context.Get<CharacterManager>();
         manager.GenneratePlayer();
 
-        SpawnChests();          // 玩家附近随机散布三种品质的宝箱
+        RegisterItemUseHandlers(); // 物品使用逻辑(gameplay 内容,放场景而非组装层)
+        SpawnChests();             // 玩家附近随机散布三种品质的宝箱
+    }
+
+    /// <summary>注册各消耗品的使用逻辑(按物品 id 绑处理器)。处理器内部延迟查找玩家,注册时机不要求玩家已就绪。</summary>
+    private void RegisterItemUseHandlers()
+    {
+        var bag = Context.Get<BagSystem>();
+        bag.RegisterUseHandler(1001, new HealItemUseHandler(Context, 30f));  // 小型治疗药水
+        bag.RegisterUseHandler(1002, new HealItemUseHandler(Context, 80f));  // 大型治疗药水
     }
 
     // ---------------- 宝箱刷新 ----------------

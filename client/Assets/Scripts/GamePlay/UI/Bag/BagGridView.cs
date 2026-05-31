@@ -185,15 +185,6 @@ public class BagGridView : MonoBehaviour
     public bool ContainsScreenPoint(Vector2 screen, Camera cam)
         => RectTransformUtility.RectangleContainsScreenPoint(Root, screen, cam);
 
-    /// <summary>屏幕点 → 格锚点(左上格坐标),按物品包围盒夹回界内。</summary>
-    public bool ScreenToAnchor(Vector2 screen, Camera cam, int itemId, int rotation, out int ax, out int ay)
-    {
-        ax = ay = 0;
-        if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(Root, screen, cam, out var local)) return false;
-        LocalToAnchor(local, itemId, rotation, out ax, out ay);
-        return true;
-    }
-
     /// <summary>
     /// 拖拽中物品控件的「左上角」→ 格锚点。控件 pivot 为左上(0,1),其 <c>position</c> 即左上角世界坐标;
     /// 转到本网格 Root 的局部坐标(与格布局 anchoredPosition 同基准)再换算。

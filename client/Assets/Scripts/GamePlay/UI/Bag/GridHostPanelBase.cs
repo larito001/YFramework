@@ -65,7 +65,6 @@ public abstract class GridHostPanelBase : UIPageBase, IGridHost
     private BagItemWidget dragWidget;
     private int dragRotation;
     private bool isDragging;
-    private BagGridView lastHoverGrid;
 
     // 菜单/拆分上下文(记住源网格 + 实例)
     private BagGridView ctxView;
@@ -114,6 +113,9 @@ public abstract class GridHostPanelBase : UIPageBase, IGridHost
         HideTooltip();
         foreach (var g in grids) if (g != null) g.Unbind();
         ReleaseIcons();
+        // 面板关闭是可靠的存档点(此后仍有帧让 StoreMgr 异步写盘协程跑完)。
+        // 不能只靠 BagSystem.Shutdown 存档——退出时 GameLoop 正在销毁,协程不再恢复,会丢档。
+        bagSystem?.Save();
     }
 
     private void ReleaseIcons()
@@ -225,8 +227,8 @@ public abstract class GridHostPanelBase : UIPageBase, IGridHost
 
     public void OnItemClick(BagGridView view, BagItemWidget widget)
     {
-        // 只有玩家背包的物品可「使用」(宝箱里的先拖回背包)
-        if (view.Bag == bagSystem.Bag) bagSystem.UseItem(widget.InstanceId);
+        // 左键单击不直接使用物品——使用只走右键菜单的「使用」项。
+        // 此处刻意留空(单击仅用于拖拽起手判定,见 BagItemWidget)。
     }
 
     /// <summary>双击:快速移到另一个网格。默认无另一网格(纯背包)→ 不处理;宝箱面板重写。</summary>

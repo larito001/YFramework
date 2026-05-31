@@ -8,7 +8,7 @@ using YFramework.Config;
 /// 持有玩家的 2D 网格空间背包 <see cref="GridBag"/>,对外提供放入/移动/交换/旋转/移除/使用等 API。
 ///
 /// **模型**:物品按配表形状(<c>Width/Height/Shape</c>,支持 L/T 等不规则多边形)占一组格子,
-/// **不堆叠**,可自由拖放、可 4 向旋转、拖到他人上可快速交换(类似暗黑/塔科夫)。
+/// 可叠加(<c>MaxStack</c>)、可自由拖放、可 4 向旋转、可合并/拆分、拖到他人上可快速交换(类似暗黑/塔科夫)。
 /// **数据来源**:全部走配表——<c>ConfigManager.itemConfig.Get(id)</c> 读 protobuf 生成的 <see cref="Item"/>,
 /// 不使用 ScriptableObject。
 /// **事件**:背包变化桥接到 <see cref="EventMgr"/> 的 <see cref="YOTOEventType.RefreshBagList"/>,UI 据此刷新。
@@ -167,7 +167,8 @@ public class BagSystem : IGameService
     public void UnregisterUseHandler(int itemId) => useHandlers.Remove(itemId);
 
     /// <summary>
-    /// 使用某实例:按物品 id 找处理器并调用,成功且为消耗品(Type==Consumable)时移除该实例。返回是否使用成功。
+    /// 使用某实例:按物品 id 找处理器并调用,成功且为消耗品(Type==Consumable)时**扣 1 个**
+    /// (堆叠物品减数量,扣到 0 才移除整堆)。返回是否使用成功。
     /// </summary>
     public bool UseItem(int instanceId)
     {
@@ -187,13 +188,15 @@ public class BagSystem : IGameService
         var context = new ItemUseContext { Item = cfg, Placed = item };
         if (!handler.OnUse(in context)) return false;
 
-        if ((ItemType)cfg.Type == ItemType.Consumable) bag.RemoveItem(instanceId);
+        // 消耗品使用成功只扣 1 个(堆叠物品减数量,扣到 0 才移除整堆),不再整堆删除。
+        if ((ItemType)cfg.Type == ItemType.Consumable) bag.ConsumeItem(instanceId, 1);
         return true;
     }
 
     // ---------------- 存档 ----------------
 
-    /// <summary>保存背包到本地文件(StoreMgr 异步写,JSON)。</summary>
+    /// <summary>保存背包到本地文件(StoreMgr 异步写,JSON)。
+    /// 由面板关闭时调用(可靠);Shutdown 也调但仅尽力而为——退出时协程可能来不及跑完。</summary>
     public void Save()
     {
         if (bag == null || dataContainer == null) return;

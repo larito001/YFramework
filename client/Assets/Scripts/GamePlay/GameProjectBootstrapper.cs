@@ -74,13 +74,9 @@ public static partial class GameBootstrapper
 
     static partial void RunProjectStartup(GameContext ctx)
     {
+        // 组装层只负责"显示首屏"。物品使用处理器等 gameplay 内容由 gameplay 层(场景)注册,
+        // 不在 composition root 里编码具体物品逻辑(见 GameStartScene)。
         ctx.Get<UIMgr>().Show<StartPanel>();
-
-        // 注册物品使用处理器（示例）：治疗药水按 id 绑回血量。
-        // 处理器内部延迟查找玩家，注册时机不要求玩家已 spawn。
-        var bag = ctx.Get<BagSystem>();
-        bag.RegisterUseHandler(1001, new HealItemUseHandler(ctx, 30f));  // 小型治疗药水
-        bag.RegisterUseHandler(1002, new HealItemUseHandler(ctx, 80f));  // 大型治疗药水
     }
 
     static partial void ConfigureProjectNetwork(MessageRegistry registry)

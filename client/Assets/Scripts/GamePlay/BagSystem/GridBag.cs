@@ -183,6 +183,23 @@ public class GridBag
         return true;
     }
 
+    /// <summary>从某堆扣除 <paramref name="amount"/> 个(默认 1)。扣到 0 移除整堆。返回实际扣除数。
+    /// 用于「使用消耗品」:叠了多个时只减数量,不删整堆。</summary>
+    public int ConsumeItem(int instanceId, int amount = 1)
+    {
+        var item = GetByInstance(instanceId);
+        if (item == null || amount <= 0) return 0;
+        int take = Math.Min(amount, item.count);
+        item.count -= take;
+        if (item.count <= 0)
+        {
+            Stamp(item, 0);
+            _items.Remove(item);
+        }
+        OnChanged?.Invoke();
+        return take;
+    }
+
     /// <summary>
     /// 从某堆拆出 <paramref name="amount"/> 个,新建一堆放到首个空位(优先沿原朝向)。
     /// 要求物品可叠加、amount 在 [1, count-1] 内、且有空位。成功返回新实例,否则 null(原堆不变)。
