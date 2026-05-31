@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using YFramework.Config;
 
 namespace YOTO
 {
@@ -19,6 +20,7 @@ namespace YOTO
 
         private EventMgr eventMgr;
         private StoreMgr store;
+        private ConfigManager config;
         private ISaveHandle saveHandle;
 
         // 余额表:币种 -> 数量。缺省视为 0,不为某币种显式建项也能查/加。
@@ -28,6 +30,7 @@ namespace YOTO
         {
             eventMgr = ctx.Get<EventMgr>();
             store = ctx.Get<StoreMgr>();
+            config = ctx.Get<ConfigManager>();
 
             // 一行接入存档:采集=钱包快照,还原=套用到钱包(无存档时收到空 data → 钱包清零)。
             saveHandle = store.Register(SaveKey, Capture, Restore);
@@ -41,12 +44,27 @@ namespace YOTO
             saveHandle = null;
             eventMgr = null;
             store = null;
+            config = null;
         }
 
         // ---------------- 查询 ----------------
 
         /// <summary>某币种当前数量(未持有返回 0)。</summary>
         public long Get(CurrencyType type) => balances.TryGetValue(type, out var v) ? v : 0;
+
+        /// <summary>币种显示名(来自 currency 配表;取不到回退枚举名)。</summary>
+        public string DisplayName(CurrencyType type)
+        {
+            var c = config?.currencyConfig.Get((uint)type);
+            return c != null && !string.IsNullOrEmpty(c.Name) ? c.Name : type.ToString();
+        }
+
+        /// <summary>币种图标路径(来自 currency 配表 iconPath;取不到回退空串)。</summary>
+        public string IconPath(CurrencyType type)
+        {
+            var c = config?.currencyConfig.Get((uint)type);
+            return c != null ? c.IconPath : string.Empty;
+        }
 
         /// <summary>某币种是否够 <paramref name="amount"/>(amount &lt;= 0 恒为 true)。</summary>
         public bool Has(CurrencyType type, long amount) => amount <= 0 || Get(type) >= amount;
@@ -114,7 +132,16 @@ namespace YOTO
                     balances[(CurrencyType)e.type] = e.amount < 0 ? 0 : e.amount;
                 }
             }
+            if (balances.Count == 0) SeedStarter(); // 新档发放初始资源,方便上手/测试商店
             eventMgr?.Trigger(YOTOEventType.RefreshCurrency);
+        }
+
+        /// <summary>新档初始资源。仅在无任何存档余额(全新槽)时发放一次;数值后续可调或改为运营发放。</summary>
+        private void SeedStarter()
+        {
+            balances[CurrencyType.Gold] = 1000;
+            balances[CurrencyType.Diamond] = 100;
+            balances[CurrencyType.Energy] = 50;
         }
     }
 

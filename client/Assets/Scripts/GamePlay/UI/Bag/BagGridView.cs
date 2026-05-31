@@ -6,7 +6,7 @@ using UnityEngine.UI;
 using YFramework.Config;
 
 /// <summary>
-/// 宿主接口:一个页面(背包 <see cref="BagPanel"/> / 宝箱 <see cref="ChestPanel"/>)实现它,
+/// 宿主接口:一个页面(背包 <see cref="BagPanel"/>)实现它,
 /// 协调若干 <see cref="BagGridView"/> 的拖拽(含跨网格转移)、点击/右键/悬停,并提供共享查询。
 /// </summary>
 public interface IGridHost

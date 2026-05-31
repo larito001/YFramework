@@ -60,7 +60,7 @@ public class BagSystem : IGameService
         useHandlers.Clear();
     }
 
-    /// <summary>B 键开/关背包:已开则关;否则先关宝箱面板(互斥)再开背包。</summary>
+    /// <summary>B 键开/关背包。</summary>
     private void ToggleBagPanel()
     {
         if (uiMgr == null) return;
@@ -69,7 +69,6 @@ public class BagSystem : IGameService
             uiMgr.Hide<BagPanel>();
             return;
         }
-        uiMgr.Hide<ChestPanel>(); // 背包与宝箱面板互斥,打开背包前先关宝箱
         uiMgr.Show<BagPanel>();
     }
 

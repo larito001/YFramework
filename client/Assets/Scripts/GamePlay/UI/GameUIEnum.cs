@@ -8,7 +8,6 @@ public enum UIEnum
     FinishPanel,
     SettingPanel,
     BagPanel,
-    ChestPanel,
     ConfirmPanel,
     ShopPanel,
     EquipPanel,

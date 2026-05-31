@@ -57,7 +57,7 @@ public class WorldInteractionSystem : IGameService, ITickable
         if (promptGo != null) Object.Destroy(promptGo);
     }
 
-    /// <summary>世界物体进场时注册(ChestEntity.OnEnable 调)。</summary>
+    /// <summary>世界物体进场时注册(IInteractable 物体的 OnEnable 调)。</summary>
     public void Register(IInteractable it)
     {
         if (it != null && !interactables.Contains(it)) interactables.Add(it);

@@ -6,24 +6,22 @@ using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
-/// 一键生成网格背包/宝箱 UI 预制体到 Resources/UI/Bag 下,供 UIMgr/ResMgr 按路径加载。
+/// 一键生成网格背包 UI 预制体到 Resources/UI/Bag 下,供 UIMgr/ResMgr 按路径加载。
 /// 程序化构建:Unity 自动解析脚本 GUID / TMP 字体,比手写 .prefab YAML 可靠;脚本字段引用在此接好。
 ///
 /// 菜单:Tools/Bag/Build Bag UI Prefabs
 /// 产物:
 ///   - BagItem.prefab        物品控件(BagItemWidget)
 ///   - BagPanel.prefab       纯背包面板(BagPanel:单网格)
-///   - ChestPanel.prefab     宝箱面板(ChestPanel:左背包 + 右宝箱 双网格)
-///   - InteractPrompt.prefab 世界交互提示("按 F 打开宝箱")
+///   - InteractPrompt.prefab 世界交互提示
 ///
-/// 共享 UI(右键菜单/拆分弹窗/tooltip)挂在 <see cref="GridHostPanelBase"/> 字段上,背包与宝箱面板都用。
+/// 共享 UI(右键菜单/拆分弹窗/tooltip)挂在 <see cref="GridHostPanelBase"/> 字段上。
 /// </summary>
 public static class BagPrefabBuilder
 {
     private const string Dir = "Assets/Resources/UI/Bag";
     private const string ItemPrefabPath = Dir + "/BagItem.prefab";
     private const string BagPanelPath = Dir + "/BagPanel.prefab";
-    private const string ChestPanelPath = Dir + "/ChestPanel.prefab";
     private const string PromptPath = Dir + "/InteractPrompt.prefab";
     private const string FontPath = "Assets/Art/Fonts/SIMHEI SDF.asset";
 
@@ -46,7 +44,6 @@ public static class BagPrefabBuilder
 
         var itemPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(ItemPrefabPath);
         BuildBagPanel(itemPrefab);
-        BuildChestPanel(itemPrefab);
         BuildPromptPrefab();
 
         AssetDatabase.SaveAssets();
@@ -107,58 +104,6 @@ public static class BagPrefabBuilder
         Debug.Log($"[BagPrefabBuilder] Built {BagPanelPath}");
     }
 
-    // ============================ 宝箱面板(双网格)============================
-
-    private static void BuildChestPanel(GameObject itemPrefab)
-    {
-        // 左:背包 10×8=800×640;右:宝箱(默认 8×6=640×480)。窗口 1760×900,左右各半 880 宽,
-        // 去边距后每半约 810,分别容纳 800/640 宽网格,左右两半不重叠。
-        var root = MakeWindowRoot("ChestPanel", new Vector2(1760, 900), out var window);
-
-        // 左半标题(只占左半,不越界压到右半)
-        var titleGo = NewUI("Title", out var titleRt, window.transform);
-        titleRt.anchorMin = new Vector2(0, 1); titleRt.anchorMax = new Vector2(0.5f, 1); titleRt.pivot = new Vector2(0, 1);
-        titleRt.anchoredPosition = new Vector2(40, -16); titleRt.sizeDelta = new Vector2(-60, 44);
-        NewText(titleGo, "背包", 26, TextAlignmentOptions.Left);
-
-        var closeBtn = BuildButton("CloseBtn", "X", window.transform,
-            new Vector2(1, 1), new Vector2(-36, -36), new Vector2(56, 56), new Color(0.5f, 0.2f, 0.2f, 1f));
-
-        // 宝箱侧标题(暖色,居中于右半;留出右上角关闭按钮),运行时填宝箱名
-        var ctGo = NewUI("ChestTitle", out var ctRt, window.transform);
-        ctRt.anchorMin = new Vector2(0.5f, 1); ctRt.anchorMax = new Vector2(1, 1); ctRt.pivot = new Vector2(0.5f, 1);
-        ctRt.anchoredPosition = new Vector2(-30, -16); ctRt.sizeDelta = new Vector2(-100, 44);
-        var chestTitle = NewText(ctGo, "宝箱", 26, TextAlignmentOptions.Center);
-        chestTitle.color = new Color(0.95f, 0.8f, 0.4f, 1f);
-
-        // 左半 = 背包:上留 90(标题) 下留 110
-        var leftArea = NewUI("LeftArea", out var laRt, window.transform);
-        laRt.anchorMin = new Vector2(0, 0); laRt.anchorMax = new Vector2(0.5f, 1);
-        laRt.offsetMin = new Vector2(40, 110); laRt.offsetMax = new Vector2(-30, -90);
-        var bagGrid = NewUI("BagGrid", out _, leftArea.transform).AddComponent<BagGridView>();
-        Stretch((RectTransform)bagGrid.transform, 0);
-
-        // 右半 = 宝箱(暖色背景板强化区分)
-        var rightArea = NewUI("RightArea", out var raRt, window.transform);
-        raRt.anchorMin = new Vector2(0.5f, 0); raRt.anchorMax = new Vector2(1, 1);
-        raRt.offsetMin = new Vector2(30, 110); raRt.offsetMax = new Vector2(-40, -90);
-        rightArea.AddComponent<Image>().color = new Color(0.18f, 0.14f, 0.10f, 0.5f);
-        var chestGrid = NewUI("ChestGrid", out _, rightArea.transform).AddComponent<BagGridView>();
-        Stretch((RectTransform)chestGrid.transform, 0);
-
-        var panel = root.AddComponent<ChestPanel>();
-        panel.canvasGroup = root.GetComponent<CanvasGroup>();
-        panel.uiType = UIEnum.ChestPanel;
-        panel.bagGrid = bagGrid;
-        panel.chestGrid = chestGrid;
-        panel.chestTitle = chestTitle;
-        panel.closeBtn = closeBtn;
-        ApplyHostCommon(panel, itemPrefab, root.transform);
-
-        PrefabUtility.SaveAsPrefabAsset(root, ChestPanelPath);
-        Object.DestroyImmediate(root);
-        Debug.Log($"[BagPrefabBuilder] Built {ChestPanelPath}");
-    }
 
     // ============================ 交互提示 ============================
 

@@ -72,7 +72,7 @@ public class EquipPanel : UIPageBase
     private void RefreshCoin()
     {
         if (coinText == null || currency == null) return;
-        coinText.text = $"金币 {currency.Get(CurrencyType.Gold)}\n钻石 {currency.Get(CurrencyType.Diamond)}";
+        coinText.text = $"{currency.DisplayName(CurrencyType.Gold)} {currency.Get(CurrencyType.Gold)}\n{currency.DisplayName(CurrencyType.Diamond)} {currency.Get(CurrencyType.Diamond)}";
     }
 
     // ---------------- 卡片网格 ----------------

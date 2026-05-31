@@ -70,7 +70,6 @@ public static partial class GameBootstrapper
         var aStarManager = new YAStarManager(ctx.Get<SceneReferenceService>(), ctx.Get<ResMgr>());
         ctx.Register(aStarManager);
         RegisterProjectServices(ctx);
-        Debug.Log(ctx.Get<ConfigManager>().heroConfig.Get(1001).HeroName);
 
         return ctx;
     }

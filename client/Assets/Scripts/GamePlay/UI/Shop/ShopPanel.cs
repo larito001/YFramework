@@ -81,7 +81,7 @@ public class ShopPanel : UIPageBase
     private void RefreshCoin()
     {
         if (coinText == null || currency == null) return;
-        coinText.text = $"金币 {currency.Get(CurrencyType.Gold)}\n钻石 {currency.Get(CurrencyType.Diamond)}";
+        coinText.text = $"{currency.DisplayName(CurrencyType.Gold)} {currency.Get(CurrencyType.Gold)}\n{currency.DisplayName(CurrencyType.Diamond)} {currency.Get(CurrencyType.Diamond)}";
     }
 
     // ---------------- 分类页签 ----------------
@@ -144,7 +144,7 @@ public class ShopPanel : UIPageBase
         var price = NewChild(card.transform, "Price", out var priceRt);
         priceRt.anchorMin = new Vector2(0, 0); priceRt.anchorMax = new Vector2(1, 0); priceRt.pivot = new Vector2(0.5f, 0);
         priceRt.offsetMin = new Vector2(6, 10); priceRt.offsetMax = new Vector2(-6, 60);
-        NewText(price, $"{CurrencyName((CurrencyType)item.PriceType)} {item.Price}", 30, TextAlignmentOptions.Center, new Color(1f, 0.83f, 0.47f, 1f));
+        NewText(price, $"{currency.DisplayName((CurrencyType)item.PriceType)} {item.Price}", 30, TextAlignmentOptions.Center, new Color(1f, 0.83f, 0.47f, 1f));
     }
 
     // ---------------- 准备(打开装备界面)----------------
@@ -176,16 +176,5 @@ public class ShopPanel : UIPageBase
         tmp.overflowMode = TextOverflowModes.Ellipsis;
         var f = font != null ? font : TMP_Settings.defaultFontAsset;
         if (f != null) tmp.font = f;
-    }
-
-    private static string CurrencyName(CurrencyType type)
-    {
-        switch (type)
-        {
-            case CurrencyType.Gold: return "金币";
-            case CurrencyType.Diamond: return "钻石";
-            case CurrencyType.Energy: return "体力";
-            default: return type.ToString();
-        }
     }
 }
