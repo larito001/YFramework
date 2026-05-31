@@ -132,12 +132,18 @@ store.WhenSlotsReady(() =>
 });
 ```
 
+> **务必在 `WhenSlotsReady` 回调里做增删槽**:`CreateSlot` / `DeleteSlot` 在清单读入前调用会被拒绝(返回 null / 无操作并告警),
+> 因为那时还不知道磁盘上已有哪些槽,贸然新建会和异步读回的清单互相覆盖丢档。`Slots` 增删时会触发 `store.SlotsChanged` 事件,UI 可据此刷新。
+
 开始界面的接法（`StartPanel` / `SaveSlotPanel` 已按此实现）：
 
 ```csharp
-// 新游戏:开一个新空槽(即激活)→ LoadAll(空槽无文件 → 进度系统 restore 收 new T() 重置)→ 进场景
-store.CreateSlot();
-store.LoadAll(() => sceneManager.SwitchScene(YSceneType.Home));
+// 新游戏:就绪后开一个新空槽(即激活)→ LoadAll(空槽无文件 → 进度系统 restore 收 new T() 重置)→ 进场景
+store.WhenSlotsReady(() =>
+{
+    store.CreateSlot();
+    store.LoadAll(() => sceneManager.SwitchScene(YSceneType.Home));
+});
 
 // 读取某存档:激活该槽 → LoadAll 读该槽进度 → 进场景
 store.SetActiveSlot(slotId);

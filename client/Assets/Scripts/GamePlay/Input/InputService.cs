@@ -12,10 +12,18 @@ using UnityEngine;
 ///
 /// IsEnabled = false 时 Move/LookDelta 归零、状态归 false、事件不再触发；
 /// 重新启用前正在按下的键，下次 GetKeyUp 仍会触发 Up 事件（Unity 输入层负责）。
+///
+/// CombatEnabled = false 时只屏蔽“战斗相关”输入（移动/视角/滚轮/开火/瞄准/冲刺/蹲/跳/
+/// 换弹/近战技能/选武器），但保留 UI/交互键（B 开关背包、E 交互、F 世界交互）——
+/// 这样背包等面板打开时玩家仍能用 B 把它关掉。由 <see cref="CombatInputGate"/> 按 UI 状态驱动。
 /// </summary>
 public class InputService : IGameService, ITickable
 {
+    /// <summary>输入总开关。false 时连 UI/交互键一并屏蔽。</summary>
     public bool IsEnabled { get; set; } = true;
+
+    /// <summary>战斗输入闸门。false 时仅屏蔽战斗子集，UI/交互键仍有效（见类注释）。</summary>
+    public bool CombatEnabled { get; set; } = true;
 
     /// <summary>鼠标视角整体灵敏度倍率，AimController 可在瞄准时再叠一层缩放。</summary>
     public float LookSensitivity { get; set; } = 1f;
@@ -100,22 +108,29 @@ public class InputService : IGameService, ITickable
     {
         if (!IsEnabled)
         {
-            Move = Vector2.zero;
-            LookDelta = Vector2.zero;
-            ScrollDelta = 0f;
+            ZeroCombatState();
             // MousePosition 不归零，UI/瞄准在 disable 时仍可能需要读光标位置
-            FireHeld = false;
-            AimHeld = false;
-            SprintHeld = false;
-            CrouchHeld = false;
-            JumpHeld = false;
+            return;
+        }
+
+        // 光标位置任何时候都更新（UI 拖拽 / 瞄准都要读）。
+        MousePosition = Input.mousePosition;
+
+        // UI / 交互键不属于战斗输入：CombatEnabled=false（背包等面板打开）时仍然有效，
+        // 否则背包打开后就没法用 B 关掉了。
+        if (Input.GetKeyDown(KeyInteract)) OnInteractDown?.Invoke();
+        if (Input.GetKeyDown(KeyInteractWorld)) OnInteractWorldDown?.Invoke();
+        if (Input.GetKeyDown(KeyToggleBag)) OnToggleBagDown?.Invoke();
+
+        if (!CombatEnabled)
+        {
+            ZeroCombatState();
             return;
         }
 
         Move = new Vector2(Input.GetAxisRaw(AxisMoveX), Input.GetAxisRaw(AxisMoveY));
         LookDelta = new Vector2(Input.GetAxis(AxisLookX), Input.GetAxis(AxisLookY)) * LookSensitivity;
         ScrollDelta = Input.GetAxis(AxisScroll);
-        MousePosition = Input.mousePosition;
         if (ScrollDelta != 0f) OnScroll?.Invoke(ScrollDelta);
 
         FireHeld = Input.GetMouseButton(MouseFire);
@@ -138,9 +153,6 @@ public class InputService : IGameService, ITickable
         if (Input.GetKeyDown(KeyJump)) OnJumpDown?.Invoke();
 
         if (Input.GetKeyDown(KeyReload)) OnReloadDown?.Invoke();
-        if (Input.GetKeyDown(KeyInteract)) OnInteractDown?.Invoke();
-        if (Input.GetKeyDown(KeyInteractWorld)) OnInteractWorldDown?.Invoke();
-        if (Input.GetKeyDown(KeyToggleBag)) OnToggleBagDown?.Invoke();
         if (Input.GetKeyDown(KeyMelee)) OnMeleeDown?.Invoke();
 
         for (int i = 0; i < WeaponSlotCount; i++)
@@ -148,6 +160,19 @@ public class InputService : IGameService, ITickable
             if (Input.GetKeyDown(KeyCode.Alpha1 + i))
                 OnWeaponSelect?.Invoke(i);
         }
+    }
+
+    /// <summary>把所有“战斗相关”的连续值与持续按住状态清零（IsEnabled / CombatEnabled 关闭时共用）。</summary>
+    private void ZeroCombatState()
+    {
+        Move = Vector2.zero;
+        LookDelta = Vector2.zero;
+        ScrollDelta = 0f;
+        FireHeld = false;
+        AimHeld = false;
+        SprintHeld = false;
+        CrouchHeld = false;
+        JumpHeld = false;
     }
 
     /// <summary>

@@ -329,6 +329,9 @@ namespace YOTO
         /// <summary>存档槽清单是否已从磁盘读入。</summary>
         public bool SlotsReady => _manifestLoaded;
 
+        /// <summary>存档槽增删时触发(新建/删除)。UI 据此刷新"读取存档"按钮等状态。</summary>
+        public event Action SlotsChanged;
+
         /// <summary>清单就绪后回调(已就绪则立即回调)。读档界面在 OnShow 里用它再刷新列表。</summary>
         public void WhenSlotsReady(Action onReady)
         {
@@ -336,40 +339,57 @@ namespace YOTO
             if (onReady != null) _pendingReady.Add(onReady);
         }
 
-        /// <summary>新建一个空存档槽并设为激活(用于"新游戏")。返回槽信息。</summary>
+        /// <summary>
+        /// 新建一个空存档槽并设为激活(用于"新游戏")。返回槽信息;清单尚未读入则拒绝并返回 null。
+        /// 必须在 <see cref="WhenSlotsReady"/> 之后调用——否则无法得知磁盘上已有哪些槽,贸然新建会与异步读回的清单互相覆盖。
+        /// </summary>
         public SaveSlotInfo CreateSlot()
         {
-            EnsureManifest();
+            if (!RequireSlotsLoaded(nameof(CreateSlot))) return null;
             var info = new SaveSlotInfo { id = _manifest.nextId++, createdUnix = NowUnix(), lastPlayedUnix = NowUnix() };
             _manifest.slots.Add(info);
             _activeSlot = info.id;
             PersistManifest();
+            SlotsChanged?.Invoke();
             return info;
         }
 
         /// <summary>切换激活存档槽(用于"读取某存档")。之后 <see cref="LoadAll"/> 会读该槽数据。</summary>
         public void SetActiveSlot(int slotId) => _activeSlot = slotId;
 
-        /// <summary>删除存档槽:抹掉它的所有 Progress 落盘文件并从清单移除。</summary>
+        /// <summary>删除存档槽:抹掉它的所有 Progress 落盘文件并从清单移除。清单未就绪则拒绝(见 <see cref="CreateSlot"/>)。</summary>
         public void DeleteSlot(int slotId)
         {
-            if (_manifest == null) return;
+            if (!RequireSlotsLoaded(nameof(DeleteSlot))) return;
             if (_storage != null)
             {
+                // 按当前已注册的进度键删盘;若历史曾有现已移除的进度系统,其旧文件不在此列(孤儿档),需要时单独清理。
                 foreach (var h in _handles)
                 {
-                    if (h.Category == SaveCategory.Progress) _storage.Delete($"slot{slotId}_{h.Key}");
+                    if (h.Category == SaveCategory.Progress) _storage.Delete(SlotKey(slotId, h.Key));
                 }
             }
             _manifest.slots.RemoveAll(s => s.id == slotId);
             if (_activeSlot == slotId) _activeSlot = 0;
             PersistManifest();
+            SlotsChanged?.Invoke();
         }
 
         /// <summary>Progress 键按激活槽加前缀;Settings 永远全局。槽=0(未选择)时也走全局键。</summary>
         internal string EffectiveKey(string key, SaveCategory category)
         {
-            return category == SaveCategory.Progress && _activeSlot > 0 ? $"slot{_activeSlot}_{key}" : key;
+            return category == SaveCategory.Progress && _activeSlot > 0 ? SlotKey(_activeSlot, key) : key;
+        }
+
+        /// <summary>进度数据按槽隔离的落盘键格式。EffectiveKey 与 DeleteSlot 共用,避免两处格式漂移。</summary>
+        private static string SlotKey(int slotId, string key) => $"slot{slotId}_{key}";
+
+        /// <summary>存档槽变更类操作的前置校验:清单未读入时拒绝并告警(防与异步读回的清单互相覆盖导致丢档)。</summary>
+        private bool RequireSlotsLoaded(string op)
+        {
+            if (_manifestLoaded) return true;
+            Debug.LogError($"[StoreMgr] {op} 在存档槽清单就绪前被调用,已忽略。请放到 WhenSlotsReady 回调里。");
+            return false;
         }
 
         /// <summary>某份进度存档刚写盘:更新激活槽的"最后游玩时间"(同一秒内多次只持久化一次)。</summary>
@@ -393,12 +413,6 @@ namespace YOTO
                 if (list[i].id == id) return list[i];
             }
             return null;
-        }
-
-        private void EnsureManifest()
-        {
-            if (_manifest == null) _manifest = new SaveSlotManifest();
-            if (_manifest.slots == null) _manifest.slots = new List<SaveSlotInfo>();
         }
 
         private void PersistManifest()
@@ -477,6 +491,7 @@ namespace YOTO
             _handles.Clear();
             _byKey.Clear();
             _pendingReady.Clear();
+            SlotsChanged = null;
             _manifest = null;
             _manifestLoaded = false;
             _activeSlot = 0;

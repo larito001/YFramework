@@ -65,19 +65,26 @@ public class StartPanel : UIPageBase
     public override void OnShow()
     {
         busy = false;
-        // 无任何存档槽时禁用「读取存档」(存档槽清单异步读入,就绪后再判定)。
-        if (btn_continue != null)
+        // 无任何存档槽时禁用「读取存档」(清单异步读入,就绪后判定);
+        // 订阅 SlotsChanged:读档界面叠在本界面上删档后,本界面 OnShow 不会重跑,靠事件刷新按钮。
+        if (btn_continue != null) btn_continue.interactable = false;
+        if (store != null)
         {
-            btn_continue.interactable = false;
-            store?.WhenSlotsReady(() =>
-            {
-                if (btn_continue != null) btn_continue.interactable = store.Slots.Count > 0;
-            });
+            store.SlotsChanged -= RefreshContinue;
+            store.SlotsChanged += RefreshContinue;
+            store.WhenSlotsReady(RefreshContinue);
         }
     }
 
     public override void OnHide()
     {
+        if (store != null) store.SlotsChanged -= RefreshContinue;
+    }
+
+    private void RefreshContinue()
+    {
+        if (btn_continue == null) return;
+        btn_continue.interactable = store != null && store.SlotsReady && store.Slots.Count > 0;
     }
 
     public override void OnResize()
