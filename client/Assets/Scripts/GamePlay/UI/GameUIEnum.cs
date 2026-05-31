@@ -11,4 +11,5 @@ public enum UIEnum
     ChestPanel,
     ConfirmPanel,
     ShopPanel,
+    EquipPanel,
 }

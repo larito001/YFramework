@@ -61,8 +61,11 @@ public static partial class GameBootstrapper
         ctx.Register(new BagSystem());
         // 宝箱系统在 BagSystem 之后注册：Init 里 ctx.Get<BagSystem>() 复用其物品配置。
         ctx.Register(new ChestSystem());
-        // 商店系统:撮合 CurrencySystem(钱包)与 BagSystem(物品),目录读 item 配表 price>0 的物品。
-        // 注册在二者之后,Init 里 ctx.Get 取得它们 + ConfigManager。
+        // 装备系统:管理已拥有装备 + 每类出战选择(枪械/瞄准镜/子弹),读 item 配表 shopCategory。
+        // 注册在 ShopSystem 之前:商店购买分类商品时 Grant 给它解锁。
+        ctx.Register(new LoadoutSystem());
+        // 商店系统:撮合 CurrencySystem(钱包)与 BagSystem/LoadoutSystem(物品/装备),目录读 item 配表 price>0 的物品。
+        // 注册在其依赖之后,Init 里 ctx.Get 取得它们 + ConfigManager。
         ctx.Register(new ShopSystem());
         // 世界交互（靠近宝箱 + F 打开）：Init 只订阅 InputService 的 F 键，靠近参照点用主相机（旧 TPS 玩家系统已移除）。
         ctx.Register(new WorldInteractionSystem());
@@ -87,6 +90,7 @@ public static partial class GameBootstrapper
         uiConfig.Register<BagPanel>(UIEnum.BagPanel, UILayerEnum.Normal, "UI/Bag/BagPanel");
         uiConfig.Register<ChestPanel>(UIEnum.ChestPanel, UILayerEnum.Normal, "UI/Bag/ChestPanel");
         uiConfig.Register<ShopPanel>(UIEnum.ShopPanel, UILayerEnum.Normal, "UI/Shop/ShopPanel");
+        uiConfig.Register<EquipPanel>(UIEnum.EquipPanel, UILayerEnum.Normal, "UI/Equip/EquipPanel");
         // 通用确认弹窗:放 Top 层,叠在普通界面之上。通过 ConfirmParam 传标题/内容/回调。
         uiConfig.Register<ConfirmPanel>(UIEnum.ConfirmPanel, UILayerEnum.Top, "UI/Common/ConfirmPanel");
     }

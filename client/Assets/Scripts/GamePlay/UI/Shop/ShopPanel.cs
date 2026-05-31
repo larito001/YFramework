@@ -8,7 +8,7 @@ using YOTO;
 /// 商店面板(<see cref="UIEnum.ShopPanel"/>):分类页签 + 3 列卡片网格。
 ///   顶部:返回(关闭) / 资源金币 / 商人头像
 ///   中部:当前分类的卡片网格(图片 + 名称 + 价格;绿=买得起,灰=买不起,点击即购买)
-///   底部:武器 / 瞄准镜 / 子弹 三个分类页签 + 准备(进入游戏)
+///   底部:武器 / 瞄准镜 / 子弹 三个分类页签 + 准备(打开装备界面 <see cref="EquipPanel"/>)
 /// 目录与撮合在 <see cref="ShopSystem"/>(按 <see cref="ShopCategory"/> 过滤);卡片运行时按目录构建。
 /// 余额变化(RefreshCurrency)时刷新金币与各卡买得起/买不起。预制体外壳由 <c>Tools/UI/Build ShopPanel Prefab</c> 生成。
 /// </summary>
@@ -35,19 +35,16 @@ public class ShopPanel : UIPageBase
 
     private ShopSystem shop;
     private CurrencySystem currency;
-    private StoreMgr store;
     private ResMgr resMgr;
     private EventMgr eventMgr;
     private TMP_FontAsset font;
 
     private ShopCategory current = ShopCategory.Weapon;
-    private bool busy; // 准备进游戏防重复点击
 
     public override void OnLoad()
     {
         shop = GetService<ShopSystem>();
         currency = GetService<CurrencySystem>();
-        store = GetService<StoreMgr>();
         resMgr = GetService<ResMgr>();
         eventMgr = GetService<EventMgr>();
         if (coinText != null) font = coinText.font; // 复用外壳的中文字体给运行时卡片
@@ -61,7 +58,6 @@ public class ShopPanel : UIPageBase
 
     public override void OnShow()
     {
-        busy = false;
         eventMgr?.Add(YOTOEventType.RefreshCurrency, OnCurrencyChanged);
         SelectCategory(ShopCategory.Weapon);
         RefreshCoin();
@@ -151,23 +147,11 @@ public class ShopPanel : UIPageBase
         NewText(price, $"{CurrencyName((CurrencyType)item.PriceType)} {item.Price}", 30, TextAlignmentOptions.Center, new Color(1f, 0.83f, 0.47f, 1f));
     }
 
-    // ---------------- 准备(进入游戏)----------------
+    // ---------------- 准备(打开装备界面)----------------
 
     private void OnPrepare()
     {
-        if (busy) return;
-        busy = true;
-        if (store == null)
-        {
-            GetService<YSceneManager>().SwitchScene(YSceneType.Home);
-            return;
-        }
-        store.WhenSlotsReady(() =>
-        {
-            if (store.Slots.Count == 0) store.CreateSlot();
-            else if (store.ActiveSlot == 0) store.SetActiveSlot(store.Slots[store.Slots.Count - 1].id);
-            store.LoadAll(() => GetService<YSceneManager>().SwitchScene(YSceneType.Home));
-        });
+        Show<EquipPanel>();
     }
 
     // ---------------- 工具 ----------------

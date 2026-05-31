@@ -7,8 +7,8 @@ using UnityEngine.UI;
 
 /// <summary>
 /// 一键生成设置界面预制体 SettingPanel.prefab(覆盖旧的)到 Resources/UI/Setting 下。
-/// 生成骨架:全屏遮罩 + 居中窗口 + 标题 + 三个页签按钮(声音/按键/画面)+ 三个页签容器(各挂对应 Tab 组件)+ 返回。
-/// 页签内部控件由各 <see cref="SettingTabBase"/> 子类在运行时构建,这里只接好骨架字段与字体。
+/// 竖屏单页:全屏遮罩 + 居中竖向窗口 + 标题「设置」+ 声音页签容器(<see cref="SoundSettingsTab"/>,运行时构建控件)+ 返回。
+/// 只保留声音设置;按键 / 画面页签已移除。尺寸按"画布宽恒为 1920 单位"(CanvasScaler match=width)给。
 ///
 /// 菜单:Tools/UI/Build SettingPanel Prefab
 /// </summary>
@@ -33,81 +33,42 @@ public static class SettingPanelBuilder
         var cg = root.AddComponent<CanvasGroup>();
         root.AddComponent<YOTOUIShow>();
 
-        // ---------- 窗口 ----------
+        // ---------- 竖向窗口(居中)----------
         var window = NewUI("Window", out var winRt, root.transform);
         winRt.anchorMin = winRt.anchorMax = winRt.pivot = new Vector2(0.5f, 0.5f);
-        winRt.sizeDelta = new Vector2(1120, 820);
+        winRt.sizeDelta = new Vector2(1400, 1900);
         window.AddComponent<Image>().color = new Color(0.12f, 0.13f, 0.16f, 0.98f);
 
         // ---------- 标题 ----------
         var titleGo = NewUI("Title", out var titleRt, window.transform);
         titleRt.anchorMin = new Vector2(0, 1); titleRt.anchorMax = new Vector2(1, 1); titleRt.pivot = new Vector2(0.5f, 1);
-        titleRt.anchoredPosition = new Vector2(0, -16); titleRt.sizeDelta = new Vector2(-40, 56);
-        NewText(titleGo, "设置", 38, TextAlignmentOptions.Center);
+        titleRt.anchoredPosition = new Vector2(0, -30); titleRt.sizeDelta = new Vector2(-60, 110);
+        NewText(titleGo, "设置", 60, TextAlignmentOptions.Center);
 
-        // ---------- 页签按钮 ----------
-        var soundBtn = BuildTabButton("TabSound", "声音", window.transform, -280);
-        var keyBtn = BuildTabButton("TabKey", "按键", window.transform, 0);
-        var gfxBtn = BuildTabButton("TabGraphics", "画面", window.transform, 280);
-
-        // ---------- 页签容器(填内容区,默认隐藏)----------
-        var soundTab = BuildTabContainer<SoundSettingsTab>("SoundTab", window.transform);
-        var keyTab = BuildTabContainer<KeybindingTab>("KeyTab", window.transform);
-        var gfxTab = BuildTabContainer<GraphicsSettingsTab>("GraphicsTab", window.transform);
+        // ---------- 声音页签容器(填内容区)----------
+        var soundTab = NewUI("SoundTab", out var soundRt, window.transform);
+        soundRt.anchorMin = new Vector2(0, 0); soundRt.anchorMax = new Vector2(1, 1);
+        soundRt.offsetMin = new Vector2(40, 190);  // 下留返回按钮
+        soundRt.offsetMax = new Vector2(-40, -160); // 上留标题
+        var tab = soundTab.AddComponent<SoundSettingsTab>();
+        tab.font = _font;
 
         // ---------- 返回 ----------
         var backBtn = BuildButton("BackBtn", "返回", window.transform,
-            new Vector2(0.5f, 0), new Vector2(0, 36), new Vector2(220, 60), new Color(0.3f, 0.32f, 0.4f, 1f));
+            new Vector2(0.5f, 0), new Vector2(0, 60), new Vector2(360, 120), new Color(0.3f, 0.32f, 0.4f, 1f), 44);
 
         // ---------- 接脚本字段 ----------
         var panel = root.AddComponent<SettingPanel>();
         panel.canvasGroup = cg;
         panel.uiType = UIEnum.SettingPanel;
         panel.backBtn = backBtn;
-        panel.tabSoundBtn = soundBtn;
-        panel.tabKeyBtn = keyBtn;
-        panel.tabGraphicsBtn = gfxBtn;
         panel.soundTab = soundTab;
-        panel.keyTab = keyTab;
-        panel.graphicsTab = gfxTab;
-
-        soundTab.SetActive(false);
-        keyTab.SetActive(false);
-        gfxTab.SetActive(false);
 
         PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
         Object.DestroyImmediate(root);
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
         Debug.Log($"[SettingPanelBuilder] Built {PrefabPath}");
-    }
-
-    // ============================ 构件 ============================
-
-    private static Button BuildTabButton(string name, string label, Transform parent, float x)
-    {
-        var go = NewUI(name, out var rt, parent);
-        rt.anchorMin = new Vector2(0.5f, 1); rt.anchorMax = new Vector2(0.5f, 1); rt.pivot = new Vector2(0.5f, 1);
-        rt.anchoredPosition = new Vector2(x, -86); rt.sizeDelta = new Vector2(240, 56);
-        var img = go.AddComponent<Image>();
-        img.color = new Color(0.25f, 0.27f, 0.33f, 1f);
-        var btn = go.AddComponent<Button>();
-        btn.targetGraphic = img;
-        var lbl = NewUI("Label", out var lblRt, go.transform);
-        Stretch(lblRt);
-        NewText(lbl, label, 26, TextAlignmentOptions.Center);
-        return btn;
-    }
-
-    private static GameObject BuildTabContainer<T>(string name, Transform parent) where T : SettingTabBase
-    {
-        var go = NewUI(name, out var rt, parent);
-        // 内容区:上留 160(标题+页签),下留 110(返回),左右 30
-        rt.anchorMin = new Vector2(0, 0); rt.anchorMax = new Vector2(1, 1);
-        rt.offsetMin = new Vector2(30, 110); rt.offsetMax = new Vector2(-30, -160);
-        var tab = go.AddComponent<T>();
-        tab.font = _font;
-        return go;
     }
 
     // ============================ 工具 ============================
@@ -140,7 +101,7 @@ public static class SettingPanelBuilder
     }
 
     private static Button BuildButton(string name, string label, Transform parent,
-        Vector2 anchor, Vector2 anchoredPos, Vector2 size, Color color)
+        Vector2 anchor, Vector2 anchoredPos, Vector2 size, Color color, float fontSize)
     {
         var go = NewUI(name, out var rt, parent);
         rt.anchorMin = rt.anchorMax = rt.pivot = anchor;
@@ -152,7 +113,7 @@ public static class SettingPanelBuilder
         btn.targetGraphic = img;
         var lbl = NewUI("Label", out var lblRt, go.transform);
         Stretch(lblRt);
-        NewText(lbl, label, 26, TextAlignmentOptions.Center);
+        NewText(lbl, label, fontSize, TextAlignmentOptions.Center);
         return btn;
     }
 }

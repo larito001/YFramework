@@ -18,6 +18,7 @@ namespace YOTO
         private ConfigManager config;
         private CurrencySystem currency;
         private BagSystem bag;
+        private LoadoutSystem loadout;
 
         private readonly List<Item> catalog = new();
 
@@ -40,6 +41,7 @@ namespace YOTO
             config = ctx.Get<ConfigManager>();
             currency = ctx.Get<CurrencySystem>();
             bag = ctx.Get<BagSystem>();
+            loadout = ctx.Get<LoadoutSystem>();
             BuildCatalog();
         }
 
@@ -49,6 +51,7 @@ namespace YOTO
             config = null;
             currency = null;
             bag = null;
+            loadout = null;
         }
 
         private void BuildCatalog()
@@ -79,8 +82,8 @@ namespace YOTO
         // ---------------- 购买 ----------------
 
         /// <summary>
-        /// 购买:先扣货币再放背包。货币不足直接失败;背包放不下时,放不下的部分按单价退款(已放入的保留)。
-        /// 返回是否至少买入 1 个。
+        /// 购买。分类商品(枪械/瞄准镜/子弹)为一次性**装备解锁**:已拥有则不再出售,买成功后 <see cref="LoadoutSystem.Grant"/>;
+        /// 其余商品扣货币后放背包,背包放不下的部分按单价退款。货币不足直接失败。返回是否购买成功。
         /// </summary>
         public bool Buy(int itemId, int count = 1)
         {
@@ -92,12 +95,26 @@ namespace YOTO
                 return false;
             }
 
+            bool isEquip = item.ShopCategory != 0;
+            if (isEquip && loadout != null && loadout.IsOwned(itemId))
+            {
+                Debug.Log($"[ShopSystem] 已拥有该装备,无需重复购买: id={itemId}");
+                return false;
+            }
+
             var type = (CurrencyType)item.PriceType;
-            long cost = PriceOf(item, count);
+            // 装备按解锁价(单件),其余按数量计价
+            long cost = isEquip ? item.Price : PriceOf(item, count);
             if (!currency.TrySpend(type, cost))
             {
-                Debug.Log($"[ShopSystem] {type} 不足,购买失败: id={itemId} x{count}(需 {cost})");
+                Debug.Log($"[ShopSystem] {type} 不足,购买失败: id={itemId}(需 {cost})");
                 return false;
+            }
+
+            if (isEquip)
+            {
+                loadout?.Grant(itemId); // 解锁装备(进入 LoadoutSystem,不占空间背包)
+                return true;
             }
 
             int leftover = bag.AddItem(itemId, count); // 触发 RefreshBagList

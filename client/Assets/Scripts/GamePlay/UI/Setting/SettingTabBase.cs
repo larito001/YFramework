@@ -64,8 +64,8 @@ public abstract class SettingTabBase : MonoBehaviour
         contentRt.anchoredPosition = Vector2.zero; contentRt.sizeDelta = Vector2.zero;
 
         var vlg = contentGo.AddComponent<VerticalLayoutGroup>();
-        vlg.spacing = 12;
-        vlg.padding = new RectOffset(28, 28, 24, 24);
+        vlg.spacing = 24;
+        vlg.padding = new RectOffset(40, 40, 32, 32);
         vlg.childAlignment = TextAnchor.UpperCenter;
         vlg.childControlWidth = true;
         vlg.childControlHeight = true;
@@ -101,7 +101,7 @@ public abstract class SettingTabBase : MonoBehaviour
     }
 
     /// <summary>一行(水平布局),高度固定。</summary>
-    protected GameObject NewRow(Transform parent, float height = 56)
+    protected GameObject NewRow(Transform parent, float height = 100)
     {
         var go = NewUI("Row", parent);
         var hlg = go.AddComponent<HorizontalLayoutGroup>();
@@ -154,21 +154,21 @@ public abstract class SettingTabBase : MonoBehaviour
     {
         var go = NewUI("Slider", parent);
         var le = go.AddComponent<LayoutElement>();
-        le.flexibleWidth = 1; le.minWidth = 240; le.preferredHeight = 28;
+        le.flexibleWidth = 1; le.minWidth = 360; le.preferredHeight = 52;
         var slider = go.AddComponent<Slider>();
 
         var bg = NewImage(go.transform, "Background", new Color(0.3f, 0.3f, 0.35f, 1f));
         var bgRt = bg.rectTransform; bgRt.anchorMin = new Vector2(0, 0.3f); bgRt.anchorMax = new Vector2(1, 0.7f); bgRt.offsetMin = Vector2.zero; bgRt.offsetMax = Vector2.zero;
 
         var fillArea = NewUI("Fill Area", go.transform); var faRt = (RectTransform)fillArea.transform;
-        faRt.anchorMin = new Vector2(0, 0.25f); faRt.anchorMax = new Vector2(1, 0.75f); faRt.offsetMin = new Vector2(6, 0); faRt.offsetMax = new Vector2(-6, 0);
+        faRt.anchorMin = new Vector2(0, 0.25f); faRt.anchorMax = new Vector2(1, 0.75f); faRt.offsetMin = new Vector2(10, 0); faRt.offsetMax = new Vector2(-10, 0);
         var fill = NewImage(fillArea.transform, "Fill", new Color(0.4f, 0.6f, 0.9f, 1f));
-        var fillRt = fill.rectTransform; fillRt.anchorMin = new Vector2(0, 0); fillRt.anchorMax = new Vector2(0, 1); fillRt.sizeDelta = new Vector2(10, 0);
+        var fillRt = fill.rectTransform; fillRt.anchorMin = new Vector2(0, 0); fillRt.anchorMax = new Vector2(0, 1); fillRt.sizeDelta = new Vector2(18, 0);
 
         var handleArea = NewUI("Handle Slide Area", go.transform); var haRt = (RectTransform)handleArea.transform;
-        haRt.anchorMin = Vector2.zero; haRt.anchorMax = Vector2.one; haRt.offsetMin = new Vector2(6, 0); haRt.offsetMax = new Vector2(-6, 0);
+        haRt.anchorMin = Vector2.zero; haRt.anchorMax = Vector2.one; haRt.offsetMin = new Vector2(10, 0); haRt.offsetMax = new Vector2(-10, 0);
         var handle = NewImage(handleArea.transform, "Handle", Color.white);
-        var handleRt = handle.rectTransform; handleRt.sizeDelta = new Vector2(20, 0);
+        var handleRt = handle.rectTransform; handleRt.sizeDelta = new Vector2(40, 0);
 
         slider.fillRect = fillRt;
         slider.handleRect = handleRt;
@@ -182,14 +182,14 @@ public abstract class SettingTabBase : MonoBehaviour
     {
         var go = NewUI("Toggle", parent);
         var le = go.AddComponent<LayoutElement>();
-        le.minWidth = 36; le.preferredWidth = 36; le.preferredHeight = 36;
+        le.minWidth = 64; le.preferredWidth = 64; le.preferredHeight = 64;
         var toggle = go.AddComponent<Toggle>();
 
         var bg = NewImage(go.transform, "Background", new Color(0.25f, 0.27f, 0.32f, 1f));
         var bgRt = bg.rectTransform; bgRt.anchorMin = new Vector2(0, 0.5f); bgRt.anchorMax = new Vector2(0, 0.5f); bgRt.pivot = new Vector2(0, 0.5f);
-        bgRt.sizeDelta = new Vector2(32, 32); bgRt.anchoredPosition = Vector2.zero;
+        bgRt.sizeDelta = new Vector2(56, 56); bgRt.anchoredPosition = Vector2.zero;
         var check = NewImage(bg.transform, "Checkmark", new Color(0.4f, 0.85f, 0.45f, 1f));
-        var cRt = check.rectTransform; cRt.anchorMin = new Vector2(0.5f, 0.5f); cRt.anchorMax = new Vector2(0.5f, 0.5f); cRt.sizeDelta = new Vector2(20, 20); cRt.anchoredPosition = Vector2.zero;
+        var cRt = check.rectTransform; cRt.anchorMin = new Vector2(0.5f, 0.5f); cRt.anchorMax = new Vector2(0.5f, 0.5f); cRt.sizeDelta = new Vector2(36, 36); cRt.anchoredPosition = Vector2.zero;
 
         toggle.targetGraphic = bg;
         toggle.graphic = check;

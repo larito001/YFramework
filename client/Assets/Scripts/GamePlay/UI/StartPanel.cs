@@ -10,7 +10,7 @@ using YOTO;
 /// 预制体由 <c>Tools/UI/Build StartPanel Prefab</c> 程序化生成,脚本字段在那里接好。
 ///
 /// 行为:设置→<see cref="SettingPanel"/>;商店→<see cref="ShopPanel"/>;
-/// 准备(底部居中主按钮)→读/建存档槽后进 Home 场景(复用 <see cref="StoreMgr"/> 流程)。图鉴面板尚未实现,先占位。
+/// 准备(底部居中主按钮)→打开装备界面 <see cref="EquipPanel"/>(在那里选好装备再「出发」进游戏)。图鉴面板尚未实现,先占位。
 /// </summary>
 public class StartPanel : UIPageBase
 {
@@ -25,14 +25,11 @@ public class StartPanel : UIPageBase
     public Button btn_prepare;
     public Button btn_codex;
 
-    private StoreMgr store;
     private CurrencySystem currency;
     private EventMgr eventMgr;
-    private bool busy; // 防止切场景前重复点击
 
     public override void OnLoad()
     {
-        store = GetService<StoreMgr>();
         currency = GetService<CurrencySystem>();
         eventMgr = GetService<EventMgr>();
         if (btn_setting != null) btn_setting.onClick.AddListener(OnSettingClick);
@@ -43,7 +40,6 @@ public class StartPanel : UIPageBase
 
     public override void OnShow()
     {
-        busy = false;
         eventMgr?.Add(YOTOEventType.RefreshCurrency, RefreshHeader); // 货币变化即刷新顶部金币
         RefreshHeader();
     }
@@ -68,22 +64,10 @@ public class StartPanel : UIPageBase
 
     // ---------------- 按钮 ----------------
 
-    // 准备(底部居中主按钮):进入游戏。首次游玩新建存档槽,否则沿用最近一个槽;LoadAll 把进度系统还原后切到 Home。
+    // 准备(底部居中主按钮):打开装备界面,在那里选好出战装备后点「出发」进游戏。
     private void OnPrepareClick()
     {
-        if (busy) return;
-        busy = true;
-        if (store == null)
-        {
-            GetService<YSceneManager>().SwitchScene(YSceneType.Home);
-            return;
-        }
-        store.WhenSlotsReady(() =>
-        {
-            if (store.Slots.Count == 0) store.CreateSlot();                       // 首次:新建并激活
-            else if (store.ActiveSlot == 0) store.SetActiveSlot(store.Slots[store.Slots.Count - 1].id); // 选最近的槽
-            store.LoadAll(() => GetService<YSceneManager>().SwitchScene(YSceneType.Home));
-        });
+        Show<EquipPanel>();
     }
 
     private void OnSettingClick()

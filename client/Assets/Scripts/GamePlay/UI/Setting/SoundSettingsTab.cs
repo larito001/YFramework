@@ -15,15 +15,15 @@ public class SoundSettingsTab : SettingTabBase
 
     protected override void Build()
     {
-        NewLabel(Content, "声音设置", 400, 30, TextAlignmentOptions.Left);
+        NewLabel(Content, "声音设置", 700, 52, TextAlignmentOptions.Left);
         for (int i = 0; i < Channels.Length; i++)
         {
             int idx = i;
             var row = NewRow(Content);
-            NewLabel(row.transform, Names[i], 120, 24, TextAlignmentOptions.Left);
+            NewLabel(row.transform, Names[i], 220, 40, TextAlignmentOptions.Left);
             sliders[i] = NewSlider(row.transform);
-            values[i] = NewLabel(row.transform, "100%", 70, 22, TextAlignmentOptions.Right);
-            NewLabel(row.transform, "静音", 60, 20, TextAlignmentOptions.Right);
+            values[i] = NewLabel(row.transform, "100%", 130, 36, TextAlignmentOptions.Right);
+            NewLabel(row.transform, "静音", 110, 34, TextAlignmentOptions.Right);
             mutes[i] = NewToggle(row.transform);
 
             sliders[i].onValueChanged.AddListener(v => OnVolume(idx, v));
