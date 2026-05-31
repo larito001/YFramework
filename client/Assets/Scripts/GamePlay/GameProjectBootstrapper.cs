@@ -58,7 +58,7 @@ public static partial class GameBootstrapper
         ctx.Register(new BagSystem());
         // 宝箱系统在 BagSystem 之后注册：Init 里 ctx.Get<BagSystem>() 复用其物品配置。
         ctx.Register(new ChestSystem());
-        // 世界交互（靠近宝箱 + F 打开）：Init 只订阅 InputService 的 F 键，CharacterManager/ViewManager 在 Tick 里懒取。
+        // 世界交互（靠近宝箱 + F 打开）：Init 只订阅 InputService 的 F 键，靠近参照点用主相机（旧 TPS 玩家系统已移除）。
         ctx.Register(new WorldInteractionSystem());
         // ctx.Register(new EnemiesManager());
         // ctx.Register(new SceneResManager());

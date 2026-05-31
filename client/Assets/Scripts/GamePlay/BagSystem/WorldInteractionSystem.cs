@@ -14,9 +14,12 @@ public interface IInteractable
 
 /// <summary>
 /// 世界交互系统(<see cref="IGameService"/> + <see cref="ITickable"/>)。
-/// 每帧找出离玩家最近、且在自身交互范围内的 <see cref="IInteractable"/>,显示提示;
+/// 每帧找出离视点(主相机)最近、且在自身交互范围内的 <see cref="IInteractable"/>,显示提示;
 /// 按下 F(<see cref="InputService.OnInteractWorldDown"/>)时触发它。
 /// 提示 UI 用 <c>UI/Bag/InteractPrompt</c> 预制体(SIMHEI 字体,BagPrefabBuilder 生成),挂在 Top 层。
+///
+/// 注：原本以玩家(Character)世界坐标为靠近参照,旧 TPS 角色系统已移除,
+/// 暂以主相机位置为参照。后续接入新角色系统时把参照点换成玩家坐标即可。
 /// </summary>
 public class WorldInteractionSystem : IGameService, ITickable
 {
@@ -24,8 +27,6 @@ public class WorldInteractionSystem : IGameService, ITickable
 
     private GameContext ctx;
     private InputService input;
-    private CharacterManager characterMgr;
-    private ViewManager viewMgr;
     private ResMgr resMgr;
     private UIMgr uiMgr;
 
@@ -40,7 +41,6 @@ public class WorldInteractionSystem : IGameService, ITickable
     {
         ctx = context;
         // **先订阅 F 键**,再取其它服务:即便后续 Get 因注册顺序抛异常,F 键订阅也已生效。
-        // CharacterManager / ViewManager 在本系统之后注册,一律 Tick 里懒取,Init 不硬取它们。
         input = ctx.Get<InputService>();
         input.OnInteractWorldDown += OnInteractKey;
         Debug.Log("[WorldInteraction] Init: 已订阅 F 键(OnInteractWorldDown)");
@@ -71,11 +71,11 @@ public class WorldInteractionSystem : IGameService, ITickable
 
     public void Tick(float dt)
     {
-        if (characterMgr == null) ctx.TryGet(out characterMgr); // 懒取(注册顺序晚于本系统)
-        var player = characterMgr != null ? characterMgr.Player : null;
-        if (player == null) { SetCurrent(null); return; }
+        // 参照点:主相机位置(旧 TPS 玩家系统已移除)。无相机时不做检测。
+        var cam = Camera.main;
+        if (cam == null) { SetCurrent(null); return; }
 
-        Vector3 p = GetPlayerWorldPos(player);
+        Vector3 p = cam.transform.position;
         IInteractable best = null;
         float bestSqr = float.MaxValue;
         for (int i = 0; i < interactables.Count; i++)
@@ -90,15 +90,6 @@ public class WorldInteractionSystem : IGameService, ITickable
             }
         }
         SetCurrent(best);
-    }
-
-    /// <summary>玩家世界坐标:优先用 view 的 transform(实时,跟随 CC 移动);取不到再退回逻辑 Position。</summary>
-    private Vector3 GetPlayerWorldPos(Character player)
-    {
-        if (viewMgr == null) ctx.TryGet(out viewMgr);
-        if (viewMgr != null && viewMgr.TryGetView(player.ID, out var view) && view != null)
-            return view.transform.position;
-        return player.Position;
     }
 
     private void SetCurrent(IInteractable it)

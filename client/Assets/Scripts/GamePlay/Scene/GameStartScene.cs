@@ -16,19 +16,9 @@ public class GameStartScene : YSceneBase
     {
         base.OnLoadingEnd();
         UI.Hide<StartPanel>();
-        var manager = Context.Get<CharacterManager>();
-        manager.GenneratePlayer();
-
-        RegisterItemUseHandlers(); // 物品使用逻辑(gameplay 内容,放场景而非组装层)
-        SpawnChests();             // 玩家附近随机散布三种品质的宝箱
-    }
-
-    /// <summary>注册各消耗品的使用逻辑(按物品 id 绑处理器)。处理器内部延迟查找玩家,注册时机不要求玩家已就绪。</summary>
-    private void RegisterItemUseHandlers()
-    {
-        var bag = Context.Get<BagSystem>();
-        bag.RegisterUseHandler(1001, new HealItemUseHandler(Context, 30f));  // 小型治疗药水
-        bag.RegisterUseHandler(1002, new HealItemUseHandler(Context, 80f));  // 大型治疗药水
+        // 旧 TPS 角色系统已移除:不再生成玩家,也不注册依赖玩家血量的物品使用逻辑。
+        // 后续接入新(2D)角色系统后,在此恢复玩家生成与按物品 id 注册的使用处理器。
+        SpawnChests(); // 在场景原点周围随机散布三种品质的宝箱
     }
 
     // ---------------- 宝箱刷新 ----------------
@@ -50,7 +40,7 @@ public class GameStartScene : YSceneBase
     private void SpawnChests()
     {
         var res = Context.Get<YOTO.ResMgr>();
-        Vector3 center = GetPlayerSpawnPos();
+        Vector3 center = Vector3.zero; // 旧玩家出生点参照已移除,暂以场景原点为中心
 
         for (int i = 0; i < ChestCount; i++)
         {
@@ -77,17 +67,6 @@ public class GameStartScene : YSceneBase
         float angle = Random.Range(0f, Mathf.PI * 2f);
         float dist = Random.Range(ChestMinDistance, ChestSpawnRadius);
         return center + new Vector3(Mathf.Cos(angle) * dist, 0f, Mathf.Sin(angle) * dist);
-    }
-
-    /// <summary>玩家当前世界坐标(取不到则用原点)。</summary>
-    private Vector3 GetPlayerSpawnPos()
-    {
-        var charMgr = Context.Get<CharacterManager>();
-        var player = charMgr != null ? charMgr.Player : null;
-        if (player == null) return Vector3.zero;
-        if (Context.TryGet<ViewManager>(out var vm) && vm.TryGetView(player.ID, out var view) && view != null)
-            return view.transform.position;
-        return player.Position;
     }
 
     protected override void OnEnterScene()
