@@ -62,13 +62,13 @@ public class StartPanel : UIPageBase
 
     // ---------------- 顶部资源 ----------------
 
-    /// <summary>刷新体力 / 金币显示,数值取自 <see cref="CurrencySystem"/>。</summary>
+    /// <summary>刷新体力 / 金币显示:胶囊已用图标表示币种(预制体烘焙),这里只填数值,不再写「体力/金币」文字。</summary>
     private void RefreshHeader()
     {
         if (energyText != null)
-            energyText.text = currency != null ? $"{currency.DisplayName(CurrencyType.Energy)} {currency.Get(CurrencyType.Energy)}" : "0";
+            energyText.text = currency != null ? currency.Get(CurrencyType.Energy).ToString() : "0";
         if (goldText != null)
-            goldText.text = currency != null ? $"{currency.DisplayName(CurrencyType.Gold)} {currency.Get(CurrencyType.Gold)}" : "0";
+            goldText.text = currency != null ? currency.Get(CurrencyType.Gold).ToString() : "0";
     }
 
     // ---------------- 按钮 ----------------

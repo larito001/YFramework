@@ -119,7 +119,10 @@
       "Bash(git *)",
       "Bash(python _edit_item_weapons.py)",
       "Bash(grep -v \"comment\\\\|comment\\\\|//\")",
-      "Bash(python _edit_shop_proper.py)"
+      "Bash(python _edit_shop_proper.py)",
+      "Bash(grep -iv \"\\\\.meta$\")",
+      "Bash(grep -iE \"\\\\.\\(png|jpg|psd|asset|sprite\\)$\")",
+      "Bash(grep -E '.{3,}')"
     ]
   }
 }

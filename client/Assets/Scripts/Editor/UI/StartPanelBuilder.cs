@@ -63,13 +63,17 @@ public static class StartPanelBuilder
         var btnEnergyAd = BuildButton(btnPrefab, "Btn_EnergyAd", "+", root.transform, 60);
         TopRight((RectTransform)btnEnergyAd.transform, new Vector2(-60, -80), new Vector2(adBtn, adBtn));
 
-        // 体力胶囊:在广告按钮左侧
-        var energyText = BuildPill(root.transform, "Energy", "体力 50",
-            new Vector2(-(60 + adBtn + gap), -80), new Vector2(300, pillH));
+        // 资源胶囊用「图标 + 数值」,不再写「体力/金币」文字。图标直接烘焙进预制体(静态,不走配表/Resources)。
+        var energyIcon = LoadSprite("Assets/Art/UI/NewUI/Shared/Icons/PictoIcon/128/energy.png");
+        var goldIcon = LoadSprite("Assets/Art/UI/NewUI/Shared/Icons/PictoIcon/128/coin_2.png");
 
-        // 金币胶囊:体力下一行
-        var goldText = BuildPill(root.transform, "Gold", "金币 0",
-            new Vector2(-60, -(80 + pillH + gap)), new Vector2(360, pillH));
+        // 体力胶囊:在广告按钮左侧(左图标 + 右数值)
+        var energyText = BuildPill(root.transform, "Energy", "50",
+            new Vector2(-(60 + adBtn + gap), -80), new Vector2(300, pillH), energyIcon);
+
+        // 金币胶囊:体力下一行(左图标 + 右数值)
+        var goldText = BuildPill(root.transform, "Gold", "0",
+            new Vector2(-60, -(80 + pillH + gap)), new Vector2(360, pillH), goldIcon);
 
         // ---------- 底部:左竖排(任务/商店) · 中(准备) · 右(图鉴)----------
         const float sideBtn = 220f, sideGap = 36f, bottomY = 150f;
@@ -176,8 +180,8 @@ public static class StartPanelBuilder
         rt.sizeDelta = size;
     }
 
-    /// <summary>右上角资源「胶囊」:深色圆角底 + 右对齐文本,返回文本(数值由 StartPanel 运行时刷新)。</summary>
-    private static TextMeshProUGUI BuildPill(Transform parent, string name, string text, Vector2 anchoredPos, Vector2 size)
+    /// <summary>右上角资源「胶囊」:深色圆角底 +(可选)左侧图标 + 右对齐文本,返回文本(数值由 StartPanel 运行时刷新)。</summary>
+    private static TextMeshProUGUI BuildPill(Transform parent, string name, string text, Vector2 anchoredPos, Vector2 size, Sprite icon = null)
     {
         var go = NewUI(name, out var rt, parent);
         TopRight(rt, anchoredPos, size);
@@ -185,10 +189,36 @@ public static class StartPanelBuilder
         bg.sprite = BuiltinSprite("UI/Skin/UISprite.psd");
         bg.type = Image.Type.Sliced;
         bg.color = new Color(0.25f, 0.27f, 0.33f, 1f);
+
+        float textLeft = 20f; // 无图标时文本左边距
+        if (icon != null)
+        {
+            // 左侧图标(竖直居中),文本左边距让开图标
+            const float iconSize = 72f, iconPad = 16f;
+            var iconGo = NewUI("Icon", out var iconRt, go.transform);
+            iconRt.anchorMin = iconRt.anchorMax = new Vector2(0, 0.5f);
+            iconRt.pivot = new Vector2(0, 0.5f);
+            iconRt.anchoredPosition = new Vector2(iconPad, 0f);
+            iconRt.sizeDelta = new Vector2(iconSize, iconSize);
+            var iconImg = iconGo.AddComponent<Image>();
+            iconImg.sprite = icon;
+            iconImg.preserveAspect = true;
+            iconImg.raycastTarget = false;
+            textLeft = iconPad + iconSize + 12f;
+        }
+
         var tmp = NewChildText(go, "Text", text, 48, TextAlignmentOptions.Right);
-        ((RectTransform)tmp.transform).offsetMax = new Vector2(-28, 0); // 右侧留点边距
-        ((RectTransform)tmp.transform).offsetMin = new Vector2(20, 0);  // 左侧留点边距
+        ((RectTransform)tmp.transform).offsetMax = new Vector2(-28, 0);       // 右侧留点边距
+        ((RectTransform)tmp.transform).offsetMin = new Vector2(textLeft, 0);  // 左侧让开图标
         return tmp;
+    }
+
+    /// <summary>按工程内资源路径加载精灵(图标已是 Sprite 导入);找不到返回 null 并告警(Image 退化为空)。</summary>
+    private static Sprite LoadSprite(string assetPath)
+    {
+        var sprite = AssetDatabase.LoadAssetAtPath<Sprite>(assetPath);
+        if (sprite == null) Debug.LogWarning($"[StartPanelBuilder] 找不到图标精灵 {assetPath}");
+        return sprite;
     }
 
     /// <summary>在父物体内铺满一个 TMP 文本子物体,返回它(用于给 Image 容器加文字标签)。</summary>

@@ -155,21 +155,47 @@ public class ShopPanel : UIPageBase
         UpdateWeaponPreview();
     }
 
-    /// <summary>给卡片加/去黄色选中描边(就地,不销毁卡片)。</summary>
+    private const string SelectFrameName = "SelectFrame";
+
+    /// <summary>给卡片加/去金色选中边框(就地,不销毁卡片)。
+    /// 用 4 条细边拼出"框",而不是 Outline 组件——后者在本项目渲染下会糊成一整片金色底图,达不到"金色框"效果。</summary>
     private static void ApplyOutline(GameObject card, bool on)
     {
         if (card == null) return;
-        var ol = card.GetComponent<Outline>();
-        if (on)
+        var existing = card.transform.Find(SelectFrameName);
+        if (!on)
         {
-            if (ol == null) ol = card.AddComponent<Outline>();
-            ol.effectColor = new Color(1f, 0.85f, 0.2f, 1f);
-            ol.effectDistance = new Vector2(6, 6);
+            if (existing != null) Destroy(existing.gameObject);
+            return;
         }
-        else if (ol != null)
-        {
-            Destroy(ol);
-        }
+        if (existing != null) return; // 已有边框
+
+        var frameGo = new GameObject(SelectFrameName, typeof(RectTransform));
+        var frame = (RectTransform)frameGo.transform;
+        frame.SetParent(card.transform, false);
+        frame.anchorMin = Vector2.zero; frame.anchorMax = Vector2.one;
+        frame.offsetMin = Vector2.zero; frame.offsetMax = Vector2.zero;
+        frame.SetAsLastSibling(); // 边框画在卡片内容之上
+
+        const float t = 8f; // 边宽
+        var gold = new Color(1f, 0.85f, 0.2f, 1f);
+        AddEdge(frame, new Vector2(0, 1), new Vector2(1, 1), new Vector2(0, -t), new Vector2(0, 0), gold); // 上
+        AddEdge(frame, new Vector2(0, 0), new Vector2(1, 0), new Vector2(0, 0), new Vector2(0, t), gold);  // 下
+        AddEdge(frame, new Vector2(0, 0), new Vector2(0, 1), new Vector2(0, 0), new Vector2(t, 0), gold);  // 左
+        AddEdge(frame, new Vector2(1, 0), new Vector2(1, 1), new Vector2(-t, 0), new Vector2(0, 0), gold); // 右
+    }
+
+    /// <summary>在 frame 下加一条贴边的纯色 Image(选中框的一条边)。</summary>
+    private static void AddEdge(RectTransform parent, Vector2 aMin, Vector2 aMax, Vector2 offMin, Vector2 offMax, Color color)
+    {
+        var go = new GameObject("Edge", typeof(RectTransform), typeof(Image));
+        var rt = (RectTransform)go.transform;
+        rt.SetParent(parent, false);
+        rt.anchorMin = aMin; rt.anchorMax = aMax;
+        rt.offsetMin = offMin; rt.offsetMax = offMax;
+        var img = go.GetComponent<Image>();
+        img.color = color;
+        img.raycastTarget = false;
     }
 
     /// <summary>武器页签:转台展示当前选中武器的模型;其它页签收起转台。</summary>

@@ -51,31 +51,22 @@ public static class CodexPanelBuilder
         // ---------- 顶部:资源金币(绿色胶囊,返回按钮右侧)----------
         var coinGo = NewUI("Coin", out var coinRt, root.transform);
         coinRt.anchorMin = coinRt.anchorMax = new Vector2(0, 1); coinRt.pivot = new Vector2(0, 1);
-        coinRt.anchoredPosition = new Vector2(280, -48); coinRt.sizeDelta = new Vector2(340, 96);
+        coinRt.anchoredPosition = new Vector2(280, -48); coinRt.sizeDelta = new Vector2(820, 96); // 加宽:要容下「金币 + 图鉴 x/y」两段,原 340 文字会溢出盖住返回键
         var coinBg = coinGo.AddComponent<Image>();
         coinBg.sprite = BuiltinSprite("UI/Skin/UISprite.psd");
         coinBg.type = Image.Type.Sliced;
         coinBg.color = new Color(0.56f, 0.78f, 0.30f, 1f); // 绿色胶囊
-        var coinText = NewChildText(coinGo, "Value", "0", 48, TextAlignmentOptions.Right);
+        var coinText = NewChildText(coinGo, "Value", "0", 40, TextAlignmentOptions.Right);
         ((RectTransform)coinText.transform).offsetMax = new Vector2(-28, 0); // 右侧留边距
 
-        // ---------- 页签:装饰公仔 / 荣誉卡片 ----------
-        var tabs = NewUI("Tabs", out var tabsRt, root.transform);
-        tabsRt.anchorMin = new Vector2(0, 1); tabsRt.anchorMax = new Vector2(1, 1); tabsRt.pivot = new Vector2(0.5f, 1);
-        tabsRt.anchoredPosition = new Vector2(0, -200); tabsRt.sizeDelta = new Vector2(-120, 120);
-        var tabsHlg = tabs.AddComponent<HorizontalLayoutGroup>();
-        tabsHlg.spacing = 40;
-        tabsHlg.childAlignment = TextAnchor.MiddleCenter;
-        tabsHlg.childControlWidth = true; tabsHlg.childControlHeight = true;
-        tabsHlg.childForceExpandWidth = false; tabsHlg.childForceExpandHeight = false;
-
-        var tabDoll = BuildTab("Tab_Doll", "装饰公仔", tabs.transform, new Color(0.72f, 0.70f, 0.80f, 1f));
-        var tabCard = BuildTab("Tab_Card", "荣誉卡片", tabs.transform, new Color(0.56f, 0.78f, 0.30f, 1f)); // 默认选中
+        // 动物图鉴是单分类,「装饰公仔 / 荣誉卡片」两个页签已停用——不再生成,空出的顶部空间让内容面板上移。
+        // (CodexPanel 的 tabDoll/tabCard 字段保持为空,OnLoad 里对空引用已做保护。)
 
         // ---------- 中部:内容面板(2 列网格容器)----------
         var panelGo = NewUI("Panel", out var panelRt, root.transform);
         panelRt.anchorMin = Vector2.zero; panelRt.anchorMax = Vector2.one;
-        panelRt.offsetMin = new Vector2(50, 360); panelRt.offsetMax = new Vector2(-50, -360);
+        // 顶部上移到顶栏正下方(原 -360 是给页签留的位,页签已移除,否则顶部空一大块、网格整体偏低)
+        panelRt.offsetMin = new Vector2(50, 360); panelRt.offsetMax = new Vector2(-50, -170);
         var panelBg = panelGo.AddComponent<Image>();
         panelBg.sprite = BuiltinSprite("UI/Skin/UISprite.psd");
         panelBg.type = Image.Type.Sliced;
@@ -114,8 +105,7 @@ public static class CodexPanelBuilder
         panel.uiType = UIEnum.CodexPanel;
         panel.backBtn = backBtn;
         panel.coinText = coinText;
-        panel.tabDoll = tabDoll;
-        panel.tabCard = tabCard;
+        // tabDoll / tabCard 不再生成,留空(动物图鉴单分类)
         panel.grid = gridRt;
         panel.pageText = pageText;
         panel.btnFirst = btnFirst;
@@ -131,17 +121,6 @@ public static class CodexPanelBuilder
     }
 
     // ============================ 构件 ============================
-
-    /// <summary>页签按钮:固定首选尺寸 + 指定底色(运行时由 CodexPanel 切换绿/灰)。</summary>
-    private static Button BuildTab(string name, string label, Transform parent, Color color)
-    {
-        var btn = BuildButton(name, label, parent, 48);
-        var le = btn.gameObject.AddComponent<LayoutElement>();
-        le.preferredWidth = 420; le.preferredHeight = 110;
-        var img = btn.targetGraphic as Image;
-        if (img != null) img.color = color;
-        return btn;
-    }
 
     /// <summary>分页方向按钮:固定首选尺寸的小方按钮。</summary>
     private static Button BuildNavButton(string name, string label, Transform parent)
