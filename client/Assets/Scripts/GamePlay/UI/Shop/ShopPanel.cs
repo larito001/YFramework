@@ -39,6 +39,7 @@ public class ShopPanel : UIPageBase
     private TMP_FontAsset font;
 
     private ShopCategory current = ShopCategory.Weapon;
+    private WeaponModelPreview weaponPreview; // 右上角武器模型转台(武器页签;点卡片图片切换)
 
     public override void OnLoad()
     {
@@ -52,6 +53,20 @@ public class ShopPanel : UIPageBase
         if (tabWeapon != null) tabWeapon.onClick.AddListener(() => SelectCategory(ShopCategory.Weapon));
         if (tabScope != null) tabScope.onClick.AddListener(() => SelectCategory(ShopCategory.Scope));
         if (tabBullet != null) tabBullet.onClick.AddListener(() => SelectCategory(ShopCategory.Bullet));
+
+        weaponPreview = new WeaponModelPreview(CreatePreviewHost(), resMgr);
+    }
+
+    /// <summary>在右上角放一个武器模型预览框(返回其宿主 RectTransform)。</summary>
+    private RectTransform CreatePreviewHost()
+    {
+        var host = new GameObject("WeaponPreview", typeof(RectTransform));
+        host.transform.SetParent(transform, false);
+        var hr = (RectTransform)host.transform;
+        hr.anchorMin = hr.anchorMax = hr.pivot = new Vector2(1f, 1f); // 右上角
+        hr.sizeDelta = new Vector2(320f, 320f);
+        hr.anchoredPosition = new Vector2(-30f, -190f);               // 让开顶部金币条
+        return hr;
     }
 
     public override void OnShow()
@@ -64,6 +79,7 @@ public class ShopPanel : UIPageBase
     public override void OnHide()
     {
         eventMgr?.Remove(YOTOEventType.RefreshCurrency, OnCurrencyChanged);
+        weaponPreview?.SetActive(false);
     }
 
     public override void OnResize() { }
@@ -91,6 +107,21 @@ public class ShopPanel : UIPageBase
         SetTabColor(tabScope, cat == ShopCategory.Scope);
         SetTabColor(tabBullet, cat == ShopCategory.Bullet);
         RebuildGrid();
+        UpdateWeaponPreview();
+    }
+
+    /// <summary>武器页签:转台展示该分类第一件武器的模型(点卡片图片可切换);其它页签收起转台。</summary>
+    private void UpdateWeaponPreview()
+    {
+        if (weaponPreview == null) return;
+        if (current != ShopCategory.Weapon) { weaponPreview.SetActive(false); return; }
+
+        weaponPreview.SetActive(true);
+        string path = null;
+        var list = shop.CatalogOf(ShopCategory.Weapon);
+        for (int i = 0; i < list.Count; i++)
+            if (!string.IsNullOrEmpty(list[i].ModelPath)) { path = list[i].ModelPath; break; }
+        weaponPreview.Show(path);
     }
 
     private static void SetTabColor(Button btn, bool on)
@@ -129,6 +160,16 @@ public class ShopPanel : UIPageBase
         picImg.raycastTarget = false; picImg.preserveAspect = true;
         var sprite = !string.IsNullOrEmpty(item.IconPath) ? resMgr.Load<Sprite>(item.IconPath) : null;
         picImg.sprite = sprite; picImg.enabled = sprite != null;
+
+        // 武器卡:点图片在右上角转台预览该枪的模型
+        if (current == ShopCategory.Weapon && !string.IsNullOrEmpty(item.ModelPath) && picImg.enabled)
+        {
+            picImg.raycastTarget = true;
+            var picBtn = pic.AddComponent<Button>();
+            picBtn.targetGraphic = picImg;
+            string modelPath = item.ModelPath;
+            picBtn.onClick.AddListener(() => weaponPreview?.Show(modelPath));
+        }
 
         // 名称(y 196..266,带高 70 容下 30pt×2)
         var name = NewChild(card.transform, "Name", out var nameRt);
@@ -189,7 +230,7 @@ public class ShopPanel : UIPageBase
     {
         switch (shop.Buy(id))
         {
-            case BuyResult.Success:           FlyText($"{itemName}购买成功！"); break;
+            case BuyResult.Success:           ShowReward("购买成功", RewardEntry.Item(id, 1)); break;
             case BuyResult.AlreadyOwned:      FlyText($"{itemName}已购买"); break;
             case BuyResult.NotEnoughCurrency: FlyText($"{currency.DisplayName(priceType)}不足"); break;
             case BuyResult.BagFull:           FlyText("背包已满"); break;
@@ -199,6 +240,14 @@ public class ShopPanel : UIPageBase
 
     /// <summary>屏幕中央飘字提示(复用框架飘字系统)。</summary>
     private void FlyText(string msg) => GetService<FlyTextMgr>()?.AddTextAtScreenCenter(msg);
+
+    /// <summary>通用奖励领取弹窗(Top 层,1 秒自动消失)。奖励已由 <see cref="ShopSystem"/> 入账,这里仅展示。</summary>
+    private void ShowReward(string title, params RewardEntry[] rewards)
+        => Show<RewardClaimPanel, RewardClaimParam>(new RewardClaimParam
+        {
+            title = title,
+            rewards = new System.Collections.Generic.List<RewardEntry>(rewards),
+        });
 
     // ---------------- 工具 ----------------
 

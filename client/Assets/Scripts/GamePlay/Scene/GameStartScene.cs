@@ -54,6 +54,11 @@ public class GameStartScene : YSceneBase
         if (cam.GetComponent<CameraSwipeLook>() == null) cam.gameObject.AddComponent<CameraSwipeLook>();
         if (cam.GetComponent<ShootCameraShake>() == null) cam.gameObject.AddComponent<ShootCameraShake>(); // 开枪抖动
         if (cam.GetComponent<ScopeAimController>() == null) cam.gameObject.AddComponent<ScopeAimController>(); // 瞄准变焦 + 命中射线
+
+        // 第一人称手持武器:把出战武器模型挂到相机前下方,换装时自动更换
+        var viewModel = cam.GetComponent<FpsWeaponViewModel>();
+        if (viewModel == null) viewModel = cam.gameObject.AddComponent<FpsWeaponViewModel>();
+        viewModel.Init(Context);
     }
 
     protected override void OnEnterScene()

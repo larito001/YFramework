@@ -111,7 +111,14 @@
       "Read(//c/c/UnityProject/YFramework/client/Assets/Scripts/Framework/**)",
       "Read(//c/c/UnityProject/YFramework/client/Assets/Scripts/**)",
       "WebFetch(domain:ssp.dirichlet.cn)",
-      "Bash(Select-Object -First 20)"
+      "Bash(Select-Object -First 20)",
+      "Bash(grep -i \"\\\\.cs$\")",
+      "Bash(grep -v \"\\\\.meta$\")",
+      "PowerShell(python --version; python -c \"import openpyxl; print\\('openpyxl', openpyxl.__version__\\)\"; Write-Output \"---protoc---\"; Get-ChildItem C:\\\\UnityProject\\\\YFramework\\\\tools\\\\3rdparty -Recurse -Filter protoc.exe -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName)",
+      "PowerShell(python -c \"import grpc_tools; print\\('grpc_tools ok'\\)\" 2>&1; python -c \"import google.protobuf; print\\('protobuf', google.protobuf.__version__\\)\" 2>&1; Write-Output \"=== tools_config.ini ===\"; Get-Content C:\\\\UnityProject\\\\YFramework\\\\tools\\\\tools_config.ini)",
+      "Bash(git *)",
+      "Bash(python _edit_item_weapons.py)",
+      "Bash(grep -v \"comment\\\\|comment\\\\|//\")"
     ]
   }
 }

@@ -47,7 +47,6 @@ public class TaskPanel : UIPageBase
     private ResMgr resMgr;
     private EventMgr eventMgr;
     private TaskProgressSystem taskProgress;
-    private FlyTextMgr flyText;
     private TMP_FontAsset font;
 
     private readonly List<Task> entries = new List<Task>();
@@ -60,7 +59,6 @@ public class TaskPanel : UIPageBase
         resMgr = GetService<ResMgr>();
         eventMgr = GetService<EventMgr>();
         taskProgress = GetService<TaskProgressSystem>();
-        flyText = GetService<FlyTextMgr>();
         if (coinText != null) font = coinText.font; // 复用外壳字体给运行时卡片
 
         if (backBtn != null) backBtn.onClick.AddListener(CloseSelf);
@@ -216,11 +214,24 @@ public class TaskPanel : UIPageBase
         if (taskProgress != null && taskProgress.CanClaim(task.Id))
         {
             if (taskProgress.Claim(task.Id))
-                flyText?.AddTextAtScreenCenter($"{task.Name} 领取成功");
+                ShowRewardPopup(task); // 奖励已由 Claim 入账,这里弹通用领取弹窗展示
             return; // 领取后 RefreshTask 会重建列表,无需手动刷新
         }
         if (taskProgress != null && taskProgress.IsClaimed(task.Id)) return; // 已领取:无操作
         CloseSelf(); // 未完成:前往(回大厅去做任务)。后续可按任务类型路由到具体玩法。
+    }
+
+    /// <summary>领取成功后弹通用奖励领取弹窗(Top 层,1 秒自动消失):按任务配表的物品/金币/体力组奖励列表。</summary>
+    private void ShowRewardPopup(Task task)
+    {
+        var rewards = new List<RewardEntry>();
+        if (task.RewardItemId > 0 && task.RewardItemCount > 0)
+            rewards.Add(RewardEntry.Item((int)task.RewardItemId, task.RewardItemCount));
+        if (task.RewardCoin > 0) rewards.Add(RewardEntry.Currency(CurrencyType.Gold, task.RewardCoin));
+        if (task.RewardEnergy > 0) rewards.Add(RewardEntry.Currency(CurrencyType.Energy, task.RewardEnergy));
+        if (rewards.Count == 0) return;
+
+        Show<RewardClaimPanel, RewardClaimParam>(new RewardClaimParam { title = "任务奖励", rewards = rewards });
     }
 
     // ---------------- 工具 ----------------

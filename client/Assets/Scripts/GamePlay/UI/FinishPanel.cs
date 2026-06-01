@@ -46,6 +46,7 @@ public class FinishPanel : UIPageBase<HuntResult>
 
     private TMP_FontAsset font;
     private CurrencySystem currency;
+    private int grantedGold; // 本局结算入账的金币,OnShow 时弹通用领取弹窗展示
 
     public override void OnLoad()
     {
@@ -70,13 +71,23 @@ public class FinishPanel : UIPageBase<HuntResult>
             currency.Add(CurrencyType.Gold, gold);
             currency.Save();
         }
+        grantedGold = gold;
 
         string rewardLine = $"获得金币：+{gold}";
         if (rewardText != null) rewardText.text = rewardLine;
         else if (totalText != null) totalText.text += $"\n{rewardLine}"; // 无独立奖励文本则并入总分行
     }
 
-    public override void OnShow() { }
+    public override void OnShow()
+    {
+        // 通用奖励领取弹窗(Top 层,1 秒自动消失):金币已入账,这里仅展示。在 OnShow 弹,避免在 OnBeforeShow 阶段叠开界面。
+        if (grantedGold > 0)
+            Show<RewardClaimPanel, RewardClaimParam>(new RewardClaimParam
+            {
+                title = "打猎结算",
+                rewards = { RewardEntry.Currency(CurrencyType.Gold, grantedGold) },
+            });
+    }
     public override void OnHide() { }
     public override void OnResize() { }
 

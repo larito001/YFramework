@@ -77,6 +77,9 @@ namespace YOTO
                 entity.animalId = (int)animal.Id;
                 entity.score = animal.Score;
 
+                // 挂随机游走:在出生点附近 idle/行走来回走动(行走动画参数自动探测),被击杀后自动停下。
+                if (go.GetComponent<AnimalWander>() == null) go.AddComponent<AnimalWander>();
+
                 spawned.Add(go);
             }
         }

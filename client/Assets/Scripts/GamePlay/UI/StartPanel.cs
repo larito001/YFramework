@@ -113,6 +113,12 @@ public class StartPanel : UIPageBase
                 currency.Add(CurrencyType.Energy, EnergyAdReward);
                 currency.Save(); // 关键节点主动写盘,保证补的体力落地
                 Context.TryGet<TaskProgressSystem>(out var tp); tp?.AddAdWatch(1); // 计入"观看广告"类任务
+                // 通用奖励领取弹窗(Top 层,1 秒自动消失):体力已入账,这里仅展示
+                Show<RewardClaimPanel, RewardClaimParam>(new RewardClaimParam
+                {
+                    title = "体力补充",
+                    rewards = { RewardEntry.Currency(CurrencyType.Energy, EnergyAdReward) },
+                });
             });
         }
         else

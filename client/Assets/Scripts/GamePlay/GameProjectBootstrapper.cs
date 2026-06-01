@@ -109,6 +109,8 @@ public static partial class GameBootstrapper
         uiConfig.Register<MapSelectPanel>(UIEnum.MapSelectPanel, UILayerEnum.Normal, "UI/Map/MapSelectPanel");
         // 通用确认弹窗:放 Top 层,叠在普通界面之上。通过 ConfirmParam 传标题/内容/回调。
         uiConfig.Register<ConfirmPanel>(UIEnum.ConfirmPanel, UILayerEnum.Top, "UI/Common/ConfirmPanel");
+        // 通用奖励领取弹窗:Top 层,横排展示道具/货币,默认弹出 1 秒自动消失。通过 RewardClaimParam 传奖励清单。
+        uiConfig.Register<RewardClaimPanel>(UIEnum.RewardClaimPanel, UILayerEnum.Top, "UI/Common/RewardClaimPanel");
     }
 
     static partial void RunProjectStartup(GameContext ctx)

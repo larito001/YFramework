@@ -39,6 +39,8 @@ public class EquipPanel : UIPageBase
     private TMP_FontAsset font;
     private bool busy;
 
+    private WeaponModelPreview weaponPreview; // 右上角武器模型转台(展示当前选中的枪)
+
     public override void OnLoad()
     {
         loadout = GetService<LoadoutSystem>();
@@ -50,6 +52,20 @@ public class EquipPanel : UIPageBase
 
         if (backBtn != null) backBtn.onClick.AddListener(CloseSelf);
         if (departBtn != null) departBtn.onClick.AddListener(OnDepart);
+
+        weaponPreview = new WeaponModelPreview(CreatePreviewHost(), resMgr);
+    }
+
+    /// <summary>在右上角放一个武器模型预览框(返回其宿主 RectTransform)。</summary>
+    private RectTransform CreatePreviewHost()
+    {
+        var host = new GameObject("WeaponPreview", typeof(RectTransform));
+        host.transform.SetParent(transform, false);
+        var hr = (RectTransform)host.transform;
+        hr.anchorMin = hr.anchorMax = hr.pivot = new Vector2(1f, 1f); // 右上角
+        hr.sizeDelta = new Vector2(320f, 320f);
+        hr.anchoredPosition = new Vector2(-30f, -160f);               // 让开顶部金币条
+        return hr;
     }
 
     public override void OnShow()
@@ -57,6 +73,7 @@ public class EquipPanel : UIPageBase
         busy = false;
         eventMgr?.Add(YOTOEventType.RefreshLoadout, RebuildAll);
         eventMgr?.Add(YOTOEventType.RefreshCurrency, RefreshCoin);
+        weaponPreview?.SetActive(true);
         RebuildAll();
         RefreshCoin();
     }
@@ -65,6 +82,7 @@ public class EquipPanel : UIPageBase
     {
         eventMgr?.Remove(YOTOEventType.RefreshLoadout, RebuildAll);
         eventMgr?.Remove(YOTOEventType.RefreshCurrency, RefreshCoin);
+        weaponPreview?.SetActive(false);
     }
 
     public override void OnResize() { }
@@ -82,6 +100,21 @@ public class EquipPanel : UIPageBase
         BuildRow(weaponRow, ShopCategory.Weapon);
         BuildRow(scopeRow, ShopCategory.Scope);
         BuildRow(bulletRow, ShopCategory.Bullet);
+        UpdateWeaponPreview();
+    }
+
+    /// <summary>把预览转台切到当前选中的枪(取其 item.ModelPath);没选中或无模型则清空。</summary>
+    private void UpdateWeaponPreview()
+    {
+        if (weaponPreview == null) return;
+        int sel = loadout.GetSelected(ShopCategory.Weapon);
+        string path = null;
+        if (sel > 0)
+        {
+            foreach (var it in loadout.CategoryItems(ShopCategory.Weapon))
+                if (it.Id == (uint)sel) { path = it.ModelPath; break; }
+        }
+        weaponPreview.Show(path);
     }
 
     private void BuildRow(RectTransform row, ShopCategory cat)
