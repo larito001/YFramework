@@ -26,7 +26,6 @@ public class ShopPanel : UIPageBase
     public Button tabWeapon;
     public Button tabScope;
     public Button tabBullet;
-    public Button prepareBtn;
 
     private static readonly Color Affordable = new Color(0.30f, 0.78f, 0.36f, 1f); // 绿:买得起
     private static readonly Color Unaffordable = new Color(0.32f, 0.34f, 0.40f, 1f); // 灰:买不起
@@ -115,36 +114,68 @@ public class ShopPanel : UIPageBase
 
     private void BuildCard(Item item)
     {
-        // 整张卡 = 一个按钮(点击购买),背景色表示买得起/买不起
-        var card = new GameObject($"Card_{item.Id}", typeof(RectTransform), typeof(Image), typeof(Button));
+        // 卡片容器:中性卡底(不再整卡点击购买;改为卡内「购买」按钮 → 确认弹窗 → 购买)。
+        // 各区块按 cell(550×560)从下往上排,文本带高放大到能容下 ×2 字号(否则名称/价格会被裁掉看不见)。
+        var card = new GameObject($"Card_{item.Id}", typeof(RectTransform), typeof(Image));
         card.transform.SetParent(grid, false); // 尺寸由 GridLayoutGroup 决定
         var bg = card.GetComponent<Image>();
-        bg.color = shop.CanAfford(item) ? Affordable : Unaffordable;
-        var btn = card.GetComponent<Button>();
-        btn.targetGraphic = bg;
-        int id = (int)item.Id; // 闭包捕获副本
-        btn.onClick.AddListener(() => shop.Buy(id));
+        bg.color = new Color(0.18f, 0.20f, 0.25f, 1f);
+        bg.raycastTarget = false;
 
-        // 图片(上部,占大半)
+        // 图片(上部,占大半:y 270 → 顶)
         var pic = NewChild(card.transform, "Pic", out var picRt);
         picRt.anchorMin = Vector2.zero; picRt.anchorMax = Vector2.one;
-        picRt.offsetMin = new Vector2(20, 120); picRt.offsetMax = new Vector2(-20, -20);
+        picRt.offsetMin = new Vector2(20, 270); picRt.offsetMax = new Vector2(-20, -20);
         var picImg = pic.AddComponent<Image>();
         picImg.raycastTarget = false; picImg.preserveAspect = true;
         var sprite = !string.IsNullOrEmpty(item.IconPath) ? resMgr.Load<Sprite>(item.IconPath) : null;
         picImg.sprite = sprite; picImg.enabled = sprite != null;
 
-        // 名称(中下)
+        // 名称(y 196..266,带高 70 容下 30pt×2)
         var name = NewChild(card.transform, "Name", out var nameRt);
         nameRt.anchorMin = new Vector2(0, 0); nameRt.anchorMax = new Vector2(1, 0); nameRt.pivot = new Vector2(0.5f, 0);
-        nameRt.offsetMin = new Vector2(6, 64); nameRt.offsetMax = new Vector2(-6, 116);
-        NewText(name, item.Name, 34, TextAlignmentOptions.Center, Color.white);
+        nameRt.offsetMin = new Vector2(6, 196); nameRt.offsetMax = new Vector2(-6, 266);
+        NewText(name, item.Name, 30, TextAlignmentOptions.Center, Color.white);
 
-        // 价格(底部,带货币色)
+        // 价格(y 130..190,带高 60 容下 26pt×2,带货币色)
         var price = NewChild(card.transform, "Price", out var priceRt);
         priceRt.anchorMin = new Vector2(0, 0); priceRt.anchorMax = new Vector2(1, 0); priceRt.pivot = new Vector2(0.5f, 0);
-        priceRt.offsetMin = new Vector2(6, 10); priceRt.offsetMax = new Vector2(-6, 60);
-        NewText(price, $"{currency.DisplayName((CurrencyType)item.PriceType)} {item.Price}", 30, TextAlignmentOptions.Center, new Color(1f, 0.83f, 0.47f, 1f));
+        priceRt.offsetMin = new Vector2(6, 130); priceRt.offsetMax = new Vector2(-6, 190);
+        string priceDesc = $"{currency.DisplayName((CurrencyType)item.PriceType)} {item.Price}";
+        NewText(price, priceDesc, 26, TextAlignmentOptions.Center, new Color(1f, 0.83f, 0.47f, 1f));
+
+        // 购买按钮(底部 y 20..115):绿=买得起可点 / 灰=买不起不可点;点击弹确认页,确认后才真正购买。
+        bool affordable = shop.CanAfford(item);
+        var buyGo = NewChild(card.transform, "Buy", out var buyRt);
+        buyRt.anchorMin = new Vector2(0, 0); buyRt.anchorMax = new Vector2(1, 0); buyRt.pivot = new Vector2(0.5f, 0);
+        buyRt.offsetMin = new Vector2(20, 20); buyRt.offsetMax = new Vector2(-20, 115);
+        var buyImg = buyGo.AddComponent<Image>();
+        buyImg.color = affordable ? Affordable : Unaffordable;
+        var buyBtn = buyGo.AddComponent<Button>();
+        buyBtn.targetGraphic = buyImg;
+        buyBtn.interactable = affordable;
+
+        var label = NewChild(buyGo.transform, "Label", out var labelRt);
+        labelRt.anchorMin = Vector2.zero; labelRt.anchorMax = Vector2.one;
+        labelRt.offsetMin = Vector2.zero; labelRt.offsetMax = Vector2.zero;
+        NewText(label, affordable ? "购买" : "金币不足", 28, TextAlignmentOptions.Center, Color.white);
+
+        int id = (int)item.Id;            // 闭包捕获副本
+        string itemName = item.Name;
+        buyBtn.onClick.AddListener(() => OnBuyClick(id, itemName, priceDesc));
+    }
+
+    /// <summary>点击「购买」:弹出确认页,确认后才调 <see cref="ShopSystem.Buy"/> 真正扣款购买。</summary>
+    private void OnBuyClick(int id, string itemName, string priceDesc)
+    {
+        Show<ConfirmPanel, ConfirmParam>(new ConfirmParam
+        {
+            title = "购买确认",
+            message = $"确定花费 {priceDesc} 购买\n「{itemName}」吗？",
+            confirmText = "购买",
+            cancelText = "取消",
+            onConfirm = () => shop.Buy(id),
+        });
     }
 
     // ---------------- 准备(打开装备界面)----------------

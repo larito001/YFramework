@@ -9,12 +9,12 @@ using UnityEngine.UI;
 /// 一键生成主界面(大厅)预制体 StartPanel.prefab 到 Resources/UI/Boot 下,供 UIMgr/ResMgr 按路径加载。
 /// 程序化构建:Unity 自动解析脚本 GUID / TMP 字体,脚本字段引用在此接好,避免手写 .prefab YAML。
 ///
-/// 竖屏手机布局(对应设计稿):
-///   左上:头像框 + 等级        右上:资源/金币
-///   左侧:设置(方形按钮)      底部一排:商店 / 准备 / 图鉴 / 出发
+/// 竖屏手机布局:
+///   左上:设置(方形按钮)            右上:体力 + 金币两项资源,体力后带「广告补充」小按钮
+///   底部:左侧竖排 任务/商店 · 中间 准备(主按钮,加大) · 右侧 图鉴
 ///
-/// 五个按钮复用项目通用按钮 <c>Resources/UI/Common/CommonButton.prefab</c>(挂 YOTOButton,带悬停/点击缩放),
-/// 与其它界面保持一致的按钮风格。底部四按钮用 HorizontalLayoutGroup 均分,自适应屏宽。
+/// 按钮复用项目通用按钮 <c>Resources/UI/Common/CommonButton.prefab</c>(挂 YOTOButton,带悬停/点击缩放),
+/// 与其它界面保持一致的按钮风格。
 ///
 /// 菜单:Tools/UI/Build StartPanel Prefab
 /// </summary>
@@ -51,66 +51,66 @@ public static class StartPanelBuilder
         // 尺寸按"宽度恒为 1920 单位"的画布(CanvasScaler match=width,refWidth=1920)来定;
         // 竖屏时画布高约 4000+ 单位,故元素普遍偏大才不至于在手机上显得很小。
 
-        // ---------- 左上:头像框 + 等级 ----------
-        var avatarGo = NewUI("AvatarFrame", out var avatarRt, root.transform);
-        TopLeft(avatarRt, new Vector2(60, -80), new Vector2(220, 220));
-        var avatarImg = avatarGo.AddComponent<Image>();
-        avatarImg.sprite = BuiltinSprite("UI/Skin/Knob.psd");
-        avatarImg.color = new Color(0.85f, 0.85f, 0.9f, 1f);
+        // ---------- 左上:设置(方形按钮)----------
+        var btnSetting = BuildButton(btnPrefab, "Btn_Setting", "设置", root.transform, 48);
+        TopLeft((RectTransform)btnSetting.transform, new Vector2(60, -80), new Vector2(180, 180));
 
-        var levelGo = NewUI("Level", out var levelRt, root.transform);
-        TopLeft(levelRt, new Vector2(60, -320), new Vector2(220, 80));
-        var levelBg = levelGo.AddComponent<Image>();
-        levelBg.sprite = BuiltinSprite("UI/Skin/UISprite.psd");
-        levelBg.type = Image.Type.Sliced;
-        levelBg.color = new Color(0.25f, 0.27f, 0.33f, 1f);
-        var levelText = NewChildText(levelGo, "等级", "Lv.1", 44, TextAlignmentOptions.Center);
+        // ---------- 右上:体力 + 金币(体力后跟「广告补充」小按钮)----------
+        // 行 1(上):体力胶囊 + 紧随其右的广告「+」按钮;行 2(下):金币胶囊。均以右上角为原点向左排。
+        const float pillH = 100f, adBtn = 100f, gap = 16f;
 
-        // ---------- 右上:资源/金币 ----------
-        var coinGo = NewUI("Coin", out var coinRt, root.transform);
-        coinRt.anchorMin = coinRt.anchorMax = new Vector2(1, 1);
-        coinRt.pivot = new Vector2(1, 1);
-        coinRt.anchoredPosition = new Vector2(-60, -80);
-        coinRt.sizeDelta = new Vector2(360, 110);
-        var coinBg = coinGo.AddComponent<Image>();
-        coinBg.sprite = BuiltinSprite("UI/Skin/UISprite.psd");
-        coinBg.type = Image.Type.Sliced;
-        coinBg.color = new Color(0.25f, 0.27f, 0.33f, 1f);
-        var coinText = NewChildText(coinGo, "资源金币", "0", 48, TextAlignmentOptions.Right);
-        ((RectTransform)coinText.transform).offsetMax = new Vector2(-28, 0); // 右侧留点边距
+        // 广告「+」按钮贴右上角(在体力之后/之右,预留接广告)
+        var btnEnergyAd = BuildButton(btnPrefab, "Btn_EnergyAd", "+", root.transform, 60);
+        TopRight((RectTransform)btnEnergyAd.transform, new Vector2(-60, -80), new Vector2(adBtn, adBtn));
 
-        // ---------- 左侧:设置(方形按钮)----------
-        var btnSetting = BuildButton(btnPrefab, "Btn_Setting", "设置", root.transform, 52);
-        var settingRt = (RectTransform)btnSetting.transform;
-        TopLeft(settingRt, new Vector2(60, -480), new Vector2(200, 200));
+        // 体力胶囊:在广告按钮左侧
+        var energyText = BuildPill(root.transform, "Energy", "体力 50",
+            new Vector2(-(60 + adBtn + gap), -80), new Vector2(300, pillH));
 
-        // ---------- 底部一排:商店 / 任务 / 准备 / 图鉴(HorizontalLayoutGroup 均分)----------
-        var bar = NewUI("BottomBar", out var barRt, root.transform);
-        barRt.anchorMin = new Vector2(0, 0);
-        barRt.anchorMax = new Vector2(1, 0);
-        barRt.pivot = new Vector2(0.5f, 0);
-        barRt.offsetMin = new Vector2(60, 120);  // 左/下边距(下方留安全区)
-        barRt.offsetMax = new Vector2(-60, 420); // 右边距 + 高度 300
-        var hlg = bar.AddComponent<HorizontalLayoutGroup>();
-        hlg.spacing = 30;
-        hlg.childControlWidth = true;
-        hlg.childControlHeight = true;
-        hlg.childForceExpandWidth = true;
-        hlg.childForceExpandHeight = true;
+        // 金币胶囊:体力下一行
+        var goldText = BuildPill(root.transform, "Gold", "金币 0",
+            new Vector2(-60, -(80 + pillH + gap)), new Vector2(360, pillH));
 
-        var btnShop = BuildButton(btnPrefab, "Btn_Shop", "商店", bar.transform, 56);
-        var btnTask = BuildButton(btnPrefab, "Btn_Task", "任务", bar.transform, 56);
-        var btnPrepare = BuildButton(btnPrefab, "Btn_Prepare", "准备", bar.transform, 56); // 居中
-        var btnCodex = BuildButton(btnPrefab, "Btn_Codex", "图鉴", bar.transform, 56);
+        // ---------- 底部:左竖排(任务/商店) · 中(准备) · 右(图鉴)----------
+        const float sideBtn = 220f, sideGap = 36f, bottomY = 150f;
+
+        // 左侧竖排容器:任务(上)/ 商店(下),VerticalLayoutGroup 自上而下
+        var leftCol = NewUI("LeftColumn", out var leftRt, root.transform);
+        leftRt.anchorMin = leftRt.anchorMax = new Vector2(0, 0);
+        leftRt.pivot = new Vector2(0, 0);
+        leftRt.anchoredPosition = new Vector2(60, bottomY);
+        leftRt.sizeDelta = new Vector2(sideBtn, sideBtn * 2 + sideGap);
+        var vlg = leftCol.AddComponent<VerticalLayoutGroup>();
+        vlg.spacing = sideGap;
+        vlg.childControlWidth = vlg.childControlHeight = true;
+        vlg.childForceExpandWidth = vlg.childForceExpandHeight = true;
+        var btnTask = BuildButton(btnPrefab, "Btn_Task", "任务", leftCol.transform, 56);
+        var btnShop = BuildButton(btnPrefab, "Btn_Shop", "商店", leftCol.transform, 56);
+
+        // 中间主按钮:准备(加大,作为大厅主操作)
+        var btnPrepare = BuildButton(btnPrefab, "Btn_Prepare", "准备", root.transform, 76);
+        var prepareRt = (RectTransform)btnPrepare.transform;
+        prepareRt.anchorMin = prepareRt.anchorMax = new Vector2(0.5f, 0);
+        prepareRt.pivot = new Vector2(0.5f, 0);
+        prepareRt.anchoredPosition = new Vector2(0, bottomY + 20);
+        prepareRt.sizeDelta = new Vector2(560, 280);
+
+        // 右侧:图鉴(竖向居中对齐左侧竖排)
+        var btnCodex = BuildButton(btnPrefab, "Btn_Codex", "图鉴", root.transform, 56);
+        var codexRt = (RectTransform)btnCodex.transform;
+        codexRt.anchorMin = codexRt.anchorMax = new Vector2(1, 0);
+        codexRt.pivot = new Vector2(1, 0);
+        codexRt.anchoredPosition = new Vector2(-60, bottomY + (sideBtn * 2 + sideGap - sideBtn) / 2f);
+        codexRt.sizeDelta = new Vector2(sideBtn, sideBtn);
 
         // ---------- 接脚本字段 ----------
         var panel = root.AddComponent<StartPanel>();
         panel.canvasGroup = cg;
         panel.uiType = UIEnum.StartPanel;
-        panel.avatarFrame = avatarImg;
-        panel.levelText = levelText;
-        panel.coinText = coinText;
+        panel.energyText = energyText;
+        panel.goldText = goldText;
         panel.btn_setting = btnSetting;
+        panel.btn_energyAd = btnEnergyAd;
         panel.btn_shop = btnShop;
         panel.btn_task = btnTask;
         panel.btn_prepare = btnPrepare;
@@ -165,6 +165,30 @@ public static class StartPanelBuilder
         rt.pivot = new Vector2(0, 1);
         rt.anchoredPosition = anchoredPos;
         rt.sizeDelta = size;
+    }
+
+    /// <summary>锚定到右上角:anchoredPosition 以右上为原点(向左为 -x,向下为 -y)。</summary>
+    private static void TopRight(RectTransform rt, Vector2 anchoredPos, Vector2 size)
+    {
+        rt.anchorMin = rt.anchorMax = new Vector2(1, 1);
+        rt.pivot = new Vector2(1, 1);
+        rt.anchoredPosition = anchoredPos;
+        rt.sizeDelta = size;
+    }
+
+    /// <summary>右上角资源「胶囊」:深色圆角底 + 右对齐文本,返回文本(数值由 StartPanel 运行时刷新)。</summary>
+    private static TextMeshProUGUI BuildPill(Transform parent, string name, string text, Vector2 anchoredPos, Vector2 size)
+    {
+        var go = NewUI(name, out var rt, parent);
+        TopRight(rt, anchoredPos, size);
+        var bg = go.AddComponent<Image>();
+        bg.sprite = BuiltinSprite("UI/Skin/UISprite.psd");
+        bg.type = Image.Type.Sliced;
+        bg.color = new Color(0.25f, 0.27f, 0.33f, 1f);
+        var tmp = NewChildText(go, "Text", text, 48, TextAlignmentOptions.Right);
+        ((RectTransform)tmp.transform).offsetMax = new Vector2(-28, 0); // 右侧留点边距
+        ((RectTransform)tmp.transform).offsetMin = new Vector2(20, 0);  // 左侧留点边距
+        return tmp;
     }
 
     /// <summary>在父物体内铺满一个 TMP 文本子物体,返回它(用于给 Image 容器加文字标签)。</summary>
