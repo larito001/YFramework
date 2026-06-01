@@ -35,6 +35,9 @@ public class GameStartScene : YSceneBase
         UI.Hide<ShopPanel>();
         UI.Hide<SettingPanel>();
         UI.Hide<CodexPanel>();
+        UI.Hide<TaskPanel>();
+        UI.Hide<MapSelectPanel>();
+        UI.Hide<FinishPanel>();
         UI.Hide<ConfirmPanel>();
     }
 
@@ -59,6 +62,7 @@ public class GameStartScene : YSceneBase
 
     protected override void OnLeaveScene()
     {
+        Context.Get<AnimalSystem>().Clear(); // 离开对局:清掉场上动物(它们不在场景 rootObj 下,不会随场景失活)
         LeaveSceneComplete();
     }
 }

@@ -12,4 +12,6 @@ public enum UIEnum
     ShopPanel,
     EquipPanel,
     CodexPanel,
+    TaskPanel,
+    MapSelectPanel,
 }

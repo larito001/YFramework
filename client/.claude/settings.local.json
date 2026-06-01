@@ -96,7 +96,9 @@
       "Bash(ls gtp/writer/ gtp/reader/)",
       "Bash(grep -A1 m_AnimatorParameters: __TRACKED_VAR__.controller)",
       "Bash(awk '/m_Name: Death$/{print prev} {prev=$0}' CTL_Boar.controller)",
-      "Bash(grep -nB8 \"m_ConditionEvent: isDead\" CTL_Boar.controller)"
+      "Bash(grep -nB8 \"m_ConditionEvent: isDead\" CTL_Boar.controller)",
+      "Bash(grep -iE \"\\\\.\\(png|jpg|asset\\)$\")",
+      "Bash(grep -v \"//\")"
     ]
   }
 }

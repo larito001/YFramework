@@ -56,17 +56,29 @@ public static class GameMainPanelBuilder
         // ---------- 中部:瞄准镜准星(默认隐藏)----------
         var scope = BuildScope(root.transform);
 
-        // ---------- 底部:瞄准 / 射击 圆钮 ----------
-        var aimBtn = BuildRoundButton("Btn_Aim", "瞄准", root.transform,
-            new Vector2(0, 0), new Vector2(140, 180), 320);
-        var shootBtn = BuildRoundButton("Btn_Shoot", "射击", root.transform,
-            new Vector2(1, 0), new Vector2(-140, 180), 320);
+        // ---------- 底部中间:瞄准/射击 圆钮(同一个钮,文字随状态切换)----------
+        var actionBtn = BuildRoundButton("Btn_Action", "瞄准", root.transform,
+            new Vector2(0.5f, 0), new Vector2(0, 240), 320, out var actionLabel);
 
         // ---------- 底部中:剩余子弹 ----------
         var ammoGo = NewUI("Ammo", out var ammoRt, root.transform);
         ammoRt.anchorMin = new Vector2(0.5f, 0); ammoRt.anchorMax = new Vector2(0.5f, 0); ammoRt.pivot = new Vector2(0.5f, 0);
         ammoRt.anchoredPosition = new Vector2(0, 40); ammoRt.sizeDelta = new Vector2(500, 70);
         var ammoText = NewText(ammoGo, "剩余子弹：0", 40, TextAlignmentOptions.Center);
+
+        // ---------- 左下:结束打猎 ----------
+        var endGo = NewUI("Btn_End", out var endRt, root.transform);
+        endRt.anchorMin = endRt.anchorMax = new Vector2(0, 0); endRt.pivot = new Vector2(0, 0);
+        endRt.anchoredPosition = new Vector2(40, 40); endRt.sizeDelta = new Vector2(300, 120);
+        var endImg = endGo.AddComponent<Image>();
+        endImg.sprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/UISprite.psd");
+        endImg.type = Image.Type.Sliced;
+        endImg.color = new Color(0.80f, 0.26f, 0.24f, 0.92f); // 红色:结束
+        var endBtn = endGo.AddComponent<Button>();
+        endBtn.targetGraphic = endImg;
+        var endLbl = NewUI("Label", out var endLblRt, endGo.transform);
+        Stretch(endLblRt);
+        NewText(endLbl, "结束打猎", 44, TextAlignmentOptions.Center);
 
         // ---------- 接脚本字段 ----------
         var panel = root.AddComponent<GameMainPanel>();
@@ -77,9 +89,10 @@ public static class GameMainPanelBuilder
         panel.coinText = coinText;
         panel.scope = scope;
         panel.scopeMask = scopeMask;
-        panel.aimBtn = aimBtn;
-        panel.shootBtn = shootBtn;
+        panel.actionBtn = actionBtn;
+        panel.actionLabel = actionLabel;
         panel.ammoText = ammoText;
+        panel.endBtn = endBtn;
 
         PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
         Object.DestroyImmediate(root);
@@ -157,8 +170,8 @@ public static class GameMainPanelBuilder
         return scope;
     }
 
-    /// <summary>圆形按钮(内置 Knob 圆形精灵 + 居中文字)。</summary>
-    private static Button BuildRoundButton(string name, string label, Transform parent, Vector2 anchor, Vector2 pos, float size)
+    /// <summary>圆形按钮(内置 Knob 圆形精灵 + 居中文字),out 出文字组件供运行时切换文案。</summary>
+    private static Button BuildRoundButton(string name, string label, Transform parent, Vector2 anchor, Vector2 pos, float size, out TextMeshProUGUI labelText)
     {
         var go = NewUI(name, out var rt, parent);
         rt.anchorMin = rt.anchorMax = anchor; rt.pivot = anchor;
@@ -170,7 +183,7 @@ public static class GameMainPanelBuilder
         btn.targetGraphic = img;
         var lblGo = NewUI("Label", out var lblRt, go.transform);
         Stretch(lblRt);
-        NewText(lblGo, label, 56, TextAlignmentOptions.Center);
+        labelText = NewText(lblGo, label, 56, TextAlignmentOptions.Center);
         return btn;
     }
 

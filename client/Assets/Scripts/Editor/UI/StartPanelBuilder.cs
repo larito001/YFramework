@@ -84,7 +84,7 @@ public static class StartPanelBuilder
         var settingRt = (RectTransform)btnSetting.transform;
         TopLeft(settingRt, new Vector2(60, -480), new Vector2(200, 200));
 
-        // ---------- 底部一排:商店 / 准备(居中主按钮) / 图鉴 ----------
+        // ---------- 底部一排:商店 / 任务 / 准备 / 图鉴(HorizontalLayoutGroup 均分)----------
         var bar = NewUI("BottomBar", out var barRt, root.transform);
         barRt.anchorMin = new Vector2(0, 0);
         barRt.anchorMax = new Vector2(1, 0);
@@ -99,6 +99,7 @@ public static class StartPanelBuilder
         hlg.childForceExpandHeight = true;
 
         var btnShop = BuildButton(btnPrefab, "Btn_Shop", "商店", bar.transform, 56);
+        var btnTask = BuildButton(btnPrefab, "Btn_Task", "任务", bar.transform, 56);
         var btnPrepare = BuildButton(btnPrefab, "Btn_Prepare", "准备", bar.transform, 56); // 居中
         var btnCodex = BuildButton(btnPrefab, "Btn_Codex", "图鉴", bar.transform, 56);
 
@@ -111,6 +112,7 @@ public static class StartPanelBuilder
         panel.coinText = coinText;
         panel.btn_setting = btnSetting;
         panel.btn_shop = btnShop;
+        panel.btn_task = btnTask;
         panel.btn_prepare = btnPrepare;
         panel.btn_codex = btnCodex;
 

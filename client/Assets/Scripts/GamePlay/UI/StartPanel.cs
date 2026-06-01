@@ -24,6 +24,7 @@ public class StartPanel : UIPageBase
     public Button btn_shop;
     public Button btn_prepare;
     public Button btn_codex;
+    public Button btn_task;
 
     private CurrencySystem currency;
     private EventMgr eventMgr;
@@ -36,6 +37,7 @@ public class StartPanel : UIPageBase
         if (btn_shop != null) btn_shop.onClick.AddListener(OnShopClick);
         if (btn_prepare != null) btn_prepare.onClick.AddListener(OnPrepareClick);
         if (btn_codex != null) btn_codex.onClick.AddListener(OnCodexClick);
+        if (btn_task != null) btn_task.onClick.AddListener(OnTaskClick);
     }
 
     public override void OnShow()
@@ -64,10 +66,10 @@ public class StartPanel : UIPageBase
 
     // ---------------- 按钮 ----------------
 
-    // 准备(底部居中主按钮):打开装备界面,在那里选好出战装备后点「出发」进游戏。
+    // 准备(底部居中主按钮):先打开选择关卡界面,选好关卡后再进装备界面,最后「出发」进游戏。
     private void OnPrepareClick()
     {
-        Show<EquipPanel>();
+        Show<MapSelectPanel>();
     }
 
     private void OnSettingClick()
@@ -83,5 +85,10 @@ public class StartPanel : UIPageBase
     private void OnCodexClick()
     {
         Show<CodexPanel>();
+    }
+
+    private void OnTaskClick()
+    {
+        Show<TaskPanel>();
     }
 }

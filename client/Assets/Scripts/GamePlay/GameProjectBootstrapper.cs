@@ -65,6 +65,8 @@ public static partial class GameBootstrapper
         // 商店系统:撮合 CurrencySystem(钱包)与 BagSystem/LoadoutSystem(物品/装备),目录读 item 配表 price>0 的物品。
         // 注册在其依赖之后,Init 里 ctx.Get 取得它们 + ConfigManager。
         ctx.Register(new ShopSystem());
+        // 关卡系统:读 map 配表,记录玩家选中的关卡(选图界面用)。纯逻辑 service,Init 里取 ConfigManager(已先注册)。
+        ctx.Register(new MapSystem());
         // 动物生成系统:读 animal 配表,进对局时在地面随机散布动物(Resources/Animals 下的低多边形动物,平时只 idle)。
         ctx.Register(new AnimalSystem());
         // 世界交互（靠近宝箱 + F 打开）：Init 只订阅 InputService 的 F 键，靠近参照点用主相机（旧 TPS 玩家系统已移除）。
@@ -92,6 +94,10 @@ public static partial class GameBootstrapper
         uiConfig.Register<EquipPanel>(UIEnum.EquipPanel, UILayerEnum.Normal, "UI/Equip/EquipPanel");
         // 图鉴:装饰公仔 / 荣誉卡片 两类收藏,分页展示锁定/解锁卡片。从主界面「图鉴」按钮进入。
         uiConfig.Register<CodexPanel>(UIEnum.CodexPanel, UILayerEnum.Normal, "UI/Codex/CodexPanel");
+        // 任务:每日/常规任务列表,从主界面「任务」按钮进入。任务走配表(task.xlsx → Task.bytes),奖励物品查 item 配表。
+        uiConfig.Register<TaskPanel>(UIEnum.TaskPanel, UILayerEnum.Normal, "UI/Task/TaskPanel");
+        // 选择关卡:点「准备」先进这里选关,再进装备界面。关卡走配表(map.xlsx → Map.bytes)。
+        uiConfig.Register<MapSelectPanel>(UIEnum.MapSelectPanel, UILayerEnum.Normal, "UI/Map/MapSelectPanel");
         // 通用确认弹窗:放 Top 层,叠在普通界面之上。通过 ConfirmParam 传标题/内容/回调。
         uiConfig.Register<ConfirmPanel>(UIEnum.ConfirmPanel, UILayerEnum.Top, "UI/Common/ConfirmPanel");
     }
