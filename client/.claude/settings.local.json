@@ -104,7 +104,13 @@
       "Bash(sed -n '55,80p' Assets/Scripts/GamePlay/UI/SaveSlotPanel.cs)",
       "Bash(grep -v \"public void SwitchScene\\\\|//\")",
       "Bash(ls ../tools/)",
-      "Bash(ls tools/)"
+      "Bash(ls tools/)",
+      "Bash(3rdparty/protobuf/protoc.exe --version)",
+      "Bash(cd *)",
+      "Bash(git -C .. status --short tools/excel/3xlsx)",
+      "Read(//c/c/UnityProject/YFramework/client/Assets/Scripts/Framework/**)",
+      "Read(//c/c/UnityProject/YFramework/client/Assets/Scripts/**)",
+      "WebFetch(domain:ssp.dirichlet.cn)"
     ]
   }
 }

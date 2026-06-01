@@ -1,0 +1,17 @@
+apply plugin: 'com.android.library'
+
+android {
+    namespace "com.dirichlet.samples.networksecurity"
+    compileSdkVersion 34
+
+    defaultConfig {
+        minSdkVersion 21
+    }
+
+    sourceSets {
+        main {
+            res.srcDirs = ['res']
+        }
+    }
+}
+

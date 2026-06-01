@@ -38,6 +38,7 @@ public class GameMainPanel : UIPageBase
     private ConfigManager config;
     private EventMgr eventMgr;
     private MapSystem maps;               // 当前选中关卡(显示关卡名)
+    private TaskProgressSystem taskProgress; // 击杀计入任务进度("击杀任意动物"类任务)
     private ScopeAimController scopeAim; // 相机端瞄准机制(变焦 + 命中射线),挂在主相机上
 
     private int score;
@@ -56,6 +57,7 @@ public class GameMainPanel : UIPageBase
         config = GetService<ConfigManager>();
         eventMgr = GetService<EventMgr>();
         maps = GetService<MapSystem>();
+        taskProgress = GetService<TaskProgressSystem>();
         if (actionBtn != null) actionBtn.onClick.AddListener(OnActionClick);
         if (endBtn != null) endBtn.onClick.AddListener(OnEndHunt);
     }
@@ -133,6 +135,7 @@ public class GameMainPanel : UIPageBase
             score += hit.score;
             kills.TryGetValue(hit.animalId, out var c);
             kills[hit.animalId] = c + 1; // 记一笔,供结算逐种统计
+            taskProgress?.AddKill(1);    // 计入"击杀任意动物"类任务进度
             RefreshScore();
         }
 

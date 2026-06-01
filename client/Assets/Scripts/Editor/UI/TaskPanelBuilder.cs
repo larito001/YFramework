@@ -46,12 +46,12 @@ public static class TaskPanelBuilder
         var backBtn = BuildButton("Btn_Back", "返回", root.transform, 44);
         var backRt = (RectTransform)backBtn.transform;
         backRt.anchorMin = backRt.anchorMax = new Vector2(0, 1); backRt.pivot = new Vector2(0, 1);
-        backRt.anchoredPosition = new Vector2(40, -40); backRt.sizeDelta = new Vector2(200, 90);
+        backRt.anchoredPosition = new Vector2(40, -40); backRt.sizeDelta = new Vector2(220, 110);
 
         // ---------- 顶部:资源金币(绿色胶囊)----------
         var coinGo = NewUI("Coin", out var coinRt, root.transform);
         coinRt.anchorMin = coinRt.anchorMax = new Vector2(0, 1); coinRt.pivot = new Vector2(0, 1);
-        coinRt.anchoredPosition = new Vector2(280, -48); coinRt.sizeDelta = new Vector2(340, 96);
+        coinRt.anchoredPosition = new Vector2(300, -48); coinRt.sizeDelta = new Vector2(360, 120);
         var coinBg = coinGo.AddComponent<Image>();
         coinBg.sprite = BuiltinSprite("UI/Skin/UISprite.psd");
         coinBg.type = Image.Type.Sliced;

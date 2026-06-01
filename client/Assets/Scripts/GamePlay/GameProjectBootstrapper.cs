@@ -65,12 +65,21 @@ public static partial class GameBootstrapper
         // 商店系统:撮合 CurrencySystem(钱包)与 BagSystem/LoadoutSystem(物品/装备),目录读 item 配表 price>0 的物品。
         // 注册在其依赖之后,Init 里 ctx.Get 取得它们 + ConfigManager。
         ctx.Register(new ShopSystem());
+        // 任务进度系统:任务定义走 task 配表,本系统只管玩家进度(登录/连登/击杀/看广告/获武器)+ 领取发奖。
+        // 注册在依赖(CurrencySystem/BagSystem/LoadoutSystem)之后,Init 里 ctx.Get 取得它们。随存档槽存档。
+        ctx.Register(new TaskProgressSystem());
         // 关卡系统:读 map 配表,记录玩家选中的关卡(选图界面用)。纯逻辑 service,Init 里取 ConfigManager(已先注册)。
         ctx.Register(new MapSystem());
         // 动物生成系统:读 animal 配表,进对局时在地面随机散布动物(Resources/Animals 下的低多边形动物,平时只 idle)。
         ctx.Register(new AnimalSystem());
         // 世界交互（靠近宝箱 + F 打开）：Init 只订阅 InputService 的 F 键，靠近参照点用主相机（旧 TPS 玩家系统已移除）。
         ctx.Register(new WorldInteractionSystem());
+        // 激励广告(Dirichlet / TapADN):实现框架预留的 IAdService,大厅「体力补充」按钮看完发奖。
+        // 激励视频仅 Android;Editor 走"模拟看完"便于联调。PC/Steam 不注册 → StartPanel 自动走"未接入"回退、不发奖。
+        // 接入细节(导包/凭证/DIRICHLET_AD 宏/Android 打包)见 DirichletAdService.cs 文件末尾注释。
+#if UNITY_ANDROID || UNITY_EDITOR
+        ctx.Register<IAdService>(new DirichletAdService());
+#endif
         // ctx.Register(new EnemiesManager());
         // ctx.Register(new SceneResManager());
     }
@@ -120,15 +129,21 @@ public static partial class GameBootstrapper
             {
                 // 全新存档:立刻建槽并把当前种子值落盘,整个大厅会话都读写这个槽(避免大厅内改动落到孤儿全局键)。
                 store.CreateSlot();
-                store.SaveAll(() => EnterLobby(ui)); // 种子值落盘后再进大厅
+                store.SaveAll(() => { OnLobbyReady(ctx); EnterLobby(ui); }); // 种子值落盘后再进大厅
             }
             else
             {
                 // 已有存档:激活最近游玩的槽并整体读档,大厅随即显示存档进度(读完会触发各刷新事件,UI 自动更新)。
                 store.SetActiveSlot(MostRecentSlotId(store));
-                store.LoadAll(() => EnterLobby(ui)); // 读回进度后再进大厅
+                store.LoadAll(() => { OnLobbyReady(ctx); EnterLobby(ui); }); // 读回进度后再进大厅
             }
         });
+    }
+
+    /// <summary>读档完成后、进大厅前的一次性结算:任务登录结算(每日登录/连续登录/每日重置)需在进度读回后跑。</summary>
+    private static void OnLobbyReady(GameContext ctx)
+    {
+        ctx.Get<TaskProgressSystem>().RegisterLogin();
     }
 
     /// <summary>读档完成后进入大厅:先显示主界面,再收起加载页(HideLoading 会兜底"最短展示时长")。组装层只负责"显示首屏"。</summary>

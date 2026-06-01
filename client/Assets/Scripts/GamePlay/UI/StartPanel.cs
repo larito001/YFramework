@@ -112,6 +112,7 @@ public class StartPanel : UIPageBase
                 if (!rewarded || currency == null) return;
                 currency.Add(CurrencyType.Energy, EnergyAdReward);
                 currency.Save(); // 关键节点主动写盘,保证补的体力落地
+                Context.TryGet<TaskProgressSystem>(out var tp); tp?.AddAdWatch(1); // 计入"观看广告"类任务
             });
         }
         else

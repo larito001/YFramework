@@ -25,16 +25,17 @@ namespace YFramework.Config {
       byte[] descriptorData = global::System.Convert.FromBase64String(
           string.Concat(
             "Cgp0YXNrLnByb3RvEhF5ZnJhbWV3b3JrLmNvbmZpZxoUQ29uZmlnQmFzZVR5",
-            "cGUucHJvdG8ioQEKBFRhc2sSCgoCaWQYASABKA0SDAoEbmFtZRgCIAEoCRIQ",
+            "cGUucHJvdG8iyAEKBFRhc2sSCgoCaWQYASABKA0SDAoEbmFtZRgCIAEoCRIQ",
             "CghjYXRlZ29yeRgDIAEoDRIUCgx0YXJnZXRBbW91bnQYBCABKAUSFAoMcmV3",
             "YXJkSXRlbUlkGAUgASgNEhcKD3Jld2FyZEl0ZW1Db3VudBgGIAEoBRISCgpy",
-            "ZXdhcmRDb2luGAcgASgFEhQKDHNvcnRQcmlvcml0eRgIIAEoBSJBChdUYXNr",
-            "X0xJU1RfVE9PTF9SRVNFUlZFRBImCgVpdGVtcxgBIAMoCzIXLnlmcmFtZXdv",
-            "cmsuY29uZmlnLlRhc2tCFKoCEVlGcmFtZXdvcmsuQ29uZmlnYgZwcm90bzM="));
+            "ZXdhcmRDb2luGAcgASgFEhQKDHNvcnRQcmlvcml0eRgIIAEoBRIUCgxyZXdh",
+            "cmRFbmVyZ3kYCSABKAUSDwoHb2JqVHlwZRgKIAEoDSJBChdUYXNrX0xJU1Rf",
+            "VE9PTF9SRVNFUlZFRBImCgVpdGVtcxgBIAMoCzIXLnlmcmFtZXdvcmsuY29u",
+            "ZmlnLlRhc2tCFKoCEVlGcmFtZXdvcmsuQ29uZmlnYgZwcm90bzM="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::YFramework.Config.ConfigBaseTypeReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(null, new pbr::GeneratedClrTypeInfo[] {
-            new pbr::GeneratedClrTypeInfo(typeof(global::YFramework.Config.Task), global::YFramework.Config.Task.Parser, new[]{ "Id", "Name", "Category", "TargetAmount", "RewardItemId", "RewardItemCount", "RewardCoin", "SortPriority" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::YFramework.Config.Task), global::YFramework.Config.Task.Parser, new[]{ "Id", "Name", "Category", "TargetAmount", "RewardItemId", "RewardItemCount", "RewardCoin", "SortPriority", "RewardEnergy", "ObjType" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::YFramework.Config.Task_LIST_TOOL_RESERVED), global::YFramework.Config.Task_LIST_TOOL_RESERVED.Parser, new[]{ "Items" }, null, null, null)
           }));
     }
@@ -75,6 +76,8 @@ namespace YFramework.Config {
       rewardItemCount_ = other.rewardItemCount_;
       rewardCoin_ = other.rewardCoin_;
       sortPriority_ = other.sortPriority_;
+      rewardEnergy_ = other.rewardEnergy_;
+      objType_ = other.objType_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -195,6 +198,34 @@ namespace YFramework.Config {
       }
     }
 
+    /// <summary>Field number for the "rewardEnergy" field.</summary>
+    public const int RewardEnergyFieldNumber = 9;
+    private int rewardEnergy_;
+    /// <summary>
+    ///奖励体力
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public int RewardEnergy {
+      get { return rewardEnergy_; }
+      set {
+        rewardEnergy_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "objType" field.</summary>
+    public const int ObjTypeFieldNumber = 10;
+    private uint objType_;
+    /// <summary>
+    ///任务类型
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public uint ObjType {
+      get { return objType_; }
+      set {
+        objType_ = value;
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public override bool Equals(object other) {
       return Equals(other as Task);
@@ -216,6 +247,8 @@ namespace YFramework.Config {
       if (RewardItemCount != other.RewardItemCount) return false;
       if (RewardCoin != other.RewardCoin) return false;
       if (SortPriority != other.SortPriority) return false;
+      if (RewardEnergy != other.RewardEnergy) return false;
+      if (ObjType != other.ObjType) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -230,6 +263,8 @@ namespace YFramework.Config {
       if (RewardItemCount != 0) hash ^= RewardItemCount.GetHashCode();
       if (RewardCoin != 0) hash ^= RewardCoin.GetHashCode();
       if (SortPriority != 0) hash ^= SortPriority.GetHashCode();
+      if (RewardEnergy != 0) hash ^= RewardEnergy.GetHashCode();
+      if (ObjType != 0) hash ^= ObjType.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -275,6 +310,14 @@ namespace YFramework.Config {
         output.WriteRawTag(64);
         output.WriteInt32(SortPriority);
       }
+      if (RewardEnergy != 0) {
+        output.WriteRawTag(72);
+        output.WriteInt32(RewardEnergy);
+      }
+      if (ObjType != 0) {
+        output.WriteRawTag(80);
+        output.WriteUInt32(ObjType);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -306,6 +349,12 @@ namespace YFramework.Config {
       }
       if (SortPriority != 0) {
         size += 1 + pb::CodedOutputStream.ComputeInt32Size(SortPriority);
+      }
+      if (RewardEnergy != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeInt32Size(RewardEnergy);
+      }
+      if (ObjType != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeUInt32Size(ObjType);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -341,6 +390,12 @@ namespace YFramework.Config {
       }
       if (other.SortPriority != 0) {
         SortPriority = other.SortPriority;
+      }
+      if (other.RewardEnergy != 0) {
+        RewardEnergy = other.RewardEnergy;
+      }
+      if (other.ObjType != 0) {
+        ObjType = other.ObjType;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -383,6 +438,14 @@ namespace YFramework.Config {
           }
           case 64: {
             SortPriority = input.ReadInt32();
+            break;
+          }
+          case 72: {
+            RewardEnergy = input.ReadInt32();
+            break;
+          }
+          case 80: {
+            ObjType = input.ReadUInt32();
             break;
           }
         }
