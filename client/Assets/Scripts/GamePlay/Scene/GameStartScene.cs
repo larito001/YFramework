@@ -16,10 +16,26 @@ public class GameStartScene : YSceneBase
     protected override void OnLoadingEnd()
     {
         base.OnLoadingEnd();
-        UI.Hide<StartPanel>();
+        CloseLobbyUI();           // 进入对局:关闭开始/装备等所有大厅菜单界面,避免遮住 HUD
         UI.Show<GameMainPanel>(); // 进入对局:显示打猎 HUD(瞄准/射击/积分/弹药)
         EnableCameraLook();       // 滑屏旋转相机
         Context.Get<AnimalSystem>().SpawnWave(); // 在地面随机散布动物(暂用箱子占位)
+    }
+
+    /// <summary>
+    /// 关闭所有大厅/菜单界面。出发进入对局时,触发链路上的界面(开始 → 商店/准备 → 装备)
+    /// 都还开着,只隐藏开始界面会让装备界面(全屏遮罩)继续盖在 HUD 上,所以这里逐一关闭。
+    /// Hide 对未打开的界面是安全的空操作;Loading(RayCast 层)不在此列,仍由 HideLoading 收尾。
+    /// </summary>
+    private void CloseLobbyUI()
+    {
+        UI.Hide<StartPanel>();
+        UI.Hide<SaveSlotPanel>();
+        UI.Hide<EquipPanel>();
+        UI.Hide<ShopPanel>();
+        UI.Hide<SettingPanel>();
+        UI.Hide<CodexPanel>();
+        UI.Hide<ConfirmPanel>();
     }
 
     /// <summary>给主相机挂上滑屏环视控制(已挂则跳过)。无主相机时仅告警。</summary>

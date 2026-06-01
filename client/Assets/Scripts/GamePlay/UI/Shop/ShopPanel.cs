@@ -151,6 +151,7 @@ public class ShopPanel : UIPageBase
 
     private void OnPrepare()
     {
+        CloseSelf();        // 打开装备界面前先关闭商店,避免两个全屏界面叠在一起
         Show<EquipPanel>();
     }
 

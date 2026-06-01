@@ -80,10 +80,8 @@ public class StartPanel : UIPageBase
         Show<ShopPanel>();
     }
 
-    // 以下面板尚未实现,先占位。接入后把 Debug.Log 换成对应 Show<TPage>()。
-
     private void OnCodexClick()
     {
-        Debug.Log("[StartPanel] 图鉴暂未开放");
+        Show<CodexPanel>();
     }
 }
