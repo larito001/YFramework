@@ -72,6 +72,8 @@ public static partial class GameBootstrapper
         ctx.Register(new MapSystem());
         // 动物生成系统:读 animal 配表,进对局时在地面随机散布动物(Resources/Animals 下的低多边形动物,平时只 idle)。
         ctx.Register(new AnimalSystem());
+        // 动物图鉴系统:记录已击杀(发现)的动物 id,被杀死即解锁图鉴条目。随存档槽存档,目录读 animal 配表。
+        ctx.Register(new CodexSystem());
         // 世界交互（靠近宝箱 + F 打开）：Init 只订阅 InputService 的 F 键，靠近参照点用主相机（旧 TPS 玩家系统已移除）。
         ctx.Register(new WorldInteractionSystem());
         // 激励广告(Dirichlet / TapADN):实现框架预留的 IAdService,大厅「体力补充」按钮看完发奖。

@@ -39,6 +39,7 @@ public class GameMainPanel : UIPageBase
     private EventMgr eventMgr;
     private MapSystem maps;               // 当前选中关卡(显示关卡名)
     private TaskProgressSystem taskProgress; // 击杀计入任务进度("击杀任意动物"类任务)
+    private CodexSystem codex;            // 击杀的动物解锁图鉴
     private ScopeAimController scopeAim; // 相机端瞄准机制(变焦 + 命中射线),挂在主相机上
 
     private int score;
@@ -58,6 +59,7 @@ public class GameMainPanel : UIPageBase
         eventMgr = GetService<EventMgr>();
         maps = GetService<MapSystem>();
         taskProgress = GetService<TaskProgressSystem>();
+        codex = GetService<CodexSystem>();
         if (actionBtn != null) actionBtn.onClick.AddListener(OnActionClick);
         if (endBtn != null) endBtn.onClick.AddListener(OnEndHunt);
     }
@@ -139,6 +141,7 @@ public class GameMainPanel : UIPageBase
             kills.TryGetValue(hit.animalId, out var c);
             kills[hit.animalId] = c + 1; // 记一笔,供结算逐种统计
             taskProgress?.AddKill(1);    // 计入"击杀任意动物"类任务进度
+            codex?.Discover(hit.animalId); // 击杀的动物解锁图鉴
             RefreshScore();
         }
 

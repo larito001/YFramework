@@ -6,27 +6,22 @@ using YFramework.Config;
 using YOTO;
 
 /// <summary>
-/// 图鉴(<see cref="UIEnum.CodexPanel"/>):收藏品图鉴,从主界面「图鉴」进入。
-///   顶部:返回(关闭) / 资源金币
-///   页签:装饰公仔 / 荣誉卡片(绿=当前分类)
-///   中部:2 列网格,每页 6 张卡(图片 + 解锁状态);未解锁显示灰图 +「未解锁」徽标
+/// 动物图鉴(<see cref="UIEnum.CodexPanel"/>):从主界面「图鉴」进入。只做一种图鉴——动物图鉴。
+///   顶部:返回(关闭) / 资源金币 + 已解锁进度
+///   中部:2 列网格,每页 6 张卡;**被杀死过的动物**解锁(显示名称 + 击杀积分),未击杀显示「？/未解锁」
 ///   底部:首页 / 上一页 / 「当前/总页」/ 下一页 / 末页 分页
-/// 目录走配表系统:条目读 <see cref="ConfigManager.codexConfig"/>(codex.xlsx → Codex.bytes),按 Category 分两类。
-/// 解锁状态暂为占位(全部未锁,对齐设计稿);接入存档后由玩家进度驱动。
-/// 预制体外壳由 <c>Tools/UI/Build CodexPanel Prefab</c> 生成。
+/// 目录读 animal 配表(<see cref="ConfigManager.animalConfig"/>);解锁集合来自 <see cref="CodexSystem"/>(击杀即发现,随存档槽存档)。
+/// 预制体外壳由 <c>Tools/UI/Build CodexPanel Prefab</c> 生成(原装饰公仔/荣誉卡片两个页签已停用并隐藏)。
 /// </summary>
 public class CodexPanel : UIPageBase
 {
-    // 配表 category 取值:与 codex.xlsx 第 3 列约定一致
-    private const uint CategoryDoll = 1; // 装饰公仔
-    private const uint CategoryCard = 2; // 荣誉卡片
-    private const int PageSize = 6;      // 2 列 × 3 行
+    private const int PageSize = 6; // 2 列 × 3 行
 
     [Header("顶部")]
     public Button backBtn;
     public TextMeshProUGUI coinText;
 
-    [Header("页签")]
+    [Header("页签(动物图鉴单类,停用并隐藏)")]
     public Button tabDoll;
     public Button tabCard;
 
@@ -40,37 +35,34 @@ public class CodexPanel : UIPageBase
     public Button btnNext;
     public Button btnLast;
 
-    private static readonly Color TabOn = new Color(0.56f, 0.78f, 0.30f, 1f);     // 绿:当前分类
-    private static readonly Color TabOff = new Color(0.72f, 0.70f, 0.80f, 1f);    // 灰紫:未选
-    private static readonly Color CardFrame = new Color(0.97f, 0.97f, 1f, 1f);    // 卡片底框
+    private static readonly Color CardFrame = new Color(0.97f, 0.97f, 1f, 1f);     // 卡片底框
     private static readonly Color LockedTint = new Color(0.62f, 0.62f, 0.66f, 1f); // 未解锁:灰
-    private static readonly Color UnlockedTint = Color.white;                     // 已解锁:原色
+    private static readonly Color UnlockedTint = new Color(0.20f, 0.22f, 0.28f, 1f); // 已解锁:深色名字
     private static readonly Color BadgeLocked = new Color(0.60f, 0.58f, 0.68f, 1f); // 未解锁徽标底
     private static readonly Color BadgeUnlocked = new Color(0.56f, 0.78f, 0.30f, 1f); // 已解锁名底
     private static readonly Color BadgeText = Color.white;
 
     private ConfigManager config;
     private CurrencySystem currency;
-    private ResMgr resMgr;
+    private CodexSystem codex;
     private EventMgr eventMgr;
     private TMP_FontAsset font;
 
-    // 当前分类的条目(按 SortPriority 排好序),分页基于它。
-    private readonly List<Codex> entries = new List<Codex>();
-    private uint currentCategory = CategoryCard; // 默认荣誉卡片,对齐设计稿
+    private readonly List<Animal> entries = new List<Animal>(); // 全部动物(按 Id 升序),分页基于它
     private int page;
 
     public override void OnLoad()
     {
         config = GetService<ConfigManager>();
         currency = GetService<CurrencySystem>();
-        resMgr = GetService<ResMgr>();
+        codex = GetService<CodexSystem>();
         eventMgr = GetService<EventMgr>();
         if (coinText != null) font = coinText.font; // 复用外壳中文字体给运行时卡片
 
         if (backBtn != null) backBtn.onClick.AddListener(CloseSelf);
-        if (tabDoll != null) tabDoll.onClick.AddListener(() => SelectCategory(CategoryDoll));
-        if (tabCard != null) tabCard.onClick.AddListener(() => SelectCategory(CategoryCard));
+        // 动物图鉴只有一类:隐藏原来的两个分类页签
+        if (tabDoll != null) tabDoll.gameObject.SetActive(false);
+        if (tabCard != null) tabCard.gameObject.SetActive(false);
         if (btnFirst != null) btnFirst.onClick.AddListener(() => GoToPage(0));
         if (btnPrev != null) btnPrev.onClick.AddListener(() => GoToPage(page - 1));
         if (btnNext != null) btnNext.onClick.AddListener(() => GoToPage(page + 1));
@@ -80,53 +72,46 @@ public class CodexPanel : UIPageBase
     public override void OnShow()
     {
         eventMgr?.Add(YOTOEventType.RefreshCurrency, RefreshCoin);
-        SelectCategory(currentCategory);
+        eventMgr?.Add(YOTOEventType.RefreshCodex, OnCodexChanged);
+        ReloadEntries();
+        GoToPage(0);
         RefreshCoin();
     }
 
     public override void OnHide()
     {
         eventMgr?.Remove(YOTOEventType.RefreshCurrency, RefreshCoin);
+        eventMgr?.Remove(YOTOEventType.RefreshCodex, OnCodexChanged);
     }
 
     public override void OnResize() { }
+
+    private void OnCodexChanged()
+    {
+        ReloadEntries();
+        GoToPage(page); // 保持当前页刷新解锁态
+    }
 
     // ---------------- 顶部 ----------------
 
     private void RefreshCoin()
     {
-        if (coinText == null || currency == null) return;
-        coinText.text = currency.Get(CurrencyType.Gold).ToString();
+        if (coinText == null) return;
+        string gold = currency != null ? currency.Get(CurrencyType.Gold).ToString() : "0";
+        int unlocked = codex != null ? codex.DiscoveredCount : 0;
+        coinText.text = $"{gold}   图鉴 {unlocked}/{entries.Count}";
     }
 
-    // ---------------- 页签 ----------------
-
-    private void SelectCategory(uint category)
-    {
-        currentCategory = category;
-        SetTabColor(tabDoll, category == CategoryDoll);
-        SetTabColor(tabCard, category == CategoryCard);
-        ReloadEntries();
-        GoToPage(0);
-    }
-
-    private static void SetTabColor(Button btn, bool on)
-    {
-        if (btn == null) return;
-        var img = btn.targetGraphic as Image;
-        if (img != null) img.color = on ? TabOn : TabOff;
-    }
-
-    /// <summary>从配表拉取当前分类条目,按 SortPriority 升序。</summary>
+    /// <summary>拉取全部动物,按 Id 升序。</summary>
     private void ReloadEntries()
     {
         entries.Clear();
         if (config == null) return;
-        foreach (var kv in config.codexConfig.items)
+        foreach (var kv in config.animalConfig.items)
         {
-            if (kv.Value.Category == currentCategory) entries.Add(kv.Value);
+            if (kv.Value != null) entries.Add(kv.Value);
         }
-        entries.Sort((a, b) => a.SortPriority.CompareTo(b.SortPriority));
+        entries.Sort((a, b) => a.Id.CompareTo(b.Id));
     }
 
     // ---------------- 分页 ----------------
@@ -138,6 +123,7 @@ public class CodexPanel : UIPageBase
         page = Mathf.Clamp(target, 0, PageCount - 1);
         RebuildGrid();
         RefreshPager();
+        RefreshCoin(); // 顺带更新「图鉴 x/y」
     }
 
     private void RefreshPager()
@@ -163,9 +149,9 @@ public class CodexPanel : UIPageBase
         for (int i = start; i < end; i++) BuildCard(entries[i]);
     }
 
-    private void BuildCard(Codex entry)
+    private void BuildCard(Animal entry)
     {
-        bool unlocked = IsUnlocked(entry.Id);
+        bool unlocked = codex != null && codex.IsDiscovered((int)entry.Id);
 
         // 卡片底框(尺寸由 GridLayoutGroup 决定)
         var card = new GameObject($"Card_{entry.Id}", typeof(RectTransform), typeof(Image));
@@ -174,17 +160,13 @@ public class CodexPanel : UIPageBase
         bg.color = CardFrame;
         bg.raycastTarget = false;
 
-        // 图片(上部,留出底部徽标)
-        var pic = NewChild(card.transform, "Pic", out var picRt);
+        // 上部:已解锁显示动物名,未解锁显示「？」(项目无 2D 动物图标,用文字表现)
+        var picGo = NewChild(card.transform, "Pic", out var picRt);
         picRt.anchorMin = Vector2.zero; picRt.anchorMax = Vector2.one;
-        picRt.offsetMin = new Vector2(20, 120); picRt.offsetMax = new Vector2(-20, -20);
-        var picImg = pic.AddComponent<Image>();
-        picImg.raycastTarget = false; picImg.preserveAspect = true;
-        picImg.color = unlocked ? UnlockedTint : LockedTint; // 未解锁:灰
-        var sprite = !string.IsNullOrEmpty(entry.IconPath) ? resMgr.Load<Sprite>(entry.IconPath) : null;
-        picImg.sprite = sprite; picImg.enabled = sprite != null;
+        picRt.offsetMin = new Vector2(16, 120); picRt.offsetMax = new Vector2(-16, -16);
+        NewText(picGo, unlocked ? entry.Name : "？", 56, unlocked ? UnlockedTint : LockedTint);
 
-        // 底部徽标:未解锁=灰底「未解锁」;已解锁=绿底显示名称
+        // 底部徽标:已解锁=绿底「积分 X」;未解锁=灰底「未解锁」
         var badge = NewChild(card.transform, "Badge", out var badgeRt);
         badgeRt.anchorMin = new Vector2(0.5f, 0); badgeRt.anchorMax = new Vector2(0.5f, 0); badgeRt.pivot = new Vector2(0.5f, 0);
         badgeRt.anchoredPosition = new Vector2(0, 24); badgeRt.sizeDelta = new Vector2(280, 76);
@@ -195,14 +177,8 @@ public class CodexPanel : UIPageBase
         var label = NewChild(badge.transform, "Label", out var labelRt);
         labelRt.anchorMin = Vector2.zero; labelRt.anchorMax = Vector2.one;
         labelRt.offsetMin = new Vector2(8, 0); labelRt.offsetMax = new Vector2(-8, 0);
-        NewText(label, unlocked ? entry.Name : "未解锁", 34, BadgeText);
+        NewText(label, unlocked ? $"积分 {entry.Score}" : "未解锁", 30, BadgeText);
     }
-
-    /// <summary>
-    /// 解锁状态:暂全部未解锁(对齐设计稿)。接入存档进度后,改为读玩家已解锁集合
-    /// (例如 StoreMgr 的图鉴解锁数据)。
-    /// </summary>
-    private bool IsUnlocked(uint id) => false;
 
     // ---------------- 工具 ----------------
 
