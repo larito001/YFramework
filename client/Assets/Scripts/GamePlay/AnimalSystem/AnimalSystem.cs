@@ -6,8 +6,9 @@ namespace YOTO
 {
     /// <summary>
     /// 动物生成系统(<see cref="IGameService"/>,由 <see cref="GameProjectBootstrapper"/> 注册)。
-    /// 读 animal 配表(目前 3 种,用箱子预制体占位),进对局时 <see cref="SpawnWave"/> 按权重随机选种、
-    /// 在地面随机散布;每只挂 <see cref="AnimalEntity"/> 记配表 id 与击杀积分,供后续射击命中判定取用。
+    /// 读 animal 配表(目前 3 种,prefab 指向 Resources/Animals 下的低多边形动物,只播 idle),
+    /// 进对局时 <see cref="SpawnWave"/> 按权重随机选种、在地面随机散布;每只挂 <see cref="AnimalEntity"/>
+    /// 记配表 id 与击杀积分,供后续射击命中判定取用。预制体由 AnimalPrefabBuilder 菜单生成。
     /// </summary>
     public class AnimalSystem : IGameService
     {

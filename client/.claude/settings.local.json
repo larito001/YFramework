@@ -75,7 +75,25 @@
       "PowerShell(Get-ChildItem -Path \"C:\\\\UnityProject\\\\YFramework\\\\client\\\\Assets\\\\Scripts\" -Recurse -Directory | Select-Object -ExpandProperty FullName | ForEach-Object { $_.Replace\\(\"C:\\\\UnityProject\\\\YFramework\\\\client\\\\Assets\\\\Scripts\",\"\"\\) })",
       "PowerShell(Get-ChildItem -Path \"C:\\\\UnityProject\\\\YFramework\\\\client\\\\Assets\\\\Scripts\\\\Framework\\\\Config\" -Recurse -File | ForEach-Object { \"{0}  \\({1}\\)\" -f $_.FullName.Replace\\(\"C:\\\\UnityProject\\\\YFramework\\\\client\\\\Assets\\\\Scripts\\\\Framework\\\\Config\",\"\"\\), $_.Length }; Write-Output \"----- ScriptGenerated -----\"; Get-ChildItem -Path \"C:\\\\UnityProject\\\\YFramework\\\\client\\\\Assets\\\\ScriptGenerated\" -Recurse -File | ForEach-Object { $_.FullName.Replace\\(\"C:\\\\UnityProject\\\\YFramework\\\\client\\\\Assets\\\\ScriptGenerated\",\"\"\\) })",
       "PowerShell(python C:\\\\UnityProject\\\\YFramework\\\\tools\\\\_dump.py)",
-      "PowerShell(python C:\\\\UnityProject\\\\YFramework\\\\tools\\\\_make_codex.py)"
+      "PowerShell(python C:\\\\UnityProject\\\\YFramework\\\\tools\\\\_make_codex.py)",
+      "Bash(Measure-Object -Line)",
+      "Bash(git count-objects *)",
+      "Bash(git rev-list *)",
+      "Bash(xargs git log --oneline -1)",
+      "Bash(git reflog *)",
+      "Bash(git gc *)",
+      "Read(//mnt/c/UnityProject/YFramework/client/Assets/Scripts/GamePlay/**)",
+      "Read(//mnt/c/UnityProject/YFramework/client/Assets/Art/**)",
+      "Read(//mnt/c/UnityProject/YFramework/**)",
+      "Bash(find Assets/Scripts/GamePlay/AnimalSystem -type f)",
+      "Bash(sed -n 1,80p __TRACKED_VAR__/Prefabs/Animals/Cat_Orange.prefab)",
+      "Bash(grep -n 'm_DefaultState\\\\|m_Name:\\\\|AnimatorState\\\\b\\\\|AnimatorStateMachine\\\\|m_Motion\\\\|guid:' '__TRACKED_VAR__/Animator Controllers/CTL_Cat.controller')",
+      "Bash(grep -n '&1102794318005529146' '__TRACKED_VAR__/Animator Controllers/CTL_Cat.controller')",
+      "Bash(awk '/&1102794318005529146/{f=1} f&&/m_Name:/{print; exit}' '__TRACKED_VAR__/Animator Controllers/CTL_Cat.controller')",
+      "Bash(sed 's/.prefab//')",
+      "Bash(ls _publish/pb2/)",
+      "Bash(cat tools_config.ini)",
+      "Bash(ls gtp/writer/ gtp/reader/)"
     ]
   }
 }
