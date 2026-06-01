@@ -80,6 +80,7 @@ namespace YOTO
             if (item != null && item.ShopCategory != 0 && GetSelected((ShopCategory)item.ShopCategory) == 0)
                 selected[(int)item.ShopCategory] = itemId;
             eventMgr?.Trigger(YOTOEventType.RefreshLoadout);
+            Save(); // 立即落盘:出发时 LoadAll 会从磁盘重载装备,不存就会被旧存档覆盖
         }
 
         /// <summary>选中某装备出战(须已拥有且分类匹配)。成功返回 true。</summary>
@@ -90,6 +91,7 @@ namespace YOTO
             if (item == null || (ShopCategory)item.ShopCategory != cat) return false;
             selected[(int)cat] = itemId;
             eventMgr?.Trigger(YOTOEventType.RefreshLoadout);
+            Save(); // 立即落盘:否则出发时 LoadAll 重载装备会把刚选的出战项覆盖回旧值(表现为玩法里武器不变)
             return true;
         }
 

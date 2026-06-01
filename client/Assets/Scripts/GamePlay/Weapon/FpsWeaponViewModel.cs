@@ -16,13 +16,24 @@ public class FpsWeaponViewModel : MonoBehaviour
     public Vector3 localEuler = new Vector3(-5f, 77.48f, -12.57f);       // 枪口朝向(编辑器内实测值)
     public float scale = 1f;
 
+    [Header("开枪后座(代码模拟:冲击后退上抬 + 平滑复位)")]
+    public float kickBack = 0.06f;      // 每枪向后位移(米)
+    public float kickUp = 6f;           // 每枪枪口上抬(度)
+    public float kickRandomYaw = 2.5f;  // 每枪左右随机偏摆(度)
+    public float snappiness = 18f;      // 后座到位速度(越大越脆)
+    public float returnSpeed = 9f;      // 复位速度(越大回得越快)
+
     private LoadoutSystem loadout;
     private ConfigManager config;
     private ResMgr res;
     private EventMgr eventMgr;
+    private ScopeAimController scopeAim; // 同挂主相机:开镜时据此隐藏手持枪
 
     private GameObject model;
     private int shownId = -1;
+
+    private Vector3 recoilPos, recoilEuler;             // 当前后座偏移(叠加在 rest 之上)
+    private Vector3 targetRecoilPos, targetRecoilEuler; // 目标后座(开枪冲击后向 0 衰减)
 
     /// <summary>注入服务并开始随换装刷新。GameStartScene 在挂载后调用。</summary>
     public void Init(GameContext ctx)
@@ -31,15 +42,46 @@ public class FpsWeaponViewModel : MonoBehaviour
         config = ctx.Get<ConfigManager>();
         res = ctx.Get<ResMgr>();
         eventMgr = ctx.Get<EventMgr>();
+        scopeAim = GetComponent<ScopeAimController>();
 
         eventMgr?.Add(YOTOEventType.RefreshLoadout, Refresh);
+        eventMgr?.Add(YOTOEventType.Shoot, OnShoot); // 开枪后座
         Refresh();
     }
 
     private void OnDestroy()
     {
         eventMgr?.Remove(YOTOEventType.RefreshLoadout, Refresh);
+        eventMgr?.Remove(YOTOEventType.Shoot, OnShoot);
         if (model != null) Destroy(model);
+    }
+
+    /// <summary>每帧把后座偏移弹簧式逼近并衰减回 0,叠加到手持 rest 姿势上。</summary>
+    private void Update()
+    {
+        if (model == null) return;
+
+        // 开镜(瞄准镜)时隐藏手持枪,退出瞄准再显示
+        bool show = scopeAim == null || !scopeAim.IsAiming;
+        if (model.activeSelf != show) model.SetActive(show);
+
+        float dt = Time.deltaTime;
+
+        // 目标后座向 0 衰减(恢复);当前后座向目标快速逼近(冲击)→ 脆击 + 平滑回复
+        targetRecoilPos = Vector3.Lerp(targetRecoilPos, Vector3.zero, returnSpeed * dt);
+        targetRecoilEuler = Vector3.Lerp(targetRecoilEuler, Vector3.zero, returnSpeed * dt);
+        recoilPos = Vector3.Lerp(recoilPos, targetRecoilPos, snappiness * dt);
+        recoilEuler = Vector3.Lerp(recoilEuler, targetRecoilEuler, snappiness * dt);
+
+        model.transform.localPosition = localPosition + recoilPos;
+        model.transform.localEulerAngles = localEuler + recoilEuler;
+    }
+
+    /// <summary>每次开枪(<see cref="YOTOEventType.Shoot"/>)给一记后座冲击:向后 + 枪口上抬 + 轻微随机偏摆。</summary>
+    private void OnShoot()
+    {
+        targetRecoilPos += new Vector3(0f, 0f, -kickBack); // 向相机方向(后)退
+        targetRecoilEuler += new Vector3(-kickUp, Random.Range(-kickRandomYaw, kickRandomYaw), 0f); // -X=枪口上抬
     }
 
     /// <summary>按当前出战武器的 item.ModelPath 换上手持模型;无模型则不显示。</summary>
@@ -67,12 +109,14 @@ public class FpsWeaponViewModel : MonoBehaviour
             return;
         }
 
+        Debug.Log($"[FpsWeaponViewModel] 出战武器 id={id} 手持模型={path}");
         model = Instantiate(prefab, transform); // 作为相机子物体
         WeaponModelUtil.DisableColliders(model); // 去碰撞体,避免挡住自己的射线/物理
         var t = model.transform;
         t.localPosition = localPosition;
         t.localEulerAngles = localEuler;
         t.localScale = Vector3.one * scale;
+        recoilPos = recoilEuler = targetRecoilPos = targetRecoilEuler = Vector3.zero; // 换枪清掉残余后座
         shownId = id;
     }
 }

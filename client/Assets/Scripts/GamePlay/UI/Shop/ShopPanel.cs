@@ -39,7 +39,8 @@ public class ShopPanel : UIPageBase
     private TMP_FontAsset font;
 
     private ShopCategory current = ShopCategory.Weapon;
-    private WeaponModelPreview weaponPreview; // 右上角武器模型转台(武器页签;点卡片图片切换)
+    private WeaponModelPreview weaponPreview; // 武器模型转台(占用原商人头像位;武器页签点卡切换)
+    private int previewWeaponId;              // 当前展示/选中的武器 id(武器页签)
 
     public override void OnLoad()
     {
@@ -57,15 +58,26 @@ public class ShopPanel : UIPageBase
         weaponPreview = new WeaponModelPreview(CreatePreviewHost(), resMgr);
     }
 
-    /// <summary>在右上角放一个武器模型预览框(返回其宿主 RectTransform)。</summary>
+    /// <summary>武器模型预览框:优先占用原「商人头像」的位置(填满它);没有头像则兜底右上角。</summary>
     private RectTransform CreatePreviewHost()
     {
+        if (merchantAvatar != null)
+        {
+            merchantAvatar.enabled = false; // 让位给模型展示
+            var go = new GameObject("WeaponPreview", typeof(RectTransform));
+            var rt = (RectTransform)go.transform;
+            rt.SetParent(merchantAvatar.transform, false);
+            rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one;
+            rt.offsetMin = Vector2.zero; rt.offsetMax = Vector2.zero; // 填满头像区域
+            return rt;
+        }
+
         var host = new GameObject("WeaponPreview", typeof(RectTransform));
         host.transform.SetParent(transform, false);
         var hr = (RectTransform)host.transform;
-        hr.anchorMin = hr.anchorMax = hr.pivot = new Vector2(1f, 1f); // 右上角
+        hr.anchorMin = hr.anchorMax = hr.pivot = new Vector2(1f, 1f);
         hr.sizeDelta = new Vector2(320f, 320f);
-        hr.anchoredPosition = new Vector2(-30f, -190f);               // 让开顶部金币条
+        hr.anchoredPosition = new Vector2(-30f, -190f);
         return hr;
     }
 
@@ -106,11 +118,32 @@ public class ShopPanel : UIPageBase
         SetTabColor(tabWeapon, cat == ShopCategory.Weapon);
         SetTabColor(tabScope, cat == ShopCategory.Scope);
         SetTabColor(tabBullet, cat == ShopCategory.Bullet);
+        if (cat == ShopCategory.Weapon) EnsureDefaultWeapon(); // 默认选中第一把
         RebuildGrid();
         UpdateWeaponPreview();
     }
 
-    /// <summary>武器页签:转台展示该分类第一件武器的模型(点卡片图片可切换);其它页签收起转台。</summary>
+    /// <summary>武器页签未选中(或选中项已不在目录)时,默认选第一把有模型的枪。</summary>
+    private void EnsureDefaultWeapon()
+    {
+        var list = shop.CatalogOf(ShopCategory.Weapon);
+        for (int i = 0; i < list.Count; i++)
+            if ((int)list[i].Id == previewWeaponId && !string.IsNullOrEmpty(list[i].ModelPath)) return; // 当前选中仍有效
+
+        previewWeaponId = 0;
+        for (int i = 0; i < list.Count; i++)
+            if (!string.IsNullOrEmpty(list[i].ModelPath)) { previewWeaponId = (int)list[i].Id; break; }
+    }
+
+    /// <summary>点武器卡:选中它并在商人位展示其模型(刷新选中描边)。</summary>
+    private void SelectWeaponPreview(int id)
+    {
+        previewWeaponId = id;
+        RebuildGrid();        // 重建以更新选中描边
+        UpdateWeaponPreview();
+    }
+
+    /// <summary>武器页签:转台展示当前选中武器的模型;其它页签收起转台。</summary>
     private void UpdateWeaponPreview()
     {
         if (weaponPreview == null) return;
@@ -118,9 +151,12 @@ public class ShopPanel : UIPageBase
 
         weaponPreview.SetActive(true);
         string path = null;
-        var list = shop.CatalogOf(ShopCategory.Weapon);
-        for (int i = 0; i < list.Count; i++)
-            if (!string.IsNullOrEmpty(list[i].ModelPath)) { path = list[i].ModelPath; break; }
+        if (previewWeaponId > 0)
+        {
+            var list = shop.CatalogOf(ShopCategory.Weapon);
+            for (int i = 0; i < list.Count; i++)
+                if ((int)list[i].Id == previewWeaponId) { path = list[i].ModelPath; break; }
+        }
         weaponPreview.Show(path);
     }
 
@@ -152,6 +188,24 @@ public class ShopPanel : UIPageBase
         bg.color = new Color(0.18f, 0.20f, 0.25f, 1f);
         bg.raycastTarget = false;
 
+        // 武器卡:整卡可点 = 选中该枪并在商人位展示其模型(底部「购买」按钮在上层,各点各的)
+        if (current == ShopCategory.Weapon && !string.IsNullOrEmpty(item.ModelPath))
+        {
+            bg.raycastTarget = true;
+            var cardBtn = card.AddComponent<Button>();
+            cardBtn.transition = Selectable.Transition.None; // 不改卡底色
+            cardBtn.targetGraphic = bg;
+            int wid = (int)item.Id;
+            cardBtn.onClick.AddListener(() => SelectWeaponPreview(wid));
+
+            if ((int)item.Id == previewWeaponId) // 当前选中:黄色描边
+            {
+                var ol = card.AddComponent<Outline>();
+                ol.effectColor = new Color(1f, 0.85f, 0.2f, 1f);
+                ol.effectDistance = new Vector2(6, 6);
+            }
+        }
+
         // 图片(上部,占大半:y 270 → 顶)
         var pic = NewChild(card.transform, "Pic", out var picRt);
         picRt.anchorMin = Vector2.zero; picRt.anchorMax = Vector2.one;
@@ -160,16 +214,6 @@ public class ShopPanel : UIPageBase
         picImg.raycastTarget = false; picImg.preserveAspect = true;
         var sprite = !string.IsNullOrEmpty(item.IconPath) ? resMgr.Load<Sprite>(item.IconPath) : null;
         picImg.sprite = sprite; picImg.enabled = sprite != null;
-
-        // 武器卡:点图片在右上角转台预览该枪的模型
-        if (current == ShopCategory.Weapon && !string.IsNullOrEmpty(item.ModelPath) && picImg.enabled)
-        {
-            picImg.raycastTarget = true;
-            var picBtn = pic.AddComponent<Button>();
-            picBtn.targetGraphic = picImg;
-            string modelPath = item.ModelPath;
-            picBtn.onClick.AddListener(() => weaponPreview?.Show(modelPath));
-        }
 
         // 名称(y 196..266,带高 70 容下 30pt×2)
         var name = NewChild(card.transform, "Name", out var nameRt);

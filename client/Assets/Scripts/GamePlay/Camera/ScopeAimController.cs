@@ -27,6 +27,9 @@ public class ScopeAimController : MonoBehaviour
     private float targetFov;
     private bool aiming;
 
+    /// <summary>当前是否在瞄准(供手持武器等据此显隐)。</summary>
+    public bool IsAiming => aiming;
+
     private void Awake()
     {
         cam = GetComponent<Camera>();

@@ -39,7 +39,7 @@ public class EquipPanel : UIPageBase
     private TMP_FontAsset font;
     private bool busy;
 
-    private WeaponModelPreview weaponPreview; // 右上角武器模型转台(展示当前选中的枪)
+    private WeaponModelPreview weaponPreview; // 底部武器模型转台(展示当前选中出战的枪)
 
     public override void OnLoad()
     {
@@ -56,15 +56,15 @@ public class EquipPanel : UIPageBase
         weaponPreview = new WeaponModelPreview(CreatePreviewHost(), resMgr);
     }
 
-    /// <summary>在右上角放一个武器模型预览框(返回其宿主 RectTransform)。</summary>
+    /// <summary>在底部(右下角)放一个武器模型预览框(返回其宿主 RectTransform)。位置不合适改这里的 anchoredPosition。</summary>
     private RectTransform CreatePreviewHost()
     {
         var host = new GameObject("WeaponPreview", typeof(RectTransform));
         host.transform.SetParent(transform, false);
         var hr = (RectTransform)host.transform;
-        hr.anchorMin = hr.anchorMax = hr.pivot = new Vector2(1f, 1f); // 右上角
-        hr.sizeDelta = new Vector2(320f, 320f);
-        hr.anchoredPosition = new Vector2(-30f, -160f);               // 让开顶部金币条
+        hr.anchorMin = hr.anchorMax = hr.pivot = new Vector2(1f, 0f); // 右下角(底部)
+        hr.sizeDelta = new Vector2(300f, 300f);
+        hr.anchoredPosition = new Vector2(-30f, 30f);
         return hr;
     }
 

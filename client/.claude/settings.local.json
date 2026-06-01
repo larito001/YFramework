@@ -118,7 +118,8 @@
       "PowerShell(python -c \"import grpc_tools; print\\('grpc_tools ok'\\)\" 2>&1; python -c \"import google.protobuf; print\\('protobuf', google.protobuf.__version__\\)\" 2>&1; Write-Output \"=== tools_config.ini ===\"; Get-Content C:\\\\UnityProject\\\\YFramework\\\\tools\\\\tools_config.ini)",
       "Bash(git *)",
       "Bash(python _edit_item_weapons.py)",
-      "Bash(grep -v \"comment\\\\|comment\\\\|//\")"
+      "Bash(grep -v \"comment\\\\|comment\\\\|//\")",
+      "Bash(python _edit_shop_proper.py)"
     ]
   }
 }

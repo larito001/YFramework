@@ -9,9 +9,9 @@ using YOTO;
 public class ShootCameraShake : MonoBehaviour
 {
     [Tooltip("单次抖动时长(秒)")]
-    public float duration = 0.18f;
+    public float duration = 0.26f;
     [Tooltip("抖动幅度(米)")]
-    public float magnitude = 0.25f;
+    public float magnitude = 0.55f;
 
     private EventMgr eventMgr;
     private Vector3 basePos;

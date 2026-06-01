@@ -123,9 +123,12 @@ public class GameMainPanel : UIPageBase
 
     private void Shoot()
     {
-        if (!aiming || ammo <= 0) return; // 只在瞄准且有子弹时开火
+        if (!aiming) return;
+        eventMgr?.Trigger(YOTOEventType.Shoot); // 开枪反馈(实弹/空枪干打都触发:镜头抖动 + 后座)
+
+        if (ammo <= 0) { RefreshAmmo(); return; } // 空枪:只震屏,不开火、不关镜
+
         ammo--;
-        eventMgr?.Trigger(YOTOEventType.Shoot); // 触发相机抖动等开枪反馈
 
         // 从屏幕中心(准星处)打射线:命中动物才加它的击杀积分并播死亡动画,没打中不加分
         var hit = ScopeAim()?.FireRay();
@@ -139,7 +142,7 @@ public class GameMainPanel : UIPageBase
             RefreshScore();
         }
 
-        SetAiming(false); // 射击后关闭瞄准镜
+        SetAiming(false); // 实弹射击后关闭瞄准镜
         RefreshAmmo();
     }
 
@@ -200,11 +203,11 @@ public class GameMainPanel : UIPageBase
         RefreshActionButton();
     }
 
-    /// <summary>圆钮文字随状态切换;瞄准且没子弹时禁用(不能开火,但仍可点镜外退出)。</summary>
+    /// <summary>圆钮文字随状态切换;始终可点(空枪干打也要给震屏反馈)。</summary>
     private void RefreshActionButton()
     {
         if (actionLabel != null) actionLabel.text = aiming ? "射击" : "瞄准";
-        if (actionBtn != null) actionBtn.interactable = !aiming || ammo > 0;
+        if (actionBtn != null) actionBtn.interactable = true;
     }
 
     private static bool IsPointerOverUI()
