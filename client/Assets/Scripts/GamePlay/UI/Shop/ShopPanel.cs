@@ -88,6 +88,7 @@ public class ShopPanel : UIPageBase
     public override void OnShow()
     {
         eventMgr?.Add(YOTOEventType.RefreshCurrency, OnCurrencyChanged);
+        eventMgr?.Add(YOTOEventType.RefreshLoadout, OnLoadoutChanged); // 购买装备解锁后刷新「已拥有」灰按钮
         SelectCategory(ShopCategory.Weapon);
         RefreshCoin();
     }
@@ -95,6 +96,7 @@ public class ShopPanel : UIPageBase
     public override void OnHide()
     {
         eventMgr?.Remove(YOTOEventType.RefreshCurrency, OnCurrencyChanged);
+        eventMgr?.Remove(YOTOEventType.RefreshLoadout, OnLoadoutChanged);
         weaponPreview?.SetActive(false);
     }
 
@@ -103,8 +105,12 @@ public class ShopPanel : UIPageBase
     private void OnCurrencyChanged()
     {
         RefreshCoin();
-        RebuildGrid(); // 重建以刷新各卡绿/灰
+        RebuildGrid(); // 重建以刷新各卡绿/灰(买得起/买不起)
     }
+
+    /// <summary>装备拥有变化(购买解锁):重建以把已拥有的按钮刷成灰「已拥有」。
+    /// 购买流程里 TrySpend 先触发 RefreshCurrency(此时尚未 Grant,仍显示「购买」),Grant 后的本事件才是正确态。</summary>
+    private void OnLoadoutChanged() => RebuildGrid();
 
     // ---------------- 顶部 ----------------
 

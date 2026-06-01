@@ -12,6 +12,9 @@ public class AnimalEntity : MonoBehaviour
     public int animalId;
     public int score;
 
+    [Tooltip("是否为金色泛光稀有体(刷怪时按概率赋予,纯表现;后续可据此加积分/掉落)")]
+    public bool isGolden;
+
     [Tooltip("死亡动画对应的 Animator bool 参数名;不同动物可能不同")]
     public string deathBool = "isDead";
     [Tooltip("死亡动画时长(秒),播完后销毁")]

@@ -67,10 +67,12 @@ public class WeaponModelPreview
         image.enabled = true;
     }
 
-    /// <summary>显隐(隐藏时关掉离屏相机,停止每帧渲染省开销)。</summary>
+    /// <summary>显隐:整体启用/停用预览 rig(而非只关相机)。
+    /// 注意必须切 rig 的 active 而不是 cam.enabled——后者被禁用再启用后 RenderTexture 不会重新渲染,
+    /// 导致切走页签再回来时模型不再出现(只剩卡片描边)。切 GameObject 的 active 则会强制重渲一帧。</summary>
     public void SetActive(bool on)
     {
-        if (cam != null) cam.enabled = on;
+        if (rig != null && rig.activeSelf != on) rig.SetActive(on);
         if (image != null) image.enabled = on && model != null;
     }
 

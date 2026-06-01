@@ -1,8 +1,12 @@
 using UnityEngine;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 using YOTO;
 
 public class GameStartScene : YSceneBase
 {
+    private GameObject bloomVolumeGo; // 运行时建的全局 Bloom(让金色泛光动物真的泛起来),离开场景销毁
+
     public override YSceneType SceneType
     {
         get { return YSceneType.Home; }
@@ -54,11 +58,38 @@ public class GameStartScene : YSceneBase
         if (cam.GetComponent<CameraSwipeLook>() == null) cam.gameObject.AddComponent<CameraSwipeLook>();
         if (cam.GetComponent<ShootCameraShake>() == null) cam.gameObject.AddComponent<ShootCameraShake>(); // 开枪抖动
         if (cam.GetComponent<ScopeAimController>() == null) cam.gameObject.AddComponent<ScopeAimController>(); // 瞄准变焦 + 命中射线
+        EnableGoldenBloom(cam); // 开启 Bloom 后处理,让金色泛光动物的 HDR 自发光真正"泛光"
 
         // 第一人称手持武器:把出战武器模型挂到相机前下方,换装时自动更换
         var viewModel = cam.GetComponent<FpsWeaponViewModel>();
         if (viewModel == null) viewModel = cam.gameObject.AddComponent<FpsWeaponViewModel>();
         viewModel.Init(Context);
+    }
+
+    /// <summary>
+    /// 开启相机后处理并建一个全局 Bloom override:场景默认没有后处理/Bloom,金色动物的 HDR 自发光不会泛光,
+    /// 这里运行时补上。阈值取 1,只让 HDR(亮度&gt;1)亮部泛光,普通物体基本不糊;暖金色调让光晕偏金。
+    /// 离开对局时由 <see cref="OnLeaveScene"/> 销毁。
+    /// </summary>
+    private void EnableGoldenBloom(Camera cam)
+    {
+        var camData = cam.GetUniversalAdditionalCameraData();
+        if (camData != null) camData.renderPostProcessing = true; // 相机开后处理(否则 Bloom 不生效)
+
+        if (bloomVolumeGo != null) return; // 已建过(再次出发不重复建)
+
+        var profile = ScriptableObject.CreateInstance<VolumeProfile>();
+        var bloom = profile.Add<Bloom>(true);
+        bloom.threshold.overrideState = true; bloom.threshold.value = 1.0f;
+        bloom.intensity.overrideState = true; bloom.intensity.value = 1.2f;
+        bloom.scatter.overrideState   = true; bloom.scatter.value   = 0.7f;
+        bloom.tint.overrideState      = true; bloom.tint.value      = new Color(1f, 0.9f, 0.6f); // 暖金光晕
+
+        bloomVolumeGo = new GameObject("GoldenBloomVolume");
+        var volume = bloomVolumeGo.AddComponent<Volume>();
+        volume.isGlobal = true;
+        volume.priority = 10f;
+        volume.profile = profile;
     }
 
     protected override void OnEnterScene()
@@ -69,6 +100,13 @@ public class GameStartScene : YSceneBase
     protected override void OnLeaveScene()
     {
         Context.Get<AnimalSystem>().Clear(); // 离开对局:清掉场上动物(它们不在场景 rootObj 下,不会随场景失活)
+        if (bloomVolumeGo != null) // 收掉运行时建的全局 Bloom(连同 GO 一起销毁 profile,否则 SO 每局泄漏一份)
+        {
+            var v = bloomVolumeGo.GetComponent<Volume>();
+            if (v != null && v.profile != null) Object.Destroy(v.profile);
+            Object.Destroy(bloomVolumeGo);
+            bloomVolumeGo = null;
+        }
         LeaveSceneComplete();
     }
 }

@@ -1,9 +1,11 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using YOTO;
 
 /// <summary>
-/// 设置界面:竖屏单页,只保留声音设置(按键 / 画面页签已移除)。
-/// 声音控件由 <see cref="SoundSettingsTab"/> 在激活时懒构建并绑定 SoundMgr;本类只负责显示与返回。
+/// 设置界面:竖屏单页,保留声音设置(按键 / 画面页签已移除) + 两个调试按钮(清空数据 / 加金币)。
+/// 声音控件由 <see cref="SoundSettingsTab"/> 在激活时懒构建并绑定 SoundMgr;本类负责显示/返回与调试按钮。
 /// 预制体由 <c>Tools/UI/Build SettingPanel Prefab</c> 生成。
 /// </summary>
 public class SettingPanel : UIPageBase
@@ -11,9 +13,21 @@ public class SettingPanel : UIPageBase
     public Button backBtn;
     public GameObject soundTab;
 
+    private StoreMgr store;
+    private CurrencySystem currency;
+    private EventMgr eventMgr;
+
     public override void OnLoad()
     {
+        store = GetService<StoreMgr>();
+        currency = GetService<CurrencySystem>();
+        eventMgr = GetService<EventMgr>();
+
         if (backBtn != null) backBtn.onClick.AddListener(CloseSelf);
+
+        // 调试按钮(左下角竖排):清空数据并刷新 / 金币 +10000
+        CreateDebugButton("清空数据并刷新", new Vector2(40f, 150f), new Color(0.78f, 0.30f, 0.30f, 1f), OnClearData);
+        CreateDebugButton("金币 +10000", new Vector2(40f, 44f), new Color(0.85f, 0.66f, 0.20f, 1f), OnAddGold);
     }
 
     public override void OnShow()
@@ -27,5 +41,72 @@ public class SettingPanel : UIPageBase
 
     public override void OnResize()
     {
+    }
+
+    // ---------------- 调试按钮 ----------------
+
+    /// <summary>清空当前存档槽的进度数据(装备/货币/背包/图鉴/任务)并重载,触发各界面刷新。</summary>
+    private void OnClearData()
+    {
+        if (store == null) return;
+        store.ClearSaves(SaveCategory.Progress);      // 删当前槽的进度落盘文件
+        store.LoadAll(() =>                            // 重载:读到空档 → 各系统 Restore 回默认(装备重新发种子,货币清零等)
+        {
+            eventMgr?.Trigger(YOTOEventType.RefreshCurrency);
+            eventMgr?.Trigger(YOTOEventType.RefreshLoadout);
+            eventMgr?.Trigger(YOTOEventType.RefreshCodex);
+            eventMgr?.Trigger(YOTOEventType.RefreshBagList);
+            eventMgr?.Trigger(YOTOEventType.RefreshTask);
+            GetService<FlyTextMgr>()?.AddTextAtScreenCenter("数据已清空");
+        });
+    }
+
+    /// <summary>金币 +10000(立即落盘,变化即触发 RefreshCurrency 刷新各处金币显示)。</summary>
+    private void OnAddGold()
+    {
+        if (currency == null) return;
+        currency.Add(CurrencyType.Gold, 10000);
+        currency.Save();
+        GetService<FlyTextMgr>()?.AddTextAtScreenCenter("金币 +10000");
+    }
+
+    // ---------------- 工具 ----------------
+
+    /// <summary>运行时建一个左下角锚定的按钮。位置不合适改 anchoredPos。</summary>
+    private void CreateDebugButton(string label, Vector2 anchoredPos, Color color, System.Action onClick)
+    {
+        var go = new GameObject($"Btn_{label}", typeof(RectTransform), typeof(Image), typeof(Button));
+        var rt = (RectTransform)go.transform;
+        rt.SetParent(transform, false);
+        rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0f, 0f); // 左下角
+        rt.sizeDelta = new Vector2(380f, 96f);
+        rt.anchoredPosition = anchoredPos;
+
+        var img = go.GetComponent<Image>();
+        img.color = color;
+        var btn = go.GetComponent<Button>();
+        btn.targetGraphic = img;
+        btn.onClick.AddListener(() => onClick());
+
+        var labelGo = new GameObject("Label", typeof(RectTransform));
+        var lrt = (RectTransform)labelGo.transform;
+        lrt.SetParent(rt, false);
+        lrt.anchorMin = Vector2.zero; lrt.anchorMax = Vector2.one;
+        lrt.offsetMin = Vector2.zero; lrt.offsetMax = Vector2.zero;
+        var tmp = labelGo.AddComponent<TextMeshProUGUI>();
+        tmp.text = label;
+        tmp.alignment = TextAlignmentOptions.Center;
+        tmp.fontSize = UITheme.Font(32);
+        tmp.color = Color.white;
+        tmp.raycastTarget = false;
+        var f = GetFont();
+        if (f != null) tmp.font = f;
+    }
+
+    /// <summary>复用返回按钮上的中文字体(取不到则用 TMP 默认)。</summary>
+    private TMP_FontAsset GetFont()
+    {
+        var t = backBtn != null ? backBtn.GetComponentInChildren<TextMeshProUGUI>() : null;
+        return t != null ? t.font : TMP_Settings.defaultFontAsset;
     }
 }
