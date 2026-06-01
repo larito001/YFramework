@@ -52,13 +52,13 @@ public static partial class GameBootstrapper
         ctx.Register(messageDispatcher);
 
         // Transport / Session / Lobby 注册为接口类型，gameplay 通过接口取用，看不到 Steam 细节。
-        ctx.Register<INetworkTransport>(new SteamNetworkTransport(steamPlatform, mainThreadInbox));
-        var transport = ctx.Get<INetworkTransport>();
+        // ctx.Register<INetworkTransport>(new SteamNetworkTransport(steamPlatform, mainThreadInbox));
+        // var transport = ctx.Get<INetworkTransport>();
 
-        ctx.Register<INetworkSession>(new NetworkSession(transport, messageRegistry, messageDispatcher, serializer, mainThreadInbox));
-        ctx.Register<ILobbyService>(new SteamLobbyService(steamPlatform));
-
-        ctx.Register(new NetworkRuntime(transport, mainThreadInbox));
+        // ctx.Register<INetworkSession>(new NetworkSession(transport, messageRegistry, messageDispatcher, serializer, mainThreadInbox));
+        // ctx.Register<ILobbyService>(new SteamLobbyService(steamPlatform));
+        //
+        // ctx.Register(new NetworkRuntime(transport, mainThreadInbox));
 
         var runner = GameLoop.Instance.GetComponent<CoroutineRunner>();
         if (runner == null)
