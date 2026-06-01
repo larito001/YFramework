@@ -218,7 +218,7 @@ public class CodexPanel : UIPageBase
     {
         var tmp = go.AddComponent<TextMeshProUGUI>();
         tmp.text = text;
-        tmp.fontSize = size;
+        tmp.fontSize = UITheme.Font(size);
         tmp.alignment = TextAlignmentOptions.Center;
         tmp.color = color;
         tmp.raycastTarget = false;

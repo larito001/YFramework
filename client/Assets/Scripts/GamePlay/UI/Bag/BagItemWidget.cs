@@ -124,7 +124,7 @@ public class BagItemWidget : MonoBehaviour,
         rt.offsetMin = new Vector2(4, -24);
         rt.offsetMax = new Vector2(-4, -2);
         nameLabel = go.AddComponent<TextMeshProUGUI>();
-        nameLabel.fontSize = 16;
+        nameLabel.fontSize = UITheme.Font(16);
         nameLabel.alignment = TextAlignmentOptions.TopLeft;
         nameLabel.color = Color.white;
         nameLabel.raycastTarget = false;
@@ -145,7 +145,7 @@ public class BagItemWidget : MonoBehaviour,
         rt.anchoredPosition = new Vector2(-4, 2);
         rt.sizeDelta = new Vector2(60, 26);
         countLabel = go.AddComponent<TextMeshProUGUI>();
-        countLabel.fontSize = 20;
+        countLabel.fontSize = UITheme.Font(20);
         countLabel.alignment = TextAlignmentOptions.BottomRight;
         countLabel.color = Color.white;
         countLabel.fontStyle = FontStyles.Bold;

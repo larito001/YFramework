@@ -215,7 +215,7 @@ public static class GameMainPanelBuilder
     private static TextMeshProUGUI NewText(GameObject go, string text, float size, TextAlignmentOptions align)
     {
         var tmp = go.AddComponent<TextMeshProUGUI>();
-        tmp.text = text; tmp.fontSize = size; tmp.alignment = align; tmp.color = Color.white; tmp.raycastTarget = false;
+        tmp.text = text; tmp.fontSize = UITheme.Font(size); tmp.alignment = align; tmp.color = Color.white; tmp.raycastTarget = false;
         var font = _font != null ? _font : TMP_Settings.defaultFontAsset;
         if (font != null) tmp.font = font;
         return tmp;

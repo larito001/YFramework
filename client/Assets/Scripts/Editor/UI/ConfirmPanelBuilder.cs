@@ -95,7 +95,7 @@ public static class ConfirmPanelBuilder
     {
         var tmp = go.AddComponent<TextMeshProUGUI>();
         tmp.text = text;
-        tmp.fontSize = size;
+        tmp.fontSize = UITheme.Font(size);
         tmp.alignment = align;
         tmp.color = Color.white;
         tmp.raycastTarget = false;

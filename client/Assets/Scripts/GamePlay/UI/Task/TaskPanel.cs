@@ -220,7 +220,7 @@ public class TaskPanel : UIPageBase
     private TextMeshProUGUI NewText(GameObject go, string text, float size, Color color, TextAlignmentOptions align)
     {
         var tmp = go.AddComponent<TextMeshProUGUI>();
-        tmp.text = text; tmp.fontSize = size; tmp.alignment = align; tmp.color = color;
+        tmp.text = text; tmp.fontSize = UITheme.Font(size); tmp.alignment = align; tmp.color = color;
         tmp.raycastTarget = false; tmp.enableWordWrapping = false; tmp.overflowMode = TextOverflowModes.Ellipsis;
         var f = font != null ? font : TMP_Settings.defaultFontAsset;
         if (f != null) tmp.font = f;

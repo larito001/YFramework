@@ -136,7 +136,7 @@ public static class StartPanelBuilder
         if (text != null)
         {
             text.text = label;
-            text.fontSize = fontSize; // 通用按钮默认 24pt,在 1920 宽画布上偏小
+            text.fontSize = UITheme.Font(fontSize); // 通用按钮默认 24pt,在 1920 宽画布上偏小
         }
 
         return go.GetComponent<Button>(); // YOTOButton : Button
@@ -179,7 +179,7 @@ public static class StartPanelBuilder
     {
         var tmp = go.AddComponent<TextMeshProUGUI>();
         tmp.text = text;
-        tmp.fontSize = size;
+        tmp.fontSize = UITheme.Font(size);
         tmp.alignment = align;
         tmp.color = Color.white;
         tmp.raycastTarget = false;

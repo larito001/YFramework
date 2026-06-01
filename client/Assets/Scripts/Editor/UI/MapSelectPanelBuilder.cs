@@ -120,7 +120,7 @@ public static class MapSelectPanelBuilder
         go.name = name;
         go.SetActive(true);
         var text = go.GetComponentInChildren<TextMeshProUGUI>(true);
-        if (text != null) { text.text = label; text.fontSize = fontSize; }
+        if (text != null) { text.text = label; text.fontSize = UITheme.Font(fontSize); }
         return go.GetComponent<Button>();
     }
 
@@ -148,7 +148,7 @@ public static class MapSelectPanelBuilder
     private static TextMeshProUGUI NewText(GameObject go, string text, float size, TextAlignmentOptions align, Color color)
     {
         var tmp = go.AddComponent<TextMeshProUGUI>();
-        tmp.text = text; tmp.fontSize = size; tmp.alignment = align; tmp.color = color; tmp.raycastTarget = false;
+        tmp.text = text; tmp.fontSize = UITheme.Font(size); tmp.alignment = align; tmp.color = color; tmp.raycastTarget = false;
         var font = _font != null ? _font : TMP_Settings.defaultFontAsset;
         if (font != null) tmp.font = font;
         return tmp;
