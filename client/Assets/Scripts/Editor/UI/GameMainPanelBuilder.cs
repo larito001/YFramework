@@ -17,6 +17,7 @@ public static class GameMainPanelBuilder
     private const string Dir = "Assets/Resources/UI/Main";
     private const string PrefabPath = Dir + "/GameMainPanel.prefab";
     private const string FontPath = "Assets/Art/Fonts/SIMHEI SDF.asset";
+    private const string MaskMatPath = "Assets/Art/UI/ScopeMask.mat"; // 瞄准镜黑边遮罩材质(用 Hunting/ScopeMask shader)
 
     private static TMP_FontAsset _font;
 
@@ -31,6 +32,9 @@ public static class GameMainPanelBuilder
         Stretch(rootRt);
         var cg = root.AddComponent<CanvasGroup>();
         root.AddComponent<YOTOUIShow>();
+
+        // ---------- 瞄准镜黑边遮罩(最底层:HUD 控件都画在它之上,瞄准时仍可见可点)----------
+        var scopeMask = BuildScopeMask(root.transform);
 
         // ---------- 左上:地图名 + 本局积分 ----------
         var mapGo = NewUI("MapName", out var mapRt, root.transform);
@@ -72,6 +76,7 @@ public static class GameMainPanelBuilder
         panel.scoreText = scoreText;
         panel.coinText = coinText;
         panel.scope = scope;
+        panel.scopeMask = scopeMask;
         panel.aimBtn = aimBtn;
         panel.shootBtn = shootBtn;
         panel.ammoText = ammoText;
@@ -85,12 +90,47 @@ public static class GameMainPanelBuilder
 
     // ============================ 构件 ============================
 
+    /// <summary>
+    /// 瞄准镜黑边遮罩:铺满屏幕的 RawImage,用 Hunting/ScopeMask shader 画成「中心圆透明、圆外黑」。
+    /// 不挡射线(拖屏瞄准要能穿透),默认隐藏,瞄准时由脚本显示。
+    /// </summary>
+    private static GameObject BuildScopeMask(Transform parent)
+    {
+        var go = NewUI("ScopeMask", out var rt, parent);
+        Stretch(rt);
+        var raw = go.AddComponent<RawImage>();
+        raw.color = Color.black;       // 黑边颜色实际由 shader 的 _Color 控制,这里兜底
+        raw.raycastTarget = false;     // 不挡点击/拖拽
+        raw.material = LoadOrCreateMaskMaterial();
+        go.SetActive(false);
+        return go;
+    }
+
+    /// <summary>取(没有则创建)瞄准镜遮罩材质。</summary>
+    private static Material LoadOrCreateMaskMaterial()
+    {
+        var mat = AssetDatabase.LoadAssetAtPath<Material>(MaskMatPath);
+        if (mat != null) return mat;
+
+        var shader = Shader.Find("Hunting/ScopeMask");
+        if (shader == null)
+        {
+            Debug.LogError("[GameMainPanelBuilder] 找不到 Hunting/ScopeMask shader,遮罩材质未创建");
+            return null;
+        }
+        var dir = Path.GetDirectoryName(MaskMatPath);
+        if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+        mat = new Material(shader);
+        AssetDatabase.CreateAsset(mat, MaskMatPath);
+        return mat;
+    }
+
     /// <summary>瞄准镜准星:居中圆环 + 十字 + 中心方框。返回准星根物体(默认隐藏,由脚本在瞄准时显示)。</summary>
     private static GameObject BuildScope(Transform parent)
     {
         var scope = NewUI("Scope", out var rt, parent);
         rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0.5f, 0.5f);
-        rt.anchoredPosition = new Vector2(0, 200); // 略偏上,避开底部按钮
+        rt.anchoredPosition = Vector2.zero; // 居中:与射线(屏幕中心)和黑边圆孔对齐
         rt.sizeDelta = new Vector2(640, 640);
 
         // 圆环(用内置 Knob 填充圆 + 半透明,作为镜筒底色)

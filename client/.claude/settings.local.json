@@ -93,7 +93,10 @@
       "Bash(sed 's/.prefab//')",
       "Bash(ls _publish/pb2/)",
       "Bash(cat tools_config.ini)",
-      "Bash(ls gtp/writer/ gtp/reader/)"
+      "Bash(ls gtp/writer/ gtp/reader/)",
+      "Bash(grep -A1 m_AnimatorParameters: __TRACKED_VAR__.controller)",
+      "Bash(awk '/m_Name: Death$/{print prev} {prev=$0}' CTL_Boar.controller)",
+      "Bash(grep -nB8 \"m_ConditionEvent: isDead\" CTL_Boar.controller)"
     ]
   }
 }

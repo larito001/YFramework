@@ -5,11 +5,13 @@ using YFramework.Config;
 using YOTO;
 
 /// <summary>
-/// 游戏内打猎 HUD(<see cref="UIEnum.GameMainPanel"/>):出发进入对局后显示,常驻覆盖在场景之上(无遮罩)。
+/// 游戏内打猎 HUD(<see cref="UIEnum.GameMainPanel"/>):出发进入对局后显示,常驻覆盖在场景之上。
 ///   左上:当前地图名称 + 本局积分     右上:资源金币
-///   中部:瞄准镜准星(点「瞄准」显示/隐藏)
+///   中部:瞄准镜准星 + 镜外黑边遮罩(点「瞄准」显示,相机同时变焦放大)
 ///   底部:瞄准(左) / 射击(右)圆钮 + 剩余子弹
-/// 弹药容量取自所选子弹装备(<see cref="LoadoutSystem"/> 选中子弹的 MaxStack);积分为本局演示数值。
+/// 玩法流程:点瞄准 → 拖屏移动准星(<see cref="CameraSwipeLook"/>)→ 点射击。射击从屏幕中心打射线
+/// (<see cref="ScopeAimController.FireRay"/>):命中动物则加该动物击杀积分并播死亡动画,没打中不加分;射击后自动关镜。
+/// 弹药容量取自所选子弹装备(<see cref="LoadoutSystem"/> 选中子弹的 MaxStack)。
 /// 预制体由 <c>Tools/UI/Build GameMainPanel Prefab</c> 生成。
 /// </summary>
 public class GameMainPanel : UIPageBase
@@ -20,7 +22,8 @@ public class GameMainPanel : UIPageBase
     public TextMeshProUGUI coinText;
 
     [Header("中部")]
-    public GameObject scope; // 瞄准镜准星(瞄准时显示)
+    public GameObject scope;     // 瞄准镜准星(瞄准时显示)
+    public GameObject scopeMask; // 瞄准镜黑边遮罩(铺满屏幕,瞄准时显示;中间圆孔透出场景)
 
     [Header("底部")]
     public Button aimBtn;
@@ -31,6 +34,7 @@ public class GameMainPanel : UIPageBase
     private LoadoutSystem loadout;
     private ConfigManager config;
     private EventMgr eventMgr;
+    private ScopeAimController scopeAim; // 相机端瞄准机制(变焦 + 命中射线),挂在主相机上
 
     private int score;
     private int ammo;
@@ -52,8 +56,7 @@ public class GameMainPanel : UIPageBase
 
         score = 0;
         ammo = InitialAmmo();
-        aiming = false;
-        if (scope != null) scope.SetActive(false);
+        SetAiming(false); // 复位:收起准星/黑边遮罩,相机回到正常视野
         if (mapNameText != null) mapNameText.text = "湿地·黎明";
 
         RefreshCoin();
@@ -70,20 +73,43 @@ public class GameMainPanel : UIPageBase
 
     // ---------------- 操作 ----------------
 
-    private void ToggleAim()
+    private void ToggleAim() => SetAiming(!aiming);
+
+    /// <summary>进入/退出瞄准:切准星 + 黑边遮罩 + 相机变焦,并刷新射击钮可点状态。</summary>
+    private void SetAiming(bool on)
     {
-        aiming = !aiming;
-        if (scope != null) scope.SetActive(aiming);
+        aiming = on;
+        if (scope != null) scope.SetActive(on);
+        if (scopeMask != null) scopeMask.SetActive(on);
+        ScopeAim()?.SetAiming(on);
+        RefreshShootButton();
     }
 
     private void Shoot()
     {
-        if (ammo <= 0) return; // 子弹打光不再响应
+        if (!aiming || ammo <= 0) return; // 只在瞄准且有子弹时开火
         ammo--;
         eventMgr?.Trigger(YOTOEventType.Shoot); // 触发相机抖动等开枪反馈
-        score += 100; // 命中演示:每发计 100 分(真正的命中判定接入打猎玩法后替换)
+
+        // 从屏幕中心(准星处)打射线:命中动物才加它的击杀积分并播死亡动画,没打中不加分
+        var hit = ScopeAim()?.FireRay();
+        if (hit != null && !hit.IsDead)
+        {
+            hit.Kill();
+            score += hit.score;
+            RefreshScore();
+        }
+
+        SetAiming(false); // 射击后关闭瞄准镜
         RefreshAmmo();
-        RefreshScore();
+    }
+
+    /// <summary>懒取主相机上的瞄准机制组件(进对局时由 GameStartScene 挂上)。</summary>
+    private ScopeAimController ScopeAim()
+    {
+        if (scopeAim == null && Camera.main != null)
+            scopeAim = Camera.main.GetComponent<ScopeAimController>();
+        return scopeAim;
     }
 
     // ---------------- 刷新 ----------------
@@ -102,7 +128,13 @@ public class GameMainPanel : UIPageBase
     private void RefreshAmmo()
     {
         if (ammoText != null) ammoText.text = $"剩余子弹：{ammo}";
-        if (shootBtn != null) shootBtn.interactable = ammo > 0;
+        RefreshShootButton();
+    }
+
+    /// <summary>射击钮只在「已瞄准且有子弹」时可点(符合 瞄准→射击 的流程)。</summary>
+    private void RefreshShootButton()
+    {
+        if (shootBtn != null) shootBtn.interactable = aiming && ammo > 0;
     }
 
     /// <summary>弹匣容量:选中子弹装备的 MaxStack;取不到则默认 10。</summary>

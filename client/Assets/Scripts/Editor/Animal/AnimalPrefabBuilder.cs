@@ -20,12 +20,20 @@ public static class AnimalPrefabBuilder
     private const string OutSubfolder = "Animals";
     private const string PackRoot = "Assets/Art/Animals/Low Poly Animated Animals/Prefabs/Animals";
 
-    // 与 animal 配表 prefab 列一一对应：野鸭->Goose（美术包无鸭，用最接近的水禽代替）、野兔->Rabbit_Brown、野猪->Boar
-    private static readonly string[] SourcePrefabPaths =
+    /// <summary>一种动物：源 prefab 路径 + 死亡动画对应的 Animator bool 参数名(各动物不同)。</summary>
+    private readonly struct Spec
     {
-        PackRoot + "/Goose.prefab",
-        PackRoot + "/Rabbit_Brown.prefab",
-        PackRoot + "/Boar.prefab",
+        public readonly string Src;
+        public readonly string DeathBool;
+        public Spec(string src, string deathBool) { Src = src; DeathBool = deathBool; }
+    }
+
+    // 与 animal 配表 prefab 列一一对应：野鸭->Goose（美术包无鸭，用最接近的水禽代替）、野兔->Rabbit_Brown、野猪->Boar
+    private static readonly Spec[] Specs =
+    {
+        new Spec(PackRoot + "/Goose.prefab", "isDead"),
+        new Spec(PackRoot + "/Rabbit_Brown.prefab", "isDead_0"),
+        new Spec(PackRoot + "/Boar.prefab", "isDead"),
     };
 
     [MenuItem("Tools/TPS/Build Animal Prefabs")]
@@ -35,17 +43,17 @@ public static class AnimalPrefabBuilder
         EnsureFolder($"{ResourceFolder}/{OutSubfolder}", ResourceFolder, OutSubfolder);
 
         int ok = 0, fail = 0;
-        foreach (var srcPath in SourcePrefabPaths)
+        foreach (var spec in Specs)
         {
-            var src = AssetDatabase.LoadAssetAtPath<GameObject>(srcPath);
+            var src = AssetDatabase.LoadAssetAtPath<GameObject>(spec.Src);
             if (src == null)
             {
-                Debug.LogError($"[AnimalPrefab] 找不到源 prefab: {srcPath}");
+                Debug.LogError($"[AnimalPrefab] 找不到源 prefab: {spec.Src}");
                 fail++;
                 continue;
             }
 
-            var name = Path.GetFileNameWithoutExtension(srcPath);
+            var name = Path.GetFileNameWithoutExtension(spec.Src);
             var prefabPath = $"{ResourceFolder}/{OutSubfolder}/{name}.prefab";
 
             // 实例化后彻底解包成独立层级（不再链接美术源 prefab），再剥掉非 idle 组件
@@ -59,6 +67,11 @@ public static class AnimalPrefabBuilder
                 var animator = instance.GetComponentInChildren<Animator>(true);
                 if (animator == null || animator.runtimeAnimatorController == null)
                     Debug.LogWarning($"[AnimalPrefab] {name} 没有 Animator 或未挂控制器，idle 可能不会播放");
+
+                // 烘焙 AnimalEntity 并配好死亡参数名(运行时 AnimalSystem 只覆盖 animalId/score,保留这里的 deathBool)
+                var entity = instance.GetComponent<AnimalEntity>();
+                if (entity == null) entity = instance.AddComponent<AnimalEntity>();
+                entity.deathBool = spec.DeathBool;
 
                 PrefabUtility.SaveAsPrefabAsset(instance, prefabPath, out bool success);
                 if (success)

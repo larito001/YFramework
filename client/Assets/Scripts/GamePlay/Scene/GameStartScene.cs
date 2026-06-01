@@ -17,9 +17,9 @@ public class GameStartScene : YSceneBase
     {
         base.OnLoadingEnd();
         CloseLobbyUI();           // 进入对局:关闭开始/装备等所有大厅菜单界面,避免遮住 HUD
+        EnableCameraLook();       // 滑屏旋转相机 + 开枪抖动 + 瞄准变焦(先于 HUD,让 HUD 能取到瞄准机制)
         UI.Show<GameMainPanel>(); // 进入对局:显示打猎 HUD(瞄准/射击/积分/弹药)
-        EnableCameraLook();       // 滑屏旋转相机
-        Context.Get<AnimalSystem>().SpawnWave(); // 在地面随机散布动物(暂用箱子占位)
+        Context.Get<AnimalSystem>().SpawnWave(); // 在地面随机散布动物
     }
 
     /// <summary>
@@ -49,6 +49,7 @@ public class GameStartScene : YSceneBase
         }
         if (cam.GetComponent<CameraSwipeLook>() == null) cam.gameObject.AddComponent<CameraSwipeLook>();
         if (cam.GetComponent<ShootCameraShake>() == null) cam.gameObject.AddComponent<ShootCameraShake>(); // 开枪抖动
+        if (cam.GetComponent<ScopeAimController>() == null) cam.gameObject.AddComponent<ScopeAimController>(); // 瞄准变焦 + 命中射线
     }
 
     protected override void OnEnterScene()
