@@ -30,7 +30,7 @@ RectTransform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 4623902938790064902}
+  m_Father: {fileID: 175120135899514426}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
@@ -65,7 +65,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "\u91D1\u5E01 0"
+  m_text: "\u4F53\u529B 50"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: abdf858136e61d346bd7a0fae63014ab, type: 2}
   m_sharedMaterial: {fileID: -6725959274404866227, guid: abdf858136e61d346bd7a0fae63014ab, type: 2}
@@ -164,7 +164,7 @@ RectTransform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 8304850436840180185}
+  - {fileID: 5520372021368260463}
   m_Father: {fileID: 2936613360472100774}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 1, y: 1}
@@ -240,7 +240,7 @@ RectTransform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 5520372021368260463}
+  - {fileID: 4999388559926869871}
   m_Father: {fileID: 2936613360472100774}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 1, y: 1}
@@ -401,6 +401,11 @@ MonoBehaviour:
   useExitAnim: 1
   exitDuration: 0.1
   exitEase: 6
+  usePopScale: 1
+  enterFromScale: 0.85
+  enterScaleEase: 27
+  exitToScale: 0.9
+  exitScaleEase: 5
 --- !u!114 &3508677402777604586
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -415,8 +420,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   uiType: 2
   canvasGroup: {fileID: 436435799714189475}
-  energyText: {fileID: 8837071582339063492}
-  goldText: {fileID: 2004694954717869338}
+  energyText: {fileID: 2004694954717869338}
+  goldText: {fileID: 4218266298180957728}
   btn_setting: {fileID: 3221644193692234035}
   btn_energyAd: {fileID: 2383158371693163666}
   btn_shop: {fileID: 5639671199447497736}
@@ -487,7 +492,7 @@ MonoBehaviour:
   m_ChildScaleWidth: 0
   m_ChildScaleHeight: 0
   m_ReverseArrangement: 0
---- !u!1 &6793335348391769522
+--- !u!1 &7643053423593017605
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -495,9 +500,9 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 8304850436840180185}
-  - component: {fileID: 4648243154667818562}
-  - component: {fileID: 8837071582339063492}
+  - component: {fileID: 4999388559926869871}
+  - component: {fileID: 3333886045984799493}
+  - component: {fileID: 4218266298180957728}
   m_Layer: 0
   m_Name: Text
   m_TagString: Untagged
@@ -505,40 +510,40 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!224 &8304850436840180185
+--- !u!224 &4999388559926869871
 RectTransform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6793335348391769522}
+  m_GameObject: {fileID: 7643053423593017605}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 175120135899514426}
+  m_Father: {fileID: 4623902938790064902}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: -4, y: 0}
   m_SizeDelta: {x: -48, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!222 &4648243154667818562
+--- !u!222 &3333886045984799493
 CanvasRenderer:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6793335348391769522}
+  m_GameObject: {fileID: 7643053423593017605}
   m_CullTransparentMesh: 1
---- !u!114 &8837071582339063492
+--- !u!114 &4218266298180957728
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6793335348391769522}
+  m_GameObject: {fileID: 7643053423593017605}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
@@ -552,7 +557,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "\u4F53\u529B 50"
+  m_text: "\u91D1\u5E01 0"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: abdf858136e61d346bd7a0fae63014ab, type: 2}
   m_sharedMaterial: {fileID: -6725959274404866227, guid: abdf858136e61d346bd7a0fae63014ab, type: 2}

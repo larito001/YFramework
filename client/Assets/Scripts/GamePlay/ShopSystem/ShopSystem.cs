@@ -4,6 +4,16 @@ using YFramework.Config;
 
 namespace YOTO
 {
+    /// <summary>购买结果:供 UI 据此给不同反馈(成功飘字 / 金币不足 / 已拥有 / 背包满)。</summary>
+    public enum BuyResult
+    {
+        Success,           // 购买成功(含背包部分购入)
+        NotForSale,        // 物品不存在或不在售
+        AlreadyOwned,      // 装备已拥有,无需重复购买
+        NotEnoughCurrency, // 对应货币不足
+        BagFull,           // 背包放不下,一件都没买到
+    }
+
     /// <summary>
     /// 商店系统(<see cref="IGameService"/>,由 <see cref="GameProjectBootstrapper"/> 注册)。
     /// 目录直接读 item 配表:凡 <see cref="Item.Price"/> &gt; 0 的物品即上架,售价与货币种类来自配表
@@ -83,23 +93,23 @@ namespace YOTO
 
         /// <summary>
         /// 购买。分类商品(枪械/瞄准镜/子弹)为一次性**装备解锁**:已拥有则不再出售,买成功后 <see cref="LoadoutSystem.Grant"/>;
-        /// 其余商品扣货币后放背包,背包放不下的部分按单价退款。货币不足直接失败。返回是否购买成功。
+        /// 其余商品扣货币后放背包,背包放不下的部分按单价退款。返回 <see cref="BuyResult"/>(供 UI 据此给不同反馈)。
         /// </summary>
-        public bool Buy(int itemId, int count = 1)
+        public BuyResult Buy(int itemId, int count = 1)
         {
             count = Mathf.Max(1, count);
             var item = config?.itemConfig.Get((uint)itemId);
             if (item == null || item.Price <= 0)
             {
                 Debug.LogWarning($"[ShopSystem] 物品不可购买: id={itemId}");
-                return false;
+                return BuyResult.NotForSale;
             }
 
             bool isEquip = item.ShopCategory != 0;
             if (isEquip && loadout != null && loadout.IsOwned(itemId))
             {
                 Debug.Log($"[ShopSystem] 已拥有该装备,无需重复购买: id={itemId}");
-                return false;
+                return BuyResult.AlreadyOwned;
             }
 
             var type = (CurrencyType)item.PriceType;
@@ -108,14 +118,14 @@ namespace YOTO
             if (!currency.TrySpend(type, cost))
             {
                 Debug.Log($"[ShopSystem] {type} 不足,购买失败: id={itemId}(需 {cost})");
-                return false;
+                return BuyResult.NotEnoughCurrency;
             }
 
             if (isEquip)
             {
                 loadout?.Grant(itemId); // 解锁装备(进入 LoadoutSystem,不占空间背包)
                 PersistPurchase(true);  // 购买完成即写盘:货币 + 装备
-                return true;
+                return BuyResult.Success;
             }
 
             int leftover = bag.AddItem(itemId, count); // 触发 RefreshBagList
@@ -126,10 +136,10 @@ namespace YOTO
                 int placed = count - leftover;
                 Debug.Log($"[ShopSystem] 背包空间不足,实际购入 {placed} 个,退款 {refund} {type}");
                 if (placed > 0) PersistPurchase(false); // 实际购入才写盘(全退则净额未变,无需落盘)
-                return placed > 0;
+                return placed > 0 ? BuyResult.Success : BuyResult.BagFull;
             }
             PersistPurchase(false); // 购买完成即写盘:货币 + 背包
-            return true;
+            return BuyResult.Success;
         }
 
         /// <summary>购买完成后写入相应进度:货币必写,装备解锁写 Loadout、入包写 Bag。各 Save 走 StoreMgr 异步落到当前激活槽。</summary>

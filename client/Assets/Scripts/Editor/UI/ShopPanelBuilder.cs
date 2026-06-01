@@ -91,7 +91,7 @@ public static class ShopPanelBuilder
         fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
         scroll.viewport = viewportRt; scroll.content = contentRt;
 
-        // ---------- 底部页签:武器 / 瞄准镜 / 子弹 / 准备 ----------
+        // ---------- 底部页签:武器 / 瞄准镜 / 子弹 ----------
         var bar = NewUI("Tabs", out var barRt, win.transform);
         barRt.anchorMin = new Vector2(0, 0); barRt.anchorMax = new Vector2(1, 0); barRt.pivot = new Vector2(0.5f, 0);
         barRt.offsetMin = new Vector2(30, 30); barRt.offsetMax = new Vector2(-30, 210);
@@ -103,7 +103,6 @@ public static class ShopPanelBuilder
         var tabWeapon = BuildButton("Tab_Weapon", "武器商店", bar.transform, 40);
         var tabScope = BuildButton("Tab_Scope", "瞄准镜商店", bar.transform, 40);
         var tabBullet = BuildButton("Tab_Bullet", "子弹商店", bar.transform, 40);
-        var prepareBtn = BuildButton("Btn_Prepare", "准备", bar.transform, 40);
 
         // ---------- 接脚本字段 ----------
         var panel = root.AddComponent<ShopPanel>();
@@ -116,7 +115,6 @@ public static class ShopPanelBuilder
         panel.tabWeapon = tabWeapon;
         panel.tabScope = tabScope;
         panel.tabBullet = tabBullet;
-        panel.prepareBtn = prepareBtn;
 
         PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
         Object.DestroyImmediate(root);

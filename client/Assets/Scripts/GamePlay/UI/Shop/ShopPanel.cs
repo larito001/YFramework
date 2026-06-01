@@ -7,8 +7,8 @@ using YOTO;
 /// <summary>
 /// 商店面板(<see cref="UIEnum.ShopPanel"/>):分类页签 + 3 列卡片网格。
 ///   顶部:返回(关闭) / 资源金币 / 商人头像
-///   中部:当前分类的卡片网格(图片 + 名称 + 价格;绿=买得起,灰=买不起,点击即购买)
-///   底部:武器 / 瞄准镜 / 子弹 三个分类页签 + 准备(打开装备界面 <see cref="EquipPanel"/>)
+///   中部:当前分类的卡片网格(图片 + 名称 + 价格 + 购买按钮;点击购买弹确认页,确认后购买,结果用飘字反馈)
+///   底部:武器 / 瞄准镜 / 子弹 三个分类页签
 /// 目录与撮合在 <see cref="ShopSystem"/>(按 <see cref="ShopCategory"/> 过滤);卡片运行时按目录构建。
 /// 余额变化(RefreshCurrency)时刷新金币与各卡买得起/买不起。预制体外壳由 <c>Tools/UI/Build ShopPanel Prefab</c> 生成。
 /// </summary>
@@ -52,7 +52,6 @@ public class ShopPanel : UIPageBase
         if (tabWeapon != null) tabWeapon.onClick.AddListener(() => SelectCategory(ShopCategory.Weapon));
         if (tabScope != null) tabScope.onClick.AddListener(() => SelectCategory(ShopCategory.Scope));
         if (tabBullet != null) tabBullet.onClick.AddListener(() => SelectCategory(ShopCategory.Bullet));
-        if (prepareBtn != null) prepareBtn.onClick.AddListener(OnPrepare);
     }
 
     public override void OnShow()
@@ -144,7 +143,7 @@ public class ShopPanel : UIPageBase
         string priceDesc = $"{currency.DisplayName((CurrencyType)item.PriceType)} {item.Price}";
         NewText(price, priceDesc, 26, TextAlignmentOptions.Center, new Color(1f, 0.83f, 0.47f, 1f));
 
-        // 购买按钮(底部 y 20..115):绿=买得起可点 / 灰=买不起不可点;点击弹确认页,确认后才真正购买。
+        // 购买按钮(底部 y 20..115):绿=买得起 / 灰=买不起。始终可点——买不起也要点出「金币不足」飘字反馈(见需求)。
         bool affordable = shop.CanAfford(item);
         var buyGo = NewChild(card.transform, "Buy", out var buyRt);
         buyRt.anchorMin = new Vector2(0, 0); buyRt.anchorMax = new Vector2(1, 0); buyRt.pivot = new Vector2(0.5f, 0);
@@ -153,38 +152,53 @@ public class ShopPanel : UIPageBase
         buyImg.color = affordable ? Affordable : Unaffordable;
         var buyBtn = buyGo.AddComponent<Button>();
         buyBtn.targetGraphic = buyImg;
-        buyBtn.interactable = affordable;
 
         var label = NewChild(buyGo.transform, "Label", out var labelRt);
         labelRt.anchorMin = Vector2.zero; labelRt.anchorMax = Vector2.one;
         labelRt.offsetMin = Vector2.zero; labelRt.offsetMax = Vector2.zero;
-        NewText(label, affordable ? "购买" : "金币不足", 28, TextAlignmentOptions.Center, Color.white);
+        NewText(label, "购买", 28, TextAlignmentOptions.Center, Color.white);
 
         int id = (int)item.Id;            // 闭包捕获副本
         string itemName = item.Name;
-        buyBtn.onClick.AddListener(() => OnBuyClick(id, itemName, priceDesc));
+        var priceType = (CurrencyType)item.PriceType;
+        buyBtn.onClick.AddListener(() => OnBuyClick(id, itemName, priceDesc, priceType, affordable));
     }
 
-    /// <summary>点击「购买」:弹出确认页,确认后才调 <see cref="ShopSystem.Buy"/> 真正扣款购买。</summary>
-    private void OnBuyClick(int id, string itemName, string priceDesc)
+    /// <summary>
+    /// 点击「购买」:买得起→弹确认页,确认后 <see cref="DoBuy"/> 购买;买不起→直接飘「xx 不足」,不弹确认。
+    /// </summary>
+    private void OnBuyClick(int id, string itemName, string priceDesc, CurrencyType priceType, bool affordable)
     {
+        if (!affordable)
+        {
+            FlyText($"{currency.DisplayName(priceType)}不足");
+            return;
+        }
         Show<ConfirmPanel, ConfirmParam>(new ConfirmParam
         {
             title = "购买确认",
             message = $"确定花费 {priceDesc} 购买\n「{itemName}」吗？",
             confirmText = "购买",
             cancelText = "取消",
-            onConfirm = () => shop.Buy(id),
+            onConfirm = () => DoBuy(id, itemName, priceType),
         });
     }
 
-    // ---------------- 准备(打开装备界面)----------------
-
-    private void OnPrepare()
+    /// <summary>真正购买并按结果飘字:成功「xx购买成功！」,失败按原因飘「金币不足 / 已购买 / 背包已满」。</summary>
+    private void DoBuy(int id, string itemName, CurrencyType priceType)
     {
-        CloseSelf();        // 打开装备界面前先关闭商店,避免两个全屏界面叠在一起
-        Show<EquipPanel>();
+        switch (shop.Buy(id))
+        {
+            case BuyResult.Success:           FlyText($"{itemName}购买成功！"); break;
+            case BuyResult.AlreadyOwned:      FlyText($"{itemName}已购买"); break;
+            case BuyResult.NotEnoughCurrency: FlyText($"{currency.DisplayName(priceType)}不足"); break;
+            case BuyResult.BagFull:           FlyText("背包已满"); break;
+            default:                          FlyText("无法购买"); break;
+        }
     }
+
+    /// <summary>屏幕中央飘字提示(复用框架飘字系统)。</summary>
+    private void FlyText(string msg) => GetService<FlyTextMgr>()?.AddTextAtScreenCenter(msg);
 
     // ---------------- 工具 ----------------
 

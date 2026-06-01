@@ -14,7 +14,15 @@ public class YOTOUIShow : YOTOUIChangeBase
     public float exitDuration = 0.1f;
     public Ease exitEase = Ease.OutQuad;
 
+    // 统一弹出动画:进入时从略小缩放弹到原大(OutBack 带回弹),退出时缩回。所有界面挂同一组件即统一生效。
+    [Header("弹出缩放(统一)")] public bool usePopScale = true;
+    public float enterFromScale = 0.85f;        // 进入起始缩放(弹到 1)
+    public Ease enterScaleEase = Ease.OutBack;   // 回弹:略过冲 1 再回落,得到"弹出"手感
+    public float exitToScale = 0.9f;             // 退出目标缩放
+    public Ease exitScaleEase = Ease.InQuad;
+
     private Tweener currentTween;
+    private Tweener scaleTween;
 
     public override void OnEnter()
     {
@@ -22,7 +30,18 @@ public class YOTOUIShow : YOTOUIChangeBase
         if (canvasGroup == null) return;
 
         currentTween?.Kill();
+        scaleTween?.Kill();
 
+        // 缩放弹出:与淡入同时进行(只动 localScale,绕枢轴缩放,对全屏 stretch 根节点同样适用)
+        if (usePopScale)
+        {
+            transform.localScale = Vector3.one * enterFromScale;
+            scaleTween = transform.DOScale(1f, enterDuration).SetEase(enterScaleEase);
+        }
+        else
+        {
+            transform.localScale = Vector3.one;
+        }
 
         if (useEnterAnim)
         {
@@ -48,8 +67,13 @@ public class YOTOUIShow : YOTOUIChangeBase
         if (canvasGroup == null) return;
 
         currentTween?.Kill();
+        scaleTween?.Kill();
         canvasGroup.interactable = false;
         canvasGroup.blocksRaycasts = false;
+
+        if (usePopScale)
+            scaleTween = transform.DOScale(exitToScale, exitDuration).SetEase(exitScaleEase);
+
         if (useExitAnim)
         {
             currentTween = canvasGroup.DOFade(0f, exitDuration)

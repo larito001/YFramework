@@ -32,30 +32,30 @@ public static class ConfirmPanelBuilder
         var cg = root.AddComponent<CanvasGroup>();
         root.AddComponent<YOTOUIShow>();
 
-        // 窗口
+        // 窗口(竖屏适配:画布宽恒 1920 单位,窗口取较宽较高的尺寸,在手机竖屏上才不至于又小又扁)
         var window = NewUI("Window", out var winRt, root.transform);
         winRt.anchorMin = winRt.anchorMax = winRt.pivot = new Vector2(0.5f, 0.5f);
-        winRt.sizeDelta = new Vector2(720, 380);
+        winRt.sizeDelta = new Vector2(1120, 760);
         window.AddComponent<Image>().color = new Color(0.13f, 0.14f, 0.17f, 0.99f);
 
-        // 标题
+        // 标题(顶部,带高 120 容下 40pt×2)
         var titleGo = NewUI("Title", out var titleRt, window.transform);
         titleRt.anchorMin = new Vector2(0, 1); titleRt.anchorMax = new Vector2(1, 1); titleRt.pivot = new Vector2(0.5f, 1);
-        titleRt.anchoredPosition = new Vector2(0, -18); titleRt.sizeDelta = new Vector2(-40, 56);
-        var titleText = NewText(titleGo, "提示", 34, TextAlignmentOptions.Center);
+        titleRt.anchoredPosition = new Vector2(0, -30); titleRt.sizeDelta = new Vector2(-60, 120);
+        var titleText = NewText(titleGo, "提示", 40, TextAlignmentOptions.Center);
 
-        // 正文(居中,自动换行)
+        // 正文(居中,自动换行;上让出标题、下让出按钮)
         var msgGo = NewUI("Message", out var msgRt, window.transform);
         msgRt.anchorMin = new Vector2(0, 0); msgRt.anchorMax = new Vector2(1, 1);
-        msgRt.offsetMin = new Vector2(40, 120); msgRt.offsetMax = new Vector2(-40, -90);
-        var msgText = NewText(msgGo, "", 26, TextAlignmentOptions.Center);
+        msgRt.offsetMin = new Vector2(50, 230); msgRt.offsetMax = new Vector2(-50, -160);
+        var msgText = NewText(msgGo, "", 32, TextAlignmentOptions.Center);
         msgText.enableWordWrapping = true;
 
-        // 取消 / 确认
+        // 取消 / 确认(底部并排,加大触控面积)
         var cancelBtn = BuildButton("CancelBtn", "取消", window.transform,
-            new Vector2(0.5f, 0), new Vector2(-150, 36), new Vector2(240, 64), new Color(0.3f, 0.32f, 0.4f, 1f), out var cancelLabel);
+            new Vector2(0.5f, 0), new Vector2(-290, 50), new Vector2(480, 150), new Color(0.3f, 0.32f, 0.4f, 1f), out var cancelLabel);
         var confirmBtn = BuildButton("ConfirmBtn", "确认", window.transform,
-            new Vector2(0.5f, 0), new Vector2(150, 36), new Vector2(240, 64), new Color(0.55f, 0.28f, 0.28f, 1f), out var confirmLabel);
+            new Vector2(0.5f, 0), new Vector2(290, 50), new Vector2(480, 150), new Color(0.55f, 0.28f, 0.28f, 1f), out var confirmLabel);
 
         // 接脚本字段
         var panel = root.AddComponent<ConfirmPanel>();
@@ -117,7 +117,7 @@ public static class ConfirmPanelBuilder
         btn.targetGraphic = img;
         var lblGo = NewUI("Label", out var lblRt, go.transform);
         Stretch(lblRt);
-        labelText = NewText(lblGo, label, 26, TextAlignmentOptions.Center);
+        labelText = NewText(lblGo, label, 34, TextAlignmentOptions.Center);
         return btn;
     }
 }

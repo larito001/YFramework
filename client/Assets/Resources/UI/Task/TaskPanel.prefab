@@ -112,6 +112,11 @@ MonoBehaviour:
   useExitAnim: 1
   exitDuration: 0.1
   exitEase: 6
+  usePopScale: 1
+  enterFromScale: 0.85
+  enterScaleEase: 27
+  exitToScale: 0.9
+  exitScaleEase: 5
 --- !u!114 &9184131766621656323
 MonoBehaviour:
   m_ObjectHideFlags: 0
