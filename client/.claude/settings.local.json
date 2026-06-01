@@ -98,7 +98,11 @@
       "Bash(awk '/m_Name: Death$/{print prev} {prev=$0}' CTL_Boar.controller)",
       "Bash(grep -nB8 \"m_ConditionEvent: isDead\" CTL_Boar.controller)",
       "Bash(grep -iE \"\\\\.\\(png|jpg|asset\\)$\")",
-      "Bash(grep -v \"//\")"
+      "Bash(grep -v \"//\")",
+      "Bash(python _regen_currency.py)",
+      "Bash(grep -iv \"//\")",
+      "Bash(sed -n '55,80p' Assets/Scripts/GamePlay/UI/SaveSlotPanel.cs)",
+      "Bash(grep -v \"public void SwitchScene\\\\|//\")"
     ]
   }
 }

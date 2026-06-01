@@ -6,8 +6,7 @@ namespace YOTO
     /// </summary>
     public enum CurrencyType
     {
-        Gold = 1,    // 金币(软货币:打猎掉落/出售获得)
-        Diamond = 2, // 钻石(硬货币:充值/稀有奖励)
-        Energy = 3,  // 体力(出发消耗,随时间恢复)
+        Gold = 1,    // 金币(软货币:打猎结算获得,商店消费)
+        Energy = 3,  // 体力(每次进图消耗 1 点)
     }
 }

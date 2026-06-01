@@ -140,8 +140,7 @@ namespace YOTO
         private void SeedStarter()
         {
             balances[CurrencyType.Gold] = 1000;
-            balances[CurrencyType.Diamond] = 100;
-            balances[CurrencyType.Energy] = 50;
+            balances[CurrencyType.Energy] = 50; // 体力:每次进图消耗 1 点
         }
     }
 

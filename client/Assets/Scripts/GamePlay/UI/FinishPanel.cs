@@ -21,15 +21,18 @@ public class HuntResult
 
 /// <summary>
 /// 打猎结算界面(<see cref="UIEnum.FinishPanel"/>):结束打猎确认后显示。
-///   顶部标题 + 逐种击杀明细列表(动物 ×数量 +积分) + 总积分 + 「返回大厅」。
+///   顶部标题 + 逐种击杀明细列表(动物 ×数量 +积分) + 总积分 + 获得金币 + 「返回大厅」。
 /// 数据由 <see cref="GameMainPanel"/> 通过 <see cref="HuntResult"/> 传入(不自己读配表)。
-/// 确定后清掉场上动物并回到大厅。预制体由 <c>Tools/UI/Build FinishPanel Prefab</c> 生成。
+/// **结算发奖**:打中猎物的积分按 1:1 折算成金币,在本界面显示时一次性入账(<see cref="CurrencySystem"/>)并立即写盘——
+/// 这是「打死猎物结算后给金币」的唯一入账点。确定后清掉场上动物并回到大厅。
+/// 预制体由 <c>Tools/UI/Build FinishPanel Prefab</c> 生成。
 /// </summary>
 public class FinishPanel : UIPageBase<HuntResult>
 {
     [Header("文本")]
     public TextMeshProUGUI titleText;
     public TextMeshProUGUI totalText;
+    public TextMeshProUGUI rewardText; // 获得金币(可选;未挂则并入 totalText 显示)
 
     [Header("明细列表(ScrollRect 的 VerticalLayoutGroup 容器)")]
     public RectTransform content;
@@ -42,10 +45,12 @@ public class FinishPanel : UIPageBase<HuntResult>
     private static readonly Color ScoreText = new Color(0.85f, 0.30f, 0.25f, 1f);
 
     private TMP_FontAsset font;
+    private CurrencySystem currency;
 
     public override void OnLoad()
     {
         if (titleText != null) font = titleText.font;
+        currency = GetService<CurrencySystem>();
         if (confirmBtn != null) confirmBtn.onClick.AddListener(OnConfirm);
     }
 
@@ -53,7 +58,22 @@ public class FinishPanel : UIPageBase<HuntResult>
     {
         if (titleText != null) titleText.text = "打猎结算";
         BuildList(result);
-        if (totalText != null) totalText.text = $"总积分：{(result != null ? result.totalScore : 0)}";
+
+        int score = result != null ? result.totalScore : 0;
+        if (totalText != null) totalText.text = $"总积分：{score}";
+
+        // 结算发金币:积分 1:1 折算金币,本局打中才有(没命中=0,不发也不写盘)。
+        // 入账后立即写盘,保证返回大厅/下次进图读到的是发奖后的余额。
+        int gold = score;
+        if (gold > 0 && currency != null)
+        {
+            currency.Add(CurrencyType.Gold, gold);
+            currency.Save();
+        }
+
+        string rewardLine = $"获得金币：+{gold}";
+        if (rewardText != null) rewardText.text = rewardLine;
+        else if (totalText != null) totalText.text += $"\n{rewardLine}"; // 无独立奖励文本则并入总分行
     }
 
     public override void OnShow() { }

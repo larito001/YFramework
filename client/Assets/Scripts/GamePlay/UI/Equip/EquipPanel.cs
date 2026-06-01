@@ -72,7 +72,7 @@ public class EquipPanel : UIPageBase
     private void RefreshCoin()
     {
         if (coinText == null || currency == null) return;
-        coinText.text = $"{currency.DisplayName(CurrencyType.Gold)} {currency.Get(CurrencyType.Gold)}\n{currency.DisplayName(CurrencyType.Diamond)} {currency.Get(CurrencyType.Diamond)}";
+        coinText.text = $"{currency.DisplayName(CurrencyType.Gold)} {currency.Get(CurrencyType.Gold)}\n{currency.DisplayName(CurrencyType.Energy)} {currency.Get(CurrencyType.Energy)}";
     }
 
     // ---------------- 卡片网格 ----------------
@@ -141,6 +141,7 @@ public class EquipPanel : UIPageBase
         busy = true;
         if (store == null)
         {
+            if (!TryConsumeEnergy()) { busy = false; return; }
             GetService<YSceneManager>().SwitchScene(YSceneType.Home);
             return;
         }
@@ -148,8 +149,25 @@ public class EquipPanel : UIPageBase
         {
             if (store.Slots.Count == 0) store.CreateSlot();
             else if (store.ActiveSlot == 0) store.SetActiveSlot(store.Slots[store.Slots.Count - 1].id);
-            store.LoadAll(() => GetService<YSceneManager>().SwitchScene(YSceneType.Home));
+            // 体力在 LoadAll 之后扣:LoadAll 会用存档槽数据覆盖内存余额,先扣会被覆盖掉
+            store.LoadAll(() =>
+            {
+                if (!TryConsumeEnergy()) { busy = false; return; } // 体力不足:留在装备界面,不进图
+                GetService<YSceneManager>().SwitchScene(YSceneType.Home);
+            });
         });
+    }
+
+    /// <summary>进图消耗 1 点体力:足够则扣减 + 立即写盘并返回 true;不足则飘字提示并返回 false(不进图)。</summary>
+    private bool TryConsumeEnergy()
+    {
+        if (currency != null && currency.TrySpend(CurrencyType.Energy, 1))
+        {
+            currency.Save(); // 关键节点主动写盘,保证体力扣减落地(StoreMgr 协程异步写)
+            return true;
+        }
+        GetService<FlyTextMgr>()?.AddTextAtScreenCenter("体力不足，无法出发");
+        return false;
     }
 
     // ---------------- 工具 ----------------

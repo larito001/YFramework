@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
@@ -118,6 +119,12 @@ public class UIMgr : IGameService, IUIService
     private GameContext context;
     private ResMgr resMgr;
     private CameraManager cameraMgr;
+    private ICoroutineRunner coroutineRunner;
+
+    // 加载页最短展示时长(秒):防止读档/切场景过快时加载页一闪而过。boot 与场景切换都经 ShowLoading/HideLoading,故统一在此兜底。
+    public float minLoadingSeconds = 3f;
+    private float loadingShownAt = -1f;       // 上次 ShowLoading 的实时刻(realtimeSinceStartup)
+    private Coroutine pendingHideLoading;     // 已排队的延迟隐藏(未到最短时长时)
 
     public GameObject UIRoot { get; private set; }
 
@@ -198,9 +205,20 @@ public class UIMgr : IGameService, IUIService
             return;
         }
 
+        // 又一次加载:取消上一次还在排队的延迟隐藏,重新开始计时。
+        if (pendingHideLoading != null)
+        {
+            coroutineRunner?.Stop(pendingHideLoading);
+            pendingHideLoading = null;
+        }
+        loadingShownAt = Time.realtimeSinceStartup;
         Show(uiConfig.LoadingInfo.uiEnum, param);
     }
 
+    /// <summary>
+    /// 收起加载页,但保证它至少已展示 <see cref="minLoadingSeconds"/> 秒——不足则延迟到时再隐藏,防一闪而过。
+    /// boot 首屏读档与 <see cref="YSceneManager"/> 场景切换都走这里,故最短时长对两者统一生效。
+    /// </summary>
     public void HideLoading()
     {
         if (uiConfig.LoadingInfo == null)
@@ -208,6 +226,25 @@ public class UIMgr : IGameService, IUIService
             return;
         }
 
+        float remaining = minLoadingSeconds - (Time.realtimeSinceStartup - loadingShownAt);
+        if (remaining <= 0f || coroutineRunner == null)
+        {
+            DoHideLoading();
+            return;
+        }
+        if (pendingHideLoading != null) return; // 已排队,勿重复
+        pendingHideLoading = coroutineRunner.Run(HideLoadingAfter(remaining));
+    }
+
+    private IEnumerator HideLoadingAfter(float seconds)
+    {
+        yield return new WaitForSecondsRealtime(seconds); // 不受 timeScale 影响
+        pendingHideLoading = null;
+        DoHideLoading();
+    }
+
+    private void DoHideLoading()
+    {
         Hide(uiConfig.LoadingInfo.uiEnum);
     }
 
@@ -261,6 +298,7 @@ public class UIMgr : IGameService, IUIService
         context = ctx;
         resMgr = ctx.Get<ResMgr>();
         cameraMgr = ctx.Get<CameraManager>();
+        coroutineRunner = ctx.Get<ICoroutineRunner>(); // 加载页最短展示时长的延迟隐藏靠它跑协程
         uiConfig.Init();
 
         UIRoot = new GameObject("UIRoot");

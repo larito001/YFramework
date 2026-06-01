@@ -20,6 +20,7 @@ public class GameStartScene : YSceneBase
         EnableCameraLook();       // 滑屏旋转相机 + 开枪抖动 + 瞄准变焦(先于 HUD,让 HUD 能取到瞄准机制)
         UI.Show<GameMainPanel>(); // 进入对局:显示打猎 HUD(瞄准/射击/积分/弹药)
         Context.Get<AnimalSystem>().SpawnWave(); // 在地面随机散布动物
+        Context.Get<StoreMgr>().SaveAll(); // 游戏开始后写入进度:把当前进度(已扣体力等)整体落到激活槽,作为开局存档点
     }
 
     /// <summary>

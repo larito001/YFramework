@@ -114,6 +114,7 @@ namespace YOTO
             if (isEquip)
             {
                 loadout?.Grant(itemId); // 解锁装备(进入 LoadoutSystem,不占空间背包)
+                PersistPurchase(true);  // 购买完成即写盘:货币 + 装备
                 return true;
             }
 
@@ -124,9 +125,19 @@ namespace YOTO
                 currency.Add(type, refund);
                 int placed = count - leftover;
                 Debug.Log($"[ShopSystem] 背包空间不足,实际购入 {placed} 个,退款 {refund} {type}");
+                if (placed > 0) PersistPurchase(false); // 实际购入才写盘(全退则净额未变,无需落盘)
                 return placed > 0;
             }
+            PersistPurchase(false); // 购买完成即写盘:货币 + 背包
             return true;
+        }
+
+        /// <summary>购买完成后写入相应进度:货币必写,装备解锁写 Loadout、入包写 Bag。各 Save 走 StoreMgr 异步落到当前激活槽。</summary>
+        private void PersistPurchase(bool isEquip)
+        {
+            currency?.Save();
+            if (isEquip) loadout?.Save();
+            else bag?.Save();
         }
     }
 }
