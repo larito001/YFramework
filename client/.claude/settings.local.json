@@ -102,7 +102,9 @@
       "Bash(python _regen_currency.py)",
       "Bash(grep -iv \"//\")",
       "Bash(sed -n '55,80p' Assets/Scripts/GamePlay/UI/SaveSlotPanel.cs)",
-      "Bash(grep -v \"public void SwitchScene\\\\|//\")"
+      "Bash(grep -v \"public void SwitchScene\\\\|//\")",
+      "Bash(ls ../tools/)",
+      "Bash(ls tools/)"
     ]
   }
 }
