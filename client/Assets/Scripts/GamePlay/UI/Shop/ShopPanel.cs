@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -34,6 +35,7 @@ public class ShopPanel : UIPageBase
 
     private ShopSystem shop;
     private CurrencySystem currency;
+    private LoadoutSystem loadout; // 判断装备是否已拥有(已拥有的按钮置灰)
     private ResMgr resMgr;
     private EventMgr eventMgr;
     private TMP_FontAsset font;
@@ -41,11 +43,13 @@ public class ShopPanel : UIPageBase
     private ShopCategory current = ShopCategory.Weapon;
     private WeaponModelPreview weaponPreview; // 武器模型转台(占用原商人头像位;武器页签点卡切换)
     private int previewWeaponId;              // 当前展示/选中的武器 id(武器页签)
+    private readonly List<(int id, GameObject card)> weaponCards = new(); // 当前武器卡(就地切换描边,避免点击时重建销毁自身)
 
     public override void OnLoad()
     {
         shop = GetService<ShopSystem>();
         currency = GetService<CurrencySystem>();
+        loadout = GetService<LoadoutSystem>();
         resMgr = GetService<ResMgr>();
         eventMgr = GetService<EventMgr>();
         if (coinText != null) font = coinText.font; // 复用外壳的中文字体给运行时卡片
@@ -135,12 +139,31 @@ public class ShopPanel : UIPageBase
             if (!string.IsNullOrEmpty(list[i].ModelPath)) { previewWeaponId = (int)list[i].Id; break; }
     }
 
-    /// <summary>点武器卡:选中它并在商人位展示其模型(刷新选中描边)。</summary>
+    /// <summary>点武器卡:选中它并在商人位展示其模型。**就地**切换描边——不重建网格,
+    /// 否则会在卡片自身的 onClick 里把自己 Destroy 掉,破坏 EventSystem(点几下后点击失灵/描边卡死)。</summary>
     private void SelectWeaponPreview(int id)
     {
         previewWeaponId = id;
-        RebuildGrid();        // 重建以更新选中描边
+        for (int i = 0; i < weaponCards.Count; i++)
+            ApplyOutline(weaponCards[i].card, weaponCards[i].id == id);
         UpdateWeaponPreview();
+    }
+
+    /// <summary>给卡片加/去黄色选中描边(就地,不销毁卡片)。</summary>
+    private static void ApplyOutline(GameObject card, bool on)
+    {
+        if (card == null) return;
+        var ol = card.GetComponent<Outline>();
+        if (on)
+        {
+            if (ol == null) ol = card.AddComponent<Outline>();
+            ol.effectColor = new Color(1f, 0.85f, 0.2f, 1f);
+            ol.effectDistance = new Vector2(6, 6);
+        }
+        else if (ol != null)
+        {
+            Destroy(ol);
+        }
     }
 
     /// <summary>武器页签:转台展示当前选中武器的模型;其它页签收起转台。</summary>
@@ -172,7 +195,13 @@ public class ShopPanel : UIPageBase
     private void RebuildGrid()
     {
         if (grid == null) return;
-        for (int i = grid.childCount - 1; i >= 0; i--) Destroy(grid.GetChild(i).gameObject);
+        weaponCards.Clear();
+        for (int i = grid.childCount - 1; i >= 0; i--)
+        {
+            var c = grid.GetChild(i);
+            c.SetParent(null, false); // 先脱离父级再销毁:避免本帧旧卡与新卡并存导致布局/计数错乱
+            Destroy(c.gameObject);
+        }
 
         var list = shop.CatalogOf(current);
         for (int i = 0; i < list.Count; i++) BuildCard(list[i]);
@@ -198,12 +227,8 @@ public class ShopPanel : UIPageBase
             int wid = (int)item.Id;
             cardBtn.onClick.AddListener(() => SelectWeaponPreview(wid));
 
-            if ((int)item.Id == previewWeaponId) // 当前选中:黄色描边
-            {
-                var ol = card.AddComponent<Outline>();
-                ol.effectColor = new Color(1f, 0.85f, 0.2f, 1f);
-                ol.effectDistance = new Vector2(6, 6);
-            }
+            weaponCards.Add((wid, card));
+            ApplyOutline(card, wid == previewWeaponId); // 当前选中:黄色描边
         }
 
         // 图片(上部,占大半:y 270 → 顶)
@@ -228,25 +253,29 @@ public class ShopPanel : UIPageBase
         string priceDesc = $"{currency.DisplayName((CurrencyType)item.PriceType)} {item.Price}";
         NewText(price, priceDesc, 26, TextAlignmentOptions.Center, new Color(1f, 0.83f, 0.47f, 1f));
 
-        // 购买按钮(底部 y 20..115):绿=买得起 / 灰=买不起。始终可点——买不起也要点出「金币不足」飘字反馈(见需求)。
-        bool affordable = shop.CanAfford(item);
+        // 购买按钮(底部 y 20..115):已拥有=灰「已拥有」/ 买得起=绿 / 买不起=灰。始终可点——给对应飘字反馈。
+        bool owned = loadout != null && item.ShopCategory != 0 && loadout.IsOwned((int)item.Id);
+        bool affordable = !owned && shop.CanAfford(item);
         var buyGo = NewChild(card.transform, "Buy", out var buyRt);
         buyRt.anchorMin = new Vector2(0, 0); buyRt.anchorMax = new Vector2(1, 0); buyRt.pivot = new Vector2(0.5f, 0);
         buyRt.offsetMin = new Vector2(20, 20); buyRt.offsetMax = new Vector2(-20, 115);
         var buyImg = buyGo.AddComponent<Image>();
-        buyImg.color = affordable ? Affordable : Unaffordable;
+        buyImg.color = affordable ? Affordable : Unaffordable; // 已拥有/买不起都用灰
         var buyBtn = buyGo.AddComponent<Button>();
         buyBtn.targetGraphic = buyImg;
 
         var label = NewChild(buyGo.transform, "Label", out var labelRt);
         labelRt.anchorMin = Vector2.zero; labelRt.anchorMax = Vector2.one;
         labelRt.offsetMin = Vector2.zero; labelRt.offsetMax = Vector2.zero;
-        NewText(label, "购买", 28, TextAlignmentOptions.Center, Color.white);
+        NewText(label, owned ? "已拥有" : "购买", 28, TextAlignmentOptions.Center, Color.white);
 
         int id = (int)item.Id;            // 闭包捕获副本
         string itemName = item.Name;
         var priceType = (CurrencyType)item.PriceType;
-        buyBtn.onClick.AddListener(() => OnBuyClick(id, itemName, priceDesc, priceType, affordable));
+        if (owned)
+            buyBtn.onClick.AddListener(() => FlyText($"{itemName}已拥有"));
+        else
+            buyBtn.onClick.AddListener(() => OnBuyClick(id, itemName, priceDesc, priceType, affordable));
     }
 
     /// <summary>

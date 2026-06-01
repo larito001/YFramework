@@ -38,6 +38,7 @@ public class EquipPanel : UIPageBase
     private EventMgr eventMgr;
     private TMP_FontAsset font;
     private bool busy;
+    private bool loadoutDirty; // 装备变化标记:延到 LateUpdate 重建,避免在卡片自身 onClick 里把自己 Destroy 掉破坏 EventSystem
 
     private WeaponModelPreview weaponPreview; // 底部武器模型转台(展示当前选中出战的枪)
 
@@ -71,18 +72,28 @@ public class EquipPanel : UIPageBase
     public override void OnShow()
     {
         busy = false;
-        eventMgr?.Add(YOTOEventType.RefreshLoadout, RebuildAll);
+        eventMgr?.Add(YOTOEventType.RefreshLoadout, MarkLoadoutDirty);
         eventMgr?.Add(YOTOEventType.RefreshCurrency, RefreshCoin);
         weaponPreview?.SetActive(true);
-        RebuildAll();
+        RebuildAll(); // 首次直接建(不在点击栈内,安全)
         RefreshCoin();
     }
 
     public override void OnHide()
     {
-        eventMgr?.Remove(YOTOEventType.RefreshLoadout, RebuildAll);
+        eventMgr?.Remove(YOTOEventType.RefreshLoadout, MarkLoadoutDirty);
         eventMgr?.Remove(YOTOEventType.RefreshCurrency, RefreshCoin);
         weaponPreview?.SetActive(false);
+    }
+
+    /// <summary>装备变化先打标记,延到 LateUpdate 再重建——避免点击卡片时同步重建把刚点的卡销毁、破坏 EventSystem。</summary>
+    private void MarkLoadoutDirty() => loadoutDirty = true;
+
+    private void LateUpdate()
+    {
+        if (!loadoutDirty) return;
+        loadoutDirty = false;
+        RebuildAll();
     }
 
     public override void OnResize() { }
