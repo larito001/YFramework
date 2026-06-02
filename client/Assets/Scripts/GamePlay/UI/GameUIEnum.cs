@@ -2,6 +2,7 @@ public enum UIEnum
 {
     None = 0,
     LoadingPanel,
+    LoginPanel,
     StartPanel,
     SaveSlotPanel,
     GameMainPanel,

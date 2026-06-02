@@ -57,15 +57,17 @@ public class EquipPanel : UIPageBase
         weaponPreview = new WeaponModelPreview(CreatePreviewHost(), resMgr);
     }
 
-    /// <summary>在底部(右下角)放一个武器模型预览框(返回其宿主 RectTransform)。位置不合适改这里的 anchoredPosition。</summary>
+    /// <summary>在屏幕下半部居中放一个大的武器模型预览框(返回其宿主 RectTransform)。
+    /// 锚到底部居中,落在「子弹行」(底边约距底 1330)与「出发」按钮(顶边距底 280)之间的空区。
+    /// 尺寸/位置不合适改这里的 sizeDelta / anchoredPosition。</summary>
     private RectTransform CreatePreviewHost()
     {
         var host = new GameObject("WeaponPreview", typeof(RectTransform));
         host.transform.SetParent(transform, false);
         var hr = (RectTransform)host.transform;
-        hr.anchorMin = hr.anchorMax = hr.pivot = new Vector2(1f, 0f); // 右下角(底部)
-        hr.sizeDelta = new Vector2(300f, 300f);
-        hr.anchoredPosition = new Vector2(-30f, 30f);
+        hr.anchorMin = hr.anchorMax = hr.pivot = new Vector2(0.5f, 0f); // 底部居中
+        hr.sizeDelta = new Vector2(900f, 900f);                         // 放大(原 300 太小)
+        hr.anchoredPosition = new Vector2(0f, 320f);                    // 出发按钮上方,处于下半屏空区
         return hr;
     }
 

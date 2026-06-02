@@ -1,3 +1,4 @@
+using UnityEngine;
 using YOTO;
 using YOTO.Gameplay.Net;
 using YOTO.Network;
@@ -43,6 +44,17 @@ public static partial class GameBootstrapper
 {
     static partial void RegisterProjectServices(GameContext ctx)
     {
+        // 登录:渠道无关的登录服务(ILoginService),当前仅接入 TapTap。后续接其它登录模块时,
+        // 新增一个 ILoginProvider 实现并在此多一行 AddProvider 即可(登录界面按渠道加按钮),其余无需改动。
+        // SDK 调用都在 TAPTAP_LOGIN 宏内,未接入 SDK 时 Editor 走模拟、真机走"未接入"回退。详见 TapTapLoginProvider 文件末注释。
+        var login = new LoginManager();
+        login.AddProvider(new TapTapLoginProvider());
+        ctx.Register<ILoginService>(login);
+        // 云存档(ICloudSaveService):把当前激活存档槽的进度打包同步到 TapTap 云。依赖登录 + StoreMgr。
+        // SDK 调用在 TAPTAP_CLOUDSAVE 宏内,未接入时 Editor 走模拟、真机走"未接入"回退。仅提供 API,
+        // 何时上传/下载(自动存档点 / 手动按钮 / 本地云对比)由上层决定,见 TODO_TapTapLogin.md。
+        ctx.Register<ICloudSaveService>(new TapTapCloudSaveService());
+
         // 战斗输入闸门：注册早于 InputService，于同帧内先跑，按 UI 状态先设好 CombatEnabled——
         // 非主界面 UI（背包/宝箱/设置等）打开时屏蔽战斗按键，关闭后恢复。
         // Init 走 InitAll 延迟阶段（此时所有 service 已注册），ctx.Get<InputService>/<UIMgr> 均可取到。
@@ -95,6 +107,8 @@ public static partial class GameBootstrapper
     static partial void ConfigureProjectUi(UIConfig uiConfig)
     {
         uiConfig.RegisterLoading<LoadingPanel>(UIEnum.LoadingPanel, UILayerEnum.RayCast, "UI/Boot/LoadingPanel", 0f);
+        // 登录界面:进大厅前的登录门(仅 TapTap)。静默自动登录成功则不展示,失败才弹出等待用户登录。
+        uiConfig.Register<LoginPanel>(UIEnum.LoginPanel, UILayerEnum.Normal, "UI/Login/LoginPanel");
         uiConfig.Register<StartPanel>(UIEnum.StartPanel, UILayerEnum.Normal, "UI/Boot/StartPanel");
         uiConfig.Register<SaveSlotPanel>(UIEnum.SaveSlotPanel, UILayerEnum.Normal, "UI/Boot/SaveSlotPanel");
         uiConfig.Register<GameMainPanel>(UIEnum.GameMainPanel, UILayerEnum.Normal, "UI/Main/GameMainPanel");
@@ -133,13 +147,13 @@ public static partial class GameBootstrapper
             {
                 // 全新存档:立刻建槽并把当前种子值落盘,整个大厅会话都读写这个槽(避免大厅内改动落到孤儿全局键)。
                 store.CreateSlot();
-                store.SaveAll(() => { OnLobbyReady(ctx); EnterLobby(ui); }); // 种子值落盘后再进大厅
+                store.SaveAll(() => { OnLobbyReady(ctx); GateLoginThenLobby(ctx, ui); }); // 种子值落盘后过登录门再进大厅
             }
             else
             {
                 // 已有存档:激活最近游玩的槽并整体读档,大厅随即显示存档进度(读完会触发各刷新事件,UI 自动更新)。
                 store.SetActiveSlot(MostRecentSlotId(store));
-                store.LoadAll(() => { OnLobbyReady(ctx); EnterLobby(ui); }); // 读回进度后再进大厅
+                store.LoadAll(() => { OnLobbyReady(ctx); GateLoginThenLobby(ctx, ui); }); // 读回进度后过登录门再进大厅
             }
         });
     }
@@ -148,6 +162,36 @@ public static partial class GameBootstrapper
     private static void OnLobbyReady(GameContext ctx)
     {
         ctx.Get<TaskProgressSystem>().RegisterLogin();
+    }
+
+    /// <summary>
+    /// 登录门:进大厅前先过登录。启动时尝试静默自动登录——
+    ///   · 已有有效会话:直接进大厅(用户无感);
+    ///   · 无会话/失败:收起加载页、展示登录界面,由用户点「TapTap 登录」,成功后界面内 Show&lt;StartPanel&gt; 进大厅。
+    /// 存档已在本步骤前读好,故登录成功后直接显示大厅即可,无需再次读档。
+    /// </summary>
+    private static void GateLoginThenLobby(GameContext ctx, UIMgr ui)
+    {
+        if (!ctx.TryGet<ILoginService>(out var login))
+        {
+            // 兜底:未注册登录服务时不应卡死在加载页,直接进大厅(理论上不会发生)。
+            Debug.LogWarning("[GameBootstrapper] 未注册 ILoginService,跳过登录直接进大厅。");
+            EnterLobby(ui);
+            return;
+        }
+
+        login.TryAutoLogin(res =>
+        {
+            if (res.success)
+            {
+                EnterLobby(ui); // 已登录:直接进大厅
+            }
+            else
+            {
+                ui.HideLoading();      // 收起加载页,露出登录界面
+                ui.Show<LoginPanel>(); // 等待用户登录(成功后界面内进大厅)
+            }
+        });
     }
 
     /// <summary>读档完成后进入大厅:先显示主界面,再收起加载页(HideLoading 会兜底"最短展示时长")。组装层只负责"显示首屏"。</summary>

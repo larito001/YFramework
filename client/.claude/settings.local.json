@@ -122,7 +122,12 @@
       "Bash(python _edit_shop_proper.py)",
       "Bash(grep -iv \"\\\\.meta$\")",
       "Bash(grep -iE \"\\\\.\\(png|jpg|psd|asset|sprite\\)$\")",
-      "Bash(grep -E '.{3,}')"
+      "Bash(grep -E '.{3,}')",
+      "WebFetch(domain:developer.taptap.cn)",
+      "Read(//mnt/c/Users/**)",
+      "Read(//mnt/c/Users/20723/**)",
+      "Bash(curl -s --max-time 25 https://registry.npmjs.org/__TRACKED_VAR__)",
+      "Bash(curl -sS --max-time 25 \"https://registry.npmjs.org/com.taptap.sdk.core\" -o /tmp/core.json -w \"HTTP %{http_code}\\\\n\")"
     ]
   }
 }
