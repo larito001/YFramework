@@ -11,7 +11,7 @@ using UnityEngine.UI;
 ///
 /// 竖屏手机布局:
 ///   左上:设置(方形按钮)            右上:体力 + 金币两项资源,体力后带「广告补充」小按钮
-///   底部:左侧竖排 任务/商店 · 中间 准备(主按钮,加大) · 右侧 图鉴
+///   底部:左侧竖排 任务/商店 · 中间 准备(主按钮,加大) · 右侧竖排 图鉴/排行榜
 ///
 /// 按钮复用项目通用按钮 <c>Resources/UI/Common/CommonButton.prefab</c>(挂 YOTOButton,带悬停/点击缩放),
 /// 与其它界面保持一致的按钮风格。
@@ -75,7 +75,7 @@ public static class StartPanelBuilder
         var goldText = BuildPill(root.transform, "Gold", "0",
             new Vector2(-60, -(80 + pillH + gap)), new Vector2(360, pillH), goldIcon);
 
-        // ---------- 底部:左竖排(任务/商店) · 中(准备) · 右(图鉴)----------
+        // ---------- 底部:左竖排(任务/商店) · 中(准备) · 右竖排(图鉴/排行榜)----------
         const float sideBtn = 220f, sideGap = 36f, bottomY = 150f;
 
         // 左侧竖排容器:任务(上)/ 商店(下),VerticalLayoutGroup 自上而下
@@ -99,13 +99,18 @@ public static class StartPanelBuilder
         prepareRt.anchoredPosition = new Vector2(0, bottomY + 20);
         prepareRt.sizeDelta = new Vector2(560, 280);
 
-        // 右侧:图鉴(竖向居中对齐左侧竖排)
-        var btnCodex = BuildButton(btnPrefab, "Btn_Codex", "图鉴", root.transform, 56);
-        var codexRt = (RectTransform)btnCodex.transform;
-        codexRt.anchorMin = codexRt.anchorMax = new Vector2(1, 0);
-        codexRt.pivot = new Vector2(1, 0);
-        codexRt.anchoredPosition = new Vector2(-60, bottomY + (sideBtn * 2 + sideGap - sideBtn) / 2f);
-        codexRt.sizeDelta = new Vector2(sideBtn, sideBtn);
+        // 右侧竖排容器:图鉴(上)/ 排行榜(下),与左侧任务/商店对称
+        var rightCol = NewUI("RightColumn", out var rightRt, root.transform);
+        rightRt.anchorMin = rightRt.anchorMax = new Vector2(1, 0);
+        rightRt.pivot = new Vector2(1, 0);
+        rightRt.anchoredPosition = new Vector2(-60, bottomY);
+        rightRt.sizeDelta = new Vector2(sideBtn, sideBtn * 2 + sideGap);
+        var rvlg = rightCol.AddComponent<VerticalLayoutGroup>();
+        rvlg.spacing = sideGap;
+        rvlg.childControlWidth = rvlg.childControlHeight = true;
+        rvlg.childForceExpandWidth = rvlg.childForceExpandHeight = true;
+        var btnCodex = BuildButton(btnPrefab, "Btn_Codex", "图鉴", rightCol.transform, 56);
+        var btnLeaderboard = BuildButton(btnPrefab, "Btn_Leaderboard", "排行榜", rightCol.transform, 56);
 
         // ---------- 接脚本字段 ----------
         var panel = root.AddComponent<StartPanel>();
@@ -119,6 +124,7 @@ public static class StartPanelBuilder
         panel.btn_task = btnTask;
         panel.btn_prepare = btnPrepare;
         panel.btn_codex = btnCodex;
+        panel.btn_leaderboard = btnLeaderboard;
 
         PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
         Object.DestroyImmediate(root);

@@ -12,6 +12,7 @@ dependencies {
     implementation 'com.squareup.okhttp3:okhttp:3.12.1' // Assets/DirichletAd/Editor/DirichletAdDependencies.xml:52
     implementation 'com.taptap.sdk:tap-cloudsave-unity:4.10.3' // Packages/com.taptap.sdk.cloudsave/Mobile/Editor/NativeDependencies.xml:7
     implementation 'com.taptap.sdk:tap-core-unity:4.10.3' // Packages/com.taptap.sdk.core/Mobile/Editor/NativeDependencies.xml:7
+    implementation 'com.taptap.sdk:tap-leaderboard-unity:4.10.3' // Packages/com.taptap.sdk.leaderboard/Mobile/Editor/NativeDependencies.xml:7
     implementation 'com.taptap.sdk:tap-login-unity:4.10.3' // Packages/com.taptap.sdk.login/Mobile/Editor/NativeDependencies.xml:7
 // Android Resolver Dependencies End
 **DEPS**}

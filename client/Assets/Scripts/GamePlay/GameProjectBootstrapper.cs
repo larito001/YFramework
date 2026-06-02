@@ -50,6 +50,9 @@ public static partial class GameBootstrapper
         var login = new LoginManager();
         login.AddProvider(new TapTapLoginProvider());
         ctx.Register<ILoginService>(login);
+        // 排行榜(ILeaderboardService):TapTap 排行榜。对局结束提交本局总分,主界面「排行榜」按钮查看榜单。
+        // SDK 调用都在 TAPTAP_LEADERBOARD 宏内,未接入时 Editor 走模拟榜单、真机走"未接入"回退。详见 TapTapLeaderboardService 文件末注释。
+        ctx.Register<ILeaderboardService>(new TapTapLeaderboardService());
         // 云存档(ICloudSaveService):把当前激活存档槽的进度打包同步到 TapTap 云。依赖登录 + StoreMgr。
         // SDK 调用在 TAPTAP_CLOUDSAVE 宏内,未接入时 Editor 走模拟、真机走"未接入"回退。仅提供 API,
         // 何时上传/下载(自动存档点 / 手动按钮 / 本地云对比)由上层决定,见 TODO_TapTapLogin.md。
@@ -132,6 +135,8 @@ public static partial class GameBootstrapper
         uiConfig.Register<TaskPanel>(UIEnum.TaskPanel, UILayerEnum.Normal, "UI/Task/TaskPanel");
         // 选择关卡:点「准备」先进这里选关,再进装备界面。关卡走配表(map.xlsx → Map.bytes)。
         uiConfig.Register<MapSelectPanel>(UIEnum.MapSelectPanel, UILayerEnum.Normal, "UI/Map/MapSelectPanel");
+        // 排行榜:从主界面「排行榜」按钮进入。优先调起 TapTap 内置榜单 UI,不可用(编辑器/未接入)则用自绘列表兜底。
+        uiConfig.Register<LeaderboardPanel>(UIEnum.LeaderboardPanel, UILayerEnum.Normal, "UI/Leaderboard/LeaderboardPanel");
         // 通用确认弹窗:放 Top 层,叠在普通界面之上。通过 ConfirmParam 传标题/内容/回调。
         uiConfig.Register<ConfirmPanel>(UIEnum.ConfirmPanel, UILayerEnum.Top, "UI/Common/ConfirmPanel");
         // 通用奖励领取弹窗:Top 层,横排展示道具/货币,默认弹出 1 秒自动消失。通过 RewardClaimParam 传奖励清单。

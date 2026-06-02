@@ -40,6 +40,7 @@ public class GameMainPanel : UIPageBase
     private MapSystem maps;               // 当前选中关卡(显示关卡名)
     private TaskProgressSystem taskProgress; // 击杀计入任务进度("击杀任意动物"类任务)
     private CodexSystem codex;            // 击杀的动物解锁图鉴
+    private ILeaderboardService leaderboard; // 对局结束提交本局总分到排行榜
     private ScopeAimController scopeAim; // 相机端瞄准机制(变焦 + 命中射线),挂在主相机上
 
     private int score;
@@ -60,6 +61,7 @@ public class GameMainPanel : UIPageBase
         maps = GetService<MapSystem>();
         taskProgress = GetService<TaskProgressSystem>();
         codex = GetService<CodexSystem>();
+        Context.TryGet<ILeaderboardService>(out leaderboard);
         if (actionBtn != null) actionBtn.onClick.AddListener(OnActionClick);
         if (endBtn != null) endBtn.onClick.AddListener(OnEndHunt);
     }
@@ -164,6 +166,7 @@ public class GameMainPanel : UIPageBase
     /// <summary>把本局逐种击杀 + 总分组装成 <see cref="HuntResult"/> 交给结算界面。</summary>
     private void ShowResult()
     {
+        leaderboard?.Submit(score); // 提交本局总分到排行榜(best-effort;未登录/未接入则内部跳过)
         var result = new HuntResult { totalScore = score };
         foreach (var kv in kills)
         {

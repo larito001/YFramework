@@ -18,6 +18,7 @@ public static class BuildAllUIPrefabs
         ("ConfirmPanel",   ConfirmPanelBuilder.Build),
         ("EquipPanel",     EquipPanelBuilder.Build),
         ("FinishPanel",    FinishPanelBuilder.Build),
+        ("LeaderboardPanel", LeaderboardPanelBuilder.Build),
         ("GameMainPanel",  GameMainPanelBuilder.Build),
         ("LoadingPanel",   LoadingPanelBuilder.Build),
         ("LoginPanel",     LoginPanelBuilder.Build),

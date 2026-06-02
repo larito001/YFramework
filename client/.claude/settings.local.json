@@ -137,7 +137,10 @@
       "Bash(curl -sS --max-time 25 \"https://registry.npmjs.org/com.taptap.sdk.cloudsave/4.10.3\")",
       "Bash(curl -sS --max-time 25 \"https://registry.npmjs.org/com.taptap.sdk.core/4.10.3\" -o /tmp/core4.json)",
       "Bash(curl -sS --max-time 25 \"https://registry.npmjs.org/com.google.external-dependency-manager\" -o /tmp/edm.json -w \"edm HTTP %{http_code}\\\\n\")",
-      "Bash(curl -sS --max-time 25 \"https://package.openupm.com/com.google.external-dependency-manager\" -o /tmp/edm_openupm.json -w \"openupm-edm HTTP %{http_code}\\\\n\")"
+      "Bash(curl -sS --max-time 25 \"https://package.openupm.com/com.google.external-dependency-manager\" -o /tmp/edm_openupm.json -w \"openupm-edm HTTP %{http_code}\\\\n\")",
+      "Bash(sed -n '43,115p' TapTapLeaderboard.cs)",
+      "Bash(sed -n '50,80p' TapLeaderboardModels.cs)",
+      "Bash(curl -sS --max-time 15 -o /dev/null -w '%{http_code}' https://registry.npmjs.org/__TRACKED_VAR__)"
     ]
   }
 }

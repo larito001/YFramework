@@ -11,6 +11,7 @@ using YOTO;
 public class SettingPanel : UIPageBase
 {
     public Button backBtn;
+    public Button logoutBtn; // 退出登录
     public GameObject soundTab;
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
@@ -22,6 +23,7 @@ public class SettingPanel : UIPageBase
     public override void OnLoad()
     {
         if (backBtn != null) backBtn.onClick.AddListener(CloseSelf);
+        if (logoutBtn != null) logoutBtn.onClick.AddListener(OnLogoutClick);
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
         store = GetService<StoreMgr>();
@@ -45,6 +47,30 @@ public class SettingPanel : UIPageBase
 
     public override void OnResize()
     {
+    }
+
+    // ---------------- 退出登录 ----------------
+
+    /// <summary>点「退出登录」:先弹确认弹窗,确认后才真正登出(防误触)。</summary>
+    private void OnLogoutClick()
+    {
+        Show<ConfirmPanel, ConfirmParam>(new ConfirmParam
+        {
+            title = "退出登录",
+            message = "确定退出当前 TapTap 账号?",
+            confirmText = "退出",
+            cancelText = "取消",
+            onConfirm = DoLogout,
+        });
+    }
+
+    /// <summary>登出当前账号并回到登录界面:关大厅与本设置页,显示登录门等待重新登录。</summary>
+    private void DoLogout()
+    {
+        if (Context.TryGet<ILoginService>(out var login)) login.Logout();
+        Show<LoginPanel>(); // 显示登录门
+        Hide<StartPanel>(); // 收起大厅
+        CloseSelf();        // 关设置页
     }
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD

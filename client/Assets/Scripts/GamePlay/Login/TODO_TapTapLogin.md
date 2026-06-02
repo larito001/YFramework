@@ -69,7 +69,8 @@
 
 ## 5. 功能完善
 
-- [ ] **登出 UI**:`ILoginService.Logout()` 已实现,但还没有界面入口(建议放设置界面 `SettingPanel`),登出后回到 `LoginPanel`。
+- [x] **登出 UI**:设置界面 `SettingPanel` 已加「退出登录」按钮(确认弹窗 → `ILoginService.Logout()` → 关大厅、显示 `LoginPanel`)。
+      ⚠ 改了 `SettingPanelBuilder`,需重跑 `Tools/UI/Build SettingPanel Prefab`(或 Build ALL)生成预制体,按钮才出现。
 - [ ] **账号态存档**:当前存档按设备本地(`StoreMgr` 分槽),与登录账号无关。
       如需"换账号换档/云存档",用 `LoginAccount.userId` 作为槽前缀或后端存档 key(见 `reference_storemgr_active_slot_boot`)。
 - [ ] **失败/取消的用户提示**:`LoginPanel.statusText` 已显示"登录失败/已取消";按需替换为更友好的提示或 FlyText/弹窗。

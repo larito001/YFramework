@@ -16,4 +16,5 @@ public enum UIEnum
     TaskPanel,
     MapSelectPanel,
     RewardClaimPanel,
+    LeaderboardPanel,
 }

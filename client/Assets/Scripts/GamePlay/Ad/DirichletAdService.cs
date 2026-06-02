@@ -88,17 +88,45 @@ namespace YOTO
                 return;
             }
 
-            _showing = true;
-            var request = new DirichletAdRequest.Builder()
-                .WithSpaceId(RewardSpaceId)
-                .Build();
-
-            var listener = new RewardListener(placement, ok =>
+            if (!long.TryParse(RewardSpaceId, out var spaceId))
             {
+                Debug.LogError($"[Ad] 广告位 SpaceId 非法: {RewardSpaceId}");
+                onClosed?.Invoke(false);
+                return;
+            }
+
+            _showing = true;
+            // 单次结算 guard:加载失败 / 播放失败 / 正常关闭,只回调一次并复位 _showing。
+            bool finished = false;
+            Action<bool> done = ok =>
+            {
+                if (finished) return;
+                finished = true;
                 _showing = false;
                 onClosed?.Invoke(ok);
-            });
-            _adNative.ShowRewardVideoAutoAd(request, listener);
+            };
+
+            var request = new DirichletAdRequest.Builder()
+                .WithSpaceId(spaceId)
+                .Build();
+
+            // 4.2.5.0 为"加载-展示"两步:先加载,成功后挂交互监听并展示。
+            _adNative.LoadRewardVideoAd(
+                request,
+                onLoaded: ad =>
+                {
+                    ad.SetInteractionListener(new RewardListener(placement, done));
+                    if (!ad.Show())
+                    {
+                        Debug.LogWarning($"[Ad] 激励广告展示失败 placement={placement}。");
+                        done(false);
+                    }
+                },
+                onFailure: error =>
+                {
+                    Debug.LogError($"[Ad] 激励广告加载失败 placement={placement}: {error.Code} {error.Message}");
+                    done(false); // 加载失败 / 无填充 → 不发奖
+                });
 #elif UNITY_EDITOR
             // 编辑器无真广告:直接模拟"完整观看"以便联调体力发奖链路。
             Debug.Log($"[Ad] (编辑器模拟) 激励广告 placement={placement},模拟看完发奖。");
@@ -111,15 +139,15 @@ namespace YOTO
 
 #if DIRICHLET_AD && UNITY_ANDROID && !UNITY_EDITOR
         /// <summary>
-        /// 单次激励广告监听器。rewarded 由 OnRewardVerify 置位,OnAdClose 时把结果回传给 onClosed;
-        /// OnError 直接回 false。done guard 保证 onClosed 只会被回调一次(关闭/出错路径不会重复)。
+        /// 单次激励广告交互监听器(4.2.5.0 <see cref="IDirichletRewardAdInteractionListener"/>)。
+        /// rewarded 由 OnRewardVerify 置位,OnAdClose 时把结果回传给 onClosed(看完=true,提前关=false)。
+        /// 加载失败由 <see cref="ShowRewardedAd"/> 的 onFailure 处理;onClosed 的单次保证在那里的 done guard 里。
         /// </summary>
-        private sealed class RewardListener : IDirichletRewardVideoAutoAdListener
+        private sealed class RewardListener : IDirichletRewardAdInteractionListener
         {
             private readonly string _placement;
             private readonly Action<bool> _onClosed;
             private bool _rewarded;
-            private bool _done;
 
             public RewardListener(string placement, Action<bool> onClosed)
             {
@@ -127,29 +155,16 @@ namespace YOTO
                 _onClosed = onClosed;
             }
 
-            private void Finish(bool ok)
-            {
-                if (_done) return;
-                _done = true;
-                _onClosed?.Invoke(ok);
-            }
-
-            public void OnError(DirichletError error)
-            {
-                Debug.LogError($"[Ad] 激励广告失败 placement={_placement}: {error.Code} {error.Message}");
-                Finish(false); // 加载/播放失败、无填充 → 不发奖
-            }
-
             public void OnAdShow() => Debug.Log($"[Ad] 激励广告展示 placement={_placement}");
+
+            public void OnAdClick() => Debug.Log($"[Ad] 激励广告点击 placement={_placement}");
 
             public void OnRewardVerify(DirichletRewardVerificationEventArgs args)
             {
                 _rewarded = args.IsVerified; // 仅以服务端校验通过为准
             }
 
-            public void OnAdClick() => Debug.Log($"[Ad] 激励广告点击 placement={_placement}");
-
-            public void OnAdClose() => Finish(_rewarded); // 关闭时结算:看完=true,提前关=false
+            public void OnAdClose() => _onClosed?.Invoke(_rewarded); // 关闭结算:看完=true,提前关=false
         }
 #endif
     }

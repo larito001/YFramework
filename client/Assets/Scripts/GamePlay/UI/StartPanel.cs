@@ -6,10 +6,10 @@ using YOTO;
 /// <summary>
 /// 主界面(大厅):竖屏手机布局。
 ///   左上:设置(方形按钮)        右上:体力 + 金币两项资源(<see cref="CurrencySystem"/>),体力后带「广告补充」按钮
-///   底部:左侧竖排 任务/商店 · 中间 准备(主按钮) · 右侧 图鉴
+///   底部:左侧竖排 任务/商店 · 中间 准备(主按钮) · 右侧竖排 图鉴/排行榜
 /// 预制体由 <c>Tools/UI/Build StartPanel Prefab</c> 程序化生成,脚本字段在那里接好。
 ///
-/// 行为:设置→<see cref="SettingPanel"/>;商店→<see cref="ShopPanel"/>;任务→<see cref="TaskPanel"/>;图鉴→<see cref="CodexPanel"/>;
+/// 行为:设置→<see cref="SettingPanel"/>;商店→<see cref="ShopPanel"/>;任务→<see cref="TaskPanel"/>;图鉴→<see cref="CodexPanel"/>;排行榜→<see cref="LeaderboardPanel"/>;
 /// 准备(中间主按钮)→选关 <see cref="MapSelectPanel"/>(选好关卡再进装备界面「出发」)。
 /// 体力广告按钮→请求激励广告(<see cref="IAdService"/>,未接入则不发奖,见 <see cref="OnEnergyAdClick"/>)。
 /// </summary>
@@ -26,6 +26,7 @@ public class StartPanel : UIPageBase
     public Button btn_task;
     public Button btn_prepare;
     public Button btn_codex;
+    public Button btn_leaderboard;
 
     private const int EnergyAdReward = 5;                  // 看完一次激励广告补的体力点数(接入后可调)
     private const string AdPlacementEnergy = "energy_refill"; // 体力广告位标识
@@ -43,6 +44,7 @@ public class StartPanel : UIPageBase
         if (btn_prepare != null) btn_prepare.onClick.AddListener(OnPrepareClick);
         if (btn_codex != null) btn_codex.onClick.AddListener(OnCodexClick);
         if (btn_task != null) btn_task.onClick.AddListener(OnTaskClick);
+        if (btn_leaderboard != null) btn_leaderboard.onClick.AddListener(OnLeaderboardClick);
     }
 
     public override void OnShow()
@@ -97,6 +99,12 @@ public class StartPanel : UIPageBase
     private void OnTaskClick()
     {
         Show<TaskPanel>();
+    }
+
+    // 排行榜:打开排行榜界面(界面内优先调起 TapTap 内置榜单,不可用则自绘列表)。
+    private void OnLeaderboardClick()
+    {
+        Show<LeaderboardPanel>();
     }
 
     /// <summary>

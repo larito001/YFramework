@@ -48,10 +48,14 @@ public static class SettingPanelBuilder
         // ---------- 声音页签容器(填内容区)----------
         var soundTab = NewUI("SoundTab", out var soundRt, window.transform);
         soundRt.anchorMin = new Vector2(0, 0); soundRt.anchorMax = new Vector2(1, 1);
-        soundRt.offsetMin = new Vector2(40, 190);  // 下留返回按钮
+        soundRt.offsetMin = new Vector2(40, 340);  // 下留 退出登录 + 返回 两个按钮
         soundRt.offsetMax = new Vector2(-40, -160); // 上留标题
         var tab = soundTab.AddComponent<SoundSettingsTab>();
         tab.font = _font;
+
+        // ---------- 退出登录(返回上方,醒目红)----------
+        var logoutBtn = BuildButton("LogoutBtn", "退出登录", window.transform,
+            new Vector2(0.5f, 0), new Vector2(0, 200), new Vector2(360, 120), new Color(0.78f, 0.30f, 0.30f, 1f), 44);
 
         // ---------- 返回 ----------
         var backBtn = BuildButton("BackBtn", "返回", window.transform,
@@ -62,6 +66,7 @@ public static class SettingPanelBuilder
         panel.canvasGroup = cg;
         panel.uiType = UIEnum.SettingPanel;
         panel.backBtn = backBtn;
+        panel.logoutBtn = logoutBtn;
         panel.soundTab = soundTab;
 
         PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
