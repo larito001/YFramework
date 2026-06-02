@@ -6,9 +6,11 @@ namespace YOTO
 {
     /// <summary>
     /// 动物生成系统(<see cref="IGameService"/>,由 <see cref="GameProjectBootstrapper"/> 注册)。
-    /// 读 animal 配表(目前 3 种,prefab 指向 Resources/Animals 下的低多边形动物,只播 idle),
+    /// 读 animal 配表(prefab 指向 Resources/Animals 下的低多边形动物,只播 idle),
     /// 进对局时 <see cref="SpawnWave"/> 按权重随机选种、在地面随机散布;每只挂 <see cref="AnimalEntity"/>
     /// 记配表 id 与击杀积分,供后续射击命中判定取用。预制体由 AnimalPrefabBuilder 菜单生成。
+    /// **刷怪范围按关卡区分**:每波只在「当前选中关卡(<see cref="MapSystem"/>)的动物池」(map 配表 animals 列)里选种,
+    /// 所以不同地图刷出的动物不同;关卡没配动物池时回退到全部动物。
     /// </summary>
     public class AnimalSystem : IGameService
     {
@@ -18,6 +20,7 @@ namespace YOTO
         private const float GoldenChance = 0.5f; // 刷出金色泛光稀有体的概率(1/2)
         private const string GoldShaderPath = "Shaders/AnimalGold"; // Resources 下的金色泛光 shader
 
+        private GameContext ctx;
         private ConfigManager config;
         private ResMgr res;
         private readonly List<Animal> catalog = new();
@@ -26,9 +29,9 @@ namespace YOTO
 
         public void Init(GameContext ctx)
         {
+            this.ctx = ctx;
             config = ctx.Get<ConfigManager>();
             res = ctx.Get<ResMgr>();
-            BuildCatalog();
         }
 
         public void Shutdown()
@@ -36,23 +39,44 @@ namespace YOTO
             Clear();
             catalog.Clear();
             if (goldMaterial != null) { Object.Destroy(goldMaterial); goldMaterial = null; }
+            ctx = null;
             config = null;
             res = null;
         }
 
+        /// <summary>按当前选中关卡的动物池构建本波候选(map 配表 animals 列);关卡没配则回退全部动物。</summary>
         private void BuildCatalog()
         {
             catalog.Clear();
-            var all = config?.animalConfig.items;
-            if (all == null) return;
-            foreach (var kv in all)
-                if (kv.Value != null) catalog.Add(kv.Value);
+            if (config == null) return;
+
+            // 1) 选中关卡的动物池:逐 id 从 animal 配表取
+            var maps = ctx?.Get<MapSystem>();
+            var map = maps != null ? maps.Get(maps.SelectedMapId) : null;
+            if (map != null && map.Animals.Count > 0)
+            {
+                foreach (var id in map.Animals)
+                {
+                    var a = config.animalConfig.Get(id);
+                    if (a != null) catalog.Add(a);
+                }
+            }
+
+            // 2) 回退:关卡没配动物池(或都取不到)时,用全部动物,保证总能刷出东西
+            if (catalog.Count == 0)
+            {
+                var all = config.animalConfig.items;
+                if (all == null) return;
+                foreach (var kv in all)
+                    if (kv.Value != null) catalog.Add(kv.Value);
+            }
         }
 
         /// <summary>清掉上一波,在地面随机生成 <paramref name="count"/> 只动物(按 weight 加权选种)。</summary>
         public void SpawnWave(int count = DefaultCount)
         {
             Clear();
+            BuildCatalog(); // 每波按当前选中关卡的动物池重建候选
             if (catalog.Count == 0) return;
 
             int totalWeight = 0;
@@ -109,6 +133,8 @@ namespace YOTO
             var renderers = go.GetComponentsInChildren<Renderer>(true);
             for (int i = 0; i < renderers.Length; i++)
             {
+                // 跳过弱点高亮盒(挂在 AnimalHitZone 下),否则会被染成金色丢掉红/黄标注
+                if (renderers[i].GetComponentInParent<AnimalHitZone>() != null) continue;
                 var slots = renderers[i].sharedMaterials;
                 for (int s = 0; s < slots.Length; s++) slots[s] = mat;
                 renderers[i].sharedMaterials = slots;

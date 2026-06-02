@@ -7,6 +7,7 @@ public class GameStartScene : YSceneBase
 {
     private GameObject bloomVolumeGo; // 运行时建的全局 Bloom(让金色泛光动物真的泛起来),离开场景销毁
     private UniversalAdditionalCameraData bloomCamData; // 被开启后处理的相机数据,离场还原 renderPostProcessing
+    private GameObject mapInstance; // 当前关卡的场景预制体实例(按 map 配表 scenePath 加载),离场销毁
 
     public override YSceneType SceneType
     {
@@ -22,6 +23,7 @@ public class GameStartScene : YSceneBase
     {
         base.OnLoadingEnd();
         CloseLobbyUI();           // 进入对局:关闭开始/装备等所有大厅菜单界面,避免遮住 HUD
+        LoadMapScene();           // 按选中关卡加载场景预制体(地面/装饰),需先于刷怪——动物要贴在地面上
         EnableCameraLook();       // 滑屏旋转相机 + 开枪抖动 + 瞄准变焦(先于 HUD,让 HUD 能取到瞄准机制)
         UI.Show<GameMainPanel>(); // 进入对局:显示打猎 HUD(瞄准/射击/积分/弹药)
         Context.Get<AnimalSystem>().SpawnWave(); // 在地面随机散布动物
@@ -46,6 +48,29 @@ public class GameStartScene : YSceneBase
         UI.Hide<FinishPanel>();
         UI.Hide<ConfirmPanel>();
         UI.Hide<LeaderboardPanel>(); // 排行榜也是大厅面板:漏关会一直算"显示中",令 CombatInputGate 屏蔽滑屏环视
+    }
+
+    /// <summary>
+    /// 按当前选中关卡(<see cref="MapSystem"/>)的 map 配表 scenePath 列加载场景预制体并实例化。
+    /// 第一章沙漠 = Resources/Map/Chapter1_Desert(由 <c>Tools/TPS/Build Chapter1 Desert Map</c> 生成)。
+    /// scenePath 为空(其余关卡暂未做场景)则跳过,仍用原本的空场景。离开对局时 <see cref="OnLeaveScene"/> 销毁。
+    /// </summary>
+    private void LoadMapScene()
+    {
+        if (mapInstance != null) { Object.Destroy(mapInstance); mapInstance = null; } // 再次出发时先清掉上一局的
+
+        var maps = Context.Get<MapSystem>();
+        var map = maps != null ? maps.Get(maps.SelectedMapId) : null;
+        var path = map != null ? map.ScenePath : null;
+        if (string.IsNullOrEmpty(path)) return;
+
+        var prefab = Res.Load<GameObject>(path);
+        if (prefab == null)
+        {
+            Debug.LogWarning($"[GameStartScene] 关卡场景预制体未找到(确认已在 Resources/ 下并已生成): {path}");
+            return;
+        }
+        mapInstance = Object.Instantiate(prefab);
     }
 
     /// <summary>给主相机挂上滑屏环视控制(已挂则跳过)。无主相机时仅告警。</summary>
@@ -106,6 +131,7 @@ public class GameStartScene : YSceneBase
     protected override void OnLeaveScene()
     {
         Context.Get<AnimalSystem>().Clear(); // 离开对局:清掉场上动物(它们不在场景 rootObj 下,不会随场景失活)
+        if (mapInstance != null) { Object.Destroy(mapInstance); mapInstance = null; } // 销毁本局加载的关卡场景预制体
         if (bloomVolumeGo != null) // 收掉运行时建的全局 Bloom(连同 GO 一起销毁 profile,否则 SO 每局泄漏一份)
         {
             var v = bloomVolumeGo.GetComponent<Volume>();

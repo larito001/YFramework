@@ -25,15 +25,16 @@ namespace YFramework.Config {
       byte[] descriptorData = global::System.Convert.FromBase64String(
           string.Concat(
             "CgltYXAucHJvdG8SEXlmcmFtZXdvcmsuY29uZmlnGhRDb25maWdCYXNlVHlw",
-            "ZS5wcm90byJZCgNNYXASCgoCaWQYASABKA0SDAoEbmFtZRgCIAEoCRIQCghp",
+            "ZS5wcm90byJ9CgNNYXASCgoCaWQYASABKA0SDAoEbmFtZRgCIAEoCRIQCghp",
             "Y29uUGF0aBgDIAEoCRIQCgh1bmxvY2tlZBgEIAEoBRIUCgxzb3J0UHJpb3Jp",
-            "dHkYBSABKAUiPwoWTWFwX0xJU1RfVE9PTF9SRVNFUlZFRBIlCgVpdGVtcxgB",
-            "IAMoCzIWLnlmcmFtZXdvcmsuY29uZmlnLk1hcEIUqgIRWUZyYW1ld29yay5D",
-            "b25maWdiBnByb3RvMw=="));
+            "dHkYBSABKAUSDwoHYW5pbWFscxgGIAMoDRIRCglzY2VuZVBhdGgYByABKAki",
+            "PwoWTWFwX0xJU1RfVE9PTF9SRVNFUlZFRBIlCgVpdGVtcxgBIAMoCzIWLnlm",
+            "cmFtZXdvcmsuY29uZmlnLk1hcEIUqgIRWUZyYW1ld29yay5Db25maWdiBnBy",
+            "b3RvMw=="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::YFramework.Config.ConfigBaseTypeReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(null, new pbr::GeneratedClrTypeInfo[] {
-            new pbr::GeneratedClrTypeInfo(typeof(global::YFramework.Config.Map), global::YFramework.Config.Map.Parser, new[]{ "Id", "Name", "IconPath", "Unlocked", "SortPriority" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::YFramework.Config.Map), global::YFramework.Config.Map.Parser, new[]{ "Id", "Name", "IconPath", "Unlocked", "SortPriority", "Animals", "ScenePath" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::YFramework.Config.Map_LIST_TOOL_RESERVED), global::YFramework.Config.Map_LIST_TOOL_RESERVED.Parser, new[]{ "Items" }, null, null, null)
           }));
     }
@@ -71,6 +72,8 @@ namespace YFramework.Config {
       iconPath_ = other.iconPath_;
       unlocked_ = other.unlocked_;
       sortPriority_ = other.sortPriority_;
+      animals_ = other.animals_.Clone();
+      scenePath_ = other.scenePath_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -149,6 +152,33 @@ namespace YFramework.Config {
       }
     }
 
+    /// <summary>Field number for the "animals" field.</summary>
+    public const int AnimalsFieldNumber = 6;
+    private static readonly pb::FieldCodec<uint> _repeated_animals_codec
+        = pb::FieldCodec.ForUInt32(50);
+    private readonly pbc::RepeatedField<uint> animals_ = new pbc::RepeatedField<uint>();
+    /// <summary>
+    ///动物池
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public pbc::RepeatedField<uint> Animals {
+      get { return animals_; }
+    }
+
+    /// <summary>Field number for the "scenePath" field.</summary>
+    public const int ScenePathFieldNumber = 7;
+    private string scenePath_ = "";
+    /// <summary>
+    ///场景预制体
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public string ScenePath {
+      get { return scenePath_; }
+      set {
+        scenePath_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public override bool Equals(object other) {
       return Equals(other as Map);
@@ -167,6 +197,8 @@ namespace YFramework.Config {
       if (IconPath != other.IconPath) return false;
       if (Unlocked != other.Unlocked) return false;
       if (SortPriority != other.SortPriority) return false;
+      if(!animals_.Equals(other.animals_)) return false;
+      if (ScenePath != other.ScenePath) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -178,6 +210,8 @@ namespace YFramework.Config {
       if (IconPath.Length != 0) hash ^= IconPath.GetHashCode();
       if (Unlocked != 0) hash ^= Unlocked.GetHashCode();
       if (SortPriority != 0) hash ^= SortPriority.GetHashCode();
+      hash ^= animals_.GetHashCode();
+      if (ScenePath.Length != 0) hash ^= ScenePath.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -211,6 +245,11 @@ namespace YFramework.Config {
         output.WriteRawTag(40);
         output.WriteInt32(SortPriority);
       }
+      animals_.WriteTo(output, _repeated_animals_codec);
+      if (ScenePath.Length != 0) {
+        output.WriteRawTag(58);
+        output.WriteString(ScenePath);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -233,6 +272,10 @@ namespace YFramework.Config {
       }
       if (SortPriority != 0) {
         size += 1 + pb::CodedOutputStream.ComputeInt32Size(SortPriority);
+      }
+      size += animals_.CalculateSize(_repeated_animals_codec);
+      if (ScenePath.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(ScenePath);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -259,6 +302,10 @@ namespace YFramework.Config {
       }
       if (other.SortPriority != 0) {
         SortPriority = other.SortPriority;
+      }
+      animals_.Add(other.animals_);
+      if (other.ScenePath.Length != 0) {
+        ScenePath = other.ScenePath;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -289,6 +336,15 @@ namespace YFramework.Config {
           }
           case 40: {
             SortPriority = input.ReadInt32();
+            break;
+          }
+          case 50:
+          case 48: {
+            animals_.AddEntriesFrom(input, _repeated_animals_codec);
+            break;
+          }
+          case 58: {
+            ScenePath = input.ReadString();
             break;
           }
         }

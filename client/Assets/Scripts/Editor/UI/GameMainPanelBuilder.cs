@@ -138,36 +138,48 @@ public static class GameMainPanelBuilder
         return mat;
     }
 
-    /// <summary>瞄准镜准星:居中圆环 + 十字 + 中心方框。返回准星根物体(默认隐藏,由脚本在瞄准时显示)。</summary>
+    /// <summary>
+    /// 瞄准镜准星:4 根带缺口的刻度线 + 中心小红点,**中心完全透空**——不再用填充方框/圆盘挡住瞄准点,
+    /// 看得清要打的部位(头/心脏/身体)。返回准星根物体(默认隐藏,由脚本在瞄准时显示)。
+    /// </summary>
     private static GameObject BuildScope(Transform parent)
     {
         var scope = NewUI("Scope", out var rt, parent);
         rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0.5f, 0.5f);
-        rt.anchoredPosition = Vector2.zero; // 居中:与射线(屏幕中心)和黑边圆孔对齐
-        rt.sizeDelta = new Vector2(640, 640);
+        rt.anchoredPosition = Vector2.zero; // 居中:与射线(屏幕中心)对齐
+        rt.sizeDelta = new Vector2(200, 200);
 
-        // 圆环(用内置 Knob 填充圆 + 半透明,作为镜筒底色)
-        var ring = NewImage(scope.transform, "Ring", new Color(0f, 0f, 0f, 0.25f));
-        Stretch(ring.rectTransform);
-        ring.sprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Knob.psd");
-        ring.raycastTarget = false;
+        const float gap = 22f;     // 中心留空半径(到刻度线内端)
+        const float length = 46f;  // 每根刻度线长
+        const float thick = 5f;    // 刻度线粗
+        var lineColor = new Color(1f, 1f, 1f, 0.9f);
+        float off = gap + length * 0.5f; // 刻度线中心到屏幕中心的距离
 
-        // 十字线
-        var hLine = NewImage(scope.transform, "CrossH", new Color(0, 0, 0, 0.8f));
-        var hRt = hLine.rectTransform; hRt.anchorMin = new Vector2(0.05f, 0.5f); hRt.anchorMax = new Vector2(0.95f, 0.5f);
-        hRt.offsetMin = new Vector2(0, -3); hRt.offsetMax = new Vector2(0, 3); hLine.raycastTarget = false;
-        var vLine = NewImage(scope.transform, "CrossV", new Color(0, 0, 0, 0.8f));
-        var vRt = vLine.rectTransform; vRt.anchorMin = new Vector2(0.5f, 0.05f); vRt.anchorMax = new Vector2(0.5f, 0.95f);
-        vRt.offsetMin = new Vector2(-3, 0); vRt.offsetMax = new Vector2(3, 0); vLine.raycastTarget = false;
+        // 上 / 下(竖向刻度)
+        Tick(scope.transform, "TickUp",    new Vector2(thick, length), new Vector2(0,  off), lineColor);
+        Tick(scope.transform, "TickDown",  new Vector2(thick, length), new Vector2(0, -off), lineColor);
+        // 左 / 右(横向刻度)
+        Tick(scope.transform, "TickLeft",  new Vector2(length, thick), new Vector2(-off, 0), lineColor);
+        Tick(scope.transform, "TickRight", new Vector2(length, thick), new Vector2( off, 0), lineColor);
 
-        // 中心方框(半透明,模拟锁定框)
-        var box = NewImage(scope.transform, "Box", new Color(1f, 1f, 1f, 0.15f));
-        var boxRt = box.rectTransform; boxRt.anchorMin = boxRt.anchorMax = boxRt.pivot = new Vector2(0.5f, 0.5f);
-        boxRt.sizeDelta = new Vector2(170, 170); box.raycastTarget = false;
-        var ol = box.gameObject.AddComponent<Outline>(); ol.effectColor = new Color(1, 1, 1, 0.6f); ol.effectDistance = new Vector2(3, 3);
+        // 中心小圆点(红色,标精确命中点,不挡视线)
+        var dot = NewImage(scope.transform, "Dot", new Color(0.95f, 0.25f, 0.20f, 0.95f));
+        dot.sprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Knob.psd"); // 圆点
+        var dotRt = dot.rectTransform; dotRt.anchorMin = dotRt.anchorMax = dotRt.pivot = new Vector2(0.5f, 0.5f);
+        dotRt.anchoredPosition = Vector2.zero; dotRt.sizeDelta = new Vector2(12, 12); dot.raycastTarget = false;
 
         scope.SetActive(false);
         return scope;
+    }
+
+    /// <summary>准星的一根刻度线(居中锚点 + 指定尺寸/偏移)。</summary>
+    private static void Tick(Transform parent, string name, Vector2 size, Vector2 pos, Color color)
+    {
+        var img = NewImage(parent, name, color);
+        var r = img.rectTransform;
+        r.anchorMin = r.anchorMax = r.pivot = new Vector2(0.5f, 0.5f);
+        r.sizeDelta = size; r.anchoredPosition = pos;
+        img.raycastTarget = false;
     }
 
     /// <summary>圆形按钮(内置 Knob 圆形精灵 + 居中文字),out 出文字组件供运行时切换文案。</summary>

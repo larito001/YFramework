@@ -1,5 +1,13 @@
 using UnityEngine;
 
+/// <summary>一次射击命中结果:命中的动物(没打中为 null)+ 命中部位。</summary>
+public struct AnimalShot
+{
+    public AnimalEntity entity;
+    public HitZone zone;
+    public bool HasHit => entity != null;
+}
+
 /// <summary>
 /// 瞄准镜的相机端机制:瞄准时拉近视野(变焦放大)并降低环视灵敏度;开火时从屏幕中心(准星处)打一条射线做命中判定。
 /// 由 <see cref="GameStartScene"/> 进对局时和 <see cref="CameraSwipeLook"/>/<see cref="ShootCameraShake"/> 一起挂到主相机。
@@ -47,13 +55,24 @@ public class ScopeAimController : MonoBehaviour
         if (look != null) look.sensitivity = baseSensitivity * (on ? aimSensitivityScale : 1f);
     }
 
-    /// <summary>从屏幕中心打射线,返回命中的动物(没打中动物返回 null)。</summary>
-    public AnimalEntity FireRay()
+    /// <summary>
+    /// 从屏幕中心打射线,返回命中的动物 + 部位(头/心脏/身体);没打中动物则 <see cref="AnimalShot.HasHit"/> 为 false。
+    /// 命中碰撞体若挂了 <see cref="AnimalHitZone"/> 取其部位;否则(旧 prefab 只有整体碰撞体)按身体处理。
+    /// </summary>
+    public AnimalShot FireRay()
     {
         var ray = cam.ScreenPointToRay(new Vector3(Screen.width * 0.5f, Screen.height * 0.5f, 0f));
         if (Physics.Raycast(ray, out var hit, rayDistance))
-            return hit.collider.GetComponentInParent<AnimalEntity>(); // 最近命中物不是动物(如地面)则为 null = 没打中
-        return null;
+        {
+            var zoneComp = hit.collider.GetComponent<AnimalHitZone>();
+            if (zoneComp != null && zoneComp.Owner != null)
+                return new AnimalShot { entity = zoneComp.Owner, zone = zoneComp.zone };
+
+            var ent = hit.collider.GetComponentInParent<AnimalEntity>(); // 兼容无部位碰撞体的旧 prefab
+            if (ent != null)
+                return new AnimalShot { entity = ent, zone = HitZone.Body };
+        }
+        return default; // 最近命中物不是动物(如地面)= 没打中
     }
 
     private void Update()

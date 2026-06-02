@@ -149,7 +149,10 @@
       "Bash(grep -iv \"using\\\\|///\")",
       "Bash(pip install *)",
       "Bash(python gen_copyright_pdf.py --listfile \"C:/UnityProject/YFramework/tools/soft_copyright/收录文件清单.txt\")",
-      "Bash(python gen_doc_pdf.py)"
+      "Bash(python gen_doc_pdf.py)",
+      "Bash(python _edit_tables.py)",
+      "Bash(awk 'NR>=324 && NR<=414' \"Assets/Scenes/Boot/GameStart.unity\")",
+      "Bash(grep -cE Collider: 'Assets/Art/Animals/Low Poly Animated Animals/Prefabs/Nature/__TRACKED_VAR__.prefab')"
     ]
   }
 }

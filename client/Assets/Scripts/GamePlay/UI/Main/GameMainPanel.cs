@@ -134,17 +134,27 @@ public class GameMainPanel : UIPageBase
 
         ammo--;
 
-        // 从屏幕中心(准星处)打射线:命中动物才加它的击杀积分并播死亡动画,没打中不加分
-        var hit = ScopeAim()?.FireRay();
+        // 从屏幕中心(准星处)打射线:按部位结算——头/心脏一枪致命,身体两枪;只有「这一枪打死了」才加分计数
+        var aim = ScopeAim();
+        var shot = aim != null ? aim.FireRay() : default;
+        var hit = shot.entity;
         if (hit != null && !hit.IsDead)
         {
-            hit.Kill();
-            score += hit.score;
-            kills.TryGetValue(hit.animalId, out var c);
-            kills[hit.animalId] = c + 1; // 记一笔,供结算逐种统计
-            taskProgress?.AddKill(1);    // 计入"击杀任意动物"类任务进度
-            codex?.Discover(hit.animalId); // 击杀的动物解锁图鉴
-            RefreshScore();
+            bool died = hit.Hit(shot.zone);
+            if (died)
+            {
+                score += hit.score;
+                kills.TryGetValue(hit.animalId, out var c);
+                kills[hit.animalId] = c + 1; // 记一笔,供结算逐种统计
+                taskProgress?.AddKill(1);    // 计入"击杀任意动物"类任务进度
+                codex?.Discover(hit.animalId); // 击杀的动物解锁图鉴
+                RefreshScore();
+            }
+            else
+            {
+                // 身体中了一枪但没死:给个「命中」飘字,免得玩家以为打空了
+                GetService<FlyTextMgr>()?.AddTextAtScreenCenter("命中");
+            }
         }
 
         SetAiming(false); // 实弹射击后关闭瞄准镜

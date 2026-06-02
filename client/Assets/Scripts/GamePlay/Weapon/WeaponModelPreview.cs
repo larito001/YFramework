@@ -59,6 +59,8 @@ public class WeaponModelPreview
         }
 
         model = Object.Instantiate(prefab, pivot);
+        // 动物预制体带弱点高亮/命中盒(AnimalHitZone),UI 预览里不该显示:整块关掉
+        foreach (var hz in model.GetComponentsInChildren<AnimalHitZone>(true)) hz.gameObject.SetActive(false);
         WeaponModelUtil.SetLayer(model, PreviewLayer);
         WeaponModelUtil.DisableColliders(model);
         WeaponModelUtil.MakeUnlit(model);
