@@ -45,7 +45,7 @@ public static class FinishPanelBuilder
         // ---------- 居中卡片 ----------
         var card = NewUI("Card", out var cardRt, root.transform);
         cardRt.anchorMin = cardRt.anchorMax = cardRt.pivot = new Vector2(0.5f, 0.5f);
-        cardRt.sizeDelta = new Vector2(1100, 1500);
+        cardRt.sizeDelta = new Vector2(1600, 2100); // 放大结算卡片(运行时 FinishPanel 也会同步成这个尺寸)
         var cardBg = card.AddComponent<Image>();
         cardBg.sprite = BuiltinSprite("UI/Skin/UISprite.psd");
         cardBg.type = Image.Type.Sliced;
@@ -54,13 +54,13 @@ public static class FinishPanelBuilder
         // ---------- 标题(卡片顶部)----------
         var titleGo = NewUI("Title", out var titleRt, card.transform);
         titleRt.anchorMin = new Vector2(0, 1); titleRt.anchorMax = new Vector2(1, 1); titleRt.pivot = new Vector2(0.5f, 1);
-        titleRt.anchoredPosition = new Vector2(0, -40); titleRt.sizeDelta = new Vector2(0, 110);
-        var titleText = NewText(titleGo, "打猎结算", 64, TextAlignmentOptions.Center, new Color(0.25f, 0.24f, 0.30f, 1f));
+        titleRt.anchoredPosition = new Vector2(0, -50); titleRt.sizeDelta = new Vector2(0, 140);
+        var titleText = NewText(titleGo, "打猎结算", 76, TextAlignmentOptions.Center, new Color(0.25f, 0.24f, 0.30f, 1f));
 
         // ---------- 明细滚动列表 ----------
         var scrollGo = NewUI("Scroll", out var scrollRt, card.transform);
         scrollRt.anchorMin = new Vector2(0, 0); scrollRt.anchorMax = new Vector2(1, 1);
-        scrollRt.offsetMin = new Vector2(50, 320); scrollRt.offsetMax = new Vector2(-50, -180);
+        scrollRt.offsetMin = new Vector2(60, 340); scrollRt.offsetMax = new Vector2(-60, -230);
         var scroll = scrollGo.AddComponent<ScrollRect>();
         scroll.horizontal = false; scroll.vertical = true; scroll.scrollSensitivity = 40f;
         scroll.movementType = ScrollRect.MovementType.Clamped;

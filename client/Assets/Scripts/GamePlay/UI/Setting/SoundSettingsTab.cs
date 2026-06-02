@@ -2,15 +2,15 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-/// <summary>声音设置页签:主/音乐/音效/界面 四路音量滑条 + 静音开关,绑定 SoundMgr(改动即生效并存盘)。</summary>
+/// <summary>声音设置页签:音乐/音效 两路音量滑条 + 静音开关,绑定 SoundMgr(改动即生效并存盘)。</summary>
 public class SoundSettingsTab : SettingTabBase
 {
-    private static readonly SoundChannel[] Channels = { SoundChannel.Master, SoundChannel.Music, SoundChannel.Sfx, SoundChannel.Ui };
-    private static readonly string[] Names = { "主音量", "音乐", "音效", "界面" };
+    private static readonly SoundChannel[] Channels = { SoundChannel.Music, SoundChannel.Sfx };
+    private static readonly string[] Names = { "音乐", "音效" };
 
-    private readonly Slider[] sliders = new Slider[4];
-    private readonly TextMeshProUGUI[] values = new TextMeshProUGUI[4];
-    private readonly Toggle[] mutes = new Toggle[4];
+    private readonly Slider[] sliders = new Slider[Channels.Length];
+    private readonly TextMeshProUGUI[] values = new TextMeshProUGUI[Channels.Length];
+    private readonly Toggle[] mutes = new Toggle[Channels.Length];
     private bool refreshing;
 
     protected override void Build()

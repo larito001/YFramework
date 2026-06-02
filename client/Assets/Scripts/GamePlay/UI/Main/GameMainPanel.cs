@@ -176,6 +176,7 @@ public class GameMainPanel : UIPageBase
                 animalName = def != null ? def.Name : $"动物 {kv.Key}",
                 count = kv.Value,
                 score = kv.Value * (def != null ? def.Score : 0),
+                prefabPath = def != null ? def.Prefab : null, // 结算页用它离屏渲染动物 3D 图标
             });
         }
         result.entries.Sort((a, b) => b.score.CompareTo(a.score)); // 分高的在前
