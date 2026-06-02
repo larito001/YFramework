@@ -13,21 +13,25 @@ public class SettingPanel : UIPageBase
     public Button backBtn;
     public GameObject soundTab;
 
-    private StoreMgr store;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+    private StoreMgr store;       // 仅调试按钮使用
     private CurrencySystem currency;
     private EventMgr eventMgr;
+#endif
 
     public override void OnLoad()
     {
+        if (backBtn != null) backBtn.onClick.AddListener(CloseSelf);
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         store = GetService<StoreMgr>();
         currency = GetService<CurrencySystem>();
         eventMgr = GetService<EventMgr>();
 
-        if (backBtn != null) backBtn.onClick.AddListener(CloseSelf);
-
-        // 调试按钮(左下角竖排):清空数据并刷新 / 金币 +10000
+        // 调试按钮(左下角竖排):清空数据并刷新 / 金币 +10000。仅编辑器/开发包,正式包不出现,防止玩家清档/刷金币。
         CreateDebugButton("清空数据并刷新", new Vector2(40f, 150f), new Color(0.78f, 0.30f, 0.30f, 1f), OnClearData);
         CreateDebugButton("金币 +10000", new Vector2(40f, 44f), new Color(0.85f, 0.66f, 0.20f, 1f), OnAddGold);
+#endif
     }
 
     public override void OnShow()
@@ -43,7 +47,8 @@ public class SettingPanel : UIPageBase
     {
     }
 
-    // ---------------- 调试按钮 ----------------
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+    // ---------------- 调试按钮(仅编辑器/开发包) ----------------
 
     /// <summary>清空当前存档槽的进度数据(装备/货币/背包/图鉴/任务)并重载,触发各界面刷新。</summary>
     private void OnClearData()
@@ -109,4 +114,5 @@ public class SettingPanel : UIPageBase
         var t = backBtn != null ? backBtn.GetComponentInChildren<TextMeshProUGUI>() : null;
         return t != null ? t.font : TMP_Settings.defaultFontAsset;
     }
+#endif
 }

@@ -80,3 +80,9 @@ crashlytics-build.properties
 /_publish/
 /tools/_publish/
 发布配表.bat
+
+# Unity 回放/崩溃日志(误提交清理)
+replay_pid*.log
+
+# 本机私有的 Claude Code 配置
+**/.claude/settings.local.json

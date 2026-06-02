@@ -102,7 +102,7 @@ public class WeaponModelPreview
     {
         if (rt == null)
         {
-            rt = new RenderTexture(384, 384, 16, RenderTextureFormat.ARGB32) { name = "WeaponPreviewRT" };
+            rt = new RenderTexture(640, 640, 16, RenderTextureFormat.ARGB32) { name = "WeaponPreviewRT" };
             rt.Create();
         }
         if (image != null) image.texture = rt;

@@ -6,6 +6,7 @@ using YOTO;
 public class GameStartScene : YSceneBase
 {
     private GameObject bloomVolumeGo; // 运行时建的全局 Bloom(让金色泛光动物真的泛起来),离开场景销毁
+    private UniversalAdditionalCameraData bloomCamData; // 被开启后处理的相机数据,离场还原 renderPostProcessing
 
     public override YSceneType SceneType
     {
@@ -74,7 +75,11 @@ public class GameStartScene : YSceneBase
     private void EnableGoldenBloom(Camera cam)
     {
         var camData = cam.GetUniversalAdditionalCameraData();
-        if (camData != null) camData.renderPostProcessing = true; // 相机开后处理(否则 Bloom 不生效)
+        if (camData != null)
+        {
+            camData.renderPostProcessing = true; // 相机开后处理(否则 Bloom 不生效)
+            bloomCamData = camData;               // 记下来,离场把它关回(相机可能被别的场景复用)
+        }
 
         if (bloomVolumeGo != null) return; // 已建过(再次出发不重复建)
 
@@ -106,6 +111,11 @@ public class GameStartScene : YSceneBase
             if (v != null && v.profile != null) Object.Destroy(v.profile);
             Object.Destroy(bloomVolumeGo);
             bloomVolumeGo = null;
+        }
+        if (bloomCamData != null) // 还原相机后处理开关(本场景为 Bloom 打开的,离场关回,避免被复用相机的场景误开)
+        {
+            bloomCamData.renderPostProcessing = false;
+            bloomCamData = null;
         }
         LeaveSceneComplete();
     }
