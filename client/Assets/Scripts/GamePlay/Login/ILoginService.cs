@@ -11,6 +11,9 @@ namespace YOTO
     /// </summary>
     public interface ILoginService
     {
+        /// <summary>登录成功(交互式或静默自动登录)后触发,参数为登录账号。云同步据此做"登录后拉取/下载"。</summary>
+        event Action<LoginAccount> LoggedIn;
+
         /// <summary>当前是否已登录(有有效账号)。</summary>
         bool IsLoggedIn { get; }
 

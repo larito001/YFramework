@@ -54,6 +54,9 @@ public static partial class GameBootstrapper
         // SDK 调用在 TAPTAP_CLOUDSAVE 宏内,未接入时 Editor 走模拟、真机走"未接入"回退。仅提供 API,
         // 何时上传/下载(自动存档点 / 手动按钮 / 本地云对比)由上层决定,见 TODO_TapTapLogin.md。
         ctx.Register<ICloudSaveService>(new TapTapCloudSaveService());
+        // 云存档自动同步(B 方案):登录后云端较新则自动下载;任意进度存档落盘后防抖合并、自动上传当前槽。
+        // 业务侧照常 Save 即可,无需感知云端。注册在登录/云存档/StoreMgr 之后。
+        ctx.Register(new CloudSaveSyncService());
 
         // 战斗输入闸门：注册早于 InputService，于同帧内先跑，按 UI 状态先设好 CombatEnabled——
         // 非主界面 UI（背包/宝箱/设置等）打开时屏蔽战斗按键，关闭后恢复。

@@ -31,20 +31,23 @@
 
 ## 2b. 云存档(代码已就绪,待接 SDK 后验证)
 
-> 代码:`ICloudSaveService` + `TapTapCloudSaveService`(SDK 调用在 `TAPTAP_CLOUDSAVE` 宏内)+ `CloudArchivePacker`(纯本地打包/解包,已可编译)。已注册进 `GameContext`。
+> 代码:`ICloudSaveService` + `TapTapCloudSaveService`(SDK 调用在 `TAPTAP_CLOUDSAVE` 宏内,字段名已对照 4.10.3 校正)
+> + `CloudArchivePacker`(纯本地打包/解包)+ `CloudSaveSyncService`(自动同步)。均已注册进 `GameContext`。
 > 模型:**一个云归档 = 一个本地存档槽**,归档名 `slot_{槽id}`,打包该槽的 `slot{id}_*.json` 进度文件上传。
 
-- [ ] **校验 SDK 字段名**:`TapTapCloudSaveService` 里 `GetUuid/GetName/GetFileId/Convert` 用的 `ArchiveData.Uuid /
-      .Metadata.ArchiveName / .FileId / .ArchiveSummary` 等是按文档推断的,导入 SDK 后对照实际类型校正(代码内已用 ⚠ 标注)。
-- [ ] **补 `ArchiveMetadata` 参数**:`UploadAsync` 里 playtime 现传 0,可接入真实游玩时长;`savedUnix` 若 SDK 有更新时间字段则在 `Convert` 填入(用于本地/云"谁更新"对比)。
-- [ ] **触发时机**(产品决策,当前只提供 API、未自动触发):
-      自动存档游戏建议在关键存档点调 `Upload`;手动存档游戏给"上传/下载"按钮。
-- [ ] **本地 vs 云端冲突策略**:下载覆盖本地前应比对 `savedUnix`(或版本号),提示玩家选择,避免误覆盖更新的进度。
-- [ ] **云存档界面**:在读档界面(`SaveSlotPanel`)或设置界面加云归档列表(`GetList`)+ 上传/下载/删除按钮,
-      用 `RewardClaimPanel`/`ConfirmPanel` 同款 builder 方式新建面板。
-- [ ] **限额处理**:单归档 ≤10MB、单封面 ≤512KB、每游戏每玩家 ≤100 归档/100MB、创建更新 ≤60 次/分钟——
-      `Upload` 失败回调里按错误码提示(`ITapCloudSaveCallback.OnResult`:300001 需登录 / 300002 初始化失败)。
-- [ ] 真机验证:登录后上传 → 换设备/重装 → 登录 → `GetList` → `Download` 还原进度。
+- [x] **校验 SDK 字段名**:已读 `Library/PackageCache/com.taptap.sdk.cloudsave@4.10.3` 源码,`ArchiveData` 字段平铺
+      (`Uuid/FileId/Name/Summary/Playtime/ModifiedTime`),`Convert`/`GetName` 已改对,编译通过。
+- [x] **自动同步(B 方案)**:`CloudSaveSyncService` 已接——登录后云端较新则自动下载;进度存档落盘后防抖(默认 3s)合并上传。
+      钩子在 `StoreMgr.ProgressSaved` 事件(任意 Progress 存档触发)+ `ILoginService.LoggedIn` 事件。业务侧照常 `Save` 即可。
+- [ ] **调防抖窗口**:`CloudSaveSyncService.UploadDebounceSeconds`(现 3s)。想更即时调小,但别小到让一连串写盘各发一次请求(限频 60 次/分钟)。
+- [ ] **补 `ArchiveMetadata.playtime`**:`UploadAsync` 现传 0,可接入真实游玩时长(用于云端展示)。
+- [ ] **跨设备槽 id 不一致**:云归档名按"上传设备的槽 id"(`slot_{id}`)。换设备若本地新建的槽 id 与云端不同,
+      登录自动下载可能匹配不上(当前按 `slotId` 严格匹配)。单槽游戏一般没问题;多槽需做云归档↔本地槽的映射/UI 选择。
+- [ ] **时间戳单位**:`CloudSaveSyncService.NormalizeUnix` 假设云端 `ModifiedTime` 是秒(>1e12 当毫秒)。真机看一眼实际值,必要时校正。
+- [ ] **(可选)云存档管理界面**:如需让玩家手动看/选/删云归档,在 `SaveSlotPanel` 加 `GetList`/`Download`/`Delete` 入口(builder 方式)。
+- [ ] **限额/错误提示**:单归档 ≤10MB、≤100 归档/100MB、创建更新 ≤60 次/分钟。失败已 `Debug.LogWarning`;
+      如需玩家可见提示,接 `ITapCloudSaveCallback.OnResult`(300001 需登录 / 300002 初始化失败)或上传失败回调。
+- [ ] 真机验证:登录玩一会(自动上传)→ 换设备/重装 → 登录 → 自动下载还原进度。
 
 ## 3. 平台打包配置
 

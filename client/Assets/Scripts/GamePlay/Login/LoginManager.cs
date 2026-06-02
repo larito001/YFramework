@@ -18,6 +18,8 @@ namespace YOTO
         private readonly List<LoginChannel> channels = new List<LoginChannel>();
         private LoginAccount current;
 
+        public event Action<LoginAccount> LoggedIn;
+
         public bool IsLoggedIn => current != null;
         public LoginAccount Current => current;
         public IReadOnlyList<LoginChannel> AvailableChannels => channels;
@@ -44,6 +46,7 @@ namespace YOTO
         public void Shutdown()
         {
             current = null;
+            LoggedIn = null;
             providers.Clear();
             channels.Clear();
         }
@@ -58,7 +61,7 @@ namespace YOTO
             }
             provider.Login(res =>
             {
-                if (res.success) current = res.account;
+                if (res.success) { current = res.account; LoggedIn?.Invoke(current); }
                 onComplete?.Invoke(res);
             });
         }
@@ -87,6 +90,7 @@ namespace YOTO
                 if (res.success)
                 {
                     current = res.account;
+                    LoggedIn?.Invoke(current);
                     onComplete?.Invoke(res);
                 }
                 else

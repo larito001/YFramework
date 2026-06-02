@@ -332,6 +332,12 @@ namespace YOTO
         /// <summary>存档槽增删时触发(新建/删除)。UI 据此刷新"读取存档"按钮等状态。</summary>
         public event Action SlotsChanged;
 
+        /// <summary>任意"进度(Progress)"存档落盘完成后触发(Settings 不触发)。云同步据此自动上传当前槽。</summary>
+        public event Action ProgressSaved;
+
+        /// <summary>供句柄在进度写盘完成后回调,转发 <see cref="ProgressSaved"/>。</summary>
+        internal void RaiseProgressSaved() => ProgressSaved?.Invoke();
+
         /// <summary>清单就绪后回调(已就绪则立即回调)。读档界面在 OnShow 里用它再刷新列表。</summary>
         public void WhenSlotsReady(Action onReady)
         {
@@ -492,6 +498,7 @@ namespace YOTO
             _byKey.Clear();
             _pendingReady.Clear();
             SlotsChanged = null;
+            ProgressSaved = null;
             _manifest = null;
             _manifestLoaded = false;
             _activeSlot = 0;
@@ -560,7 +567,11 @@ namespace YOTO
             public void Save(Action onComplete = null)
             {
                 store.NotifyProgressSaved(Category); // 进度存档则刷新激活槽的最后游玩时间
-                store.WriteData(store.EffectiveKey(Key, Category), capture(), onComplete);
+                store.WriteData(store.EffectiveKey(Key, Category), capture(), () =>
+                {
+                    onComplete?.Invoke();
+                    if (Category == SaveCategory.Progress) store.RaiseProgressSaved(); // 进度落盘完成 → 通知云同步
+                });
             }
 
             public void Load(Action onComplete = null)
