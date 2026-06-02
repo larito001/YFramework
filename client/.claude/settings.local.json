@@ -145,7 +145,8 @@
       "Bash(echo \"=== TapTap 要的 签名 MD5\\(去冒号 32位\\)===\")",
       "Read(//c/Users/20723/**)",
       "Bash(awk '{print toupper\\($1\\)}')",
-      "Bash(xargs sed -n '1,60p')"
+      "Bash(xargs sed -n '1,60p')",
+      "Bash(grep -iv \"using\\\\|///\")"
     ]
   }
 }
