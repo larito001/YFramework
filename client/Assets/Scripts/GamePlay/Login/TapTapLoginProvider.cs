@@ -24,11 +24,13 @@ namespace YOTO
     /// </summary>
     public class TapTapLoginProvider : ILoginProvider
     {
-        // ── 凭证 ──
-        // ⚠ 占位值仅供编译/联调。上线前换成 TapTap 开发者后台(developer.taptap.cn)
-        //   → 你的应用 → 应用配置/凭证管理 里的 Client ID / Client Token。
-        private const string ClientId = "your_taptap_client_id";
-        private const string ClientToken = "your_taptap_client_token";
+        // ── 凭证(TapTap 开发者后台 → 应用 → 凭证管理)──
+        // ⚠ serverSecret(服务端密钥)绝不能写进客户端,只在后端校验令牌时用,故不在此出现。
+        private const string ClientId = "eisjc5cksbhhxis6hz";
+        private const string ClientToken = "E9qVj24UioVvlsKmpNmKYSeIuVwEnyOnbWeD8F56";
+        // PC 客户端公钥(仅 PC/Standalone 登录需要;移动端可忽略)。
+        private const string ClientPublicKey =
+            "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA1WjQMTkVC32rSx6/7aKjUFCvq8GiceZu0dmYIniQGscn5F/VDa0vsxx2gE4NLbXm2DiwZEhZL5YeMnvq0ty09PeNf8DZqbGELigpon6qwkoHHz83XrajuuoUultfx+o81aYUY4zpqla6AaTy0txPnfwZ/YcKQpbk4vqozFB7H2JpeqxvrrqfzXutJZQNj21To1m5f0H+oJiTG/83FvqegLfnReI/sRAgctMVbCzEjTHddDkYfHnhwoxj7A2MwFqbjYpD1RouXJ2ZhA5N+uDF7E6NpNeVzMmmhVa1MHrs2l76qEcEPqyI9h0n1EIvgppGurB1MRZMTeRK5GA8y3+VgQIDAQAB";
 
         public LoginChannel Channel => LoginChannel.TapTap;
 
@@ -39,8 +41,10 @@ namespace YOTO
             {
                 clientId = ClientId,
                 clientToken = ClientToken,
-                region = TapTapRegionType.CN, // 国内版;海外用 TapTapRegionType.Overseas
-                enableLog = true,             // 联调期开日志,发布前改 false
+                clientPublicKey = ClientPublicKey, // 仅 PC/Standalone 登录用;移动端无影响
+                region = TapTapRegionType.CN,      // 国内版;海外用 TapTapRegionType.Overseas
+                enableLog = true,                  // 联调期开日志,发布前改 false
+                screenOrientation = 0,             // 0=竖屏(本游戏为竖屏);横屏填 1
             };
             TapTapSDK.Init(options);
 #endif

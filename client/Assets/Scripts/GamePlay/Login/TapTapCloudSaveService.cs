@@ -20,8 +20,8 @@ namespace YOTO
     ///   · Editor 走"模拟成功(本地打包但不真上传)"便于联调上层流程;
     ///   · 真机(未开宏)走"未接入"回退。
     ///
-    /// ⚠ **SDK 字段名待确认**:下方 <see cref="Convert"/> 等处用到的 ArchiveData / ArchiveMetadata 属性名
-    /// (Uuid / FileId / Name / Summary 等)按文档推断,导入 SDK 后请对照实际类型校正(已用注释标出)。
+    /// 字段名已对照 SDK 4.10.3 实际类型(<c>ArchiveData</c> 平铺 Uuid/FileId/Name/Summary/Playtime/ModifiedTime;
+    /// <c>ArchiveMetadata(name, summary, extra, playtime)</c>)。
     /// </summary>
     public class TapTapCloudSaveService : ICloudSaveService, IGameService
     {
@@ -208,23 +208,21 @@ namespace YOTO
             return null;
         }
 
-        // ⚠⚠ 以下取值按文档推断,导入 SDK 后按实际 ArchiveData / ArchiveMetadata 字段名校正 ⚠⚠
-        private static string GetUuid(ArchiveData a) => a.Uuid;            // 归档唯一 id
-        private static string GetName(ArchiveData a) => a.Metadata?.ArchiveName; // 归档名
-        private static string GetFileId(ArchiveData a) => a.FileId;        // 归档文件 id(下载用)
+        // 字段名已对照 SDK 4.10.3 的 ArchiveData(Runtime/Public/ArchiveData.cs):name/summary/playtime/file_id 等均平铺在 ArchiveData 上。
+        private static string GetUuid(ArchiveData a) => a.Uuid;     // 归档唯一 id(更新时用)
+        private static string GetName(ArchiveData a) => a.Name;     // 归档名(按 slot_{id} 匹配本地槽)
 
         private static CloudArchiveInfo Convert(ArchiveData a)
         {
-            string name = GetName(a);
             return new CloudArchiveInfo
             {
-                uuid = GetUuid(a),
-                fileId = GetFileId(a),
-                name = name,
-                summary = a.Metadata?.ArchiveSummary,
-                slotId = CloudArchivePacker.ParseSlotId(name),
-                savedUnix = 0,        // 如 SDK 有更新时间字段,在此填入(展示/对比新旧用)
-                playtimeSeconds = 0,  // 同上,可取 a.Metadata?.ArchivePlaytime
+                uuid = a.Uuid,
+                fileId = a.FileId,
+                name = a.Name,
+                summary = a.Summary,
+                slotId = CloudArchivePacker.ParseSlotId(a.Name),
+                savedUnix = a.ModifiedTime,    // 云端最后修改时间(用于本地/云"谁更新"对比)
+                playtimeSeconds = a.Playtime,  // SDK 为 int 秒,赋给 long 字段自动扩宽
             };
         }
 

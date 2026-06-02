@@ -455,7 +455,6 @@ GameObject:
   m_Component:
   - component: {fileID: 1155706216}
   - component: {fileID: 1155706217}
-  - component: {fileID: 1155706218}
   - component: {fileID: 1155706219}
   m_Layer: 0
   m_Name: GameRoot
@@ -493,20 +492,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   autoStart: 1
   isTest: 0
---- !u!114 &1155706218
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1155706215}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 14b04c3e7fb31d74bb84795aa0e839f0, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  toggleKey: 282
-  maxMembers: 4
 --- !u!114 &1155706219
 MonoBehaviour:
   m_ObjectHideFlags: 0

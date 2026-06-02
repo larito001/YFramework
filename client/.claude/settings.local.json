@@ -127,7 +127,17 @@
       "Read(//mnt/c/Users/**)",
       "Read(//mnt/c/Users/20723/**)",
       "Bash(curl -s --max-time 25 https://registry.npmjs.org/__TRACKED_VAR__)",
-      "Bash(curl -sS --max-time 25 \"https://registry.npmjs.org/com.taptap.sdk.core\" -o /tmp/core.json -w \"HTTP %{http_code}\\\\n\")"
+      "Bash(curl -sS --max-time 25 \"https://registry.npmjs.org/com.taptap.sdk.core\" -o /tmp/core.json -w \"HTTP %{http_code}\\\\n\")",
+      "Bash(curl -sS --max-time 25 \"https://registry.npmjs.org/com.taptap.sdk.login\" -o /tmp/login.json -w \"login HTTP %{http_code}\\\\n\")",
+      "Bash(curl -sS --max-time 25 \"https://registry.npmjs.org/com.taptap.sdk.cloudsave\" -o /tmp/cloudsave.json -w \"cloudsave HTTP %{http_code}\\\\n\")",
+      "Bash(python3 *)",
+      "Bash(node *)",
+      "Bash(curl -sS --max-time 25 \"https://registry.npmjs.org/com.taptap.sdk.core/4.10.3\")",
+      "Bash(curl -sS --max-time 25 \"https://registry.npmjs.org/com.taptap.sdk.login/4.10.3\")",
+      "Bash(curl -sS --max-time 25 \"https://registry.npmjs.org/com.taptap.sdk.cloudsave/4.10.3\")",
+      "Bash(curl -sS --max-time 25 \"https://registry.npmjs.org/com.taptap.sdk.core/4.10.3\" -o /tmp/core4.json)",
+      "Bash(curl -sS --max-time 25 \"https://registry.npmjs.org/com.google.external-dependency-manager\" -o /tmp/edm.json -w \"edm HTTP %{http_code}\\\\n\")",
+      "Bash(curl -sS --max-time 25 \"https://package.openupm.com/com.google.external-dependency-manager\" -o /tmp/edm_openupm.json -w \"openupm-edm HTTP %{http_code}\\\\n\")"
     ]
   }
 }

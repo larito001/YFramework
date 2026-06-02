@@ -13,16 +13,18 @@
 - [ ] **在 Editor 里编译一次**确认无报错(本次改动未经编译器验证)。
 - [ ] Editor 联调:启动 → 弹登录界面 → 点「TapTap 登录」→(模拟成功)进大厅。确认链路通。
 
-## 2. 接入真实 TapTap SDK(三个 unitypackage:本机当前都没有,需先下载)
+## 2. 接入真实 TapTap SDK(SDK 已通过 UPM 接入,无需手动下包)
 
-> 经检查,`TapSDK_Core / TapSDK_Login / TapSDK_CloudSave` 这三个 `.unitypackage` 本机不存在,需先从 TapTap 控制台下载到本地。
+> ✅ **已用 UPM 接入**:`Packages/manifest.json` 已加好 scopedRegistries(TapTap→npmjs、EDM4U→OpenUPM)与依赖,
+> **下次打开 Unity 会自动下载** `com.taptap.sdk.core/login/cloudsave@4.10.3` + `com.google.external-dependency-manager@1.2.179`。
+> 无需登录 TapTap 控制台、无需手动找 `.unitypackage`。Newtonsoft 3.2.1 项目已有。
 
-- [ ] **下载并导入 SDK**(Assets → Import Package → Custom Package),三个模块:
-      `TapSDK_Core.unitypackage`(核心,必选)、`TapSDK_Login.unitypackage`(登录,必选)、`TapSDK_CloudSave.unitypackage`(云存档,必选)。
-      或按《Unity 集成指南》用 UPM:https://developer.taptap.cn/docs/sdk/integration-guides/unity/
-- [ ] **填凭证**:`TapTapLoginProvider.cs` 顶部的 `ClientId` / `ClientToken` 换成开发者后台真实值,确认 `region`(国内 `CN` / 海外 `Overseas`)。
-- [ ] **开宏**:Project Settings → Player → Other Settings → Scripting Define Symbols 添加:
-      `TAPTAP_LOGIN`(开启真实登录)、`TAPTAP_CLOUDSAVE`(开启真实云存档)。两者独立,可分别开。
+- [ ] **打开 Unity** 让 Package Manager 拉取上述包(首次约 10MB,需联网)。拉取后 EDM4U 可能提示开启 Android/iOS 依赖解析,按需同意。
+- [ ] 若公司网络访问 npmjs/OpenUPM 受限:改用官方 unitypackage 离线导入(developer.taptap.cn 下载页),或配置内网镜像 registry。
+- [x] **填凭证**:`TapTapLoginProvider.cs` 已填真实 `ClientId` / `ClientToken` / `clientPublicKey`(PC),`region=CN`,`screenOrientation=0`(竖屏)。
+      ⚠ `serverSecret` 属服务端密钥,**未**写入客户端(只在后端校验令牌时用)。
+- [x] **开宏**:已在 `ProjectSettings.asset` 的 Android 与 Standalone 加好 `TAPTAP_LOGIN;TAPTAP_CLOUDSAVE`(随 `DIRICHLET_AD` 之后)。
+      ⚠ 开宏后 Editor 不再走"模拟登录",改用真实 SDK——**必须先填好凭证(下一条)再运行**,否则 `TapTapSDK.Init` 用占位值会报错。
 - [ ] **校验 `TapTapAccount` 字段映射**:`TapTapLoginProvider.Convert` 目前映射 `unionId/openId/name/avatar`;
       若后端要校验令牌,补 `accessToken` 取值(从 `account.accessToken` 取所需字段)。
 - [ ] 确认 SDK 异步回调在主线程恢复(Unity SDK 一般如此);若不是,回调里改用 `MainThreadDispatcher` 切回主线程再动 UI。
