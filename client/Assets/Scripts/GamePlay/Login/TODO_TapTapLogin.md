@@ -39,6 +39,9 @@
       (`Uuid/FileId/Name/Summary/Playtime/ModifiedTime`),`Convert`/`GetName` 已改对,编译通过。
 - [x] **自动同步(B 方案)**:`CloudSaveSyncService` 已接——登录后云端较新则自动下载;进度存档落盘后防抖(默认 3s)合并上传。
       钩子在 `StoreMgr.ProgressSaved` 事件(任意 Progress 存档触发)+ `ILoginService.LoggedIn` 事件。业务侧照常 `Save` 即可。
+- [x] **同步仅 Android 真机启用**:注册被 `#if UNITY_ANDROID && !UNITY_EDITOR` 包裹(`GameProjectBootstrapper`)。
+      原因:编辑器/PC 下 TapTap 云存档后端报 "Client ID 不存在"(PC 云存档需从 TapTap PC 客户端启动 + 后台单独开通)。
+      编辑器/PC 不跑同步、不影响本地存档;上 Android 真机自动生效。要在 PC 也测云存档需另接 PC 平台云存档,暂不做。
 - [ ] **调防抖窗口**:`CloudSaveSyncService.UploadDebounceSeconds`(现 3s)。想更即时调小,但别小到让一连串写盘各发一次请求(限频 60 次/分钟)。
 - [ ] **补 `ArchiveMetadata.playtime`**:`UploadAsync` 现传 0,可接入真实游玩时长(用于云端展示)。
 - [ ] **跨设备槽 id 不一致**:云归档名按"上传设备的槽 id"(`slot_{id}`)。换设备若本地新建的槽 id 与云端不同,

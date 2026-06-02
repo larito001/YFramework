@@ -56,7 +56,13 @@ public static partial class GameBootstrapper
         ctx.Register<ICloudSaveService>(new TapTapCloudSaveService());
         // 云存档自动同步(B 方案):登录后云端较新则自动下载;任意进度存档落盘后防抖合并、自动上传当前槽。
         // 业务侧照常 Save 即可,无需感知云端。注册在登录/云存档/StoreMgr 之后。
+        //
+        // 仅 Android 真机启用:编辑器/PC 下 TapTap 云存档后端不认本(移动)应用(PC 云存档还要求从 TapTap PC 客户端启动),
+        // 会持续报 "Client ID 不存在"。故编辑器/PC 不注册同步服务——不触发任何上传/下载,本地存档不受影响。
+        // 等上 Android 真机(且后台已开通云存档服务)时,这里自动生效。
+#if UNITY_ANDROID && !UNITY_EDITOR
         ctx.Register(new CloudSaveSyncService());
+#endif
 
         // 战斗输入闸门：注册早于 InputService，于同帧内先跑，按 UI 状态先设好 CombatEnabled——
         // 非主界面 UI（背包/宝箱/设置等）打开时屏蔽战斗按键，关闭后恢复。
