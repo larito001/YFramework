@@ -5,6 +5,9 @@ Shader "Hunting/ScopeMask"
     // 圆按屏幕宽高比校正,保证是正圆而不是椭圆。半径/软边/颜色都可在材质上调。
     Properties
     {
+        // uGUI 渲染 UI 图形时会把图形纹理赋给 _MainTex;本 shader 不采样它,
+        // 但必须声明该属性,否则每帧告警 "doesn't have a texture property '_MainTex'"。
+        [HideInInspector] _MainTex ("Sprite Texture", 2D) = "white" {}
         _Color   ("镜外颜色", Color) = (0,0,0,1)
         _Radius  ("镜孔半径(按屏幕半高归一化)", Range(0,1)) = 0.42
         _Feather ("软边宽度", Range(0,0.5)) = 0.04

@@ -78,6 +78,13 @@ public class YOTOButton : Button, IPointerEnterHandler, IPointerExitHandler, IPo
             .OnComplete(onComplete);
     }
 
+    // 销毁前杀掉缩放 tween:否则按钮被销毁(切场景/关面板)后 DOTween 仍会 startup 已销毁的 RectTransform,触发安全模式告警。
+    protected override void OnDestroy()
+    {
+        currentTween?.Kill();
+        base.OnDestroy();
+    }
+
     private void SetTextColor(Color color)
     {
         foreach (var text in textMeshProUGUIs)

@@ -57,4 +57,10 @@ public class YOTOUIMove : YOTOUIChangeBase
         currentTween = target.DOAnchorPos(to.anchoredPosition, duration)
             .SetEase(easeType);
     }
+
+    // 销毁前杀掉在飞的 tween:否则面板被销毁后 DOTween 仍会去 startup 已销毁的 RectTransform,触发安全模式告警。
+    private void OnDestroy()
+    {
+        currentTween?.Kill();
+    }
 }

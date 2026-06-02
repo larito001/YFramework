@@ -84,4 +84,12 @@ public class YOTOUIShow : YOTOUIChangeBase
             canvasGroup.alpha = 0f;
         }
     }
+
+    // 销毁前杀掉在飞的 tween:否则面板被销毁(切场景等)后,DOTween 下一帧仍会去 startup 已销毁的
+    // CanvasGroup/RectTransform,触发安全模式告警 "object has been destroyed but you are still trying to access it"。
+    private void OnDestroy()
+    {
+        currentTween?.Kill();
+        scaleTween?.Kill();
+    }
 }
