@@ -1,5 +1,9 @@
 pluginManagement {
     repositories {
+        // 国内镜像优先:绕开 dl.google.com 超时(AGP / gradle 插件)。命中不了再走下面官方源兜底。
+        maven { url 'https://maven.aliyun.com/repository/gradle-plugin' }
+        maven { url 'https://maven.aliyun.com/repository/google' }
+        maven { url 'https://maven.aliyun.com/repository/public' }
         **ARTIFACTORYREPOSITORY**
         gradlePluginPortal()
         google()
@@ -13,6 +17,10 @@ include ':launcher', ':unityLibrary'
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
     repositories {
+        // 国内镜像优先:绕开 dl.google.com / repo1 超时(androidx、okhttp、glide、taptap aar 等依赖)。
+        maven { url 'https://maven.aliyun.com/repository/google' }
+        maven { url 'https://maven.aliyun.com/repository/public' }
+        maven { url 'https://maven.aliyun.com/repository/central' }
         **ARTIFACTORYREPOSITORY**
         google()
         mavenCentral()

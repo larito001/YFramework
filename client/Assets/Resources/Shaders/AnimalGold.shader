@@ -135,6 +135,10 @@ Shader "Custom/AnimalGold"
             #pragma multi_compile_vertex _ _CASTING_PUNCTUAL_LIGHT_SHADOW
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+            // LerpWhiteTo 定义在 core 的 CommonMaterial.hlsl;URP Core.hlsl 只带 Common.hlsl,不含它。
+            // ShadowCaster 仅 include Core+Shadows 时,Shadows.hlsl 的 SampleShadowmap 用到 LerpWhiteTo 会"未声明"
+            // (移动端 gles3/vulkan 报错;ForwardLit 因 include 了 Lighting.hlsl 间接带入故不报)。显式补上:
+            #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/CommonMaterial.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Shadows.hlsl"
 
             // 与 ForwardLit 保持一致的 UnityPerMaterial 布局(SRP Batcher 要求各 pass 一致)
