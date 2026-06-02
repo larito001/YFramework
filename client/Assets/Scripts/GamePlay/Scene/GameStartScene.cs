@@ -45,6 +45,7 @@ public class GameStartScene : YSceneBase
         UI.Hide<MapSelectPanel>();
         UI.Hide<FinishPanel>();
         UI.Hide<ConfirmPanel>();
+        UI.Hide<LeaderboardPanel>(); // 排行榜也是大厅面板:漏关会一直算"显示中",令 CombatInputGate 屏蔽滑屏环视
     }
 
     /// <summary>给主相机挂上滑屏环视控制(已挂则跳过)。无主相机时仅告警。</summary>

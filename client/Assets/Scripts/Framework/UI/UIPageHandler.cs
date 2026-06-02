@@ -208,10 +208,14 @@ public class UIPageHandler
 
         page.Enter();
         page.BeforeShow(param);
-        page.OnShow();
+        // 先把状态置为 Shown，再回调 OnShow()。
+        // 否则若面板在 OnShow() 里同步关掉自己(如 LeaderboardPanel 调起渠道原生榜单后 CloseSelf)，
+        // 其 Hide 把状态置成 Hidden，却被这里随后的 shouldStayHidden=false / CurrentState=Shown 覆盖回去，
+        // 面板就永久卡在 Shown——进而被 CombatInputGate 当成"有面板开着"而屏蔽战斗输入(滑屏环视失灵)。
         shouldStayHidden = false;
         CancelPendingDestroy();
         CurrentState = PageState.Shown;
+        page.OnShow();
     }
 
     private bool HasInstantiatedPage()
