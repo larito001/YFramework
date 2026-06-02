@@ -140,7 +140,12 @@
       "Bash(curl -sS --max-time 25 \"https://package.openupm.com/com.google.external-dependency-manager\" -o /tmp/edm_openupm.json -w \"openupm-edm HTTP %{http_code}\\\\n\")",
       "Bash(sed -n '43,115p' TapTapLeaderboard.cs)",
       "Bash(sed -n '50,80p' TapLeaderboardModels.cs)",
-      "Bash(curl -sS --max-time 15 -o /dev/null -w '%{http_code}' https://registry.npmjs.org/__TRACKED_VAR__)"
+      "Bash(curl -sS --max-time 15 -o /dev/null -w '%{http_code}' https://registry.npmjs.org/__TRACKED_VAR__)",
+      "Bash(C:/unities/2022.3.62f3/Editor/Data/PlaybackEngines/AndroidPlayer/OpenJDK/bin/keytool.exe -exportcert -keystore C:/Users/20723/.android/debug.keystore -alias androiddebugkey -storepass android -file C:/Users/20723/dbg_cert.der)",
+      "Bash(echo \"=== TapTap 要的 签名 MD5\\(去冒号 32位\\)===\")",
+      "Read(//c/Users/20723/**)",
+      "Bash(awk '{print toupper\\($1\\)}')",
+      "Bash(xargs sed -n '1,60p')"
     ]
   }
 }

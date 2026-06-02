@@ -26,9 +26,15 @@ namespace YOTO
     /// </summary>
     public class TapTapLeaderboardService : ILeaderboardService, IGameService
     {
-        // 排行榜 ID:TapTap 开发者后台 → 应用 → 游戏服务 → 排行榜 创建后分配。先填占位,接入时替换为真实 ID。
-        private const string LeaderboardId = "default";
+        // 排行榜 ID:TapTap 开发者后台 → 应用 → 游戏服务 → 排行榜 创建后分配。
+        private const string LeaderboardId = "a54n16ndiu1jn6h79j";
         private const string CollectionPublic = "public"; // 全球榜(好友榜传 "friends")
+
+        private const string NotConfiguredMsg = "排行榜未配置:LeaderboardId 仍是占位 \"default\",请在 TapTapLeaderboardService 顶部替换为后台真实排行榜 ID。";
+
+        /// <summary>排行榜 ID 是否已配置为真实值(仍是占位 "default" 视为未配置)。
+        /// 用 string.Equals(而非 == 常量比较)避免编译期常量折叠把守卫之后的 SDK 调用判为不可达代码(CS0162)。</summary>
+        private static bool IsConfigured() => !string.Equals(LeaderboardId, "default");
 
         private ILoginService login;
 
@@ -64,6 +70,7 @@ namespace YOTO
             mockSelfScore = Math.Max(mockSelfScore, score); // 记进模拟榜,LoadTop 时体现"我的成绩"
             onComplete?.Invoke(true);
 #elif TAPTAP_LEADERBOARD && (UNITY_ANDROID || UNITY_IOS)
+            if (!IsConfigured()) { Debug.LogError(NotConfiguredMsg); onComplete?.Invoke(false); return; }
             SubmitAsync(score, onComplete);
 #else
             Debug.LogWarning("[Leaderboard] 当前平台无 TapTap 排行榜实现(仅移动端),分数未提交。");
@@ -79,6 +86,7 @@ namespace YOTO
 #if UNITY_EDITOR
             onComplete?.Invoke(BuildMockResult(count));
 #elif TAPTAP_LEADERBOARD && (UNITY_ANDROID || UNITY_IOS)
+            if (!IsConfigured()) { onComplete?.Invoke(LeaderboardResult.Fail(NotConfiguredMsg)); return; }
             LoadTopAsync(count, onComplete);
 #else
             onComplete?.Invoke(LeaderboardResult.Fail("排行榜未接入"));
@@ -90,6 +98,7 @@ namespace YOTO
         public bool TryOpenNative()
         {
 #if TAPTAP_LEADERBOARD && !UNITY_EDITOR && (UNITY_ANDROID || UNITY_IOS)
+            if (!IsConfigured()) return false; // 未配置真实 ID:回退自绘面板(会显示未配置提示)
             TapTapLeaderboard.OpenLeaderboard(LeaderboardId, CollectionPublic);
             return true;
 #else
