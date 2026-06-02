@@ -166,8 +166,7 @@ public class GameMainPanel : UIPageBase
     /// <summary>把本局逐种击杀 + 总分组装成 <see cref="HuntResult"/> 交给结算界面。</summary>
     private void ShowResult()
     {
-        // 提交本局总分到排行榜(best-effort;未登录/未接入则内部跳过)。带回调打日志便于排障。
-        leaderboard?.Submit(score, ok => Debug.Log($"[Leaderboard] 提交 score={score} success={ok}"));
+        leaderboard?.Submit(score); // 提交本局总分到排行榜(best-effort;未登录/未接入则内部跳过)
         var result = new HuntResult { totalScore = score };
         foreach (var kv in kills)
         {
