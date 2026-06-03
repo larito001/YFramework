@@ -20,12 +20,29 @@ public static class WeaponModelUtil
         foreach (var c in go.GetComponentsInChildren<Collider>(true)) c.enabled = false;
     }
 
-    /// <summary>把材质换成 Unlit(保留主纹理/颜色),使其不依赖任何灯光即可清晰显示(UI 预览用)。</summary>
+    /// <summary>Resources 下的 URP/Unlit 模板材质路径(去后缀)。</summary>
+    private const string UnlitTemplatePath = "Materials/UnlitPreview";
+    private static Material unlitTemplate;
+
+    /// <summary>
+    /// 把材质换成 Unlit(保留主纹理/颜色),使其不依赖任何灯光即可清晰显示(UI 离屏预览 / 第一人称手持)。
+    ///
+    /// **真机务必走模板材质**:运行时 <c>new Material(Shader.Find("URP/Unlit"))</c> 没有任何序列化资产引用该 shader 变体,
+    /// 打包时会被 URP 的变体裁剪删掉 → 真机渲染成品红(editor 因为全量变体在所以正常)。
+    /// 改为从 <c>Resources/Materials/UnlitPreview.mat</c>(序列化资产,变体会被打包器收集)<c>Instantiate</c>,
+    /// 只改主纹理/颜色不动 keyword,保持同一变体,真机即可正常显示。模板缺失时退回 Shader.Find(仅作 editor/兜底)。
+    /// </summary>
     public static void MakeUnlit(GameObject go)
     {
-        var shader = Shader.Find("Universal Render Pipeline/Unlit");
-        if (shader == null) shader = Shader.Find("Unlit/Texture");
-        if (shader == null) return;
+        if (unlitTemplate == null) unlitTemplate = Resources.Load<Material>(UnlitTemplatePath);
+
+        Shader fallbackShader = null;
+        if (unlitTemplate == null)
+        {
+            fallbackShader = Shader.Find("Universal Render Pipeline/Unlit");
+            if (fallbackShader == null) fallbackShader = Shader.Find("Unlit/Texture");
+            if (fallbackShader == null) return;
+        }
 
         foreach (var r in go.GetComponentsInChildren<Renderer>(true))
         {
@@ -33,7 +50,7 @@ public static class WeaponModelUtil
             var dsts = new Material[srcs.Length];
             for (int i = 0; i < srcs.Length; i++)
             {
-                var m = new Material(shader);
+                var m = unlitTemplate != null ? new Material(unlitTemplate) : new Material(fallbackShader);
                 var src = srcs[i];
                 if (src != null)
                 {
