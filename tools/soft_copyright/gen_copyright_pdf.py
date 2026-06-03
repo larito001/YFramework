@@ -46,7 +46,7 @@ EXCLUDE_KEYWORDS = [
 ]
 LINES_PER_PAGE = 50      # 每页行数（软著标准 50 行/页）
 PAGES_EACH = 30          # 前 N 页 + 后 N 页
-SOFTWARE_NAME = "YFramework 游戏客户端软件"   # 页脚显示名，可用 --name 覆盖
+SOFTWARE_NAME = "打猎模拟器 源代码v1.0"   # 页眉显示名，可用 --name 覆盖
 DEFAULT_OUT = r"C:\UnityProject\YFramework\软著源程序_前30后30.pdf"
 
 # 字体（Windows 自带）
@@ -90,7 +90,10 @@ def read_lines(path):
         return []
     out = []
     for ln in text.splitlines():
-        out.append(ln.replace("\t", " " * TAB_WIDTH).rstrip())
+        ln = ln.replace("\t", " " * TAB_WIDTH).rstrip()
+        if ln == "":          # 软著要求：去掉空行，不计入页数
+            continue
+        out.append(ln)
     return out
 
 
@@ -213,17 +216,15 @@ def main():
         if col == 0:
             pdf.add_page()
             cur_page = i // args.lines + 1
+            # 页眉
+            pdf.set_xy(MARGIN_X, 5)
+            pdf.set_font_size(8.5)
+            pdf.cell(usable_w, 5, args.name, align="C")
+            pdf.set_font_size(FONT_SIZE)
         y = MARGIN_TOP + col * row_h
         pdf.set_xy(MARGIN_X, y)
         # 用 cell 输出单行（不自动换行，已预先 wrap）
         pdf.cell(usable_w, row_h, row, new_x="LMARGIN", new_y="TOP")
-        # 页脚
-        if col == args.lines - 1 or i == len(selected) - 1:
-            pdf.set_xy(MARGIN_X, PAGE_H - MARGIN_BOT + 2)
-            pdf.set_font_size(7.5)
-            footer = f"{args.name}    第 {cur_page} / {out_total_pages} 页"
-            pdf.cell(usable_w, 5, footer, align="C")
-            pdf.set_font_size(FONT_SIZE)
 
     os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
     pdf.output(args.out)

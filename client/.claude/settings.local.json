@@ -173,7 +173,9 @@
       "Bash(ls client/Docs/*.meta)",
       "PowerShell($adb = \\(Get-Command adb -ErrorAction SilentlyContinue\\).Source; if \\($adb\\) { \"PATH 里有 adb: $adb\"; & adb version | Select-Object -First 1 } else { \"PATH 里没有 adb\" })",
       "PowerShell(Get-ChildItem *)",
-      "PowerShell($adb = \"C:\\\\unities\\\\2022.3.62f3\\\\Editor\\\\Data\\\\PlaybackEngines\\\\AndroidPlayer\\\\SDK\\\\platform-tools\\\\adb.exe\"; & $adb devices)"
+      "PowerShell($adb = \"C:\\\\unities\\\\2022.3.62f3\\\\Editor\\\\Data\\\\PlaybackEngines\\\\AndroidPlayer\\\\SDK\\\\platform-tools\\\\adb.exe\"; & $adb devices)",
+      "Bash(pdfinfo \"软著源程序_前30后30.pdf\")",
+      "Bash(python /c/UnityProject/YFramework/tools/soft_copyright/gen_copyright_pdf.py)"
     ]
   }
 }

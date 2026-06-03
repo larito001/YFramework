@@ -39,10 +39,14 @@ public class SettingPanel : UIPageBase
     public override void OnShow()
     {
         if (soundTab != null) soundTab.SetActive(true);
+        // 设置页底部横幅广告(原生浮层)。未接入广告 / 非 Android 时 IAdService 取不到或为空操作,自动跳过。
+        if (Context.TryGet<IAdService>(out var ad)) ad.ShowBottomBanner("settings");
     }
 
     public override void OnHide()
     {
+        // 关闭设置页即收掉横幅,释放原生资源(避免横幅残留在其它界面)。
+        if (Context.TryGet<IAdService>(out var ad)) ad.HideBanner();
     }
 
     public override void OnResize()

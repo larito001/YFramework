@@ -16,5 +16,16 @@ namespace YOTO
         /// <param name="placement">广告位标识(用于区分场景与统计),如 "energy_refill"。</param>
         /// <param name="onClosed">广告关闭回调,参数为「是否应发奖」。</param>
         void ShowRewardedAd(string placement, Action<bool> onClosed);
+
+        /// <summary>
+        /// 在屏幕底部展示横幅广告(原生浮层,覆盖在游戏 UI 之上,常驻直到 <see cref="HideBanner"/>)。
+        /// 立即返回不阻塞;加载/填充失败则静默不显示。重复调用会先收掉旧横幅再加载新的。
+        /// 未接入 SDK / 非 Android 时为空操作。
+        /// </summary>
+        /// <param name="placement">广告位标识(用于区分场景与统计),如 "settings"。</param>
+        void ShowBottomBanner(string placement);
+
+        /// <summary>隐藏并销毁当前横幅广告(界面关闭时调用,释放原生资源)。无横幅时为空操作。</summary>
+        void HideBanner();
     }
 }

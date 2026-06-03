@@ -46,6 +46,10 @@ public class ShopPanel : UIPageBase
     private int selectedId;                   // 当前展示/选中的物品 id(随分类切换)
     private readonly List<(int id, GameObject card)> previewCards = new(); // 当前分类带模型的卡(就地切换描边,避免点击时重建销毁自身)
 
+    private const string AdPlacementShopGold = "shop_gold"; // 商店看广告领金币的广告位标识(统计用)
+    private const long AdGoldReward = 1000;                 // 看完一次发放的金币
+    private bool adBusy;                                    // 广告进行中:防重复点击
+
     public override void OnLoad()
     {
         shop = GetService<ShopSystem>();
@@ -61,6 +65,7 @@ public class ShopPanel : UIPageBase
         if (tabBullet != null) tabBullet.onClick.AddListener(() => SelectCategory(ShopCategory.Bullet));
 
         modelPreview = new WeaponModelPreview(CreatePreviewHost(), resMgr);
+        CreateAdRewardButton(); // 武器展示区左下角:看广告 +1000 金币
     }
 
     /// <summary>模型展示框:占原「商人头像」位并扩大到约屏幕上方 2/5;同时把下方网格下压让出空间。</summary>
@@ -238,6 +243,54 @@ public class ShopPanel : UIPageBase
         if (btn == null) return;
         var img = btn.targetGraphic as Image;
         if (img != null) img.color = on ? TabOn : TabOff;
+    }
+
+    // ---------------- 看广告领金币(武器展示区左下角)----------------
+
+    /// <summary>在武器展示区左下角放一个「看广告 +1000」按钮。挂在面板根(最后兄弟→渲染在模型预览之上,可点),
+    /// 锚到展示区左下角(与 CreatePreviewHost 的展示区左缘 6%、下沿 50% 对齐)。只建一次(OnLoad)。</summary>
+    private void CreateAdRewardButton()
+    {
+        var go = new GameObject("AdGoldBtn", typeof(RectTransform), typeof(Image), typeof(Button));
+        var rt = (RectTransform)go.transform;
+        rt.SetParent(transform, false);
+        rt.anchorMin = rt.anchorMax = new Vector2(0.06f, 0.50f); // 展示区左下角
+        rt.pivot = new Vector2(0f, 0f);
+        rt.sizeDelta = new Vector2(300f, 96f);
+        rt.anchoredPosition = new Vector2(12f, 14f);            // 略内缩,不贴边
+
+        var img = go.GetComponent<Image>();
+        img.color = new Color(0.85f, 0.66f, 0.20f, 1f);        // 金色
+        var btn = go.GetComponent<Button>();
+        btn.targetGraphic = img;
+        btn.onClick.AddListener(OnAdGoldClick);
+
+        var labelGo = NewChild(rt, "Label", out var lrt);
+        lrt.anchorMin = Vector2.zero; lrt.anchorMax = Vector2.one;
+        lrt.offsetMin = Vector2.zero; lrt.offsetMax = Vector2.zero;
+        NewText(labelGo, $"看广告 +{AdGoldReward}", 26, TextAlignmentOptions.Center, Color.white);
+    }
+
+    /// <summary>点「看广告 +1000」:请求激励广告,看完(rewarded=true)发金币 + 计入看广告任务 + 弹奖励;
+    /// 未接入广告 / 中途关闭不发奖。adBusy 防广告进行中重复点击。</summary>
+    private void OnAdGoldClick()
+    {
+        if (adBusy) return;
+        if (!Context.TryGet<IAdService>(out var ad))
+        {
+            FlyText("广告未接入");
+            return;
+        }
+        adBusy = true;
+        ad.ShowRewardedAd(AdPlacementShopGold, rewarded =>
+        {
+            adBusy = false;
+            if (!rewarded || currency == null) return; // 未看完 / 无填充:不发奖
+            currency.Add(CurrencyType.Gold, AdGoldReward);
+            currency.Save(); // 关键节点主动写盘
+            Context.TryGet<TaskProgressSystem>(out var tp); tp?.AddAdWatch(1); // 计入"观看广告"类任务
+            ShowReward("观看奖励", RewardEntry.Currency(CurrencyType.Gold, AdGoldReward));
+        });
     }
 
     // ---------------- 卡片网格 ----------------
