@@ -91,7 +91,9 @@ public class EquipPanel : UIPageBase
     {
         eventMgr?.Remove(YOTOEventType.RefreshLoadout, MarkLoadoutDirty);
         eventMgr?.Remove(YOTOEventType.RefreshCurrency, RefreshCoin);
-        weaponPreview?.SetActive(false);
+        // 彻底回收离屏相机 + RenderTexture(面板默认关闭 10s 后销毁,只 SetActive 会让 rig/rt 成为孤儿泄漏)。
+        // Dispose 后重新打开时 Show()→EnsureRig() 会自动重建,功能不受影响。
+        weaponPreview?.Dispose();
         // 快照不在此释放:已移到全局共享缓存 ModelSnapshotCache(进程级常驻),装备页/商城页跨面板复用,渲过即留。
     }
 

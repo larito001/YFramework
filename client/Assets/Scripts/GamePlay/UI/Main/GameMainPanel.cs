@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using DG.Tweening;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -33,6 +34,10 @@ public class GameMainPanel : UIPageBase
     public TextMeshProUGUI ammoText;
     public Button endBtn;               // 结束打猎(左下):弹确认框 → 结算
 
+    [Header("命中特效")]
+    [Tooltip("击中头/心脏时屏幕中上方飘的特效图;暂留空=白色占位块,后续把真实特效美术赋上即可替换,无需改代码")]
+    public Sprite hitEffectSprite;
+
     private LoadoutSystem loadout;
     private ConfigManager config;
     private EventMgr eventMgr;
@@ -45,6 +50,7 @@ public class GameMainPanel : UIPageBase
     private int score;
     private int ammo;
     private bool aiming;
+    private bool ending; // 结束捕猎流程已触发:防重复进入(子弹打完自动结束 与 手动点「结束打猎」二选一)
     private readonly Dictionary<int, int> kills = new(); // animalId → 本局击杀数,结束时组装结算明细
 
     private const float TapMoveThreshold = 20f; // 像素:按下到抬起位移小于此值算「点击」,否则算拖拽
@@ -71,6 +77,7 @@ public class GameMainPanel : UIPageBase
 
         score = 0;
         kills.Clear();
+        ending = false; // 新一局:复位结束流程标记
         ammo = InitialAmmo();
         SetAiming(false); // 复位:收起准星/黑边遮罩,相机回到正常视野
         if (mapNameText != null) mapNameText.text = !string.IsNullOrEmpty(maps?.SelectedName) ? maps.SelectedName : "未知关卡";
@@ -127,7 +134,7 @@ public class GameMainPanel : UIPageBase
         if (!aiming) return;
         eventMgr?.Trigger(YOTOEventType.Shoot); // 开枪反馈(实弹/空枪干打都触发:镜头抖动 + 后座)
 
-        if (ammo <= 0) { RefreshAmmo(); return; } // 空枪:只震屏,不开火、不关镜
+        if (ammo <= 0) { RefreshAmmo(); return; } // 保底:打光即自动结束,正常不会走到这里(空枪只震屏,不开火、不关镜)
 
         ammo--;
 
@@ -138,6 +145,8 @@ public class GameMainPanel : UIPageBase
         if (hit != null && !hit.IsDead)
         {
             bool died = hit.Hit(shot.zone);
+            if (shot.zone == HitZone.Head || shot.zone == HitZone.Heart)
+                ShowHitEffect(); // 命中头/心脏:屏幕中上方飘击中特效
             if (died)
             {
                 score += hit.score;
@@ -156,6 +165,39 @@ public class GameMainPanel : UIPageBase
 
         SetAiming(false); // 实弹射击后关闭瞄准镜
         RefreshAmmo();
+
+        // 子弹打完:直接进入结束捕猎流程(无需再点「结束打猎」/确认),淡出 HUD → 尸检镜头 → 结算。
+        if (ammo <= 0) BeginEndSequence();
+    }
+
+    /// <summary>命中头/心脏:在屏幕中上方飘一下「击中」特效(放大 + 上浮 + 淡出,结束自销毁)。
+    /// 挂在最上层 PopText(不随结束打猎时 HUD 淡出而消失)。暂用空白图占位——把 <see cref="hitEffectSprite"/>
+    /// 赋上真实特效美术即可替换,无需改代码。</summary>
+    private void ShowHitEffect()
+    {
+        var parent = UIManager?.GetLayerRoot(UILayerEnum.PopText) ?? transform;
+        var go = new GameObject("HitEffect", typeof(RectTransform), typeof(CanvasGroup), typeof(Image));
+        var rt = (RectTransform)go.transform;
+        rt.SetParent(parent, false);
+        rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0.5f, 0.72f); // 屏幕中间偏上
+        rt.anchoredPosition = Vector2.zero;
+        rt.sizeDelta = new Vector2(240f, 240f);
+
+        var img = go.GetComponent<Image>();
+        img.sprite = hitEffectSprite;                                                 // 空=白色占位块
+        img.color = hitEffectSprite != null ? Color.white : new Color(1f, 1f, 1f, 0.85f);
+        img.preserveAspect = true;
+        img.raycastTarget = false;
+
+        var cg = go.GetComponent<CanvasGroup>();
+        cg.alpha = 1f;
+        rt.localScale = Vector3.one * 0.6f;
+
+        var seq = DOTween.Sequence();
+        seq.Append(rt.DOScale(1f, 0.18f).SetEase(Ease.OutBack));                       // 弹一下放大到位
+        seq.Join(rt.DOAnchorPosY(rt.anchoredPosition.y + 60f, 0.55f).SetEase(Ease.OutCubic)); // 同时上浮
+        seq.Insert(0.28f, cg.DOFade(0f, 0.3f).SetEase(Ease.InQuad));                   // 后段淡出
+        seq.OnComplete(() => { if (go != null) Destroy(go); });
     }
 
     /// <summary>结束打猎:先弹确认框,确认后退出瞄准并打开结算界面。</summary>
@@ -167,6 +209,8 @@ public class GameMainPanel : UIPageBase
             title = "结束打猎",
             message = "确定结束本次打猎并查看结算？",
             onConfirm = BeginEndSequence,
+            showBottomBanner = true,        // 结束打猎确认框底部展示横幅广告(原生浮层)
+            bannerPlacement = "end_hunt",
         });
     }
 
@@ -176,6 +220,8 @@ public class GameMainPanel : UIPageBase
     /// </summary>
     private void BeginEndSequence()
     {
+        if (ending) return; // 已在结束流程中:避免「打完最后一发自动结束」与「手动点结束确认」重复触发
+        ending = true;
         SetAiming(false);
 
         var cam = Camera.main;

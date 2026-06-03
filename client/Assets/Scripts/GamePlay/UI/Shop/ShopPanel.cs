@@ -126,7 +126,9 @@ public class ShopPanel : UIPageBase
     {
         eventMgr?.Remove(YOTOEventType.RefreshCurrency, OnCurrencyChanged);
         eventMgr?.Remove(YOTOEventType.RefreshLoadout, OnLoadoutChanged);
-        modelPreview?.SetActive(false);
+        // 彻底回收离屏相机 + RenderTexture(面板默认关闭 10s 后销毁,只 SetActive 会让 rig/rt 成为孤儿泄漏)。
+        // Dispose 后重新打开时 Show()→EnsureRig() 会自动重建,功能不受影响。
+        modelPreview?.Dispose();
     }
 
     public override void OnResize() { }
