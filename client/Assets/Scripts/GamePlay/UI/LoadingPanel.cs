@@ -10,9 +10,8 @@ using UnityEngine;
 /// </summary>
 public class LoadingPanel : UIPageBase
 {
-    [Header("转圈(每帧绕 Z 旋转)")]
-    public RectTransform spinner;
-    public float spinnerSpeed = 220f; // 度/秒(顺时针)
+    [Header("狼跑动动画(替换原大标题)")]
+    public LoadingAnimalView animalView;
 
     [Header("文本")]
     public TextMeshProUGUI loadingText; // "加载中" + 循环省略号
@@ -35,17 +34,18 @@ public class LoadingPanel : UIPageBase
         if (loadingText != null) loadingText.text = LoadingBase;
         if (tipText != null && tips != null && tips.Count > 0)
             tipText.text = tips[Random.Range(0, tips.Count)];
+        if (animalView != null) animalView.Play(); // 开始狼跑动
     }
 
-    public override void OnHide() { }
+    public override void OnHide()
+    {
+        if (animalView != null) animalView.Stop();
+    }
     public override void OnResize() { }
 
     private void Update()
     {
         float dt = Time.unscaledDeltaTime;
-
-        // 转圈:匀速顺时针旋转
-        if (spinner != null) spinner.Rotate(0f, 0f, -spinnerSpeed * dt);
 
         // "加载中" 后省略号 0→3 循环,给"仍在加载"的动态反馈
         if (loadingText != null)

@@ -28,16 +28,18 @@ public class StartPanel : UIPageBase
     public Button btn_codex;
     public Button btn_leaderboard;
 
-    private const int EnergyAdReward = 5;                  // 看完一次激励广告补的体力点数(接入后可调)
+    private const int EnergyAdReward = 1;                  // 看完一次激励广告补 1 点体力
     private const string AdPlacementEnergy = "energy_refill"; // 体力广告位标识
 
     private CurrencySystem currency;
     private EventMgr eventMgr;
+    private DailyAdEnergySystem dailyAd; // 每日广告补体力次数(走 StoreMgr → 本地+云)
 
     public override void OnLoad()
     {
         currency = GetService<CurrencySystem>();
         eventMgr = GetService<EventMgr>();
+        dailyAd = GetService<DailyAdEnergySystem>();
         if (btn_setting != null) btn_setting.onClick.AddListener(OnSettingClick);
         if (btn_energyAd != null) btn_energyAd.onClick.AddListener(OnEnergyAdClick);
         if (btn_shop != null) btn_shop.onClick.AddListener(OnShopClick);
@@ -51,6 +53,7 @@ public class StartPanel : UIPageBase
     {
         eventMgr?.Add(YOTOEventType.RefreshCurrency, RefreshHeader); // 货币变化即刷新顶部资源
         RefreshHeader();
+        RefreshEnergyAdButton();
     }
 
     public override void OnHide()
@@ -113,13 +116,22 @@ public class StartPanel : UIPageBase
     /// </summary>
     private void OnEnergyAdClick()
     {
+        // 每天最多补 DailyAdEnergySystem.DailyLimit 次(次数随存档槽落盘 → 本地+云)
+        if (dailyAd != null && !dailyAd.CanWatch)
+        {
+            GetService<FlyTextMgr>()?.AddTextAtScreenCenter($"今日体力补充已达上限({dailyAd.DailyLimit}次)");
+            RefreshEnergyAdButton();
+            return;
+        }
+
         if (Context.TryGet<IAdService>(out var ad))
         {
             ad.ShowRewardedAd(AdPlacementEnergy, rewarded =>
             {
                 if (!rewarded || currency == null) return;
-                currency.Add(CurrencyType.Energy, EnergyAdReward);
+                currency.Add(CurrencyType.Energy, EnergyAdReward); // 补 1 点体力
                 currency.Save(); // 关键节点主动写盘,保证补的体力落地
+                dailyAd?.Record(); // 记一次今日已用(只有真看完才计),内部立即落盘
                 Context.TryGet<TaskProgressSystem>(out var tp); tp?.AddAdWatch(1); // 计入"观看广告"类任务
                 // 通用奖励领取弹窗(Top 层,1 秒自动消失):体力已入账,这里仅展示
                 Show<RewardClaimPanel, RewardClaimParam>(new RewardClaimParam
@@ -127,11 +139,19 @@ public class StartPanel : UIPageBase
                     title = "体力补充",
                     rewards = { RewardEntry.Currency(CurrencyType.Energy, EnergyAdReward) },
                 });
+                RefreshHeader();
+                RefreshEnergyAdButton();
             });
         }
         else
         {
             Debug.Log("[StartPanel] 广告接口(IAdService)未接入,体力广告按钮暂不发奖。接入广告 SDK 后注册 IAdService 即可生效。");
         }
+    }
+
+    /// <summary>达上限时把广告补体力按钮置灰不可点。</summary>
+    private void RefreshEnergyAdButton()
+    {
+        if (btn_energyAd != null) btn_energyAd.interactable = dailyAd == null || dailyAd.CanWatch;
     }
 }

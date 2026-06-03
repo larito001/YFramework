@@ -17,7 +17,8 @@ public class ShopPanel : UIPageBase
 {
     [Header("顶部")]
     public Button backBtn;
-    public TextMeshProUGUI coinText;
+    public TextMeshProUGUI coinText;   // 金币数值(图标在预制体胶囊里)
+    public TextMeshProUGUI energyText; // 体力数值(图标在预制体胶囊里)
     public Image merchantAvatar;
 
     [Header("网格")]
@@ -131,8 +132,9 @@ public class ShopPanel : UIPageBase
 
     private void RefreshCoin()
     {
-        if (coinText == null || currency == null) return;
-        coinText.text = $"{currency.DisplayName(CurrencyType.Gold)} {currency.Get(CurrencyType.Gold)}\n{currency.DisplayName(CurrencyType.Energy)} {currency.Get(CurrencyType.Energy)}";
+        if (currency == null) return;
+        if (coinText != null) coinText.text = currency.Get(CurrencyType.Gold).ToString();     // 只填数值,图标在胶囊里
+        if (energyText != null) energyText.text = currency.Get(CurrencyType.Energy).ToString();
     }
 
     // ---------------- 分类页签 ----------------

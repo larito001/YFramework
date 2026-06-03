@@ -22,6 +22,9 @@ public class WeaponModelPreview
     private readonly ResMgr res;
     private readonly RawImage image;
     private readonly Vector3 origin;
+    private readonly bool spin;      // 是否自转(转台);false=固定不转
+    private readonly bool sideView;  // 是否用正侧视图(否则默认 3/4 取景)
+    private readonly int rtSize;     // RenderTexture 边长
 
     private RenderTexture rt;
     private Camera cam;
@@ -30,9 +33,15 @@ public class WeaponModelPreview
     private GameObject model;
     private string shownPath;
 
-    public WeaponModelPreview(RectTransform host, ResMgr res)
+    /// <param name="spin">是否缓慢自转(转台);装备卡用 false=不转。</param>
+    /// <param name="sideView">true=正侧视图(看模型侧面);false=默认 3/4 取景。</param>
+    /// <param name="rtSize">离屏贴图分辨率;卡片小图可调小省开销。</param>
+    public WeaponModelPreview(RectTransform host, ResMgr res, bool spin = true, bool sideView = false, int rtSize = 640)
     {
         this.res = res;
+        this.spin = spin;
+        this.sideView = sideView;
+        this.rtSize = Mathf.Max(64, rtSize);
         origin = new Vector3(s_count++ * 1000f, 5000f, 0f); // 间距 1000 远大于相机远裁剪 50,彼此看不到
 
         image = host.GetComponent<RawImage>();
@@ -64,9 +73,26 @@ public class WeaponModelPreview
         WeaponModelUtil.SetLayer(model, PreviewLayer);
         WeaponModelUtil.DisableColliders(model);
         WeaponModelUtil.MakeUnlit(model);
-        WeaponModelUtil.Frame(cam, pivot, model);
+        WeaponModelUtil.Frame(cam, pivot, model); // 先居中 + 默认 3/4 取景
+        if (sideView) SideFrame();                // 需要则改为正侧视图
         shownPath = modelPath;
         image.enabled = true;
+    }
+
+    /// <summary>把相机摆到模型正侧面(垂直于较长水平轴看其侧面),略微抬高。</summary>
+    private void SideFrame()
+    {
+        var rs = model.GetComponentsInChildren<Renderer>();
+        if (rs.Length == 0) return;
+        var b = rs[0].bounds;
+        for (int i = 1; i < rs.Length; i++) b.Encapsulate(rs[i].bounds);
+
+        float radius = Mathf.Max(b.extents.magnitude, 0.05f);
+        float dist = radius / Mathf.Sin(Mathf.Deg2Rad * cam.fieldOfView * 0.5f) * 1.15f;
+        Vector3 dir = (b.size.z >= b.size.x) ? new Vector3(1f, 0.12f, 0f) : new Vector3(0f, 0.12f, 1f);
+        dir = dir.normalized;
+        cam.transform.position = b.center + dir * dist;
+        cam.transform.LookAt(b.center);
     }
 
     /// <summary>显隐:整体启用/停用预览 rig(而非只关相机)。
@@ -104,7 +130,7 @@ public class WeaponModelPreview
     {
         if (rt == null)
         {
-            rt = new RenderTexture(640, 640, 16, RenderTextureFormat.ARGB32) { name = "WeaponPreviewRT" };
+            rt = new RenderTexture(rtSize, rtSize, 16, RenderTextureFormat.ARGB32) { name = "WeaponPreviewRT" };
             rt.Create();
         }
         if (image != null) image.texture = rt;
@@ -121,13 +147,14 @@ public class WeaponModelPreview
         var pv = new GameObject("Pivot");
         pv.transform.SetParent(rig.transform, false);
         pivot = pv.transform;
-        pv.AddComponent<AutoRotate>();
+        if (spin) pv.AddComponent<AutoRotate>(); // 不转的卡片不挂自转
 
         var camGo = new GameObject("PreviewCam");
         camGo.transform.SetParent(rig.transform, false);
         cam = camGo.AddComponent<Camera>();
         cam.clearFlags = CameraClearFlags.SolidColor;
-        cam.backgroundColor = new Color(0.10f, 0.11f, 0.13f, 0.85f); // 深色底板(想要透明改 alpha=0)
+        // 侧视卡片用透明底(衬出卡片色);默认大预览用深色底板
+        cam.backgroundColor = sideView ? new Color(0f, 0f, 0f, 0f) : new Color(0.10f, 0.11f, 0.13f, 0.85f);
         cam.cullingMask = 1 << PreviewLayer;                          // 只拍武器
         cam.fieldOfView = 30f;
         cam.nearClipPlane = 0.01f;

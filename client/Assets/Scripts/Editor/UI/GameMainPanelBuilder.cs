@@ -47,11 +47,7 @@ public static class GameMainPanelBuilder
         scoreRt.anchoredPosition = new Vector2(40, -150); scoreRt.sizeDelta = new Vector2(800, 60);
         var scoreText = NewText(scoreGo, "当前对局获得积分：0", 36, TextAlignmentOptions.Left);
 
-        // ---------- 右上:资源金币 ----------
-        var coinGo = NewUI("Coin", out var coinRt, root.transform);
-        coinRt.anchorMin = new Vector2(1, 1); coinRt.anchorMax = new Vector2(1, 1); coinRt.pivot = new Vector2(1, 1);
-        coinRt.anchoredPosition = new Vector2(-40, -40); coinRt.sizeDelta = new Vector2(380, 150);
-        var coinText = NewText(coinGo, "金币 0\n钻石 0", 40, TextAlignmentOptions.TopRight);
+        // 对局 HUD 不显示金币/体力(资源只在大厅各面板展示)
 
         // ---------- 中部:瞄准镜准星(默认隐藏)----------
         var scope = BuildScope(root.transform);
@@ -86,7 +82,6 @@ public static class GameMainPanelBuilder
         panel.uiType = UIEnum.GameMainPanel;
         panel.mapNameText = mapText;
         panel.scoreText = scoreText;
-        panel.coinText = coinText;
         panel.scope = scope;
         panel.scopeMask = scopeMask;
         panel.actionBtn = actionBtn;

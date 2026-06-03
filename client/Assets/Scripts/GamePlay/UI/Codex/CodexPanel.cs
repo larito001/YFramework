@@ -46,9 +46,11 @@ public class CodexPanel : UIPageBase
     private CurrencySystem currency;
     private CodexSystem codex;
     private EventMgr eventMgr;
+    private ResMgr resMgr;       // 已解锁卡片用它加载动物模型做 3D 旋转展示
     private TMP_FontAsset font;
 
     private readonly List<Animal> entries = new List<Animal>(); // 全部动物(按 Id 升序),分页基于它
+    private readonly List<WeaponModelPreview> previews = new List<WeaponModelPreview>(); // 每张已解锁卡一个 3D 转台
     private int page;
 
     public override void OnLoad()
@@ -57,6 +59,7 @@ public class CodexPanel : UIPageBase
         currency = GetService<CurrencySystem>();
         codex = GetService<CodexSystem>();
         eventMgr = GetService<EventMgr>();
+        resMgr = GetService<ResMgr>();
         if (coinText != null) font = coinText.font; // 复用外壳中文字体给运行时卡片
 
         if (backBtn != null) backBtn.onClick.AddListener(CloseSelf);
@@ -82,6 +85,13 @@ public class CodexPanel : UIPageBase
     {
         eventMgr?.Remove(YOTOEventType.RefreshCurrency, RefreshCoin);
         eventMgr?.Remove(YOTOEventType.RefreshCodex, OnCodexChanged);
+        DisposePreviews(); // 收起时回收所有 3D 转台(相机/RenderTexture)
+    }
+
+    private void DisposePreviews()
+    {
+        foreach (var p in previews) p?.Dispose();
+        previews.Clear();
     }
 
     public override void OnResize() { }
@@ -142,6 +152,7 @@ public class CodexPanel : UIPageBase
     private void RebuildGrid()
     {
         if (grid == null) return;
+        DisposePreviews(); // 重建前先回收上一页的转台
         for (int i = grid.childCount - 1; i >= 0; i--) Destroy(grid.GetChild(i).gameObject);
 
         int start = page * PageSize;
@@ -160,11 +171,21 @@ public class CodexPanel : UIPageBase
         bg.color = CardFrame;
         bg.raycastTarget = false;
 
-        // 上部:已解锁显示动物名,未解锁显示「？」(项目无 2D 动物图标,用文字表现)
+        // 上部:已解锁=动物 3D 模型(转台旋转);未解锁=只显示「？」
         var picGo = NewChild(card.transform, "Pic", out var picRt);
         picRt.anchorMin = Vector2.zero; picRt.anchorMax = Vector2.one;
         picRt.offsetMin = new Vector2(16, 120); picRt.offsetMax = new Vector2(-16, -16);
-        NewText(picGo, unlocked ? entry.Name : "？", 56, unlocked ? UnlockedTint : LockedTint);
+        if (unlocked && resMgr != null && !string.IsNullOrEmpty(entry.Prefab))
+        {
+            var preview = new WeaponModelPreview(picRt, resMgr); // 离屏渲染 + 自转,弱点高亮盒已在内部隐藏
+            preview.Show(entry.Prefab);
+            preview.SetActive(true);
+            previews.Add(preview);
+        }
+        else
+        {
+            NewText(picGo, "？", 56, LockedTint); // 未解锁(或缺模型):只显示问号
+        }
 
         // 底部徽标:已解锁=绿底「积分 X」;未解锁=灰底「未解锁」
         var badge = NewChild(card.transform, "Badge", out var badgeRt);

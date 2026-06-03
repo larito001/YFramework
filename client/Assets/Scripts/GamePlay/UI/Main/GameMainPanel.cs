@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -21,7 +22,6 @@ public class GameMainPanel : UIPageBase
     [Header("顶部")]
     public TextMeshProUGUI mapNameText;
     public TextMeshProUGUI scoreText;
-    public TextMeshProUGUI coinText;
 
     [Header("中部")]
     public GameObject scope;     // 瞄准镜准星(瞄准时显示)
@@ -33,7 +33,6 @@ public class GameMainPanel : UIPageBase
     public TextMeshProUGUI ammoText;
     public Button endBtn;               // 结束打猎(左下):弹确认框 → 结算
 
-    private CurrencySystem currency;
     private LoadoutSystem loadout;
     private ConfigManager config;
     private EventMgr eventMgr;
@@ -54,7 +53,6 @@ public class GameMainPanel : UIPageBase
 
     public override void OnLoad()
     {
-        currency = GetService<CurrencySystem>();
         loadout = GetService<LoadoutSystem>();
         config = GetService<ConfigManager>();
         eventMgr = GetService<EventMgr>();
@@ -68,7 +66,8 @@ public class GameMainPanel : UIPageBase
 
     public override void OnShow()
     {
-        eventMgr?.Add(YOTOEventType.RefreshCurrency, RefreshCoin);
+        // 恢复 HUD 显示(上一局结束打猎的尸检镜头里把它淡出过)
+        if (canvasGroup != null) { canvasGroup.alpha = 1f; canvasGroup.interactable = true; canvasGroup.blocksRaycasts = true; }
 
         score = 0;
         kills.Clear();
@@ -76,14 +75,12 @@ public class GameMainPanel : UIPageBase
         SetAiming(false); // 复位:收起准星/黑边遮罩,相机回到正常视野
         if (mapNameText != null) mapNameText.text = !string.IsNullOrEmpty(maps?.SelectedName) ? maps.SelectedName : "未知关卡";
 
-        RefreshCoin();
         RefreshScore();
         RefreshAmmo();
     }
 
     public override void OnHide()
     {
-        eventMgr?.Remove(YOTOEventType.RefreshCurrency, RefreshCoin);
     }
 
     public override void OnResize() { }
@@ -169,14 +166,86 @@ public class GameMainPanel : UIPageBase
         {
             title = "结束打猎",
             message = "确定结束本次打猎并查看结算？",
-            onConfirm = ShowResult,
+            onConfirm = BeginEndSequence,
         });
+    }
+
+    /// <summary>
+    /// 结束打猎确认后的检视序列:清掉场上活物 → 在地面摆出本局所有尸体 → 相机抬起俯视成果 → 弹结算界面。
+    /// 期间关掉环视、隐藏手持枪、淡出 HUD;相机由 <see cref="InspectThenResult"/> 协程接管。
+    /// </summary>
+    private void BeginEndSequence()
+    {
+        SetAiming(false);
+
+        var cam = Camera.main;
+        var look = cam != null ? cam.GetComponent<CameraSwipeLook>() : null;
+        if (look != null) look.enabled = false; // 尸检镜头自己控制相机,先关环视
+        var vm = cam != null ? cam.GetComponent<FpsWeaponViewModel>() : null;
+        if (vm != null) vm.SetForceHidden(true); // 隐藏手持枪
+
+        // 淡出 HUD,留干净的检视画面(协程跑在 ICoroutineRunner 上,不受面板显隐影响)
+        if (canvasGroup != null) { canvasGroup.alpha = 0f; canvasGroup.interactable = false; canvasGroup.blocksRaycasts = false; }
+
+        var animals = GetService<AnimalSystem>();
+        var bounds = animals != null ? animals.SpawnCorpses(kills) : new Bounds(Vector3.zero, Vector3.one);
+
+        var runner = GetService<ICoroutineRunner>();
+        if (runner != null && cam != null) runner.Run(InspectThenResult(cam, bounds));
+        else ShowResult(); // 拿不到相机/runner 就直接结算,保证流程不卡
+    }
+
+    /// <summary>相机先抬高到尸体上方俯视,再缓慢推近(镜头逐渐拉近)检视成果,最后打开结算界面。</summary>
+    private IEnumerator InspectThenResult(Camera cam, Bounds bounds)
+    {
+        Vector3 fromP = cam.transform.position;
+        Quaternion fromR = cam.transform.rotation;
+
+        Vector3 center = bounds.center;
+        Vector3 e = bounds.extents;
+
+        // 按尸体堆的实际横/纵尺寸分别算取景距离(竖屏 + 窄列布局 → 横向很窄,可以离得更近)。
+        // 屏幕横向 ≈ 世界 X 宽度;屏幕纵向 ≈ 俯视下的纵深 Z(再带一点高度 Y)。取两者所需距离的大者并留 12% 边距。
+        float vHalf = cam.fieldOfView * 0.5f * Mathf.Deg2Rad;
+        float hHalf = Mathf.Atan(Mathf.Tan(vHalf) * Mathf.Max(0.1f, cam.aspect));
+        float horiz = Mathf.Max(e.x, 0.6f);
+        float vert  = Mathf.Max(e.z * 0.85f + e.y, 0.6f);
+        float distH = horiz / Mathf.Tan(hHalf);
+        float distV = vert / Mathf.Tan(vHalf);
+        float fitDist = Mathf.Max(Mathf.Max(distH, distV) * 1.12f, 6f); // 留点边 + 一个最近下限
+
+        Vector3 dir = new Vector3(0f, 1f, -0.85f).normalized; // 俯视方向(上 + 后),竖屏稍微放平一点看清整列
+        Vector3 farP  = center + dir * (fitDist * 1.6f);      // 远景:更远
+        Vector3 nearP = center + dir * fitDist;               // 近景:恰好框住全部尸体,不再更近
+        Quaternion farR = Quaternion.LookRotation((center - farP).normalized, Vector3.up);
+
+        // 第一段:从当前机位抬起到俯视远景
+        const float riseDur = 1.2f;
+        for (float t = 0f; t < riseDur; t += Time.deltaTime)
+        {
+            float u = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(t / riseDur));
+            cam.transform.SetPositionAndRotation(Vector3.Lerp(fromP, farP, u), Quaternion.Slerp(fromR, farR, u));
+            yield return null;
+        }
+
+        // 第二段:缓慢推近到「恰好框住全部」的距离,始终对着尸体中心,画面逐渐拉近又不裁掉动物
+        const float pushDur = 3f;
+        for (float t = 0f; t < pushDur; t += Time.deltaTime)
+        {
+            float u = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(t / pushDur));
+            Vector3 p = Vector3.Lerp(farP, nearP, u);
+            Quaternion r = Quaternion.LookRotation((center - p).normalized, Vector3.up);
+            cam.transform.SetPositionAndRotation(p, r);
+            yield return null;
+        }
+        ShowResult();
     }
 
     /// <summary>把本局逐种击杀 + 总分组装成 <see cref="HuntResult"/> 交给结算界面。</summary>
     private void ShowResult()
     {
         leaderboard?.Submit(score); // 提交本局总分到排行榜(best-effort;未登录/未接入则内部跳过)
+        maps?.RecordScore(maps.SelectedMapId, score); // 记本关历史最高,用于解锁下一关
         var result = new HuntResult { totalScore = score };
         foreach (var kv in kills)
         {
@@ -202,12 +271,6 @@ public class GameMainPanel : UIPageBase
     }
 
     // ---------------- 刷新 ----------------
-
-    private void RefreshCoin()
-    {
-        if (coinText == null || currency == null) return;
-        coinText.text = $"{currency.DisplayName(CurrencyType.Gold)} {currency.Get(CurrencyType.Gold)}\n{currency.DisplayName(CurrencyType.Energy)} {currency.Get(CurrencyType.Energy)}";
-    }
 
     private void RefreshScore()
     {

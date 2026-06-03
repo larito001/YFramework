@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -17,7 +18,8 @@ public class EquipPanel : UIPageBase
 {
     [Header("顶部")]
     public Button backBtn;
-    public TextMeshProUGUI coinText;
+    public TextMeshProUGUI coinText;   // 金币数值(图标在预制体胶囊里)
+    public TextMeshProUGUI energyText; // 体力数值(图标在预制体胶囊里)
 
     [Header("分类行(横向滚动内容容器)")]
     public RectTransform weaponRow;
@@ -41,6 +43,7 @@ public class EquipPanel : UIPageBase
     private bool loadoutDirty; // 装备变化标记:延到 LateUpdate 重建,避免在卡片自身 onClick 里把自己 Destroy 掉破坏 EventSystem
 
     private WeaponModelPreview weaponPreview; // 底部武器模型转台(展示当前选中出战的枪)
+    private readonly List<Texture2D> cardTextures = new List<Texture2D>(); // 卡片侧视快照贴图(一次性渲染,需手动回收)
 
     public override void OnLoad()
     {
@@ -86,6 +89,13 @@ public class EquipPanel : UIPageBase
         eventMgr?.Remove(YOTOEventType.RefreshLoadout, MarkLoadoutDirty);
         eventMgr?.Remove(YOTOEventType.RefreshCurrency, RefreshCoin);
         weaponPreview?.SetActive(false);
+        DisposeCardTextures();
+    }
+
+    private void DisposeCardTextures()
+    {
+        foreach (var t in cardTextures) if (t != null) Destroy(t);
+        cardTextures.Clear();
     }
 
     /// <summary>装备变化先打标记,延到 LateUpdate 再重建——避免点击卡片时同步重建把刚点的卡销毁、破坏 EventSystem。</summary>
@@ -102,14 +112,16 @@ public class EquipPanel : UIPageBase
 
     private void RefreshCoin()
     {
-        if (coinText == null || currency == null) return;
-        coinText.text = $"{currency.DisplayName(CurrencyType.Gold)} {currency.Get(CurrencyType.Gold)}\n{currency.DisplayName(CurrencyType.Energy)} {currency.Get(CurrencyType.Energy)}";
+        if (currency == null) return;
+        if (coinText != null) coinText.text = currency.Get(CurrencyType.Gold).ToString();     // 只填数值,图标在胶囊里
+        if (energyText != null) energyText.text = currency.Get(CurrencyType.Energy).ToString();
     }
 
     // ---------------- 卡片网格 ----------------
 
     private void RebuildAll()
     {
+        DisposeCardTextures(); // 重建前回收上一批卡片快照贴图
         BuildRow(weaponRow, ShopCategory.Weapon);
         BuildRow(scopeRow, ShopCategory.Scope);
         BuildRow(bulletRow, ShopCategory.Bullet);
@@ -163,14 +175,26 @@ public class EquipPanel : UIPageBase
             ol.effectDistance = new Vector2(6, 6);
         }
 
-        // 图片(上部)
+        // 图片(上部):用不旋转的 3D 侧视图代替 icon(无模型才回退 2D 图标)
         var pic = NewChild(card.transform, "Pic", out var picRt);
         picRt.anchorMin = Vector2.zero; picRt.anchorMax = Vector2.one;
         picRt.offsetMin = new Vector2(16, 90); picRt.offsetMax = new Vector2(-16, -16);
-        var picImg = pic.AddComponent<Image>();
-        picImg.raycastTarget = false; picImg.preserveAspect = true;
-        var sprite = !string.IsNullOrEmpty(item.IconPath) ? resMgr.Load<Sprite>(item.IconPath) : null;
-        picImg.sprite = sprite; picImg.enabled = sprite != null;
+        var tex = !string.IsNullOrEmpty(item.ModelPath)
+            ? ModelSnapshot.Capture(item.ModelPath, resMgr, 256, sideView: true, bg: new Color(0, 0, 0, 0))
+            : null;
+        if (tex != null)
+        {
+            cardTextures.Add(tex);
+            var raw = pic.AddComponent<RawImage>(); // 一次性侧视快照(静态图,无常驻相机)
+            raw.texture = tex; raw.raycastTarget = false;
+        }
+        else
+        {
+            var picImg = pic.AddComponent<Image>(); // 无模型才回退 2D 图标
+            picImg.raycastTarget = false; picImg.preserveAspect = true;
+            var sprite = !string.IsNullOrEmpty(item.IconPath) ? resMgr.Load<Sprite>(item.IconPath) : null;
+            picImg.sprite = sprite; picImg.enabled = sprite != null;
+        }
 
         // 名称(底部)
         var name = NewChild(card.transform, "Name", out var nameRt);

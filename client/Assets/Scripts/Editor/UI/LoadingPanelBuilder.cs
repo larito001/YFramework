@@ -41,21 +41,15 @@ public static class LoadingPanelBuilder
         var cg = root.AddComponent<CanvasGroup>();
         root.AddComponent<YOTOUIShow>(); // 进入/退出淡入淡出(默认配置)
 
-        // ---------- 标题(上方约 70% 高)----------
-        var titleGo = NewUI("Title", out var titleRt, root.transform);
-        Anchor(titleRt, new Vector2(0.5f, 0.70f), new Vector2(1600, 240));
-        var titleText = NewText(titleGo, "昼探夜守", 140, TextAlignmentOptions.Center);
-        titleText.fontStyle = FontStyles.Bold;
+        // ---------- 狼跑动动画(替换原大标题,上方约 66% 高)----------
+        var animalGo = NewUI("AnimalRun", out var animalRt, root.transform);
+        Anchor(animalRt, new Vector2(0.5f, 0.66f), new Vector2(820, 820));
+        animalGo.AddComponent<RawImage>(); // 离屏渲染目标(LoadingAnimalView 会接管显示)
+        var animalView = animalGo.AddComponent<LoadingAnimalView>();
+        animalView.animalPath = "Animals/Wolf";
+        animalView.yawSpeed = 0f; // 不自转,固定角度原地跑
 
-        // ---------- 转圈(屏幕中央偏上)----------
-        var spinnerGo = NewUI("Spinner", out var spinnerRt, root.transform);
-        Anchor(spinnerRt, new Vector2(0.5f, 0.46f), new Vector2(200, 200));
-        var spinnerImg = spinnerGo.AddComponent<Image>();
-        spinnerImg.sprite = BuiltinSprite("UI/Skin/Knob.psd"); // 占位转圈图;有美术资源时换成专用 loading 图
-        spinnerImg.color = new Color(0.95f, 0.78f, 0.35f, 1f);
-        spinnerImg.raycastTarget = false;
-
-        // ---------- 加载中…(转圈下方)----------
+        // ---------- 加载中…(狼下方)----------
         var loadingGo = NewUI("LoadingText", out var loadingRt, root.transform);
         Anchor(loadingRt, new Vector2(0.5f, 0.36f), new Vector2(800, 90));
         var loadingText = NewText(loadingGo, "加载中", 56, TextAlignmentOptions.Center);
@@ -71,7 +65,7 @@ public static class LoadingPanelBuilder
         var panel = root.AddComponent<LoadingPanel>();
         panel.uiType = UIEnum.LoadingPanel;
         panel.canvasGroup = cg;
-        panel.spinner = spinnerRt;
+        panel.animalView = animalView;
         panel.loadingText = loadingText;
         panel.tipText = tipText;
         panel.tips = new List<string>

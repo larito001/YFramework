@@ -58,16 +58,17 @@ public static class TaskPanelBuilder
         coinBg.color = new Color(0.56f, 0.78f, 0.30f, 1f);
         var coinText = NewChildText(coinGo, "Value", "0", 48, TextAlignmentOptions.Right);
         ((RectTransform)coinText.transform).offsetMax = new Vector2(-28, 0);
+        UICurrencyPill.AddIconLeft(coinGo, (RectTransform)coinText.transform, UICurrencyPill.IconGold); // 金币用图标,不写文字
 
-        // ---------- 页签:每日任务 / 常规任务 ----------
+        // ---------- 底部页签:每日任务 / 常规任务(放在底部,和商店一致,横向铺满)----------
         var tabs = NewUI("Tabs", out var tabsRt, root.transform);
-        tabsRt.anchorMin = new Vector2(0, 1); tabsRt.anchorMax = new Vector2(1, 1); tabsRt.pivot = new Vector2(0.5f, 1);
-        tabsRt.anchoredPosition = new Vector2(0, -200); tabsRt.sizeDelta = new Vector2(-120, 120);
+        tabsRt.anchorMin = new Vector2(0, 0); tabsRt.anchorMax = new Vector2(1, 0); tabsRt.pivot = new Vector2(0.5f, 0);
+        tabsRt.offsetMin = new Vector2(50, 40); tabsRt.offsetMax = new Vector2(-50, 200);
         var tabsHlg = tabs.AddComponent<HorizontalLayoutGroup>();
-        tabsHlg.spacing = 40;
+        tabsHlg.spacing = 24;
         tabsHlg.childAlignment = TextAnchor.MiddleCenter;
         tabsHlg.childControlWidth = true; tabsHlg.childControlHeight = true;
-        tabsHlg.childForceExpandWidth = false; tabsHlg.childForceExpandHeight = false;
+        tabsHlg.childForceExpandWidth = true; tabsHlg.childForceExpandHeight = true;
 
         var tabDaily = BuildTab("Tab_Daily", "每日任务", tabs.transform, new Color(0.56f, 0.78f, 0.30f, 1f)); // 默认选中
         var tabRegular = BuildTab("Tab_Regular", "常规任务", tabs.transform, new Color(0.72f, 0.70f, 0.80f, 1f));
@@ -75,7 +76,7 @@ public static class TaskPanelBuilder
         // ---------- 中部:竖向滚动列表 ----------
         var scrollGo = NewUI("Scroll", out var scrollRt, root.transform);
         scrollRt.anchorMin = Vector2.zero; scrollRt.anchorMax = Vector2.one;
-        scrollRt.offsetMin = new Vector2(50, 140); scrollRt.offsetMax = new Vector2(-50, -360);
+        scrollRt.offsetMin = new Vector2(50, 230); scrollRt.offsetMax = new Vector2(-50, -180); // 底部让出页签,顶部只留资源条
         var scroll = scrollGo.AddComponent<ScrollRect>();
         scroll.horizontal = false; scroll.vertical = true; scroll.scrollSensitivity = 40f;
         scroll.movementType = ScrollRect.MovementType.Clamped;

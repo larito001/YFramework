@@ -152,7 +152,14 @@
       "Bash(python gen_doc_pdf.py)",
       "Bash(python _edit_tables.py)",
       "Bash(awk 'NR>=324 && NR<=414' \"Assets/Scenes/Boot/GameStart.unity\")",
-      "Bash(grep -cE Collider: 'Assets/Art/Animals/Low Poly Animated Animals/Prefabs/Nature/__TRACKED_VAR__.prefab')"
+      "Bash(grep -cE Collider: 'Assets/Art/Animals/Low Poly Animated Animals/Prefabs/Nature/__TRACKED_VAR__.prefab')",
+      "Bash(grep -nE '_font|TMP_FontAsset|FontPath =' Assets/Scripts/Editor/UI/__TRACKED_VAR__.cs)",
+      "Bash(sed -n '50,60p' Assets/Scripts/Editor/UI/ShopPanelBuilder.cs)",
+      "Bash(sed -n '106,114p' Assets/Scripts/Editor/UI/ShopPanelBuilder.cs)",
+      "Bash(sed -n '40,52p' Assets/Scripts/Editor/UI/EquipPanelBuilder.cs)",
+      "Bash(sed -n '68,78p' Assets/Scripts/Editor/UI/EquipPanelBuilder.cs)",
+      "Bash(sed -n '94,112p' Assets/Scripts/Editor/UI/ShopPanelBuilder.cs)",
+      "Bash(sed -n '76,100p' Assets/Scripts/Editor/UI/TaskPanelBuilder.cs)"
     ]
   }
 }

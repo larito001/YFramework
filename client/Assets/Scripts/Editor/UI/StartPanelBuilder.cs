@@ -216,6 +216,8 @@ public static class StartPanelBuilder
         var tmp = NewChildText(go, "Text", text, 48, TextAlignmentOptions.Right);
         ((RectTransform)tmp.transform).offsetMax = new Vector2(-28, 0);       // 右侧留点边距
         ((RectTransform)tmp.transform).offsetMin = new Vector2(textLeft, 0);  // 左侧让开图标
+        tmp.enableWordWrapping = false;                 // 数字位数多也不换行,横向延展
+        tmp.overflowMode = TextOverflowModes.Overflow;
         return tmp;
     }
 

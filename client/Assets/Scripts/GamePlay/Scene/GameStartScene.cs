@@ -9,6 +9,10 @@ public class GameStartScene : YSceneBase
     private UniversalAdditionalCameraData bloomCamData; // 被开启后处理的相机数据,离场还原 renderPostProcessing
     private GameObject mapInstance; // 当前关卡的场景预制体实例(按 map 配表 scenePath 加载),离场销毁
 
+    private bool camHomeCaptured;   // 是否已记下"对局机位"
+    private Vector3 camHomePos;     // 对局机位(结束打猎的尸检镜头会抬高相机,下一局还原到这)
+    private Quaternion camHomeRot;
+
     public override YSceneType SceneType
     {
         get { return YSceneType.Home; }
@@ -82,15 +86,32 @@ public class GameStartScene : YSceneBase
             Debug.LogWarning("[GameStartScene] 场景内没有 MainCamera,滑屏旋转相机未启用。");
             return;
         }
-        if (cam.GetComponent<CameraSwipeLook>() == null) cam.gameObject.AddComponent<CameraSwipeLook>();
+        var look = cam.GetComponent<CameraSwipeLook>();
+        if (look == null) look = cam.gameObject.AddComponent<CameraSwipeLook>();
         if (cam.GetComponent<ShootCameraShake>() == null) cam.gameObject.AddComponent<ShootCameraShake>(); // 开枪抖动
         if (cam.GetComponent<ScopeAimController>() == null) cam.gameObject.AddComponent<ScopeAimController>(); // 瞄准变焦 + 命中射线
+
+        // 相机机位:首次进对局记下作为"对局机位";之后每次进对局都还原——
+        // 因为「结束打猎」的尸检镜头会把相机抬高,下一局必须回到正常机位。
+        if (!camHomeCaptured)
+        {
+            camHomePos = cam.transform.position;
+            camHomeRot = cam.transform.rotation;
+            camHomeCaptured = true;
+        }
+        else
+        {
+            cam.transform.SetPositionAndRotation(camHomePos, camHomeRot);
+        }
+        look.enabled = true;          // 尸检镜头里被关过,这里恢复环视
+        look.SyncToCurrentRotation(); // yaw/pitch 对齐还原后的机位,避免下次拖动跳变
+
         EnableGoldenBloom(cam); // 开启 Bloom 后处理,让金色泛光动物的 HDR 自发光真正"泛光"
 
         // 第一人称手持武器:把出战武器模型挂到相机前下方,换装时自动更换
         var viewModel = cam.GetComponent<FpsWeaponViewModel>();
         if (viewModel == null) viewModel = cam.gameObject.AddComponent<FpsWeaponViewModel>();
-        viewModel.Init(Context);
+        viewModel.Init(Context); // Init 内部会复位"强制隐藏",尸检后下一局正常显示手持枪
     }
 
     /// <summary>

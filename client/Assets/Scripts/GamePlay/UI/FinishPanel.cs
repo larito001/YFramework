@@ -169,19 +169,19 @@ public class FinishPanel : UIPageBase<HuntResult>
 
         // 动物名(左,大字)
         var name = NewChild(row.transform, "Name", out var nameRt);
-        nameRt.anchorMin = new Vector2(0, 0); nameRt.anchorMax = new Vector2(0.62f, 1);
+        nameRt.anchorMin = new Vector2(0, 0); nameRt.anchorMax = new Vector2(0.58f, 1);
         nameRt.offsetMin = new Vector2(textLeft, 0); nameRt.offsetMax = Vector2.zero;
         NewText(name, e.animalName, 52, NameText, TextAlignmentOptions.Left);
 
-        // ×数量(中)
+        // ×数量(中):用 Overflow 不截断
         var cnt = NewChild(row.transform, "Count", out var cntRt);
-        cntRt.anchorMin = new Vector2(0.62f, 0); cntRt.anchorMax = new Vector2(0.80f, 1); cntRt.offsetMin = cntRt.offsetMax = Vector2.zero;
-        NewText(cnt, $"×{e.count}", 46, CountText, TextAlignmentOptions.Center);
+        cntRt.anchorMin = new Vector2(0.58f, 0); cntRt.anchorMax = new Vector2(0.76f, 1); cntRt.offsetMin = cntRt.offsetMax = Vector2.zero;
+        NewText(cnt, $"×{e.count}", 46, CountText, TextAlignmentOptions.Center, TextOverflowModes.Overflow);
 
-        // +积分(右)
+        // +积分(右):用 Overflow,位数多也不会被截成「+1···」
         var sc = NewChild(row.transform, "Score", out var scRt);
-        scRt.anchorMin = new Vector2(0.80f, 0); scRt.anchorMax = new Vector2(1, 1); scRt.offsetMin = Vector2.zero; scRt.offsetMax = new Vector2(-40, 0);
-        NewText(sc, $"+{e.score}", 52, ScoreText, TextAlignmentOptions.Right);
+        scRt.anchorMin = new Vector2(0.76f, 0); scRt.anchorMax = new Vector2(1, 1); scRt.offsetMin = Vector2.zero; scRt.offsetMax = new Vector2(-40, 0);
+        NewText(sc, $"+{e.score}", 52, ScoreText, TextAlignmentOptions.Right, TextOverflowModes.Overflow);
     }
 
     private void BuildEmptyRow()
@@ -213,11 +213,12 @@ public class FinishPanel : UIPageBase<HuntResult>
         return go;
     }
 
-    private void NewText(GameObject go, string text, float size, Color color, TextAlignmentOptions align)
+    private void NewText(GameObject go, string text, float size, Color color, TextAlignmentOptions align,
+        TextOverflowModes overflow = TextOverflowModes.Ellipsis)
     {
         var tmp = go.AddComponent<TextMeshProUGUI>();
         tmp.text = text; tmp.fontSize = UITheme.Font(size); tmp.alignment = align; tmp.color = color;
-        tmp.raycastTarget = false; tmp.enableWordWrapping = false; tmp.overflowMode = TextOverflowModes.Ellipsis;
+        tmp.raycastTarget = false; tmp.enableWordWrapping = false; tmp.overflowMode = overflow;
         var f = font != null ? font : TMP_Settings.defaultFontAsset;
         if (f != null) tmp.font = f;
     }

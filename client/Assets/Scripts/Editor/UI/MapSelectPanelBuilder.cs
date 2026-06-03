@@ -58,6 +58,7 @@ public static class MapSelectPanelBuilder
         coinBg.color = new Color(0.56f, 0.78f, 0.30f, 1f);
         var coinText = NewChildText(coinGo, "Value", "0", 48, TextAlignmentOptions.Right);
         ((RectTransform)coinText.transform).offsetMax = new Vector2(-28, 0);
+        UICurrencyPill.AddIconLeft(coinGo, (RectTransform)coinText.transform, UICurrencyPill.IconGold); // 金币用图标,不写文字
 
         // ---------- 标题:关卡列表 ----------
         var titleGo = NewUI("Title", out var titleRt, root.transform);

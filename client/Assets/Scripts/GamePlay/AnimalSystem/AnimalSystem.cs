@@ -124,6 +124,85 @@ namespace YOTO
             spawned.Clear();
         }
 
+        /// <summary>
+        /// 结束打猎时:清掉场上所有活体,按本局击杀清单(animalId→数量)在地面上摆成尸体网格(死亡姿势、无碰撞、不游走、不高亮)。
+        /// 返回所有尸体的包围盒,供相机抬起检视时取景。没有击杀则返回原点附近的空盒。
+        /// 尸体也记入 <see cref="spawned"/>,离开对局时随 <see cref="Clear"/> 一并清掉。
+        /// </summary>
+        public Bounds SpawnCorpses(Dictionary<int, int> kills)
+        {
+            Clear(); // 先移除场上活物
+
+            // 把击杀清单展开成逐只列表
+            var ids = new List<int>();
+            if (kills != null)
+                foreach (var kv in kills)
+                    for (int n = 0; n < kv.Value; n++) ids.Add(kv.Key);
+
+            if (ids.Count == 0 || config == null || res == null)
+                return new Bounds(GroundAt(Vector3.zero), Vector3.one);
+
+            // 竖屏:窄列、沿纵深(Z)排开,匹配竖屏的"高"画面;≤4 只单列,更多两列
+            int cols = ids.Count <= 4 ? 1 : 2;
+            int rows = Mathf.CeilToInt(ids.Count / (float)cols);
+            const float spacing = 2.4f;                 // 尸体间距(米),靠紧一点便于镜头拉近
+            float halfX = (cols - 1) * 0.5f * spacing;
+            float halfZ = (rows - 1) * 0.5f * spacing;
+
+            Bounds bounds = default;
+            bool boundsInit = false;
+
+            for (int i = 0; i < ids.Count; i++)
+            {
+                var def = config.animalConfig.Get((uint)ids[i]);
+                if (def == null) continue;
+                var prefab = res.Load<GameObject>(def.Prefab);
+                if (prefab == null) continue;
+
+                int row = i / cols, col = i % cols;
+                Vector3 pos = GroundAt(new Vector3(col * spacing - halfX, 0f, row * spacing - halfZ));
+
+                var go = Object.Instantiate(prefab, pos, Quaternion.Euler(0f, Random.Range(0f, 360f), 0f));
+                float s = def.Scale > 0f ? def.Scale : 1f;
+                go.transform.localScale = Vector3.one * s;
+                MakeCorpse(go);
+                spawned.Add(go);
+
+                if (!boundsInit) { bounds = new Bounds(pos, Vector3.zero); boundsInit = true; }
+                else bounds.Encapsulate(pos);
+            }
+
+            if (!boundsInit) return new Bounds(GroundAt(Vector3.zero), Vector3.one);
+            bounds.Expand(spacing); // 四周留点余量,取景不至于贴边
+            return bounds;
+        }
+
+        /// <summary>把一只刚实例化的动物变成尸体:摆死亡姿势、关碰撞/弱点高亮、去掉游走,不再可命中。</summary>
+        private void MakeCorpse(GameObject go)
+        {
+            var wander = go.GetComponent<AnimalWander>();
+            if (wander != null) Object.Destroy(wander); // 尸体不动
+
+            // 关掉所有部位碰撞体 + 弱点高亮盒(都挂在 AnimalHitZone 节点下)
+            foreach (var hz in go.GetComponentsInChildren<AnimalHitZone>(true))
+                hz.gameObject.SetActive(false);
+
+            // 摆死亡姿势(用 prefab 上烘焙好的死亡参数名)
+            var entity = go.GetComponent<AnimalEntity>();
+            var animator = go.GetComponentInChildren<Animator>();
+            if (animator != null && entity != null && !string.IsNullOrEmpty(entity.deathBool))
+                animator.SetBool(entity.deathBool, true);
+        }
+
+        /// <summary>把 x/z 点贴到地面(有地面碰撞体则射线落点,否则 y=0)。</summary>
+        private Vector3 GroundAt(Vector3 xz)
+        {
+            Vector3 p = new Vector3(xz.x, 0f, xz.z);
+            if (Physics.Raycast(p + Vector3.up * 20f, Vector3.down, out var hit, 50f))
+                p.y = hit.point.y;
+            return p;
+        }
+
         /// <summary>把整只动物(所有子 Renderer 的所有材质槽)换成金色泛光材质;材质共用,失败则静默跳过(仍照常刷怪)。</summary>
         private void ApplyGold(GameObject go)
         {

@@ -50,11 +50,11 @@ public static class ShopPanelBuilder
         backRt.anchorMin = backRt.anchorMax = new Vector2(0, 1); backRt.pivot = new Vector2(0, 1);
         backRt.anchoredPosition = new Vector2(30, -25); backRt.sizeDelta = new Vector2(220, 90);
 
-        // 资源金币(右上)
-        var coinGo = NewUI("Coin", out var coinRt, win.transform);
-        coinRt.anchorMin = coinRt.anchorMax = new Vector2(1, 1); coinRt.pivot = new Vector2(1, 1);
-        coinRt.anchoredPosition = new Vector2(-30, -25); coinRt.sizeDelta = new Vector2(380, 150);
-        var coinText = NewText(coinGo, "金币 0\n钻石 0", 40, TextAlignmentOptions.TopRight, Color.white);
+        // 资源(右上):金币 + 体力,均为「图标 + 数值」胶囊,不写文字
+        var coinText = UICurrencyPill.Build(win.transform, "Gold", UICurrencyPill.IconGold, _font,
+            new Vector2(1, 1), new Vector2(-30, -25), new Vector2(300, 80));
+        var energyText = UICurrencyPill.Build(win.transform, "Energy", UICurrencyPill.IconEnergy, _font,
+            new Vector2(1, 1), new Vector2(-30, -117), new Vector2(300, 80));
 
         // 商人头像(中上,圆形占位)
         var avatarGo = NewUI("Merchant", out var avatarRt, win.transform);
@@ -110,6 +110,7 @@ public static class ShopPanelBuilder
         panel.uiType = UIEnum.ShopPanel;
         panel.backBtn = backBtn;
         panel.coinText = coinText;
+        panel.energyText = energyText;
         panel.merchantAvatar = avatarImg;
         panel.grid = contentRt;
         panel.tabWeapon = tabWeapon;

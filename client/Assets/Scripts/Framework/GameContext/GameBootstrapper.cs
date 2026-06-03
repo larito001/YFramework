@@ -25,7 +25,6 @@ public static partial class GameBootstrapper
         ctx.Register(new CameraManager());
         ctx.Register(new UIMgr(BuildUiConfig()));
         ctx.Register(new SoundMgr());
-        ctx.Register(new TaskManager());
         
         var sceneManager = new YSceneManager();
         ConfigureProjectScenes(sceneManager);

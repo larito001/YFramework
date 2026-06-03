@@ -31,6 +31,10 @@ public class FpsWeaponViewModel : MonoBehaviour
 
     private GameObject model;
     private int shownId = -1;
+    private bool forceHidden; // 结束打猎尸检镜头期间强制隐藏手持枪
+
+    /// <summary>强制隐藏/显示手持枪(尸检镜头用;进对局 <see cref="Init"/> 会复位为显示)。</summary>
+    public void SetForceHidden(bool hidden) => forceHidden = hidden;
 
     private Vector3 recoilPos, recoilEuler;             // 当前后座偏移(叠加在 rest 之上)
     private Vector3 targetRecoilPos, targetRecoilEuler; // 目标后座(开枪冲击后向 0 衰减)
@@ -38,6 +42,7 @@ public class FpsWeaponViewModel : MonoBehaviour
     /// <summary>注入服务并开始随换装刷新。GameStartScene 在挂载后调用。</summary>
     public void Init(GameContext ctx)
     {
+        forceHidden = false; // 每次进对局复位:正常显示手持枪
         loadout = ctx.Get<LoadoutSystem>();
         config = ctx.Get<ConfigManager>();
         res = ctx.Get<ResMgr>();
@@ -61,8 +66,8 @@ public class FpsWeaponViewModel : MonoBehaviour
     {
         if (model == null) return;
 
-        // 开镜(瞄准镜)时隐藏手持枪,退出瞄准再显示
-        bool show = scopeAim == null || !scopeAim.IsAiming;
+        // 开镜(瞄准镜)时隐藏手持枪,退出瞄准再显示;尸检镜头期间强制隐藏
+        bool show = !forceHidden && (scopeAim == null || !scopeAim.IsAiming);
         if (model.activeSelf != show) model.SetActive(show);
 
         float dt = Time.deltaTime;

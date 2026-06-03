@@ -43,10 +43,11 @@ public static class EquipPanelBuilder
         backRt.anchorMin = backRt.anchorMax = new Vector2(0, 1); backRt.pivot = new Vector2(0, 1);
         backRt.anchoredPosition = new Vector2(40, -40); backRt.sizeDelta = new Vector2(220, 90);
 
-        var coinGo = NewUI("Coin", out var coinRt, root.transform);
-        coinRt.anchorMin = coinRt.anchorMax = new Vector2(1, 1); coinRt.pivot = new Vector2(1, 1);
-        coinRt.anchoredPosition = new Vector2(-40, -40); coinRt.sizeDelta = new Vector2(380, 150);
-        var coinText = NewText(coinGo, "金币 0\n钻石 0", 40, TextAlignmentOptions.TopRight);
+        // 资源(右上):金币 + 体力,均为「图标 + 数值」胶囊,不写文字
+        var coinText = UICurrencyPill.Build(root.transform, "Gold", UICurrencyPill.IconGold, _font,
+            new Vector2(1, 1), new Vector2(-40, -40), new Vector2(300, 80));
+        var energyText = UICurrencyPill.Build(root.transform, "Energy", UICurrencyPill.IconEnergy, _font,
+            new Vector2(1, 1), new Vector2(-40, -132), new Vector2(300, 80));
 
         // ---------- 标题 ----------
         var titleGo = NewUI("Title", out var titleRt, root.transform);
@@ -71,6 +72,7 @@ public static class EquipPanelBuilder
         panel.uiType = UIEnum.EquipPanel;
         panel.backBtn = backBtn;
         panel.coinText = coinText;
+        panel.energyText = energyText;
         panel.weaponRow = weaponRow;
         panel.scopeRow = scopeRow;
         panel.bulletRow = bulletRow;

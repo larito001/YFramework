@@ -1,0 +1,97 @@
+#if UNITY_EDITOR
+using TMPro;
+using UnityEditor;
+using UnityEngine;
+using UnityEngine.UI;
+
+/// <summary>
+/// 各面板顶部「资源条」统一构件:深色圆角胶囊 + 左侧货币图标 + 右对齐数值,**不写「金币/体力」文字**。
+/// 与主界面 <see cref="StartPanelBuilder"/> 的胶囊同款,供任务/商店/图鉴/地图/装备等面板共用,保证视觉统一。
+/// 图标是工程内静态 Sprite(非 Resources),由各面板生成器烘焙进预制体。
+/// </summary>
+public static class UICurrencyPill
+{
+    // 货币图标(已有的美术 Sprite):金币 / 体力
+    public const string IconGold   = "Assets/Art/UI/NewUI/Shared/Icons/PictoIcon/128/coin_2.png";
+    public const string IconEnergy = "Assets/Art/UI/NewUI/Shared/Icons/PictoIcon/128/energy.png";
+
+    private static readonly Color PillColor = new Color(0.25f, 0.27f, 0.33f, 1f); // 与主界面胶囊同色
+
+    /// <summary>
+    /// 新建一个完整资源胶囊(自带深色底 + 图标 + 数值),返回数值文本(运行时只填数字)。
+    /// anchor 同时作为 anchorMin/Max/pivot(取某个角,如右上 (1,1))。
+    /// </summary>
+    public static TextMeshProUGUI Build(Transform parent, string name, string iconPath, TMP_FontAsset font,
+        Vector2 anchor, Vector2 anchoredPos, Vector2 size, float fontSize = 44f)
+    {
+        var go = new GameObject(name, typeof(RectTransform), typeof(Image));
+        var rt = (RectTransform)go.transform;
+        rt.SetParent(parent, false);
+        rt.anchorMin = rt.anchorMax = rt.pivot = anchor;
+        rt.anchoredPosition = anchoredPos;
+        rt.sizeDelta = size;
+
+        var bg = go.GetComponent<Image>();
+        bg.sprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/UISprite.psd");
+        bg.type = Image.Type.Sliced;
+        bg.color = PillColor;
+
+        var valueGo = new GameObject("Value", typeof(RectTransform));
+        var vrt = (RectTransform)valueGo.transform;
+        vrt.SetParent(go.transform, false);
+        vrt.anchorMin = Vector2.zero; vrt.anchorMax = Vector2.one;
+        vrt.offsetMin = Vector2.zero; vrt.offsetMax = new Vector2(-28, 0);
+        var tmp = valueGo.AddComponent<TextMeshProUGUI>();
+        tmp.text = "0";
+        tmp.fontSize = UITheme.Font(fontSize);
+        tmp.alignment = TextAlignmentOptions.Right;
+        tmp.color = Color.white;
+        tmp.raycastTarget = false;
+        tmp.enableWordWrapping = false;                 // 数字位数多也不换行,横向延展
+        tmp.overflowMode = TextOverflowModes.Overflow;
+        var f = font != null ? font : TMP_Settings.defaultFontAsset;
+        if (f != null) tmp.font = f;
+
+        AddIconLeft(go, vrt, iconPath, 72f, 16f);
+        return tmp;
+    }
+
+    /// <summary>在已有胶囊里(左侧竖直居中)加一个货币图标,并把右对齐的数值文本左边距让开图标。</summary>
+    public static void AddIconLeft(GameObject pill, RectTransform valueText, string iconPath, float iconSize = 64f, float pad = 14f)
+    {
+        var icon = LoadIcon(iconPath);
+        if (icon == null) return;
+
+        var ig = new GameObject("Icon", typeof(RectTransform), typeof(Image));
+        var irt = (RectTransform)ig.transform;
+        irt.SetParent(pill.transform, false);
+        irt.anchorMin = irt.anchorMax = new Vector2(0, 0.5f);
+        irt.pivot = new Vector2(0, 0.5f);
+        irt.anchoredPosition = new Vector2(pad, 0f);
+        irt.sizeDelta = new Vector2(iconSize, iconSize);
+        var im = ig.GetComponent<Image>();
+        im.sprite = icon;
+        im.preserveAspect = true;
+        im.raycastTarget = false;
+
+        if (valueText != null)
+        {
+            valueText.anchorMin = Vector2.zero; valueText.anchorMax = Vector2.one; // 确保拉伸,offsetMin 才生效
+            valueText.offsetMin = new Vector2(pad + iconSize + 10f, valueText.offsetMin.y);
+            var tmp = valueText.GetComponent<TextMeshProUGUI>();
+            if (tmp != null)
+            {
+                tmp.enableWordWrapping = false;             // 数字位数多也不换行,横向延展
+                tmp.overflowMode = TextOverflowModes.Overflow;
+            }
+        }
+    }
+
+    private static Sprite LoadIcon(string path)
+    {
+        var s = AssetDatabase.LoadAssetAtPath<Sprite>(path);
+        if (s == null) Debug.LogWarning($"[UICurrencyPill] 找不到货币图标 {path}");
+        return s;
+    }
+}
+#endif

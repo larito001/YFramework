@@ -58,6 +58,7 @@ public static class CodexPanelBuilder
         coinBg.color = new Color(0.56f, 0.78f, 0.30f, 1f); // 绿色胶囊
         var coinText = NewChildText(coinGo, "Value", "0", 40, TextAlignmentOptions.Right);
         ((RectTransform)coinText.transform).offsetMax = new Vector2(-28, 0); // 右侧留边距
+        UICurrencyPill.AddIconLeft(coinGo, (RectTransform)coinText.transform, UICurrencyPill.IconGold); // 金币用图标,不写文字
 
         // 动物图鉴是单分类,「装饰公仔 / 荣誉卡片」两个页签已停用——不再生成,空出的顶部空间让内容面板上移。
         // (CodexPanel 的 tabDoll/tabCard 字段保持为空,OnLoad 里对空引用已做保护。)

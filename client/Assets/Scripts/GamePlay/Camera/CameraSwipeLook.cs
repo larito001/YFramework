@@ -44,6 +44,12 @@ public class CameraSwipeLook : MonoBehaviour
         if (GameLoop.Instance != null && GameLoop.Instance.Ctx != null)
             input = GameLoop.Instance.Ctx.Get<InputService>();
 
+        SyncToCurrentRotation();
+    }
+
+    /// <summary>把内部 yaw/pitch 重新对齐到相机当前朝向。外部改了机位/朝向后(如尸检镜头复位)调用一次,避免下次拖动跳变。</summary>
+    public void SyncToCurrentRotation()
+    {
         var e = transform.eulerAngles;
         yaw = e.y;
         pitch = Normalize(e.x);

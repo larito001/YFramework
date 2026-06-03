@@ -88,7 +88,7 @@ public class MapSelectPanel : UIPageBase
 
     private void BuildCard(Map map, int index)
     {
-        bool unlocked = map.Unlocked != 0;
+        bool unlocked = maps != null && maps.IsUnlocked(map); // 解锁=配表强制 或 上一关分数达标
 
         // 卡片底框(尺寸由 GridLayoutGroup 决定) + 点击按钮
         var card = new GameObject($"Map_{map.Id}", typeof(RectTransform), typeof(Image), typeof(Button));
@@ -133,7 +133,9 @@ public class MapSelectPanel : UIPageBase
             var lockLabel = NewChild(mask.transform, "Label", out var lockLabelRt);
             lockLabelRt.anchorMin = Vector2.zero; lockLabelRt.anchorMax = Vector2.one;
             lockLabelRt.offsetMin = Vector2.zero; lockLabelRt.offsetMax = Vector2.zero;
-            NewText(lockLabel, "未解锁", 44, LockText, TextAlignmentOptions.Center);
+            // 提示解锁条件:上一关需达到的分数
+            string lockMsg = map.UnlockScore > 0 ? $"上一关达 {map.UnlockScore} 分解锁" : "未解锁";
+            NewText(lockLabel, lockMsg, 36, LockText, TextAlignmentOptions.Center);
         }
     }
 
