@@ -33,14 +33,13 @@ public class TaskPanel : UIPageBase
 
     private static readonly Color TabOn = new Color(0.56f, 0.78f, 0.30f, 1f);      // 绿:当前分类
     private static readonly Color TabOff = new Color(0.72f, 0.70f, 0.80f, 1f);     // 灰紫:未选
-    private static readonly Color CardFrame = new Color(0.90f, 0.89f, 0.93f, 1f);  // 卡片底框
     private static readonly Color IconBox = new Color(0.78f, 0.80f, 0.86f, 1f);    // 物品图标缺失时的占位底
     private static readonly Color CoinIcon = new Color(0.45f, 0.74f, 0.36f, 1f);   // 金币图标(绿色块占位)
     private static readonly Color EnergyIcon = new Color(0.36f, 0.62f, 0.86f, 1f); // 体力图标(蓝色块占位)
     private static readonly Color GotoBtn = new Color(0.96f, 0.66f, 0.18f, 1f);    // 「前往」橙钮
     private static readonly Color ClaimBtn = new Color(0.30f, 0.74f, 0.36f, 1f);   // 「领取」绿钮(已完成可领)
     private static readonly Color ClaimedBtn = new Color(0.62f, 0.62f, 0.66f, 1f); // 「已领取」灰钮(不可点)
-    private static readonly Color TitleText = new Color(0.25f, 0.24f, 0.30f, 1f);
+    // 卡片底框/标题文字色已烘进 TaskCard 预制体。
 
     private ConfigManager config;
     private CurrencySystem currency;
@@ -51,6 +50,7 @@ public class TaskPanel : UIPageBase
 
     private readonly List<Task> entries = new List<Task>();
     private uint currentCategory = CategoryDaily;
+    private GameObject cardPrefab; // 任务卡片预制体(Resources/UI/Task/TaskCard,TaskCardBuilder 生成)
 
     public override void OnLoad()
     {
@@ -60,6 +60,8 @@ public class TaskPanel : UIPageBase
         eventMgr = GetService<EventMgr>();
         taskProgress = GetService<TaskProgressSystem>();
         if (coinText != null) font = coinText.font; // 复用外壳字体给运行时卡片
+        cardPrefab = resMgr.Load<GameObject>("UI/Task/TaskCard"); // 卡片预制体
+        if (cardPrefab == null) Debug.LogError("[TaskPanel] 未找到 TaskCard 预制体,请先执行 Tools/UI/Build TaskCard Prefab(或 Build ALL UI Prefabs)。");
 
         if (backBtn != null) backBtn.onClick.AddListener(CloseSelf);
         if (tabDaily != null) tabDaily.onClick.AddListener(() => SelectCategory(CategoryDaily));
@@ -72,12 +74,15 @@ public class TaskPanel : UIPageBase
         eventMgr?.Add(YOTOEventType.RefreshTask, RebuildList); // 任务进度/领取变化即重建当前列表
         SelectCategory(currentCategory);
         RefreshCoin();
+        // 底部横幅广告(原生浮层)。未接入广告 / 非 Android 时取不到或空操作,自动跳过。
+        if (Context.TryGet<IAdService>(out var ad)) ad.ShowBottomBanner("task");
     }
 
     public override void OnHide()
     {
         eventMgr?.Remove(YOTOEventType.RefreshCurrency, RefreshCoin);
         eventMgr?.Remove(YOTOEventType.RefreshTask, RebuildList);
+        if (Context.TryGet<IAdService>(out var ad)) ad.HideBanner(); // 关闭即收掉横幅
     }
 
     public override void OnResize() { }
@@ -125,78 +130,73 @@ public class TaskPanel : UIPageBase
     private void RebuildList()
     {
         if (content == null) return;
+        SortEntriesByState(); // 可领取→未完成→已领取(组内按配表 SortPriority)
         for (int i = content.childCount - 1; i >= 0; i--) Destroy(content.GetChild(i).gameObject);
         foreach (var task in entries) BuildCard(task);
     }
 
-    private void BuildCard(Task task)
+    /// <summary>按状态排序:可领取(最顶)→ 未完成(中)→ 已领取(最底);同组内按配表 SortPriority 升序。
+    /// 每次重建都重排——领取后 RefreshTask 触发本方法,刚领的任务会自动沉到底部。</summary>
+    private void SortEntriesByState()
     {
-        // 卡片底框(高度固定,宽度由 VerticalLayoutGroup 撑满)
-        var card = NewChild(content, $"Task_{task.Id}", out var cardRt);
-        var bg = card.AddComponent<Image>();
-        bg.color = CardFrame;
-        var le = card.AddComponent<LayoutElement>();
-        le.preferredHeight = 340; // 字体 ×2 后加高卡片,容下标题/进度/奖励/按钮
-
-        // 标题(左上,带高 104 容下 46pt×2)
-        var title = NewChild(card.transform, "Title", out var titleRt);
-        titleRt.anchorMin = new Vector2(0, 1); titleRt.anchorMax = new Vector2(0, 1); titleRt.pivot = new Vector2(0, 1);
-        titleRt.anchoredPosition = new Vector2(40, -30); titleRt.sizeDelta = new Vector2(760, 104);
-        NewText(title, task.Name, 46, TitleText, TextAlignmentOptions.Left);
-
-        // 进度(右上,带高 104 容下字号;加宽并关掉省略,避免「/ 目标」被裁成 ···):进度 cur/need
-        var prog = NewChild(card.transform, "Progress", out var progRt);
-        progRt.anchorMin = new Vector2(1, 1); progRt.anchorMax = new Vector2(1, 1); progRt.pivot = new Vector2(1, 1);
-        progRt.anchoredPosition = new Vector2(-30, -30); progRt.sizeDelta = new Vector2(520, 104);
-        var progText = NewText(prog, "", 38, TitleText, TextAlignmentOptions.Right);
-        progText.overflowMode = TextOverflowModes.Overflow; // 不省略,完整显示「进度 x / y」
-        progText.text = $"进度 <color=#D94C40>{CurrentProgress(task.Id)}</color> / {task.TargetAmount}";
-
-        // 奖励(左下):有物品才显示物品×数量,再金币×数量,再体力×数量(色块占位)
-        float x = 40;
-        if (task.RewardItemId > 0 && task.RewardItemCount > 0)
-            x = BuildReward(card.transform, ItemIcon(task.RewardItemId), IconBox, task.RewardItemCount, x);
-        if (task.RewardCoin > 0)
-            x = BuildReward(card.transform, null, CoinIcon, task.RewardCoin, x);
-        if (task.RewardEnergy > 0)
-            x = BuildReward(card.transform, null, EnergyIcon, task.RewardEnergy, x);
-
-        // 右下按钮:未完成=前往(关闭去做);已完成未领=领取(发奖);已领取=置灰不可点
-        bool canClaim = taskProgress != null && taskProgress.CanClaim(task.Id);
-        bool claimed = taskProgress != null && taskProgress.IsClaimed(task.Id);
-        var go = NewChild(card.transform, "Action", out var gotoRt);
-        gotoRt.anchorMin = new Vector2(1, 0); gotoRt.anchorMax = new Vector2(1, 0); gotoRt.pivot = new Vector2(1, 0);
-        gotoRt.anchoredPosition = new Vector2(-40, 44); gotoRt.sizeDelta = new Vector2(240, 120);
-        var gotoImg = go.AddComponent<Image>();
-        gotoImg.color = claimed ? ClaimedBtn : (canClaim ? ClaimBtn : GotoBtn);
-        var gotoBtn = go.AddComponent<Button>();
-        gotoBtn.targetGraphic = gotoImg;
-        gotoBtn.interactable = !claimed;
-        gotoBtn.onClick.AddListener(() => OnActionClick(task));
-        var gotoLabel = NewChild(go.transform, "Label", out var gotoLabelRt);
-        Stretch(gotoLabelRt);
-        NewText(gotoLabel, claimed ? "已领取" : (canClaim ? "领取" : "前往"), 40, Color.white, TextAlignmentOptions.Center);
+        entries.Sort((a, b) =>
+        {
+            int ga = StateOrder(a.Id), gb = StateOrder(b.Id);
+            if (ga != gb) return ga.CompareTo(gb);
+            return a.SortPriority.CompareTo(b.SortPriority);
+        });
     }
 
-    /// <summary>一格奖励:图标(无 sprite 时显示色块) + ×数量,返回下一格的起始 x。</summary>
-    private float BuildReward(Transform parent, Sprite sprite, Color iconColor, int count, float x)
+    /// <summary>状态排序键:可领取=0(顶),未完成=1(中),已领取=2(底)。</summary>
+    private int StateOrder(uint id)
     {
-        const float iconSize = 88f;
-        var icon = NewChild(parent, "RewardIcon", out var iconRt);
-        iconRt.anchorMin = new Vector2(0, 0); iconRt.anchorMax = new Vector2(0, 0); iconRt.pivot = new Vector2(0, 0);
-        iconRt.anchoredPosition = new Vector2(x, 48); iconRt.sizeDelta = new Vector2(iconSize, iconSize);
-        var img = icon.AddComponent<Image>();
+        if (taskProgress == null) return 1;
+        if (taskProgress.IsClaimed(id)) return 2;   // 已领取沉底
+        if (taskProgress.CanClaim(id)) return 0;     // 可领取置顶
+        return 1;                                     // 未完成居中
+    }
+
+    private void BuildCard(Task task)
+    {
+        if (cardPrefab == null) return;
+        var go = Instantiate(cardPrefab);
+        go.transform.SetParent(content, false);
+        go.name = $"Task_{task.Id}";
+        var view = go.GetComponent<TaskCardView>();
+        if (view == null) { Destroy(go); return; }
+
+        view.titleText.text = task.Name;
+        view.progressText.text = $"进度 <color=#D94C40>{CurrentProgress(task.Id)}</color> / {task.TargetAmount}";
+
+        // 奖励:按 物品→金币→体力 顺序填进预置的 3 个格,多余的隐藏
+        for (int i = 0; i < view.rewardRoots.Length; i++) view.rewardRoots[i].SetActive(false);
+        int slot = 0;
+        if (task.RewardItemId > 0 && task.RewardItemCount > 0)
+            FillReward(view, slot++, ItemIcon(task.RewardItemId), IconBox, task.RewardItemCount);
+        if (task.RewardCoin > 0)
+            FillReward(view, slot++, null, CoinIcon, task.RewardCoin);
+        if (task.RewardEnergy > 0)
+            FillReward(view, slot++, null, EnergyIcon, task.RewardEnergy);
+
+        // 右下按钮:未完成=前往;已完成未领=领取;已领取=置灰不可点
+        bool canClaim = taskProgress != null && taskProgress.CanClaim(task.Id);
+        bool claimed = taskProgress != null && taskProgress.IsClaimed(task.Id);
+        view.actionBg.color = claimed ? ClaimedBtn : (canClaim ? ClaimBtn : GotoBtn);
+        view.actionButton.interactable = !claimed;
+        view.actionButton.onClick.AddListener(() => OnActionClick(task));
+        view.actionLabel.text = claimed ? "已领取" : (canClaim ? "领取" : "前往");
+    }
+
+    /// <summary>填一格奖励:有 sprite 用精灵,否则用 <paramref name="iconColor"/> 色块占位;显示该格。</summary>
+    private void FillReward(TaskCardView view, int slot, Sprite sprite, Color iconColor, int count)
+    {
+        if (slot < 0 || slot >= view.rewardRoots.Length) return;
+        view.rewardRoots[slot].SetActive(true);
+        var img = view.rewardIcons[slot];
         img.preserveAspect = true;
-        img.raycastTarget = false;
         if (sprite != null) { img.sprite = sprite; img.color = Color.white; }
-        else img.color = iconColor; // 缺图标时用色块占位
-
-        var cnt = NewChild(parent, "RewardCount", out var cntRt);
-        cntRt.anchorMin = new Vector2(0, 0); cntRt.anchorMax = new Vector2(0, 0); cntRt.pivot = new Vector2(0, 0);
-        cntRt.anchoredPosition = new Vector2(x + iconSize + 8, 48); cntRt.sizeDelta = new Vector2(240, iconSize);
-        NewText(cnt, $"×{count}", 36, TitleText, TextAlignmentOptions.Left);
-
-        return x + iconSize + 280; // 图标 + 数量(×2 字号加宽) + 间距
+        else { img.sprite = null; img.color = iconColor; } // 缺图标用色块占位
+        view.rewardCounts[slot].text = $"×{count}";
     }
 
     /// <summary>取奖励物品的图标(配表 iconPath → Resources 精灵);取不到返回 null,由调用方用色块占位。</summary>

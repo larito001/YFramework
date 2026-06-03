@@ -100,6 +100,8 @@ public static partial class GameBootstrapper
         ctx.Register(new CodexSystem());
         // 每日广告补体力:记录当天看广告补体力的次数(随存档槽 StoreMgr 存档 → 本地+云),每天上限见 DailyAdEnergySystem。
         ctx.Register(new DailyAdEnergySystem());
+        // 每日商城看广告领金币:独立计数(随存档槽存档 → 本地+云),每天上限见 DailyAdGoldSystem.DailyLimit(默认 3)。
+        ctx.Register(new DailyAdGoldSystem());
         // 世界交互（靠近宝箱 + F 打开）：Init 只订阅 InputService 的 F 键，靠近参照点用主相机（旧 TPS 玩家系统已移除）。
         ctx.Register(new WorldInteractionSystem());
         // 激励广告(Dirichlet / TapADN):实现框架预留的 IAdService,大厅「体力补充」按钮看完发奖。

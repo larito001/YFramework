@@ -60,10 +60,10 @@ public static class TaskPanelBuilder
         ((RectTransform)coinText.transform).offsetMax = new Vector2(-28, 0);
         UICurrencyPill.AddIconLeft(coinGo, (RectTransform)coinText.transform, UICurrencyPill.IconGold); // 金币用图标,不写文字
 
-        // ---------- 底部页签:每日任务 / 常规任务(放在底部,和商店一致,横向铺满)----------
+        // ---------- 顶部页签:每日任务 / 常规任务(移到顶部,资源条下方,横向铺满)----------
         var tabs = NewUI("Tabs", out var tabsRt, root.transform);
-        tabsRt.anchorMin = new Vector2(0, 0); tabsRt.anchorMax = new Vector2(1, 0); tabsRt.pivot = new Vector2(0.5f, 0);
-        tabsRt.offsetMin = new Vector2(50, 40); tabsRt.offsetMax = new Vector2(-50, 200);
+        tabsRt.anchorMin = new Vector2(0, 1); tabsRt.anchorMax = new Vector2(1, 1); tabsRt.pivot = new Vector2(0.5f, 1);
+        tabsRt.offsetMin = new Vector2(50, -350); tabsRt.offsetMax = new Vector2(-50, -190); // 顶栏(返回/金币)下方,160 高
         var tabsHlg = tabs.AddComponent<HorizontalLayoutGroup>();
         tabsHlg.spacing = 24;
         tabsHlg.childAlignment = TextAnchor.MiddleCenter;
@@ -76,7 +76,7 @@ public static class TaskPanelBuilder
         // ---------- 中部:竖向滚动列表 ----------
         var scrollGo = NewUI("Scroll", out var scrollRt, root.transform);
         scrollRt.anchorMin = Vector2.zero; scrollRt.anchorMax = Vector2.one;
-        scrollRt.offsetMin = new Vector2(50, 230); scrollRt.offsetMax = new Vector2(-50, -180); // 底部让出页签,顶部只留资源条
+        scrollRt.offsetMin = new Vector2(50, 250); scrollRt.offsetMax = new Vector2(-50, -370); // 顶部让出页签,底部留出横幅广告(原生浮层)的高度
         var scroll = scrollGo.AddComponent<ScrollRect>();
         scroll.horizontal = false; scroll.vertical = true; scroll.scrollSensitivity = 40f;
         scroll.movementType = ScrollRect.MovementType.Clamped;

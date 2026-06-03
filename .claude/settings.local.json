@@ -19,7 +19,12 @@
       "Bash(curl -s -o /dev/null -w \"HTTP %{http_code} | %{time_total}s\\\\n\" http://localhost:7777/)",
       "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" http://127.0.0.1:7777/)",
       "Bash(taskkill //F //PID 43972)",
-      "Bash(curl -s -X POST http://localhost:7777/api/launch -H \"Content-Type: application/json\" -d '{\"prompt\":\"/requirement-analysis 测试用例：做一个背包系统\",\"title\":\"Claude — 测试新建需求\"}')"
+      "Bash(curl -s -X POST http://localhost:7777/api/launch -H \"Content-Type: application/json\" -d '{\"prompt\":\"/requirement-analysis 测试用例：做一个背包系统\",\"title\":\"Claude — 测试新建需求\"}')",
+      "Bash(pip list *)",
+      "Bash(antiword \"用于股票价格预测的记忆网络分析软件 使用说明书V1.0.doc\")",
+      "Bash(grep -E \"///|summary|金币|体力\")",
+      "Bash(grep -E \"///|summary\")",
+      "Bash(grep -E \"summary|///\")"
     ]
   }
 }

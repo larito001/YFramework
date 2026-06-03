@@ -32,11 +32,15 @@ public class LeaderboardPanel : UIPageBase
 
     private ILeaderboardService leaderboard;
     private TMP_FontAsset font;
+    private GameObject rowPrefab; // 排行榜行预制体(Resources/UI/Leaderboard/LeaderboardRow,LeaderboardRowBuilder 生成)
 
     public override void OnLoad()
     {
         Context.TryGet<ILeaderboardService>(out leaderboard);
         if (statusText != null) font = statusText.font; // 复用外壳字体给运行时行
+        var resMgr = GetService<ResMgr>();
+        rowPrefab = resMgr != null ? resMgr.Load<GameObject>("UI/Leaderboard/LeaderboardRow") : null;
+        if (rowPrefab == null) Debug.LogError("[LeaderboardPanel] 未找到 LeaderboardRow 预制体,请先执行 Tools/UI/Build LeaderboardRow Prefab(或 Build ALL UI Prefabs)。");
 
         if (backBtn != null) backBtn.onClick.AddListener(CloseSelf);
     }
@@ -91,31 +95,18 @@ public class LeaderboardPanel : UIPageBase
 
     private void BuildRow(LeaderboardEntry e)
     {
-        var row = NewChild(content, $"Row_{e.rank}", out _);
-        var bg = row.AddComponent<Image>();
-        bg.color = e.isSelf ? RowSelf : RowNormal;
-        var le = row.AddComponent<LayoutElement>();
-        le.preferredHeight = 120;
+        if (rowPrefab == null) return;
+        var go = Instantiate(rowPrefab);
+        go.transform.SetParent(content, false);
+        go.name = $"Row_{e.rank}";
+        var view = go.GetComponent<LeaderboardRowView>();
+        if (view == null) { Destroy(go); return; }
 
-        // 名次(左)
-        var rankGo = NewChild(row.transform, "Rank", out var rankRt);
-        rankRt.anchorMin = new Vector2(0, 0); rankRt.anchorMax = new Vector2(0, 1); rankRt.pivot = new Vector2(0, 0.5f);
-        rankRt.anchoredPosition = new Vector2(24, 0); rankRt.sizeDelta = new Vector2(150, 0);
-        var rankColor = e.rank <= 3 ? RankTop : TextDark;
-        NewText(rankGo, e.rank.ToString(), 48, rankColor, TextAlignmentOptions.Center);
-
-        // 昵称(中,左对齐,过长省略)
-        var nameGo = NewChild(row.transform, "Name", out var nameRt);
-        nameRt.anchorMin = new Vector2(0, 0); nameRt.anchorMax = new Vector2(1, 1); nameRt.pivot = new Vector2(0, 0.5f);
-        nameRt.offsetMin = new Vector2(190, 0); nameRt.offsetMax = new Vector2(-260, 0);
-        var nameText = NewText(nameGo, e.isSelf ? $"{e.name}(我)" : e.name, 42, TextDark, TextAlignmentOptions.Left);
-        nameText.overflowMode = TextOverflowModes.Ellipsis;
-
-        // 分数(右)
-        var scoreGo = NewChild(row.transform, "Score", out var scoreRt);
-        scoreRt.anchorMin = new Vector2(1, 0); scoreRt.anchorMax = new Vector2(1, 1); scoreRt.pivot = new Vector2(1, 0.5f);
-        scoreRt.anchoredPosition = new Vector2(-24, 0); scoreRt.sizeDelta = new Vector2(240, 0);
-        NewText(scoreGo, e.score.ToString(), 44, TextDark, TextAlignmentOptions.Right);
+        view.bg.color = e.isSelf ? RowSelf : RowNormal;
+        view.rankText.text = e.rank.ToString();
+        view.rankText.color = e.rank <= 3 ? RankTop : TextDark; // 前三橙,其余深色
+        view.nameText.text = e.isSelf ? $"{e.name}(我)" : e.name;
+        view.scoreText.text = e.score.ToString();
     }
 
     private void ClearList()

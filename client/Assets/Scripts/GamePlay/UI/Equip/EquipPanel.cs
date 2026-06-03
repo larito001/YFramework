@@ -31,7 +31,7 @@ public class EquipPanel : UIPageBase
 
     private static readonly Color OwnedColor = new Color(0.30f, 0.78f, 0.36f, 1f); // 绿:已拥有
     private static readonly Color LockedColor = new Color(0.32f, 0.34f, 0.40f, 1f); // 灰:未拥有
-    private static readonly Color SelectBorder = new Color(1f, 0.85f, 0.2f, 1f);    // 选中描边
+    // 选中黄色描边颜色已烘进 EquipCard 预制体的 Outline,运行时只切 enabled。
 
     private LoadoutSystem loadout;
     private CurrencySystem currency;
@@ -44,6 +44,7 @@ public class EquipPanel : UIPageBase
 
     private WeaponModelPreview weaponPreview; // 底部武器模型转台(展示当前选中出战的枪)
     // 卡片侧视快照已移到全局共享缓存 ModelSnapshotCache(进程级常驻),与商城页等共用同一份,渲过即复用。
+    private GameObject cardPrefab; // 装备卡片预制体(Resources/UI/Equip/EquipCard,EquipCardBuilder 生成),运行时 instantiate
 
     public override void OnLoad()
     {
@@ -53,6 +54,8 @@ public class EquipPanel : UIPageBase
         resMgr = GetService<ResMgr>();
         eventMgr = GetService<EventMgr>();
         if (coinText != null) font = coinText.font;
+        cardPrefab = resMgr.Load<GameObject>("UI/Equip/EquipCard"); // 卡片预制体
+        if (cardPrefab == null) Debug.LogError("[EquipPanel] 未找到 EquipCard 预制体,请先执行 Tools/UI/Build EquipCard Prefab(或 Build ALL UI Prefabs)。");
 
         if (backBtn != null) backBtn.onClick.AddListener(CloseSelf);
         if (departBtn != null) departBtn.onClick.AddListener(OnDepart);
@@ -148,43 +151,26 @@ public class EquipPanel : UIPageBase
 
     private void BuildCard(RectTransform row, Item item, ShopCategory cat, bool isSelected)
     {
+        if (cardPrefab == null) return;
         bool owned = loadout.IsOwned((int)item.Id);
+        var go = Instantiate(cardPrefab);
+        go.transform.SetParent(row, false);
+        go.name = $"Card_{item.Id}";
+        var view = go.GetComponent<EquipCardView>();
+        if (view == null) { Destroy(go); return; }
 
-        var card = new GameObject($"Card_{item.Id}", typeof(RectTransform), typeof(Image), typeof(Button), typeof(LayoutElement));
-        card.transform.SetParent(row, false);
-        var le = card.GetComponent<LayoutElement>();
-        le.preferredWidth = 320; le.preferredHeight = 340;
-        var bg = card.GetComponent<Image>();
-        bg.color = owned ? OwnedColor : LockedColor;
-        var btn = card.GetComponent<Button>();
-        btn.targetGraphic = bg;
-        btn.interactable = owned; // 未拥有不可选
+        view.bg.color = owned ? OwnedColor : LockedColor;
+        view.button.interactable = owned; // 未拥有不可选
         int id = (int)item.Id;
-        btn.onClick.AddListener(() => loadout.Select(cat, id));
+        view.button.onClick.AddListener(() => loadout.Select(cat, id));
+        view.outline.enabled = isSelected; // 选中:黄色描边(预制体里预置好,切 enabled)
 
-        if (isSelected)
-        {
-            var ol = card.AddComponent<Outline>(); // 选中:黄色描边
-            ol.effectColor = SelectBorder;
-            ol.effectDistance = new Vector2(6, 6);
-        }
+        // 图片:渲染出的 3D 道具侧视快照(全局共享缓存,跨面板复用),无模型回退 2D 图标。预制体里 pic 已 preserveAspect。
+        var sprite = ModelSnapshotCache.CardSprite(item.ModelPath, resMgr)
+                     ?? (!string.IsNullOrEmpty(item.IconPath) ? resMgr.Load<Sprite>(item.IconPath) : null);
+        view.pic.sprite = sprite; view.pic.enabled = sprite != null;
 
-        // 图片(上部):用不旋转的 3D 侧视快照代替 icon(无模型才回退 2D 图标)。
-        // 统一走 Image + preserveAspect:正方形快照按比例居中,不被卡片图框拉伸。
-        var pic = NewChild(card.transform, "Pic", out var picRt);
-        picRt.anchorMin = Vector2.zero; picRt.anchorMax = Vector2.one;
-        picRt.offsetMin = new Vector2(16, 90); picRt.offsetMax = new Vector2(-16, -16);
-        var picImg = pic.AddComponent<Image>();
-        picImg.raycastTarget = false; picImg.preserveAspect = true;
-        var sprite = ModelSnapshotCache.CardSprite(item.ModelPath, resMgr)            // 全局共享缓存复用的侧视快照
-                     ?? (!string.IsNullOrEmpty(item.IconPath) ? resMgr.Load<Sprite>(item.IconPath) : null); // 无模型回退 2D 图标
-        picImg.sprite = sprite; picImg.enabled = sprite != null;
-
-        // 名称(底部)
-        var name = NewChild(card.transform, "Name", out var nameRt);
-        nameRt.anchorMin = new Vector2(0, 0); nameRt.anchorMax = new Vector2(1, 0); nameRt.pivot = new Vector2(0.5f, 0);
-        nameRt.offsetMin = new Vector2(6, 12); nameRt.offsetMax = new Vector2(-6, 78);
-        NewText(name, item.Name, 32, Color.white);
+        view.nameText.text = item.Name;
     }
 
     // ---------------- 出发(进入游戏)----------------

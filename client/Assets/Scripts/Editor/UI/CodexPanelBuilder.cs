@@ -66,7 +66,6 @@ public static class CodexPanelBuilder
         // ---------- 中部:内容面板(2 列网格容器)----------
         var panelGo = NewUI("Panel", out var panelRt, root.transform);
         panelRt.anchorMin = Vector2.zero; panelRt.anchorMax = Vector2.one;
-        // 顶部上移到顶栏正下方(原 -360 是给页签留的位,页签已移除,否则顶部空一大块、网格整体偏低)
         panelRt.offsetMin = new Vector2(50, 360); panelRt.offsetMax = new Vector2(-50, -170);
         var panelBg = panelGo.AddComponent<Image>();
         panelBg.sprite = BuiltinSprite("UI/Skin/UISprite.psd");
@@ -79,7 +78,7 @@ public static class CodexPanelBuilder
         var glg = gridGo.AddComponent<GridLayoutGroup>();
         glg.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
         glg.constraintCount = 2;
-        glg.cellSize = new Vector2(820, 760);
+        glg.cellSize = new Vector2(820, 880); // 加高:3 行(880*3+间距+padding≈2780)填满面板,消除底部空地
         glg.spacing = new Vector2(40, 40);
         glg.padding = new RectOffset(30, 30, 30, 30);
         glg.childAlignment = TextAnchor.UpperCenter;

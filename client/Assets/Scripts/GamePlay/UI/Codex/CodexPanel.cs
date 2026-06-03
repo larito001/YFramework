@@ -35,11 +35,9 @@ public class CodexPanel : UIPageBase
     public Button btnNext;
     public Button btnLast;
 
-    private static readonly Color CardFrame = new Color(0.97f, 0.97f, 1f, 1f);     // 卡片底框
-    private static readonly Color LockedTint = new Color(0.62f, 0.62f, 0.66f, 1f); // 未解锁:灰(「？」文字)
+    // 卡片底框/「？」灰/徽标文字色已烘进 CodexCard 预制体;面板只在绑定时按解锁态切徽标底色。
     private static readonly Color BadgeLocked = new Color(0.60f, 0.58f, 0.68f, 1f); // 未解锁徽标底
     private static readonly Color BadgeUnlocked = new Color(0.56f, 0.78f, 0.30f, 1f); // 已解锁名底
-    private static readonly Color BadgeText = Color.white;
 
     private ConfigManager config;
     private CurrencySystem currency;
@@ -51,6 +49,7 @@ public class CodexPanel : UIPageBase
     private readonly List<Animal> entries = new List<Animal>(); // 全部动物(按 Id 升序),分页基于它
     private readonly List<WeaponModelPreview> previews = new List<WeaponModelPreview>(); // 每张已解锁卡一个 3D 转台
     private int page;
+    private GameObject cardPrefab; // 图鉴卡片预制体(Resources/UI/Codex/CodexCard,CodexCardBuilder 生成)
 
     public override void OnLoad()
     {
@@ -60,6 +59,8 @@ public class CodexPanel : UIPageBase
         eventMgr = GetService<EventMgr>();
         resMgr = GetService<ResMgr>();
         if (coinText != null) font = coinText.font; // 复用外壳中文字体给运行时卡片
+        cardPrefab = resMgr.Load<GameObject>("UI/Codex/CodexCard"); // 卡片预制体
+        if (cardPrefab == null) Debug.LogError("[CodexPanel] 未找到 CodexCard 预制体,请先执行 Tools/UI/Build CodexCard Prefab(或 Build ALL UI Prefabs)。");
 
         if (backBtn != null) backBtn.onClick.AddListener(CloseSelf);
         // 动物图鉴只有一类:隐藏原来的两个分类页签
@@ -161,43 +162,31 @@ public class CodexPanel : UIPageBase
 
     private void BuildCard(Animal entry)
     {
+        if (cardPrefab == null) return;
         bool unlocked = codex != null && codex.IsDiscovered((int)entry.Id);
+        var go = Instantiate(cardPrefab);
+        go.transform.SetParent(grid, false);
+        go.name = $"Card_{entry.Id}";
+        var view = go.GetComponent<CodexCardView>();
+        if (view == null) { Destroy(go); return; }
 
-        // 卡片底框(尺寸由 GridLayoutGroup 决定)
-        var card = new GameObject($"Card_{entry.Id}", typeof(RectTransform), typeof(Image));
-        card.transform.SetParent(grid, false);
-        var bg = card.GetComponent<Image>();
-        bg.color = CardFrame;
-        bg.raycastTarget = false;
-
-        // 上部:已解锁=动物 3D 模型(转台旋转);未解锁=只显示「？」
-        var picGo = NewChild(card.transform, "Pic", out var picRt);
-        picRt.anchorMin = Vector2.zero; picRt.anchorMax = Vector2.one;
-        picRt.offsetMin = new Vector2(16, 120); picRt.offsetMax = new Vector2(-16, -16);
+        // 上部:已解锁=动物 3D 模型(转台旋转,隐藏「？」);未解锁=显示「？」
         if (unlocked && resMgr != null && !string.IsNullOrEmpty(entry.Prefab))
         {
-            var preview = new WeaponModelPreview(picRt, resMgr); // 离屏渲染 + 自转,弱点高亮盒已在内部隐藏
+            view.lockedText.gameObject.SetActive(false);
+            var preview = new WeaponModelPreview(view.picHost, resMgr); // 离屏渲染 + 自转,弱点高亮盒已在内部隐藏
             preview.Show(entry.Prefab);
             preview.SetActive(true);
             previews.Add(preview);
         }
         else
         {
-            NewText(picGo, "？", 56, LockedTint); // 未解锁(或缺模型):只显示问号
+            view.lockedText.gameObject.SetActive(true); // 未解锁(或缺模型):只显示问号
         }
 
         // 底部徽标:已解锁=绿底「积分 X」;未解锁=灰底「未解锁」
-        var badge = NewChild(card.transform, "Badge", out var badgeRt);
-        badgeRt.anchorMin = new Vector2(0.5f, 0); badgeRt.anchorMax = new Vector2(0.5f, 0); badgeRt.pivot = new Vector2(0.5f, 0);
-        badgeRt.anchoredPosition = new Vector2(0, 24); badgeRt.sizeDelta = new Vector2(280, 76);
-        var badgeImg = badge.AddComponent<Image>();
-        badgeImg.color = unlocked ? BadgeUnlocked : BadgeLocked;
-        badgeImg.raycastTarget = false;
-
-        var label = NewChild(badge.transform, "Label", out var labelRt);
-        labelRt.anchorMin = Vector2.zero; labelRt.anchorMax = Vector2.one;
-        labelRt.offsetMin = new Vector2(8, 0); labelRt.offsetMax = new Vector2(-8, 0);
-        NewText(label, unlocked ? $"积分 {entry.Score}" : "未解锁", 30, BadgeText);
+        view.badgeBg.color = unlocked ? BadgeUnlocked : BadgeLocked;
+        view.badgeLabel.text = unlocked ? $"积分 {entry.Score}" : "未解锁";
     }
 
     // ---------------- 工具 ----------------

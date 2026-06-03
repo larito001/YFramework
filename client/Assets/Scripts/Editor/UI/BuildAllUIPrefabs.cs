@@ -15,10 +15,13 @@ public static class BuildAllUIPrefabs
     private static readonly (string name, Action build)[] Builders =
     {
         ("CodexPanel",     CodexPanelBuilder.Build),
+        ("CodexCard",      CodexCardBuilder.Build),  // 图鉴卡片 Item 预制体(CodexPanel 运行时 instantiate)
         ("ConfirmPanel",   ConfirmPanelBuilder.Build),
         ("EquipPanel",     EquipPanelBuilder.Build),
+        ("EquipCard",      EquipCardBuilder.Build),  // 装备卡片 Item 预制体(EquipPanel 运行时 instantiate)
         ("FinishPanel",    FinishPanelBuilder.Build),
         ("LeaderboardPanel", LeaderboardPanelBuilder.Build),
+        ("LeaderboardRow", LeaderboardRowBuilder.Build), // 排行榜行 Item 预制体(LeaderboardPanel 运行时 instantiate)
         ("GameMainPanel",  GameMainPanelBuilder.Build),
         ("LoadingPanel",   LoadingPanelBuilder.Build),
         ("LoginPanel",     LoginPanelBuilder.Build),
@@ -27,8 +30,10 @@ public static class BuildAllUIPrefabs
         ("SaveSlotPanel",  SaveSlotPanelBuilder.Build),
         ("SettingPanel",   SettingPanelBuilder.Build),
         ("ShopPanel",      ShopPanelBuilder.Build),
+        ("ShopCard",       ShopCardBuilder.Build),   // 商店卡片 Item 预制体(ShopPanel 运行时 instantiate)
         ("StartPanel",     StartPanelBuilder.Build),
         ("TaskPanel",      TaskPanelBuilder.Build),
+        ("TaskCard",       TaskCardBuilder.Build),   // 任务卡片 Item 预制体(TaskPanel 运行时 instantiate)
         ("Bag UI",         BagPrefabBuilder.BuildAll),
     };
 

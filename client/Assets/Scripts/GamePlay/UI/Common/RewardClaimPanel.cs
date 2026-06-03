@@ -148,7 +148,7 @@ public class RewardClaimPanel : UIPageBase<RewardClaimParam>
 
     private void BuildCell(RewardEntry r)
     {
-        ResolveDisplay(r, out string name, out string iconPath);
+        ResolveDisplay(r, out string name, out Sprite sprite);
 
         // 格容器:宽高由 LayoutElement 提供给 HorizontalLayoutGroup,内部子节点按锚点贴边布局。
         var cell = NewChild(rewardContainer, $"Reward_{r.kind}_{r.id}", out _);
@@ -161,7 +161,6 @@ public class RewardClaimPanel : UIPageBase<RewardClaimParam>
         iconRt.anchoredPosition = new Vector2(0, -10); iconRt.sizeDelta = new Vector2(180, 180);
         var iconImg = icon.AddComponent<Image>();
         iconImg.raycastTarget = false; iconImg.preserveAspect = true;
-        var sprite = !string.IsNullOrEmpty(iconPath) ? resMgr.Load<Sprite>(iconPath) : null;
         iconImg.sprite = sprite; iconImg.enabled = sprite != null;
 
         // 数量(图标下方,×N)
@@ -177,20 +176,25 @@ public class RewardClaimPanel : UIPageBase<RewardClaimParam>
         NewText(nameGo, name, 26, TextAlignmentOptions.Center, Color.white);
     }
 
-    /// <summary>取奖励显示名与图标路径:道具查背包/item 配表,货币查钱包/currency 配表。</summary>
-    private void ResolveDisplay(RewardEntry r, out string name, out string iconPath)
+    /// <summary>取奖励显示名与图标 Sprite:道具优先用渲染出的 3D 模型侧视快照(与商店/装备卡一致,武器只有 ModelPath
+    /// 也能正确显示),无模型才回退 2D 图标(item.IconPath);货币走 currency 配表 IconPath。</summary>
+    private void ResolveDisplay(RewardEntry r, out string name, out Sprite icon)
     {
         if (r.kind == RewardKind.Currency)
         {
             var type = (CurrencyType)r.id;
             name = currency != null ? currency.DisplayName(type) : type.ToString();
-            iconPath = currency != null ? currency.IconPath(type) : string.Empty;
+            var path = currency != null ? currency.IconPath(type) : string.Empty;
+            icon = !string.IsNullOrEmpty(path) ? resMgr.Load<Sprite>(path) : null;
             return;
         }
 
         var item = bag?.GetItem(r.id);
         name = item != null && !string.IsNullOrEmpty(item.Name) ? item.Name : $"道具{r.id}";
-        iconPath = item != null ? item.IconPath : string.Empty;
+        icon = item != null
+            ? (ModelSnapshotCache.CardSprite(item.ModelPath, resMgr)                          // 优先 3D 模型快照(武器/镜/弹)
+               ?? (!string.IsNullOrEmpty(item.IconPath) ? resMgr.Load<Sprite>(item.IconPath) : null)) // 无模型回退 2D 图标
+            : null;
     }
 
     // ---------------- 工具 ----------------

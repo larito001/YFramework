@@ -45,10 +45,14 @@ public class ShopPanel : UIPageBase
     private WeaponModelPreview modelPreview;  // 模型转台(占原商人头像位,扩大到约 2/5 屏);三类(枪/镜/弹)点卡切换展示
     private int selectedId;                   // 当前展示/选中的物品 id(随分类切换)
     private readonly List<(int id, GameObject card)> previewCards = new(); // 当前分类带模型的卡(就地切换描边,避免点击时重建销毁自身)
+    private GameObject cardPrefab; // 卡片预制体(Resources/UI/Shop/ShopCard,ShopCardBuilder 生成),运行时 instantiate
 
     private const string AdPlacementShopGold = "shop_gold"; // 商店看广告领金币的广告位标识(统计用)
     private const long AdGoldReward = 1000;                 // 看完一次发放的金币
     private bool adBusy;                                    // 广告进行中:防重复点击
+    private DailyAdGoldSystem dailyAdGold;                  // 看广告领金币的每日次数限制(默认 3 次/天)
+    private Button adGoldButton;                            // 看广告按钮(达上限置灰)
+    private TextMeshProUGUI adGoldLabel;                    // 按钮文字
 
     public override void OnLoad()
     {
@@ -58,6 +62,9 @@ public class ShopPanel : UIPageBase
         resMgr = GetService<ResMgr>();
         eventMgr = GetService<EventMgr>();
         if (coinText != null) font = coinText.font; // 复用外壳的中文字体给运行时卡片
+        cardPrefab = resMgr.Load<GameObject>("UI/Shop/ShopCard"); // 卡片预制体
+        if (cardPrefab == null) Debug.LogError("[ShopPanel] 未找到 ShopCard 预制体,请先执行 Tools/UI/Build ShopCard Prefab(或 Build ALL UI Prefabs)。");
+        Context.TryGet<DailyAdGoldSystem>(out dailyAdGold); // 看广告领金币每日次数限制
 
         if (backBtn != null) backBtn.onClick.AddListener(CloseSelf);
         if (tabWeapon != null) tabWeapon.onClick.AddListener(() => SelectCategory(ShopCategory.Weapon));
@@ -112,6 +119,7 @@ public class ShopPanel : UIPageBase
         eventMgr?.Add(YOTOEventType.RefreshLoadout, OnLoadoutChanged); // 购买装备解锁后刷新「已拥有」灰按钮
         SelectCategory(ShopCategory.Weapon);
         RefreshCoin();
+        RefreshAdGoldButton(); // 跨天/重进商店时按今日剩余次数刷新看广告按钮
     }
 
     public override void OnHide()
@@ -177,47 +185,12 @@ public class ShopPanel : UIPageBase
         UpdatePreview();
     }
 
-    private const string SelectFrameName = "SelectFrame";
-
-    /// <summary>给卡片加/去金色选中边框(就地,不销毁卡片)。
-    /// 用 4 条细边拼出"框",而不是 Outline 组件——后者在本项目渲染下会糊成一整片金色底图,达不到"金色框"效果。</summary>
+    /// <summary>就地显隐卡片的金色选中框(预制体里已预置 SelectFrame,SetActive 即可,不再运行时拼边)。</summary>
     private static void ApplyOutline(GameObject card, bool on)
     {
         if (card == null) return;
-        var existing = card.transform.Find(SelectFrameName);
-        if (!on)
-        {
-            if (existing != null) Destroy(existing.gameObject);
-            return;
-        }
-        if (existing != null) return; // 已有边框
-
-        var frameGo = new GameObject(SelectFrameName, typeof(RectTransform));
-        var frame = (RectTransform)frameGo.transform;
-        frame.SetParent(card.transform, false);
-        frame.anchorMin = Vector2.zero; frame.anchorMax = Vector2.one;
-        frame.offsetMin = Vector2.zero; frame.offsetMax = Vector2.zero;
-        frame.SetAsLastSibling(); // 边框画在卡片内容之上
-
-        const float t = 8f; // 边宽
-        var gold = new Color(1f, 0.85f, 0.2f, 1f);
-        AddEdge(frame, new Vector2(0, 1), new Vector2(1, 1), new Vector2(0, -t), new Vector2(0, 0), gold); // 上
-        AddEdge(frame, new Vector2(0, 0), new Vector2(1, 0), new Vector2(0, 0), new Vector2(0, t), gold);  // 下
-        AddEdge(frame, new Vector2(0, 0), new Vector2(0, 1), new Vector2(0, 0), new Vector2(t, 0), gold);  // 左
-        AddEdge(frame, new Vector2(1, 0), new Vector2(1, 1), new Vector2(-t, 0), new Vector2(0, 0), gold); // 右
-    }
-
-    /// <summary>在 frame 下加一条贴边的纯色 Image(选中框的一条边)。</summary>
-    private static void AddEdge(RectTransform parent, Vector2 aMin, Vector2 aMax, Vector2 offMin, Vector2 offMax, Color color)
-    {
-        var go = new GameObject("Edge", typeof(RectTransform), typeof(Image));
-        var rt = (RectTransform)go.transform;
-        rt.SetParent(parent, false);
-        rt.anchorMin = aMin; rt.anchorMax = aMax;
-        rt.offsetMin = offMin; rt.offsetMax = offMax;
-        var img = go.GetComponent<Image>();
-        img.color = color;
-        img.raycastTarget = false;
+        var view = card.GetComponent<ShopCardView>();
+        if (view != null && view.selectFrame != null) view.selectFrame.SetActive(on);
     }
 
     /// <summary>上方转台展示当前分类选中物品的模型(三类通用:枪/镜/弹)。</summary>
@@ -264,11 +237,22 @@ public class ShopPanel : UIPageBase
         var btn = go.GetComponent<Button>();
         btn.targetGraphic = img;
         btn.onClick.AddListener(OnAdGoldClick);
+        adGoldButton = btn;
 
         var labelGo = NewChild(rt, "Label", out var lrt);
         lrt.anchorMin = Vector2.zero; lrt.anchorMax = Vector2.one;
         lrt.offsetMin = Vector2.zero; lrt.offsetMax = Vector2.zero;
         NewText(labelGo, $"看广告 +{AdGoldReward}", 26, TextAlignmentOptions.Center, Color.white);
+        adGoldLabel = labelGo.GetComponent<TextMeshProUGUI>();
+        RefreshAdGoldButton(); // 按今日剩余次数置态
+    }
+
+    /// <summary>按今日剩余次数刷新看广告按钮:还能看=金色可点「看广告 +N」;用完=置灰「今日已领完」。</summary>
+    private void RefreshAdGoldButton()
+    {
+        bool can = dailyAdGold == null || dailyAdGold.CanWatch; // 无系统(理论不会)时不限制
+        if (adGoldButton != null) adGoldButton.interactable = can;
+        if (adGoldLabel != null) adGoldLabel.text = can ? $"看广告 +{AdGoldReward}" : "今日已领完";
     }
 
     /// <summary>点「看广告 +1000」:请求激励广告,看完(rewarded=true)发金币 + 计入看广告任务 + 弹奖励;
@@ -276,6 +260,12 @@ public class ShopPanel : UIPageBase
     private void OnAdGoldClick()
     {
         if (adBusy) return;
+        if (dailyAdGold != null && !dailyAdGold.CanWatch) // 今日次数已用完
+        {
+            FlyText($"今日看广告次数已用完({dailyAdGold.DailyLimit}次)");
+            RefreshAdGoldButton();
+            return;
+        }
         if (!Context.TryGet<IAdService>(out var ad))
         {
             FlyText("广告未接入");
@@ -285,11 +275,13 @@ public class ShopPanel : UIPageBase
         ad.ShowRewardedAd(AdPlacementShopGold, rewarded =>
         {
             adBusy = false;
-            if (!rewarded || currency == null) return; // 未看完 / 无填充:不发奖
+            if (!rewarded || currency == null) return; // 未看完 / 无填充:不发奖、不计次
             currency.Add(CurrencyType.Gold, AdGoldReward);
             currency.Save(); // 关键节点主动写盘
+            dailyAdGold?.Record(); // 看完才计一次今日次数(立即落盘→本地+云)
             Context.TryGet<TaskProgressSystem>(out var tp); tp?.AddAdWatch(1); // 计入"观看广告"类任务
             ShowReward("观看奖励", RewardEntry.Currency(CurrencyType.Gold, AdGoldReward));
+            RefreshAdGoldButton(); // 更新剩余次数(用完即置灰)
         });
     }
 
@@ -312,75 +304,52 @@ public class ShopPanel : UIPageBase
 
     private void BuildCard(Item item)
     {
-        // 卡片容器:中性卡底(不再整卡点击购买;改为卡内「购买」按钮 → 确认弹窗 → 购买)。
-        // 各区块按 cell(550×560)从下往上排,文本带高放大到能容下 ×2 字号(否则名称/价格会被裁掉看不见)。
-        var card = new GameObject($"Card_{item.Id}", typeof(RectTransform), typeof(Image));
-        card.transform.SetParent(grid, false); // 尺寸由 GridLayoutGroup 决定
-        var bg = card.GetComponent<Image>();
-        bg.color = new Color(0.18f, 0.20f, 0.25f, 1f);
-        bg.raycastTarget = false;
+        if (cardPrefab == null) return;
+        var go = Instantiate(cardPrefab);
+        go.transform.SetParent(grid, false); // 尺寸由 GridLayoutGroup 决定
+        go.name = $"Card_{item.Id}";
+        var view = go.GetComponent<ShopCardView>();
+        if (view == null) { Destroy(go); return; }
 
-        // 任意带模型的卡(枪/镜/弹):整卡可点 = 选中它并在上方展示其模型(底部「购买」按钮在上层,各点各的)
-        if (!string.IsNullOrEmpty(item.ModelPath))
+        // 图片:渲染出的 3D 道具侧视快照(全局共享缓存,跨面板复用),无模型回退 2D 图标。预制体里 pic 已 preserveAspect。
+        var sprite = ModelSnapshotCache.CardSprite(item.ModelPath, resMgr)
+                     ?? (!string.IsNullOrEmpty(item.IconPath) ? resMgr.Load<Sprite>(item.IconPath) : null);
+        view.pic.sprite = sprite; view.pic.enabled = sprite != null;
+
+        // 名称 / 价格
+        view.nameText.text = item.Name;
+        string priceDesc = $"{currency.DisplayName((CurrencyType)item.PriceType)} {item.Price}";
+        view.priceText.text = priceDesc;
+
+        // 带模型的卡(枪/镜/弹):整卡可点 = 选中并在上方展示模型;金色选中框就地显隐
+        bool hasModel = !string.IsNullOrEmpty(item.ModelPath);
+        view.bg.raycastTarget = hasModel;
+        view.cardButton.enabled = hasModel;
+        if (hasModel)
         {
-            bg.raycastTarget = true;
-            var cardBtn = card.AddComponent<Button>();
-            cardBtn.transition = Selectable.Transition.None; // 不改卡底色
-            cardBtn.targetGraphic = bg;
             int sid = (int)item.Id;
-            cardBtn.onClick.AddListener(() => SelectPreview(sid));
-
-            previewCards.Add((sid, card));
-            ApplyOutline(card, sid == selectedId); // 当前选中:金色边框
+            view.cardButton.onClick.AddListener(() => SelectPreview(sid));
+            previewCards.Add((sid, go));
+            view.selectFrame.SetActive(sid == selectedId);
+        }
+        else
+        {
+            view.selectFrame.SetActive(false);
         }
 
-        // 图片(上部,占大半:y 270 → 顶):与装备页一致,用渲染出的 3D 道具侧视快照(全局共享缓存,跨面板复用已渲图),
-        // 无模型才回退 2D 图标。统一走 Image + preserveAspect:正方形快照按比例居中,不被卡片图框拉伸。
-        var pic = NewChild(card.transform, "Pic", out var picRt);
-        picRt.anchorMin = Vector2.zero; picRt.anchorMax = Vector2.one;
-        picRt.offsetMin = new Vector2(20, 270); picRt.offsetMax = new Vector2(-20, -20);
-        var picImg = pic.AddComponent<Image>();
-        picImg.raycastTarget = false; picImg.preserveAspect = true;
-        var sprite = ModelSnapshotCache.CardSprite(item.ModelPath, resMgr)            // 全局共享缓存复用的侧视快照
-                     ?? (!string.IsNullOrEmpty(item.IconPath) ? resMgr.Load<Sprite>(item.IconPath) : null); // 无模型回退 2D 图标
-        picImg.sprite = sprite; picImg.enabled = sprite != null;
-
-        // 名称(y 196..266,带高 70 容下 30pt×2)
-        var name = NewChild(card.transform, "Name", out var nameRt);
-        nameRt.anchorMin = new Vector2(0, 0); nameRt.anchorMax = new Vector2(1, 0); nameRt.pivot = new Vector2(0.5f, 0);
-        nameRt.offsetMin = new Vector2(6, 196); nameRt.offsetMax = new Vector2(-6, 266);
-        NewText(name, item.Name, 30, TextAlignmentOptions.Center, Color.white);
-
-        // 价格(y 130..190,带高 60 容下 26pt×2,带货币色)
-        var price = NewChild(card.transform, "Price", out var priceRt);
-        priceRt.anchorMin = new Vector2(0, 0); priceRt.anchorMax = new Vector2(1, 0); priceRt.pivot = new Vector2(0.5f, 0);
-        priceRt.offsetMin = new Vector2(6, 130); priceRt.offsetMax = new Vector2(-6, 190);
-        string priceDesc = $"{currency.DisplayName((CurrencyType)item.PriceType)} {item.Price}";
-        NewText(price, priceDesc, 26, TextAlignmentOptions.Center, new Color(1f, 0.83f, 0.47f, 1f));
-
-        // 购买按钮(底部 y 20..115):已拥有=灰「已拥有」/ 买得起=绿 / 买不起=灰。始终可点——给对应飘字反馈。
+        // 购买按钮:已拥有=灰「已拥有」/ 买得起=绿 / 买不起=灰。始终可点,给对应飘字反馈。
         bool owned = loadout != null && item.ShopCategory != 0 && loadout.IsOwned((int)item.Id);
         bool affordable = !owned && shop.CanAfford(item);
-        var buyGo = NewChild(card.transform, "Buy", out var buyRt);
-        buyRt.anchorMin = new Vector2(0, 0); buyRt.anchorMax = new Vector2(1, 0); buyRt.pivot = new Vector2(0.5f, 0);
-        buyRt.offsetMin = new Vector2(20, 20); buyRt.offsetMax = new Vector2(-20, 115);
-        var buyImg = buyGo.AddComponent<Image>();
-        buyImg.color = affordable ? Affordable : Unaffordable; // 已拥有/买不起都用灰
-        var buyBtn = buyGo.AddComponent<Button>();
-        buyBtn.targetGraphic = buyImg;
-
-        var label = NewChild(buyGo.transform, "Label", out var labelRt);
-        labelRt.anchorMin = Vector2.zero; labelRt.anchorMax = Vector2.one;
-        labelRt.offsetMin = Vector2.zero; labelRt.offsetMax = Vector2.zero;
-        NewText(label, owned ? "已拥有" : "购买", 28, TextAlignmentOptions.Center, Color.white);
+        view.buyBg.color = affordable ? Affordable : Unaffordable;
+        view.buyLabel.text = owned ? "已拥有" : "购买";
 
         int id = (int)item.Id;            // 闭包捕获副本
         string itemName = item.Name;
         var priceType = (CurrencyType)item.PriceType;
         if (owned)
-            buyBtn.onClick.AddListener(() => FlyText($"{itemName}已拥有"));
+            view.buyButton.onClick.AddListener(() => FlyText($"{itemName}已拥有"));
         else
-            buyBtn.onClick.AddListener(() => OnBuyClick(id, itemName, priceDesc, priceType, affordable));
+            view.buyButton.onClick.AddListener(() => OnBuyClick(id, itemName, priceDesc, priceType, affordable));
     }
 
     /// <summary>
