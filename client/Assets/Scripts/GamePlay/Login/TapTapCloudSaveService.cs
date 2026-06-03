@@ -58,14 +58,14 @@ namespace YOTO
 
         // ---------------- 上传 ----------------
 
-        public void Upload(Action<bool, string> onComplete)
+        public void Upload(CloudSaveMeta meta, Action<bool, string> onComplete)
         {
 #if TAPTAP_CLOUDSAVE
             if (login == null || !login.IsLoggedIn) { onComplete?.Invoke(false, "未登录,无法云存档"); return; }
             int slot = store != null ? store.ActiveSlot : 0;
             if (slot <= 0) { onComplete?.Invoke(false, "无激活存档槽,无法上传"); return; }
             // 先把内存进度落盘,再打包上传,确保上传的是最新进度。
-            store.SaveAll(() => UploadAsync(slot, onComplete));
+            store.SaveAll(() => UploadAsync(slot, meta ?? new CloudSaveMeta(), onComplete));
 #elif UNITY_EDITOR
             int slot = store != null ? store.ActiveSlot : 0;
             if (slot > 0) { CloudArchivePacker.PackSlot(slot, out var n); Debug.Log($"[CloudSave] (编辑器模拟) 打包槽 {slot} 共 {n} 个文件,模拟上传成功(未接入 SDK)。"); }
@@ -122,7 +122,7 @@ namespace YOTO
 #if TAPTAP_CLOUDSAVE
         // async void:把 SDK 的 Task API 收进内部,对外仍是 fire-and-forget + 回调(不泄漏 Task)。
 
-        private async void UploadAsync(int slot, Action<bool, string> cb)
+        private async void UploadAsync(int slot, CloudSaveMeta saveMeta, Action<bool, string> cb)
         {
             try
             {
@@ -130,8 +130,10 @@ namespace YOTO
                 if (fileCount == 0) { cb?.Invoke(false, "该存档槽暂无进度可上传"); return; }
 
                 string name = CloudArchivePacker.ArchiveName(slot);
-                // ArchiveMetadata(归档名[英文数字下划线连字符], 描述[非空], 附加信息, 游玩时长秒)
-                var meta = new ArchiveMetadata(name, $"存档槽 {slot}", string.Empty, 0);
+                // 把对账元数据(版本号 + 展示快照)序列化进 extra;playtime 单独占 SDK 的 playtime 字段。
+                string extra = JsonUtility.ToJson(saveMeta);
+                // ArchiveMetadata(归档名[英文数字下划线连字符], 描述[非空], 附加信息(extra), 游玩时长秒)
+                var meta = new ArchiveMetadata(name, $"存档槽 {slot}", extra, (int)saveMeta.playtimeSeconds);
 
                 // 已有同名归档则更新,否则新建(避免重复创建多份)。
                 var existing = await FindArchiveByName(name);
@@ -214,6 +216,13 @@ namespace YOTO
 
         private static CloudArchiveInfo Convert(ArchiveData a)
         {
+            // 解析 extra 里的对账元数据(版本号 + 展示快照)。旧归档 extra 为空/非法 → version 视为 0(走云端优先迁移)。
+            CloudSaveMeta sm = null;
+            if (!string.IsNullOrEmpty(a.Extra))
+            {
+                try { sm = JsonUtility.FromJson<CloudSaveMeta>(a.Extra); }
+                catch (Exception e) { Debug.LogWarning($"[CloudSave] 归档 extra 解析失败,按 version=0 处理:{e.Message}"); }
+            }
             return new CloudArchiveInfo
             {
                 uuid = a.Uuid,
@@ -221,8 +230,10 @@ namespace YOTO
                 name = a.Name,
                 summary = a.Summary,
                 slotId = CloudArchivePacker.ParseSlotId(a.Name),
-                savedUnix = a.ModifiedTime,    // 云端最后修改时间(用于本地/云"谁更新"对比)
-                playtimeSeconds = a.Playtime,  // SDK 为 int 秒,赋给 long 字段自动扩宽
+                savedUnix = a.ModifiedTime,    // 云端最后修改时间(展示用)
+                playtimeSeconds = sm != null ? sm.playtimeSeconds : a.Playtime,
+                version = sm != null ? sm.version : 0,
+                desc = sm != null ? sm.desc : null,
             };
         }
 

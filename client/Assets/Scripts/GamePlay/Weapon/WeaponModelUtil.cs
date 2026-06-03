@@ -54,9 +54,11 @@ public static class WeaponModelUtil
                 var src = srcs[i];
                 if (src != null)
                 {
-                    if (src.mainTexture != null) m.mainTexture = src.mainTexture;
+                    // 读属性前先判存在,否则对缺该属性的 shader(如 Hunting/WeakPointHighlight 无 _MainTex/_Color)
+                    // mainTexture/color 的 getter 会逐个刷 "doesn't have a texture property '_MainTex'" 报错。
+                    if (src.HasProperty("_MainTex") && src.mainTexture != null) m.mainTexture = src.mainTexture;
                     else if (src.HasProperty("_BaseColor")) m.color = src.GetColor("_BaseColor");
-                    else m.color = src.color;
+                    else if (src.HasProperty("_Color")) m.color = src.color;
                 }
                 dsts[i] = m;
             }

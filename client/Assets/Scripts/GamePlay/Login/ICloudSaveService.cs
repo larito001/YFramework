@@ -16,8 +16,9 @@ namespace YOTO
         /// <summary>云存档当前是否可用(SDK 已接入 + 已登录)。</summary>
         bool IsAvailable { get; }
 
-        /// <summary>把当前激活存档槽的进度打包上传(已存在则更新,否则新建)。先 SaveAll 落盘再上传。</summary>
-        void Upload(Action<bool, string> onComplete);
+        /// <summary>把当前激活存档槽的进度打包上传(已存在则更新,否则新建)。先 SaveAll 落盘再上传。
+        /// <paramref name="meta"/> 写入归档 extra:version 供对账,desc/playtime 供冲突弹窗展示。</summary>
+        void Upload(CloudSaveMeta meta, Action<bool, string> onComplete);
 
         /// <summary>拉取云端归档列表。成功回 (true, 列表);失败回 (false, null)。</summary>
         void GetList(Action<bool, List<CloudArchiveInfo>> onComplete);

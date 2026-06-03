@@ -44,6 +44,8 @@ namespace YOTO
         public string name;        // 玩家自定义名(留空则 UI 用"存档{序号}")
         public long createdUnix;   // 创建时间(Unix 秒)
         public long lastPlayedUnix; // 最后游玩/写档时间(Unix 秒)
+        public long version;            // 存档代数:每次进度落盘 +1。云存档对账用(主流不信时钟,用版本号判新旧)
+        public long lastSyncedVersion;  // 上次与云端同步成功时的 version。0=本槽从未与云端同步过(全新/迁移)
     }
 
     /// <summary>存档槽清单。按 Settings 全局存盘(键 <c>__saveslots</c>),记录所有槽 + 下一个可用 id。</summary>
@@ -398,15 +400,46 @@ namespace YOTO
             return false;
         }
 
-        /// <summary>某份进度存档刚写盘:更新激活槽的"最后游玩时间"(同一秒内多次只持久化一次)。</summary>
+        /// <summary>某份进度存档刚写盘:激活槽 version+1(云存档对账用)并更新"最后游玩时间"。
+        /// 不再按秒去重——version 必须随每次进度落盘单调递增,绝对值无所谓,只看相对大小。</summary>
         internal void NotifyProgressSaved(SaveCategory category)
         {
             if (category != SaveCategory.Progress || _activeSlot <= 0 || _manifest == null) return;
             var info = FindSlot(_activeSlot);
             if (info == null) return;
-            long now = NowUnix();
-            if (info.lastPlayedUnix == now) return;
-            info.lastPlayedUnix = now;
+            info.version++;
+            info.lastPlayedUnix = NowUnix();
+            PersistManifest();
+        }
+
+        // ---------------- 云存档对账:版本号读写(供 CloudSaveSyncService 用) ----------------
+
+        /// <summary>某槽当前本地存档代数(取不到为 0)。</summary>
+        public long GetSlotVersion(int slotId) => FindSlot(slotId)?.version ?? 0;
+
+        /// <summary>某槽上次与云端同步成功时的代数(0=从未同步,取不到也为 0)。</summary>
+        public long GetSlotSyncedVersion(int slotId) => FindSlot(slotId)?.lastSyncedVersion ?? 0;
+
+        /// <summary>某槽的最后游玩/写档时间(Unix 秒;取不到为 0)。冲突弹窗展示本地存档时间用。</summary>
+        public long GetSlotLastPlayed(int slotId) => FindSlot(slotId)?.lastPlayedUnix ?? 0;
+
+        /// <summary>上传成功后调用:把"上次同步代数"推进到刚上传的版本(本地 version 不变)。</summary>
+        public void MarkSlotSynced(int slotId, long syncedVersion)
+        {
+            var info = FindSlot(slotId);
+            if (info == null) return;
+            info.lastSyncedVersion = syncedVersion;
+            PersistManifest();
+        }
+
+        /// <summary>下载还原成功后调用:本地数据已变成云端那份,故 version 与 lastSyncedVersion 都对齐到云端代数。</summary>
+        public void SetSlotSyncState(int slotId, long version, long syncedVersion)
+        {
+            var info = FindSlot(slotId);
+            if (info == null) return;
+            info.version = version;
+            info.lastSyncedVersion = syncedVersion;
+            info.lastPlayedUnix = NowUnix();
             PersistManifest();
         }
 

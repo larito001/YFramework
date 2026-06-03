@@ -154,6 +154,11 @@ public static partial class GameBootstrapper
         var store = ctx.Get<StoreMgr>();
         var ui = ctx.Get<UIMgr>();
 
+        // 云存档冲突弹窗 / 上传快照里的"本地进度描述"——组装层注入,使 CloudSaveSyncService 不直接依赖游戏系统。
+        // 同步服务仅 Android 真机注册;编辑器/PC 取不到时自动跳过。需要更丰富可在此拼接(关卡/收藏等)。
+        if (ctx.TryGet<CloudSaveSyncService>(out var cloudSync))
+            cloudSync.DescribeLocalProgress = () => $"金币 {ctx.Get<CurrencySystem>().Get(CurrencyType.Gold)}";
+
         // 首次加载读档期间先盖一层加载页(RayCast 层,挡住输入与种子值闪烁),读/写完成后再进大厅。
         // 加载页"最短展示时长"由 UIMgr 统一兜底(boot 与场景切换都生效),这里读完直接进大厅即可。
         ui.ShowLoading();
@@ -163,6 +168,10 @@ public static partial class GameBootstrapper
             {
                 // 全新存档:立刻建槽并把当前种子值落盘,整个大厅会话都读写这个槽(避免大厅内改动落到孤儿全局键)。
                 store.CreateSlot();
+                // 告知云同步"本地无存档、本次新建了种子槽"(全新安装/重装/清数据):登录时若云端有归档(本槽 synced=0),
+                // 走"云端权威直接下载还原";区别于老玩家升级迁移(本地有旧存档)那种要弹窗让玩家选的情况。
+                // 同步服务仅 Android 真机注册,TryGet 取不到时(编辑器/PC)自动跳过。
+                if (ctx.TryGet<CloudSaveSyncService>(out var sync)) sync.MarkLocalFreshThisBoot();
                 store.SaveAll(() => { OnLobbyReady(ctx); GateLoginThenLobby(ctx, ui); }); // 种子值落盘后过登录门再进大厅
             }
             else

@@ -281,13 +281,15 @@ public class ShopPanel : UIPageBase
             ApplyOutline(card, sid == selectedId); // 当前选中:金色边框
         }
 
-        // 图片(上部,占大半:y 270 → 顶)
+        // 图片(上部,占大半:y 270 → 顶):与装备页一致,用渲染出的 3D 道具侧视快照(全局共享缓存,跨面板复用已渲图),
+        // 无模型才回退 2D 图标。统一走 Image + preserveAspect:正方形快照按比例居中,不被卡片图框拉伸。
         var pic = NewChild(card.transform, "Pic", out var picRt);
         picRt.anchorMin = Vector2.zero; picRt.anchorMax = Vector2.one;
         picRt.offsetMin = new Vector2(20, 270); picRt.offsetMax = new Vector2(-20, -20);
         var picImg = pic.AddComponent<Image>();
         picImg.raycastTarget = false; picImg.preserveAspect = true;
-        var sprite = !string.IsNullOrEmpty(item.IconPath) ? resMgr.Load<Sprite>(item.IconPath) : null;
+        var sprite = ModelSnapshotCache.CardSprite(item.ModelPath, resMgr)            // 全局共享缓存复用的侧视快照
+                     ?? (!string.IsNullOrEmpty(item.IconPath) ? resMgr.Load<Sprite>(item.IconPath) : null); // 无模型回退 2D 图标
         picImg.sprite = sprite; picImg.enabled = sprite != null;
 
         // 名称(y 196..266,带高 70 容下 30pt×2)

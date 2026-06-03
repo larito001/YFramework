@@ -42,10 +42,8 @@ public class EquipPanel : UIPageBase
     private bool busy;
     private bool loadoutDirty; // 装备变化标记:延到 LateUpdate 重建,避免在卡片自身 onClick 里把自己 Destroy 掉破坏 EventSystem
 
-    private static readonly Color SnapshotBg = new Color(0.12f, 0.13f, 0.16f, 1f); // 卡片快照底色(不透明,不依赖 URP 写 alpha)
-
     private WeaponModelPreview weaponPreview; // 底部武器模型转台(展示当前选中出战的枪)
-    private readonly Dictionary<string, Texture2D> snapshotCache = new(); // modelPath → 侧视快照,按打开会话缓存复用(避免每次重建/选中都重渲)
+    // 卡片侧视快照已移到全局共享缓存 ModelSnapshotCache(进程级常驻),与商城页等共用同一份,渲过即复用。
 
     public override void OnLoad()
     {
@@ -91,23 +89,7 @@ public class EquipPanel : UIPageBase
         eventMgr?.Remove(YOTOEventType.RefreshLoadout, MarkLoadoutDirty);
         eventMgr?.Remove(YOTOEventType.RefreshCurrency, RefreshCoin);
         weaponPreview?.SetActive(false);
-        ClearSnapshotCache(); // 收起时释放快照贴图(下次打开重建一次)
-    }
-
-    private void ClearSnapshotCache()
-    {
-        foreach (var t in snapshotCache.Values) if (t != null) Destroy(t);
-        snapshotCache.Clear();
-    }
-
-    /// <summary>取该模型的侧视快照:命中缓存直接复用,未命中才渲染一次并缓存(失败 null 也缓存,避免反复重试)。</summary>
-    private Texture2D GetSnapshot(string modelPath)
-    {
-        if (string.IsNullOrEmpty(modelPath) || resMgr == null) return null;
-        if (snapshotCache.TryGetValue(modelPath, out var tex)) return tex;
-        tex = ModelSnapshot.Capture(modelPath, resMgr, 256, sideView: true, bg: SnapshotBg);
-        snapshotCache[modelPath] = tex;
-        return tex;
+        // 快照不在此释放:已移到全局共享缓存 ModelSnapshotCache(进程级常驻),装备页/商城页跨面板复用,渲过即留。
     }
 
     /// <summary>装备变化先打标记,延到 LateUpdate 再重建——避免点击卡片时同步重建把刚点的卡销毁、破坏 EventSystem。</summary>
@@ -187,23 +169,16 @@ public class EquipPanel : UIPageBase
             ol.effectDistance = new Vector2(6, 6);
         }
 
-        // 图片(上部):用不旋转的 3D 侧视图代替 icon(无模型才回退 2D 图标)
+        // 图片(上部):用不旋转的 3D 侧视快照代替 icon(无模型才回退 2D 图标)。
+        // 统一走 Image + preserveAspect:正方形快照按比例居中,不被卡片图框拉伸。
         var pic = NewChild(card.transform, "Pic", out var picRt);
         picRt.anchorMin = Vector2.zero; picRt.anchorMax = Vector2.one;
         picRt.offsetMin = new Vector2(16, 90); picRt.offsetMax = new Vector2(-16, -16);
-        var tex = GetSnapshot(item.ModelPath); // 缓存复用的侧视快照
-        if (tex != null)
-        {
-            var raw = pic.AddComponent<RawImage>(); // 静态侧视快照(无常驻相机)
-            raw.texture = tex; raw.raycastTarget = false;
-        }
-        else
-        {
-            var picImg = pic.AddComponent<Image>(); // 无模型才回退 2D 图标
-            picImg.raycastTarget = false; picImg.preserveAspect = true;
-            var sprite = !string.IsNullOrEmpty(item.IconPath) ? resMgr.Load<Sprite>(item.IconPath) : null;
-            picImg.sprite = sprite; picImg.enabled = sprite != null;
-        }
+        var picImg = pic.AddComponent<Image>();
+        picImg.raycastTarget = false; picImg.preserveAspect = true;
+        var sprite = ModelSnapshotCache.CardSprite(item.ModelPath, resMgr)            // 全局共享缓存复用的侧视快照
+                     ?? (!string.IsNullOrEmpty(item.IconPath) ? resMgr.Load<Sprite>(item.IconPath) : null); // 无模型回退 2D 图标
+        picImg.sprite = sprite; picImg.enabled = sprite != null;
 
         // 名称(底部)
         var name = NewChild(card.transform, "Name", out var nameRt);

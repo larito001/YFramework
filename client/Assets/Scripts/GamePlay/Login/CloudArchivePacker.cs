@@ -18,6 +18,13 @@ namespace YOTO
         /// <summary>云归档名 ↔ 本地槽 id 的约定前缀。</summary>
         private const string NamePrefix = "slot_";
 
+        /// <summary>前导 BOM 字符 U+FEFF(下载端剥它用,见 <see cref="UnpackBytes"/>)。这里是字面 BOM 字符,等价于 '﻿'。</summary>
+        private const char Bom = '﻿';
+
+        /// <summary>UTF-8 无 BOM 编码。务必用它写归档:System.Text.Encoding.UTF8 会写 BOM(EF BB BF),
+        /// 上传后下载端 Encoding.UTF8.GetString 会得到前导 BOM 字符,JsonUtility 不跳过 → "Invalid value"。</summary>
+        private static readonly UTF8Encoding Utf8NoBom = new UTF8Encoding(false);
+
         /// <summary>本地某槽进度文件的文件名前缀(与 <see cref="StoreMgr"/> 的 SlotKey 格式一致)。</summary>
         private static string FilePrefix(int slotId) => $"slot{slotId}_";
 
@@ -53,7 +60,8 @@ namespace YOTO
             fileCount = blob.files.Count;
 
             string outPath = Path.Combine(dir, $"__cloud_pack_slot{slotId}.dat");
-            File.WriteAllText(outPath, JsonUtility.ToJson(blob), Encoding.UTF8);
+            // 无 BOM 写出,避免上传带 BOM、下载端解析失败(见 Utf8NoBom 注释)。
+            File.WriteAllText(outPath, JsonUtility.ToJson(blob), Utf8NoBom);
             return outPath;
         }
 
@@ -61,6 +69,7 @@ namespace YOTO
         public static int Unpack(string archiveFilePath)
         {
             if (string.IsNullOrEmpty(archiveFilePath) || !File.Exists(archiveFilePath)) return 0;
+            // File.ReadAllText 会自动识别并跳过 BOM,这里无需手动处理。
             var blob = JsonUtility.FromJson<ArchiveBlob>(File.ReadAllText(archiveFilePath, Encoding.UTF8));
             return UnpackBlob(blob);
         }
@@ -69,7 +78,10 @@ namespace YOTO
         public static int UnpackBytes(byte[] data)
         {
             if (data == null || data.Length == 0) return 0;
-            var blob = JsonUtility.FromJson<ArchiveBlob>(Encoding.UTF8.GetString(data));
+            // 下载回来的字节可能带 UTF-8 BOM(历史上传用 Encoding.UTF8 写文件所致):解码后是前导 BOM 字符,
+            // JsonUtility 不跳过它 → "JSON parse error: Invalid value"。手动剥掉前导 BOM 再解析(兼容旧归档)。
+            string json = Encoding.UTF8.GetString(data).TrimStart(Bom);
+            var blob = JsonUtility.FromJson<ArchiveBlob>(json);
             return UnpackBlob(blob);
         }
 
@@ -83,7 +95,7 @@ namespace YOTO
                 if (string.IsNullOrEmpty(e.name)) continue;
                 // 只允许写回纯文件名(防归档内构造路径穿越);忽略带目录分隔符的条目。
                 if (e.name.IndexOf('/') >= 0 || e.name.IndexOf('\\') >= 0) continue;
-                File.WriteAllText(Path.Combine(dir, e.name), e.content ?? string.Empty, Encoding.UTF8);
+                File.WriteAllText(Path.Combine(dir, e.name), e.content ?? string.Empty, Utf8NoBom);
                 n++;
             }
             return n;
