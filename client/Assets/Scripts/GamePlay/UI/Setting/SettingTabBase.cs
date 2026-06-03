@@ -46,7 +46,9 @@ public abstract class SettingTabBase : MonoBehaviour
     private void SetupRoot()
     {
         // 容器做成 ScrollRect:内容超出可视区(如按键 8 行)时纵向滚动,不会向下溢出压到返回按钮。
-        var scroll = gameObject.AddComponent<ScrollRect>();
+        // 防御:已有则取(避免重复 Add 返回 null 引发 NPE);正常路径是 OnShow 激活后才进来。
+        var scroll = gameObject.GetComponent<ScrollRect>();
+        if (scroll == null) scroll = gameObject.AddComponent<ScrollRect>();
         scroll.horizontal = false;
         scroll.vertical = true;
         scroll.movementType = ScrollRect.MovementType.Clamped;

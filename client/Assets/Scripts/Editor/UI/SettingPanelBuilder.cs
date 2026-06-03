@@ -52,6 +52,9 @@ public static class SettingPanelBuilder
         soundRt.offsetMax = new Vector2(-40, -160); // 上留标题
         var tab = soundTab.AddComponent<SoundSettingsTab>();
         tab.font = _font;
+        // 默认关闭:由 SettingPanel.OnShow 的 soundTab.SetActive(true) 触发 OnEnable→构建控件。
+        // 否则预制体激活态下 Instantiate 时 OnEnable 在对象构造中就跑,SetupRoot 的 AddComponent 会返回 null → NPE。
+        soundTab.SetActive(false);
 
         // ---------- 退出登录(返回上方,醒目红)----------
         var logoutBtn = BuildButton("LogoutBtn", "退出登录", window.transform,

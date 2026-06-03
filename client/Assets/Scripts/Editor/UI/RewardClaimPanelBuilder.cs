@@ -36,10 +36,10 @@ public static class RewardClaimPanelBuilder
         cg.blocksRaycasts = false; cg.interactable = false;
         root.AddComponent<YOTOUIShow>();
 
-        // 窗口(居中横条,宽度容下多枚奖励格)
+        // 窗口(居中,大小同设置窗口 1400×1900)
         var window = NewUI("Window", out var winRt, root.transform);
         winRt.anchorMin = winRt.anchorMax = winRt.pivot = new Vector2(0.5f, 0.5f);
-        winRt.sizeDelta = new Vector2(1200, 560);
+        winRt.sizeDelta = new Vector2(1400, 1900);
         var winImg = window.AddComponent<Image>();
         winImg.color = new Color(0.13f, 0.14f, 0.17f, 0.97f);
         winImg.raycastTarget = false;
@@ -48,12 +48,12 @@ public static class RewardClaimPanelBuilder
         var titleGo = NewUI("Title", out var titleRt, window.transform);
         titleRt.anchorMin = new Vector2(0, 1); titleRt.anchorMax = new Vector2(1, 1); titleRt.pivot = new Vector2(0.5f, 1);
         titleRt.anchoredPosition = new Vector2(0, -30); titleRt.sizeDelta = new Vector2(-60, 110);
-        var titleText = NewText(titleGo, "获得奖励", 40, TextAlignmentOptions.Center);
+        var titleText = NewText(titleGo, "获得奖励", 60, TextAlignmentOptions.Center);
 
-        // 奖励容器(标题下方,横排居中;运行时由面板填入奖励格)
+        // 奖励容器(标题下方,横排居中;运行时由面板填入奖励格,左→右排列)
         var containerGo = NewUI("RewardContainer", out var containerRt, window.transform);
         containerRt.anchorMin = new Vector2(0, 0); containerRt.anchorMax = new Vector2(1, 1);
-        containerRt.offsetMin = new Vector2(40, 40); containerRt.offsetMax = new Vector2(-40, -150);
+        containerRt.offsetMin = new Vector2(40, 40); containerRt.offsetMax = new Vector2(-40, -170);
         var hlg = containerGo.AddComponent<HorizontalLayoutGroup>();
         hlg.spacing = 20;
         hlg.childAlignment = TextAnchor.MiddleCenter;
@@ -66,6 +66,9 @@ public static class RewardClaimPanelBuilder
         panel.uiType = UIEnum.RewardClaimPanel;
         panel.titleText = titleText;
         panel.rewardContainer = containerRt;
+        // 货币图标烘入(与各面板资源胶囊同款,Art 目录、非 Resources → 走序列化引用,运行时直接用)。
+        panel.goldIcon = AssetDatabase.LoadAssetAtPath<Sprite>(UICurrencyPill.IconGold);
+        panel.energyIcon = AssetDatabase.LoadAssetAtPath<Sprite>(UICurrencyPill.IconEnergy);
 
         PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
         Object.DestroyImmediate(root);

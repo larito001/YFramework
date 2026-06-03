@@ -66,6 +66,10 @@ public class RewardClaimPanel : UIPageBase<RewardClaimParam>
     public TextMeshProUGUI titleText;
     public RectTransform rewardContainer; // HorizontalLayoutGroup 容器,运行时填奖励格
 
+    [Header("货币图标(由 Builder 烘入,运行时按币种取;货币图标在 Art 目录非 Resources,故走序列化引用)")]
+    public Sprite goldIcon;
+    public Sprite energyIcon;
+
     private BagSystem bag;
     private CurrencySystem currency;
     private ResMgr resMgr;
@@ -150,30 +154,32 @@ public class RewardClaimPanel : UIPageBase<RewardClaimParam>
     {
         ResolveDisplay(r, out string name, out Sprite sprite);
 
-        // 格容器:宽高由 LayoutElement 提供给 HorizontalLayoutGroup,内部子节点按锚点贴边布局。
+        // 格容器:宽高由 LayoutElement 提供给 HorizontalLayoutGroup,内部子节点按锚点贴边布局。放大以配合更大的窗口。
         var cell = NewChild(rewardContainer, $"Reward_{r.kind}_{r.id}", out _);
         var le = cell.AddComponent<LayoutElement>();
-        le.preferredWidth = 220; le.preferredHeight = 300;
+        le.preferredWidth = 460; le.preferredHeight = 640;
 
-        // 图标(上部方形区)
+        // 图标(上部方形区)。缩到 340 给下方数量/名称腾出足够高度(字号 ×2 后约 100px,文字框必须够高)。
         var icon = NewChild(cell.transform, "Icon", out var iconRt);
         iconRt.anchorMin = new Vector2(0.5f, 1f); iconRt.anchorMax = new Vector2(0.5f, 1f); iconRt.pivot = new Vector2(0.5f, 1f);
-        iconRt.anchoredPosition = new Vector2(0, -10); iconRt.sizeDelta = new Vector2(180, 180);
+        iconRt.anchoredPosition = new Vector2(0, -30); iconRt.sizeDelta = new Vector2(340, 340); // 底部到 y≈270
         var iconImg = icon.AddComponent<Image>();
         iconImg.raycastTarget = false; iconImg.preserveAspect = true;
         iconImg.sprite = sprite; iconImg.enabled = sprite != null;
 
-        // 数量(图标下方,×N)
+        // 数量(图标正下方,×N,醒目金色)。框高 110(≥ 48×FontScale)+ Overflow,确保放大后的字号完整显示。
         var count = NewChild(cell.transform, "Count", out var countRt);
         countRt.anchorMin = new Vector2(0, 0); countRt.anchorMax = new Vector2(1, 0); countRt.pivot = new Vector2(0.5f, 0);
-        countRt.offsetMin = new Vector2(0, 70); countRt.offsetMax = new Vector2(0, 130);
-        NewText(count, $"×{r.count}", 32, TextAlignmentOptions.Center, new Color(1f, 0.83f, 0.47f, 1f));
+        countRt.offsetMin = new Vector2(0, 160); countRt.offsetMax = new Vector2(0, 270);
+        NewText(count, $"×{r.count}", 48, TextAlignmentOptions.Center, new Color(1f, 0.83f, 0.47f, 1f));
+        var countTmp = count.GetComponent<TextMeshProUGUI>();
+        if (countTmp != null) countTmp.overflowMode = TextOverflowModes.Overflow; // 不裁切,放大字号也完整显示
 
         // 名称(底部)
         var nameGo = NewChild(cell.transform, "Name", out var nameRt);
         nameRt.anchorMin = new Vector2(0, 0); nameRt.anchorMax = new Vector2(1, 0); nameRt.pivot = new Vector2(0.5f, 0);
-        nameRt.offsetMin = new Vector2(0, 10); nameRt.offsetMax = new Vector2(0, 70);
-        NewText(nameGo, name, 26, TextAlignmentOptions.Center, Color.white);
+        nameRt.offsetMin = new Vector2(0, 50); nameRt.offsetMax = new Vector2(0, 160);
+        NewText(nameGo, name, 40, TextAlignmentOptions.Center, Color.white);
     }
 
     /// <summary>取奖励显示名与图标 Sprite:道具优先用渲染出的 3D 模型侧视快照(与商店/装备卡一致,武器只有 ModelPath
@@ -184,8 +190,12 @@ public class RewardClaimPanel : UIPageBase<RewardClaimParam>
         {
             var type = (CurrencyType)r.id;
             name = currency != null ? currency.DisplayName(type) : type.ToString();
-            var path = currency != null ? currency.IconPath(type) : string.Empty;
-            icon = !string.IsNullOrEmpty(path) ? resMgr.Load<Sprite>(path) : null;
+            icon = CurrencyIcon(type); // 优先用 Builder 烘入的金币/体力图标(Art 目录,序列化引用)
+            if (icon == null)          // 其它币种回退 currency 配表 IconPath(Resources)
+            {
+                var path = currency != null ? currency.IconPath(type) : string.Empty;
+                icon = !string.IsNullOrEmpty(path) ? resMgr.Load<Sprite>(path) : null;
+            }
             return;
         }
 
@@ -195,6 +205,17 @@ public class RewardClaimPanel : UIPageBase<RewardClaimParam>
             ? (ModelSnapshotCache.CardSprite(item.ModelPath, resMgr)                          // 优先 3D 模型快照(武器/镜/弹)
                ?? (!string.IsNullOrEmpty(item.IconPath) ? resMgr.Load<Sprite>(item.IconPath) : null)) // 无模型回退 2D 图标
             : null;
+    }
+
+    /// <summary>金币/体力用 Builder 烘入的图标;其它币种返回 null(由调用方回退配表)。</summary>
+    private Sprite CurrencyIcon(CurrencyType type)
+    {
+        switch (type)
+        {
+            case CurrencyType.Gold: return goldIcon;
+            case CurrencyType.Energy: return energyIcon;
+            default: return null;
+        }
     }
 
     // ---------------- 工具 ----------------
