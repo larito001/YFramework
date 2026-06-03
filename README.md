@@ -16,8 +16,7 @@ YFramework/
 │   │   │   └── Editor/         # 编辑器扩展
 │   │   └── ScriptGenerated/    # 配表自动生成代码
 │   └── Packages/
-├── excel/                      # Excel 配置表源文件
-└── tools/                      # 配表发布工具链（Python）
+└── tools/                      # 配表发布工具链（Python）+ excel/3xlsx 配表源
 ```
 
 ## 核心架构
@@ -48,10 +47,10 @@ GameLoop.LateUpdate()   → ILateTickable.LateTick(dt)
 | 服务容器 | `GameContext` | 类型安全的 DI 容器，`Get<T>()` / `TryGet<T>()` |
 | 事件系统 | `EventMgr` | 零分配、类型安全的泛型事件，支持最多 4 参数 |
 | 资源管理 | `ResMgr` | 引用计数 `ResourceHandle<T>`，同步/异步加载，场景切换自动卸载 |
-| 对象池 | `ObjectPool` | 异步模板加载，时间衰减回收，逐帧释放限制 |
+| 对象池 | `AsyncPrefabPool` / `PrefabPool` / `DataObjectPool` | 异步模板加载（时间衰减回收）、同步零分配池、纯数据池 |
 | UI 系统 | `UIMgr` | 5 层 Canvas 架构（Normal/Top/RayCast/Tips/PopText），页面生命周期管理 |
 | 场景管理 | `YSceneManager` | 异步切换，`YSceneBase` 生命周期，支持 Loading 过渡 |
-| 相机 | `CameraMgr` | Cinemachine 集成，射线点击/悬停/拖拽事件分发 |
+| 相机 | `CameraManager` | Rig/Shake/FreeLook/Aim 子模块，跟随平滑 + 震屏，Cinemachine 可选 |
 | 音频 | `SoundMgr` | 多通道（BGM/SFX/UI），交叉淡入淡出，最多 16 路 SFX |
 | 数据存储 | `StoreMgr` | `DataContainer<T>` 持久化，可替换存储驱动 |
 | 寻路 | `YAStarManager` | A* Pathfinding 封装 |
@@ -97,7 +96,7 @@ OnLoad() → BeforeShow(param) → OnShow() → OnHide() → OnResize()
 Excel 配置表通过 Python 工具链发布为 Proto + C# 代码：
 
 ```
-Excel (excel/) → publish_config.py → .proto → protoc → C# 类 + 二进制数据
+Excel (tools/excel/3xlsx/) → publish_config.py → .proto → protoc → C# 类 + 二进制数据
 ```
 
 配置文件：`tools/tools_config.ini`

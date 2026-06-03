@@ -6,20 +6,18 @@
 2. [代码规范](./代码规范.md) — 命名、文件组织、注释、错误处理、性能、Unity 特定约定。
 3. [模块规范](./模块规范.md) — 框架各模块的职责、对外 API、扩展约定、典型用法。
 
-## Skill 工作流
+## Framework 改动原则
 
-规范是死的，落地靠 `.claude/skills/` 下的 skill 链。当前两环：
+`Framework/` 内部结构可被业务需求驱动扩展（新增服务、给现有服务加重载、调整内部实现），但任何 Framework 改动都应满足**六条 Framework 设计原则**：
 
-| Skill | 触发 | 输入 | 输出 |
-|---|---|---|---|
-| `code-planning` | `/code-planning <需求描述或策划案 id>` | 自由文本需求 / `策划案/...md` | `代码规划/.../GP-Xxx-Plan-v1.md` |
-| `code-generation` | `/code-generation <Plan id>` | `代码规划/...md` | `client/Assets/Scripts/` 下的 `.cs` 文件 |
+1. **接口先行** — 对外能力先定接口，业务依赖接口而非具体类。
+2. **向后兼容** — 新增重载/可选参数，不破坏现有调用方。
+3. **职责单一** — 一个服务一件事，不往现有服务里塞无关逻辑。
+4. **依赖方向单向** — 严格 `Editor → GamePlay → Framework → Unity`，**禁止** Framework 反向依赖 GamePlay，详见 [项目规范 §1.1](./项目规范.md)。
+5. **可池化可关闭** — 持有资源/订阅的服务要能在 `Shutdown` 干净释放。
+6. **注册顺序** — 被依赖者在前注册，`Init` 顺序、`Shutdown` 逆序，见 [模块规范 附录 A](./模块规范.md)。
 
-约束要点：
-
-- **Framework 改动**：两个 skill 都允许写 `Framework/` 代码，但必须先经 `code-planning` 出规划且过其 §2.10 六条 Framework 设计原则（接口先行 / 向后兼容 / 职责单一 / 依赖方向单向 / 可池化可关闭 / 注册顺序）。直接修改 Framework 不走规划 = 违规。
-- **依赖方向**：仍然严格 `Editor → GamePlay → Framework → Unity`，详见项目规范 §1.1。
-- **代码评审**：见代码规范 §13；Framework 改动评审参考 code-planning skill §2.10。
+代码评审要点见 [代码规范 §13](./代码规范.md)；涉及 Framework 改动的 PR 额外逐条核对上述六原则。
 
 ## 文档生成时的清理与重构
 

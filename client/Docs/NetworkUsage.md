@@ -2,6 +2,10 @@
 
 本文只说明业务层如何使用网络框架，不说明内部实现。
 
+> ⚠ **本分支当前状态**:`GameBootstrapper.BuildContext` 中**只注册了** `SteamPlatform`、`MainThreadDispatcher`、`MessageRegistry`、`MessageDispatcher`、`ProtobufMessageSerializer`。
+> **传输层 / 会话层 / 大厅层 / 运行时**(`INetworkTransport`/`INetworkSession`/`ILobbyService`/`NetworkRuntime`)的注册被**注释掉**,处于休眠状态——`ctx.Get<INetworkSession>()` / `ctx.Get<ILobbyService>()` 现在会抛异常。
+> 下文是这些层**启用后**的用法说明。要启用:取消 `BuildContext` 中那几行注释,并确保 `NetworkRuntime.Tick` 驱动 `transport.Poll()` + `dispatcher.Process()`。消息注册与 proto 生成工具链则始终可用。
+
 ## 入口服务
 
 业务代码通常只需要取这几个服务：

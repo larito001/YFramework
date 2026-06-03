@@ -159,7 +159,18 @@
       "Bash(sed -n '40,52p' Assets/Scripts/Editor/UI/EquipPanelBuilder.cs)",
       "Bash(sed -n '68,78p' Assets/Scripts/Editor/UI/EquipPanelBuilder.cs)",
       "Bash(sed -n '94,112p' Assets/Scripts/Editor/UI/ShopPanelBuilder.cs)",
-      "Bash(sed -n '76,100p' Assets/Scripts/Editor/UI/TaskPanelBuilder.cs)"
+      "Bash(sed -n '76,100p' Assets/Scripts/Editor/UI/TaskPanelBuilder.cs)",
+      "Bash(Get-ChildItem -Path \"C:\\\\UnityProject\\\\YFramework\\\\client\\\\Assets\\\\Scripts\\\\Framework\" -Directory)",
+      "Bash(Get-ChildItem -Path \"C:\\\\UnityProject\\\\YFramework\\\\client\\\\Assets\\\\Scripts\\\\Framework\\\\Network\" -Recurse -Filter \"*.cs\")",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(Get-ChildItem -Path \"C:\\\\UnityProject\\\\YFramework\\\\client\\\\Assets\\\\Scripts\\\\Editor\" -Recurse -Filter \"*.cs\")",
+      "Bash(Get-ChildItem -Path \"C:\\\\UnityProject\\\\YFramework\\\\client\\\\Assets\\\\Scripts\\\\GamePlay\" -Recurse -Filter \"*.cs\")",
+      "Bash(Sort-Object)",
+      "PowerShell(Head *)",
+      "Bash(ls .claude/skills/)",
+      "Bash(ls client/.claude/skills/)",
+      "Bash(ls tools/publish_single.bat)",
+      "Bash(ls client/Docs/*.meta)"
     ]
   }
 }
