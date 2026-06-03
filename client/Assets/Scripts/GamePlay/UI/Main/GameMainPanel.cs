@@ -223,6 +223,7 @@ public class GameMainPanel : UIPageBase
         const float riseDur = 1.2f;
         for (float t = 0f; t < riseDur; t += Time.deltaTime)
         {
+            
             float u = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(t / riseDur));
             cam.transform.SetPositionAndRotation(Vector3.Lerp(fromP, farP, u), Quaternion.Slerp(fromR, farR, u));
             yield return null;

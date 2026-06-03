@@ -28,8 +28,8 @@ namespace YOTO
             config = ctx.Get<ConfigManager>();
             store = ctx.Get<StoreMgr>();
             saveHandle = store.Register(SaveKey, Capture, Restore); // 一行接入存档(随槽 Progress)
-            saveHandle.Load();
-            SelectedMapId = FirstUnlockedId(); // 默认选中排序最靠前的已解锁关卡
+            SelectedMapId = FirstUnlockedId();                      // 先给默认(第一关恒解锁)
+            saveHandle.Load(() => SelectedMapId = FirstUnlockedId()); // 读档(bestScores)是异步的,完成后再校正默认选中
         }
 
         public void Shutdown()

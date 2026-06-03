@@ -42,8 +42,10 @@ public class EquipPanel : UIPageBase
     private bool busy;
     private bool loadoutDirty; // 装备变化标记:延到 LateUpdate 重建,避免在卡片自身 onClick 里把自己 Destroy 掉破坏 EventSystem
 
+    private static readonly Color SnapshotBg = new Color(0.12f, 0.13f, 0.16f, 1f); // 卡片快照底色(不透明,不依赖 URP 写 alpha)
+
     private WeaponModelPreview weaponPreview; // 底部武器模型转台(展示当前选中出战的枪)
-    private readonly List<Texture2D> cardTextures = new List<Texture2D>(); // 卡片侧视快照贴图(一次性渲染,需手动回收)
+    private readonly Dictionary<string, Texture2D> snapshotCache = new(); // modelPath → 侧视快照,按打开会话缓存复用(避免每次重建/选中都重渲)
 
     public override void OnLoad()
     {
@@ -89,13 +91,23 @@ public class EquipPanel : UIPageBase
         eventMgr?.Remove(YOTOEventType.RefreshLoadout, MarkLoadoutDirty);
         eventMgr?.Remove(YOTOEventType.RefreshCurrency, RefreshCoin);
         weaponPreview?.SetActive(false);
-        DisposeCardTextures();
+        ClearSnapshotCache(); // 收起时释放快照贴图(下次打开重建一次)
     }
 
-    private void DisposeCardTextures()
+    private void ClearSnapshotCache()
     {
-        foreach (var t in cardTextures) if (t != null) Destroy(t);
-        cardTextures.Clear();
+        foreach (var t in snapshotCache.Values) if (t != null) Destroy(t);
+        snapshotCache.Clear();
+    }
+
+    /// <summary>取该模型的侧视快照:命中缓存直接复用,未命中才渲染一次并缓存(失败 null 也缓存,避免反复重试)。</summary>
+    private Texture2D GetSnapshot(string modelPath)
+    {
+        if (string.IsNullOrEmpty(modelPath) || resMgr == null) return null;
+        if (snapshotCache.TryGetValue(modelPath, out var tex)) return tex;
+        tex = ModelSnapshot.Capture(modelPath, resMgr, 256, sideView: true, bg: SnapshotBg);
+        snapshotCache[modelPath] = tex;
+        return tex;
     }
 
     /// <summary>装备变化先打标记,延到 LateUpdate 再重建——避免点击卡片时同步重建把刚点的卡销毁、破坏 EventSystem。</summary>
@@ -121,7 +133,7 @@ public class EquipPanel : UIPageBase
 
     private void RebuildAll()
     {
-        DisposeCardTextures(); // 重建前回收上一批卡片快照贴图
+        // 不在这里清快照缓存:重建/选中只复用已渲好的贴图,避免每次点选重渲一遍
         BuildRow(weaponRow, ShopCategory.Weapon);
         BuildRow(scopeRow, ShopCategory.Scope);
         BuildRow(bulletRow, ShopCategory.Bullet);
@@ -179,13 +191,10 @@ public class EquipPanel : UIPageBase
         var pic = NewChild(card.transform, "Pic", out var picRt);
         picRt.anchorMin = Vector2.zero; picRt.anchorMax = Vector2.one;
         picRt.offsetMin = new Vector2(16, 90); picRt.offsetMax = new Vector2(-16, -16);
-        var tex = !string.IsNullOrEmpty(item.ModelPath)
-            ? ModelSnapshot.Capture(item.ModelPath, resMgr, 256, sideView: true, bg: new Color(0, 0, 0, 0))
-            : null;
+        var tex = GetSnapshot(item.ModelPath); // 缓存复用的侧视快照
         if (tex != null)
         {
-            cardTextures.Add(tex);
-            var raw = pic.AddComponent<RawImage>(); // 一次性侧视快照(静态图,无常驻相机)
+            var raw = pic.AddComponent<RawImage>(); // 静态侧视快照(无常驻相机)
             raw.texture = tex; raw.raycastTarget = false;
         }
         else

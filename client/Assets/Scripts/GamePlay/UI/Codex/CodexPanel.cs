@@ -36,8 +36,7 @@ public class CodexPanel : UIPageBase
     public Button btnLast;
 
     private static readonly Color CardFrame = new Color(0.97f, 0.97f, 1f, 1f);     // 卡片底框
-    private static readonly Color LockedTint = new Color(0.62f, 0.62f, 0.66f, 1f); // 未解锁:灰
-    private static readonly Color UnlockedTint = new Color(0.20f, 0.22f, 0.28f, 1f); // 已解锁:深色名字
+    private static readonly Color LockedTint = new Color(0.62f, 0.62f, 0.66f, 1f); // 未解锁:灰(「？」文字)
     private static readonly Color BadgeLocked = new Color(0.60f, 0.58f, 0.68f, 1f); // 未解锁徽标底
     private static readonly Color BadgeUnlocked = new Color(0.56f, 0.78f, 0.30f, 1f); // 已解锁名底
     private static readonly Color BadgeText = Color.white;
