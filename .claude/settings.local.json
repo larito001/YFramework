@@ -24,7 +24,8 @@
       "Bash(antiword \"用于股票价格预测的记忆网络分析软件 使用说明书V1.0.doc\")",
       "Bash(grep -E \"///|summary|金币|体力\")",
       "Bash(grep -E \"///|summary\")",
-      "Bash(grep -E \"summary|///\")"
+      "Bash(grep -E \"summary|///\")",
+      "PowerShell(python -c \"from PIL import Image; im=Image.open\\(r'C:\\\\UnityProject\\\\YFramework\\\\20260604-181255.jpg'\\).convert\\('RGB'\\); im.save\\(r'C:\\\\UnityProject\\\\YFramework\\\\20260604-181255.pdf'\\); print\\('OK'\\)\"; Get-ChildItem \"C:\\\\UnityProject\\\\YFramework\\\\20260604-181255.pdf\" | Select-Object Name, Length)"
     ]
   }
 }

@@ -141,6 +141,8 @@ public static class AnimalPrefabBuilder
     /// 三块拼起来 ≈ 整只动物;射线打中哪块就算哪个部位(头/心脏一枪死,身体两枪)。
     /// 「前」是体长轴(取 X/Z 中较长者)的哪一端,优先按名字含 head 的骨骼判定,找不到默认 +轴。
     /// spawn 时根节点缩放会一并作用到碰撞体上。
+    ///
+    /// 切好后把「头」「心脏」两块命中盒(连同其高亮盒)挂到对应骨骼上,使其随动画移动;「身体」不挂骨骼,保持不动。
     /// </summary>
     private static void AddHitZones(GameObject root)
     {
@@ -171,18 +173,40 @@ public static class AnimalPrefabBuilder
         if (frontPositive) { frontHi = aMax; frontLo = aMax - front; rearLo = aMin; rearHi = aMax - front; }
         else               { frontLo = aMin; frontHi = aMin + front; rearLo = aMin + front; rearHi = aMax; }
 
+        GameObject headBox, heartBox;
         if (axisZ)
         {
-            MakeZoneBox(root, "Hit_Head",  min.x, max.x, midY,  max.y, frontLo, frontHi, HitZone.Head);
-            MakeZoneBox(root, "Hit_Heart", min.x, max.x, min.y, midY,  frontLo, frontHi, HitZone.Heart);
+            headBox  = MakeZoneBox(root, "Hit_Head",  min.x, max.x, midY,  max.y, frontLo, frontHi, HitZone.Head);
+            heartBox = MakeZoneBox(root, "Hit_Heart", min.x, max.x, min.y, midY,  frontLo, frontHi, HitZone.Heart);
             MakeZoneBox(root, "Hit_Body",  min.x, max.x, min.y, max.y, rearLo,  rearHi,  HitZone.Body);
         }
         else
         {
-            MakeZoneBox(root, "Hit_Head",  frontLo, frontHi, midY,  max.y, min.z, max.z, HitZone.Head);
-            MakeZoneBox(root, "Hit_Heart", frontLo, frontHi, min.y, midY,  min.z, max.z, HitZone.Heart);
+            headBox  = MakeZoneBox(root, "Hit_Head",  frontLo, frontHi, midY,  max.y, min.z, max.z, HitZone.Head);
+            heartBox = MakeZoneBox(root, "Hit_Heart", frontLo, frontHi, min.y, midY,  min.z, max.z, HitZone.Heart);
             MakeZoneBox(root, "Hit_Body",  rearLo,  rearHi,  min.y, max.y, min.z, max.z, HitZone.Body);
         }
+
+        // 头/心脏命中盒挂到对应骨骼,使其随动画移动;身体不挂(保持不动)。SetParent 保持当前世界位姿(=绑定姿势对齐),烘进 prefab。
+        var headBone  = FindBone(root, "head");
+        var heartBone = FindBone(root, "spine", "chest", "neck") ?? (headBone != null ? headBone.parent : null);
+        if (headBone  != null) headBox.transform.SetParent(headBone, true);
+        else Debug.LogWarning($"[AnimalPrefab] {root.name} 未找到 head 骨骼,头部命中盒保持静态");
+        if (heartBone != null) heartBox.transform.SetParent(heartBone, true);
+        else Debug.LogWarning($"[AnimalPrefab] {root.name} 未找到 脊柱/胸/颈 骨骼,心脏命中盒保持静态");
+    }
+
+    /// <summary>在骨架层级里按名字关键字找第一根匹配的骨骼;跳过命中盒(其名 "Hit_Head" 也含 head)。找不到返回 null。</summary>
+    private static Transform FindBone(GameObject root, params string[] keys)
+    {
+        var all = root.GetComponentsInChildren<Transform>(true);
+        foreach (var key in keys)
+            foreach (var t in all)
+            {
+                if (t.GetComponentInParent<AnimalHitZone>() != null) continue; // 跳过命中盒及其高亮子物体
+                if (t.name.ToLowerInvariant().Contains(key)) return t;
+            }
+        return null;
     }
 
     /// <summary>给某部位盒加一层贴合的发光高亮盒(头/心脏/身体各一色)。无碰撞、不投影,只做视觉标注。</summary>
@@ -247,8 +271,8 @@ public static class AnimalPrefabBuilder
         return 0f;
     }
 
-    /// <summary>按世界轴对齐区间建一个部位碰撞体子物体(root 在原点单位变换,世界=局部)。</summary>
-    private static void MakeZoneBox(GameObject root, string name,
+    /// <summary>按世界轴对齐区间建一个部位碰撞体子物体(root 在原点单位变换,世界=局部)。返回该子物体。</summary>
+    private static GameObject MakeZoneBox(GameObject root, string name,
         float xMin, float xMax, float yMin, float yMax, float zMin, float zMax, HitZone zone)
     {
         var go = new GameObject(name, typeof(BoxCollider), typeof(AnimalHitZone));
@@ -264,6 +288,7 @@ public static class AnimalPrefabBuilder
 
         // 每个部位叠一层发光高亮盒标注命中范围:头=黄、心脏=红、身体=绿
         AddGlow(go, sizeV, zone);
+        return go;
     }
 
     private static void DestroyAll<T>(GameObject go) where T : Component
