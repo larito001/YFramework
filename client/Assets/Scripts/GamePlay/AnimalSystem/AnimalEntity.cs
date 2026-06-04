@@ -1,17 +1,18 @@
 using UnityEngine;
 
-/// <summary>命中部位:由动物身上的 <see cref="AnimalHitZone"/> 碰撞体标记,决定一枪是否致命。</summary>
+/// <summary>命中部位:由动物身上的 <see cref="AnimalHitZone"/> 碰撞体标记,金色猎物的身体部位据此区分子弹等级差异。</summary>
 public enum HitZone
 {
-    Body,   // 身体:非致命,累计 <see cref="AnimalEntity.bodyHitsToKill"/> 枪才死
-    Head,   // 头:一枪致命
-    Heart,  // 心脏:一枪致命
+    Body,   // 身体:普通猎物仍一枪死;金色猎物按子弹等级——空尖弹(2级)1 发、标准弹(1级)<see cref="AnimalEntity.goldenBodyHitsL1"/> 发
+    Head,   // 头:一枪致命(普通/金色通用)
+    Heart,  // 心脏:一枪致命(普通/金色通用)
 }
 
 /// <summary>
-/// 场景中的动物实例(低多边形动物模型,平时只播 idle)。持有配表 id 与击杀积分,
-/// 被射击命中时按部位结算:<see cref="Hit"/> 头/心脏一枪致命、身体两枪;致命时 <see cref="Kill"/> 播死亡动画并延时销毁。
-/// 三个部位碰撞体(头/心脏/身体)由 AnimalPrefabBuilder 按包围盒切分生成,各挂 <see cref="AnimalHitZone"/>。
+/// 场景中的动物实例(低多边形动物模型,平时只播 idle)。持有配表 id 与击杀积分,被射击命中时按 <see cref="Hit"/> 结算:
+///   · 普通(非金色)猎物:打哪里、任何子弹都一枪死;
+///   · 金色猎物:头/心脏任何子弹一枪死,身体部位空尖弹(2级)1 发、标准弹(1级)三发。
+/// 致命时 <see cref="Kill"/> 播死亡动画并延时销毁。三个部位碰撞体(头/心脏/身体)由 AnimalPrefabBuilder 按包围盒切分生成,各挂 <see cref="AnimalHitZone"/>。
 ///
 /// 死亡动画各动物的 Animator 参数名不一样(Goose/Boar 用 isDead,Rabbit 用 isDead_0),
 /// 所以把参数名挂在 prefab 上(由 AnimalPrefabBuilder 按动物填),通用战斗代码不必关心。
@@ -24,8 +25,8 @@ public class AnimalEntity : MonoBehaviour
     [Tooltip("是否为金色泛光稀有体(刷怪时按概率赋予,纯表现;后续可据此加积分/掉落)")]
     public bool isGolden;
 
-    [Tooltip("击中身体需要的枪数(头/心脏无视此值,一枪即死)")]
-    public int bodyHitsToKill = 2;
+    [Tooltip("金色猎物身体部位:标准弹(1级)需累计的枪数;空尖弹(2级)恒为 1 发。仅对金色生效——普通猎物打哪里都一枪死")]
+    public int goldenBodyHitsL1 = 3;
 
     [Tooltip("死亡动画对应的 Animator bool 参数名;不同动物可能不同")]
     public string deathBool = "isDead";
@@ -40,26 +41,25 @@ public class AnimalEntity : MonoBehaviour
     private void Awake() => animator = GetComponentInChildren<Animator>();
 
     /// <summary>
-    /// 按部位结算一次命中:头/心脏一枪致命;身体累计到 <see cref="bodyHitsToKill"/> 枪才致命。
+    /// 结算一次命中(<paramref name="bulletLevel"/>:1=标准弹 / 2=空尖弹):
+    ///   · 普通(非金色)猎物:任何部位、任何子弹一枪即死;
+    ///   · 金色猎物:头/心脏任何子弹一枪即死;身体部位空尖弹(2级)1 发、标准弹(1级)<see cref="goldenBodyHitsL1"/> 发。
     /// 返回本次是否致命(true=这一枪打死了)。已死再调用安全(返回 false)。
     /// </summary>
-    public bool Hit(HitZone zone)
+    public bool Hit(HitZone zone, int bulletLevel)
     {
         if (IsDead) return false;
 
-        if (zone == HitZone.Head || zone == HitZone.Heart)
-        {
-            Kill();
-            return true;
-        }
+        // 普通猎物:打哪里都一枪死
+        if (!isGolden) { Kill(); return true; }
 
-        // 身体:累计中弹,达到阈值才死
+        // 金色猎物:头/心脏任何子弹一枪死
+        if (zone == HitZone.Head || zone == HitZone.Heart) { Kill(); return true; }
+
+        // 金色猎物身体:子弹等级决定所需枪数(空尖弹 2 级=1 发;标准弹 1 级=goldenBodyHitsL1 发)
+        int need = bulletLevel >= 2 ? 1 : Mathf.Max(1, goldenBodyHitsL1);
         bodyHits++;
-        if (bodyHits >= bodyHitsToKill)
-        {
-            Kill();
-            return true;
-        }
+        if (bodyHits >= need) { Kill(); return true; }
         return false;
     }
 
@@ -71,6 +71,9 @@ public class AnimalEntity : MonoBehaviour
 
         foreach (var col in GetComponentsInChildren<Collider>())
             col.enabled = false; // 死了就不再接受命中
+
+        foreach (var hz in GetComponentsInChildren<AnimalHitZone>())
+            hz.SetHighlight(false); // 死亡即熄灭弱点高亮(避免死后仍亮着)
 
         if (animator != null && !string.IsNullOrEmpty(deathBool))
             animator.SetBool(deathBool, true);

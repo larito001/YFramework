@@ -11,7 +11,20 @@ public class AnimalHitZone : MonoBehaviour
     public HitZone zone = HitZone.Body;
 
     private AnimalEntity owner;
+    private Renderer glow; // 弱点高亮盒(子物体 "Glow" 的 Renderer);AnimalPrefabBuilder.AddGlow 生成
 
     /// <summary>所属动物(向上找一次并缓存)。</summary>
     public AnimalEntity Owner => owner != null ? owner : (owner = GetComponentInParent<AnimalEntity>());
+
+    private void Awake()
+    {
+        glow = GetComponentInChildren<Renderer>(true); // 部位盒下唯一的渲染器就是 Glow 高亮盒
+        if (glow != null) glow.enabled = false;        // 默认隐藏:不开镜不显示,身体永不显示
+    }
+
+    /// <summary>设置弱点高亮显隐:仅头/心脏可显示(开镜时),身体永不显示。</summary>
+    public void SetHighlight(bool show)
+    {
+        if (glow != null) glow.enabled = show && (zone == HitZone.Head || zone == HitZone.Heart);
+    }
 }

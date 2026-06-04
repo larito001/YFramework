@@ -1,10 +1,12 @@
 using UnityEngine;
 
-/// <summary>一次射击命中结果:命中的动物(没打中为 null)+ 命中部位。</summary>
+/// <summary>一次射击命中结果:命中的动物(没打中为 null)+ 命中部位 + 子弹落点(供惊扰判定)。</summary>
 public struct AnimalShot
 {
     public AnimalEntity entity;
     public HitZone zone;
+    public Vector3 point; // 子弹落点(射线命中处:动物身上 / 地面 / 场景);rayHit=false 时无意义
+    public bool rayHit;   // 射线是否打到任何东西(打空到天空为 false)
     public bool HasHit => entity != null;
 }
 
@@ -66,13 +68,16 @@ public class ScopeAimController : MonoBehaviour
         {
             var zoneComp = hit.collider.GetComponent<AnimalHitZone>();
             if (zoneComp != null && zoneComp.Owner != null)
-                return new AnimalShot { entity = zoneComp.Owner, zone = zoneComp.zone };
+                return new AnimalShot { entity = zoneComp.Owner, zone = zoneComp.zone, point = hit.point, rayHit = true };
 
             var ent = hit.collider.GetComponentInParent<AnimalEntity>(); // 兼容无部位碰撞体的旧 prefab
             if (ent != null)
-                return new AnimalShot { entity = ent, zone = HitZone.Body };
+                return new AnimalShot { entity = ent, zone = HitZone.Body, point = hit.point, rayHit = true };
+
+            // 打到地面/场景(没打中动物):entity 为 null,但仍记录落点供惊扰判定
+            return new AnimalShot { entity = null, zone = HitZone.Body, point = hit.point, rayHit = true };
         }
-        return default; // 最近命中物不是动物(如地面)= 没打中
+        return default; // 射线打空(如天空):rayHit=false
     }
 
     private void Update()

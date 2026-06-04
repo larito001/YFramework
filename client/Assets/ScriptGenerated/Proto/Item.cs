@@ -25,19 +25,19 @@ namespace YFramework.Config {
       byte[] descriptorData = global::System.Convert.FromBase64String(
           string.Concat(
             "CgppdGVtLnByb3RvEhF5ZnJhbWV3b3JrLmNvbmZpZxoUQ29uZmlnQmFzZVR5",
-            "cGUucHJvdG8ijwIKBEl0ZW0SCgoCaWQYASABKA0SDAoEbmFtZRgCIAEoCRIM",
+            "cGUucHJvdG8ipQIKBEl0ZW0SCgoCaWQYASABKA0SDAoEbmFtZRgCIAEoCRIM",
             "CgRkZXNjGAMgASgJEgwKBHR5cGUYBCABKA0SDwoHcXVhbGl0eRgFIAEoDRIQ",
             "CghpY29uUGF0aBgGIAEoCRINCgV3aWR0aBgHIAEoBRIOCgZoZWlnaHQYCCAB",
             "KAUSDQoFc2hhcGUYCSABKAkSEAoIbWF4U3RhY2sYCiABKAUSDQoFdmFsdWUY",
             "CyABKAUSFAoMc29ydFByaW9yaXR5GAwgASgFEhEKCXByaWNlVHlwZRgNIAEo",
             "DRINCgVwcmljZRgOIAEoBRIUCgxzaG9wQ2F0ZWdvcnkYDyABKA0SEQoJbW9k",
-            "ZWxQYXRoGBAgASgJIkEKF0l0ZW1fTElTVF9UT09MX1JFU0VSVkVEEiYKBWl0",
-            "ZW1zGAEgAygLMhcueWZyYW1ld29yay5jb25maWcuSXRlbUIUqgIRWUZyYW1l",
-            "d29yay5Db25maWdiBnByb3RvMw=="));
+            "ZWxQYXRoGBAgASgJEhQKDGRpc3R1cmJSYW5nZRgRIAEoBSJBChdJdGVtX0xJ",
+            "U1RfVE9PTF9SRVNFUlZFRBImCgVpdGVtcxgBIAMoCzIXLnlmcmFtZXdvcmsu",
+            "Y29uZmlnLkl0ZW1CFKoCEVlGcmFtZXdvcmsuQ29uZmlnYgZwcm90bzM="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::YFramework.Config.ConfigBaseTypeReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(null, new pbr::GeneratedClrTypeInfo[] {
-            new pbr::GeneratedClrTypeInfo(typeof(global::YFramework.Config.Item), global::YFramework.Config.Item.Parser, new[]{ "Id", "Name", "Desc", "Type", "Quality", "IconPath", "Width", "Height", "Shape", "MaxStack", "Value", "SortPriority", "PriceType", "Price", "ShopCategory", "ModelPath" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::YFramework.Config.Item), global::YFramework.Config.Item.Parser, new[]{ "Id", "Name", "Desc", "Type", "Quality", "IconPath", "Width", "Height", "Shape", "MaxStack", "Value", "SortPriority", "PriceType", "Price", "ShopCategory", "ModelPath", "DisturbRange" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::YFramework.Config.Item_LIST_TOOL_RESERVED), global::YFramework.Config.Item_LIST_TOOL_RESERVED.Parser, new[]{ "Items" }, null, null, null)
           }));
     }
@@ -86,6 +86,7 @@ namespace YFramework.Config {
       price_ = other.price_;
       shopCategory_ = other.shopCategory_;
       modelPath_ = other.modelPath_;
+      disturbRange_ = other.disturbRange_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -318,6 +319,20 @@ namespace YFramework.Config {
       }
     }
 
+    /// <summary>Field number for the "disturbRange" field.</summary>
+    public const int DisturbRangeFieldNumber = 17;
+    private int disturbRange_;
+    /// <summary>
+    ///惊扰范围
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public int DisturbRange {
+      get { return disturbRange_; }
+      set {
+        disturbRange_ = value;
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public override bool Equals(object other) {
       return Equals(other as Item);
@@ -347,6 +362,7 @@ namespace YFramework.Config {
       if (Price != other.Price) return false;
       if (ShopCategory != other.ShopCategory) return false;
       if (ModelPath != other.ModelPath) return false;
+      if (DisturbRange != other.DisturbRange) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -369,6 +385,7 @@ namespace YFramework.Config {
       if (Price != 0) hash ^= Price.GetHashCode();
       if (ShopCategory != 0) hash ^= ShopCategory.GetHashCode();
       if (ModelPath.Length != 0) hash ^= ModelPath.GetHashCode();
+      if (DisturbRange != 0) hash ^= DisturbRange.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -446,6 +463,10 @@ namespace YFramework.Config {
         output.WriteRawTag(130, 1);
         output.WriteString(ModelPath);
       }
+      if (DisturbRange != 0) {
+        output.WriteRawTag(136, 1);
+        output.WriteInt32(DisturbRange);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -501,6 +522,9 @@ namespace YFramework.Config {
       }
       if (ModelPath.Length != 0) {
         size += 2 + pb::CodedOutputStream.ComputeStringSize(ModelPath);
+      }
+      if (DisturbRange != 0) {
+        size += 2 + pb::CodedOutputStream.ComputeInt32Size(DisturbRange);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -560,6 +584,9 @@ namespace YFramework.Config {
       }
       if (other.ModelPath.Length != 0) {
         ModelPath = other.ModelPath;
+      }
+      if (other.DisturbRange != 0) {
+        DisturbRange = other.DisturbRange;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -634,6 +661,10 @@ namespace YFramework.Config {
           }
           case 130: {
             ModelPath = input.ReadString();
+            break;
+          }
+          case 136: {
+            DisturbRange = input.ReadInt32();
             break;
           }
         }

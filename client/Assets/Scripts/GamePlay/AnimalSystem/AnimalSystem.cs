@@ -116,6 +116,40 @@ namespace YOTO
             }
         }
 
+        /// <summary>
+        /// 惊扰:让以 <paramref name="center"/> 为圆心、<paramref name="radius"/>(枪的 disturbRange)半径内的所有活体动物
+        /// 进入 <paramref name="duration"/> 秒惊慌狂奔;范围外不受影响。每次开枪由 <see cref="GameMainPanel"/> 以子弹落点调用。
+        /// </summary>
+        public void PanicAround(Vector3 center, float radius, float duration)
+        {
+            if (radius <= 0f) return;
+            float sqr = radius * radius;
+            for (int i = 0; i < spawned.Count; i++)
+            {
+                var go = spawned[i];
+                if (go == null) continue;
+                var entity = go.GetComponent<AnimalEntity>();
+                if (entity == null || entity.IsDead) continue;
+                Vector3 d = go.transform.position - center; d.y = 0f; // 只看水平距离
+                if (d.sqrMagnitude > sqr) continue;
+                go.GetComponent<AnimalWander>()?.Panic(duration);
+            }
+        }
+
+        /// <summary>开镜/退镜:显隐所有活体动物的头/心脏弱点高亮(身体永不显示)。由 <see cref="GameMainPanel"/> 在瞄准切换时调用。</summary>
+        public void SetWeakPointHighlights(bool show)
+        {
+            for (int i = 0; i < spawned.Count; i++)
+            {
+                var go = spawned[i];
+                if (go == null) continue;
+                var entity = go.GetComponent<AnimalEntity>();
+                if (entity != null && entity.IsDead) continue; // 死亡个体不亮
+                foreach (var hz in go.GetComponentsInChildren<AnimalHitZone>(true))
+                    hz.SetHighlight(show);
+            }
+        }
+
         /// <summary>清除当前所有已生成的动物。</summary>
         public void Clear()
         {

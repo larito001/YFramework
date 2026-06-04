@@ -44,12 +44,17 @@ public class GameMainPanel : UIPageBase
     private MapSystem maps;               // 当前选中关卡(显示关卡名)
     private TaskProgressSystem taskProgress; // 击杀计入任务进度("击杀任意动物"类任务)
     private CodexSystem codex;            // 击杀的动物解锁图鉴
+    private AnimalSystem animals;          // 开枪惊扰范围内动物 + 结束时摆尸体
     private ILeaderboardService leaderboard; // 对局结束提交本局总分到排行榜
     private ScopeAimController scopeAim; // 相机端瞄准机制(变焦 + 命中射线),挂在主相机上
 
     private int score;
     private int ammo;
+    private int bulletLevel = 1; // 本局所选子弹等级(1=标准弹 / 2=空尖弹);决定金色猎物身体所需枪数
+    private float disturbRange;  // 本局所选武器的惊扰范围(配表 disturbRange);每次开枪惊扰落点该半径内的动物
     private bool aiming;
+
+    private const float PanicDuration = 10f; // 被惊扰的动物狂奔时长(秒)
     private bool ending; // 结束捕猎流程已触发:防重复进入(子弹打完自动结束 与 手动点「结束打猎」二选一)
     private readonly Dictionary<int, int> kills = new(); // animalId → 本局击杀数,结束时组装结算明细
 
@@ -65,6 +70,7 @@ public class GameMainPanel : UIPageBase
         maps = GetService<MapSystem>();
         taskProgress = GetService<TaskProgressSystem>();
         codex = GetService<CodexSystem>();
+        animals = GetService<AnimalSystem>();
         Context.TryGet<ILeaderboardService>(out leaderboard);
         if (actionBtn != null) actionBtn.onClick.AddListener(OnActionClick);
         if (endBtn != null) endBtn.onClick.AddListener(OnEndHunt);
@@ -79,6 +85,8 @@ public class GameMainPanel : UIPageBase
         kills.Clear();
         ending = false; // 新一局:复位结束流程标记
         ammo = InitialAmmo();
+        bulletLevel = SelectedBulletLevel(); // 本局子弹等级(金色猎物身体伤害据此区分)
+        disturbRange = SelectedWeaponDisturbRange(); // 本局武器惊扰范围
         SetAiming(false); // 复位:收起准星/黑边遮罩,相机回到正常视野
         if (mapNameText != null) mapNameText.text = !string.IsNullOrEmpty(maps?.SelectedName) ? maps.SelectedName : "未知关卡";
 
@@ -108,6 +116,7 @@ public class GameMainPanel : UIPageBase
         if (scope != null) scope.SetActive(on);
         if (scopeMask != null) scopeMask.SetActive(on);
         ScopeAim()?.SetAiming(on);
+        animals?.SetWeakPointHighlights(on); // 开镜显示头/心脏弱点高亮,退镜隐藏(身体永不高亮)
         RefreshActionButton();
     }
 
@@ -138,13 +147,13 @@ public class GameMainPanel : UIPageBase
 
         ammo--;
 
-        // 从屏幕中心(准星处)打射线:按部位结算——头/心脏一枪致命,身体两枪;只有「这一枪打死了」才加分计数
+        // 从屏幕中心(准星处)打射线:普通猎物任意部位一枪死;金色头/心脏一枪、身体按子弹等级(2级1发/1级3发)。只有「这一枪打死了」才加分计数
         var aim = ScopeAim();
         var shot = aim != null ? aim.FireRay() : default;
         var hit = shot.entity;
         if (hit != null && !hit.IsDead)
         {
-            bool died = hit.Hit(shot.zone);
+            bool died = hit.Hit(shot.zone, bulletLevel);
             if (shot.zone == HitZone.Head || shot.zone == HitZone.Heart)
                 ShowHitEffect(); // 命中头/心脏:屏幕中上方飘击中特效
             if (died)
@@ -162,6 +171,10 @@ public class GameMainPanel : UIPageBase
                 GetService<FlyTextMgr>()?.AddTextAtScreenCenter("命中");
             }
         }
+
+        // 每次开枪都惊扰:以子弹落点为圆心,武器惊扰范围内的活体动物进入 10s 狂奔(范围外不动)
+        if (shot.rayHit && disturbRange > 0f)
+            animals?.PanicAround(shot.point, disturbRange, PanicDuration);
 
         SetAiming(false); // 实弹射击后关闭瞄准镜
         RefreshAmmo();
@@ -233,7 +246,6 @@ public class GameMainPanel : UIPageBase
         // 淡出 HUD,留干净的检视画面(协程跑在 ICoroutineRunner 上,不受面板显隐影响)
         if (canvasGroup != null) { canvasGroup.alpha = 0f; canvasGroup.interactable = false; canvasGroup.blocksRaycasts = false; }
 
-        var animals = GetService<AnimalSystem>();
         var bounds = animals != null ? animals.SpawnCorpses(kills) : new Bounds(Vector3.zero, Vector3.one);
 
         var runner = GetService<ICoroutineRunner>();
@@ -355,5 +367,29 @@ public class GameMainPanel : UIPageBase
             if (it != null && it.MaxStack > 0) return it.MaxStack;
         }
         return 10;
+    }
+
+    /// <summary>本局子弹等级:取选中子弹的 item 配表 quality(标准弹=1 / 空尖弹=2);取不到按 1 级兜底。</summary>
+    private int SelectedBulletLevel()
+    {
+        int bulletId = loadout != null ? loadout.GetSelected(ShopCategory.Bullet) : 0;
+        if (bulletId > 0 && config != null)
+        {
+            var it = config.itemConfig.Get((uint)bulletId);
+            if (it != null && it.Quality > 0) return (int)it.Quality;
+        }
+        return 1;
+    }
+
+    /// <summary>本局武器惊扰范围:取选中武器的 item 配表 disturbRange(米);取不到则 0(不惊扰)。</summary>
+    private float SelectedWeaponDisturbRange()
+    {
+        int weaponId = loadout != null ? loadout.GetSelected(ShopCategory.Weapon) : 0;
+        if (weaponId > 0 && config != null)
+        {
+            var it = config.itemConfig.Get((uint)weaponId);
+            if (it != null) return it.DisturbRange;
+        }
+        return 0f;
     }
 }

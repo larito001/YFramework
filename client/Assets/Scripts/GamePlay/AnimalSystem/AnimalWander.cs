@@ -24,6 +24,12 @@ public class AnimalWander : MonoBehaviour
     [Tooltip("判定到达目标的水平距离(米)")]
     public float arriveDistance = 0.35f;
 
+    [Header("惊慌(被枪声惊扰时:加速狂奔,到点不停顿立即换向)")]
+    [Tooltip("惊慌时的移动速度倍率")]
+    public float panicSpeedMul = 3f;
+    [Tooltip("惊慌时游走半径倍率(乱跑范围更大)")]
+    public float panicRadiusMul = 2f;
+
     // 行走动画候选 bool 参数名,按优先级探测(此美术包:多数动物 isWalking,兔子用 isJumping 触发 hop)
     private static readonly string[] WalkParamCandidates = { "isWalking", "isJumping" };
     private static readonly RaycastHit[] HitBuffer = new RaycastHit[8];
@@ -34,7 +40,20 @@ public class AnimalWander : MonoBehaviour
     private Vector3 home;       // 出生点,游走围绕它
     private Vector3 target;     // 当前目标点
     private float pauseTimer;   // >0 表示正在 idle 停留
+    private float panicTimer;   // >0 表示正处于惊慌狂奔状态(倒计时到 0 自动恢复)
     private bool moving;
+
+    private bool Panicking => panicTimer > 0f;
+
+    /// <summary>被枪声惊扰:进入(或刷新到)<paramref name="duration"/> 秒的惊慌狂奔。死亡个体忽略。</summary>
+    public void Panic(float duration)
+    {
+        if (entity != null && entity.IsDead) return;
+        panicTimer = Mathf.Max(panicTimer, duration); // 重复惊扰取最长,不缩短
+        pauseTimer = 0f;   // 打断当前 idle 停留,立刻起步
+        PickTarget();
+        SetMoving(true);
+    }
 
     private void Awake()
     {
@@ -55,6 +74,8 @@ public class AnimalWander : MonoBehaviour
             return;
         }
 
+        if (panicTimer > 0f) panicTimer -= Time.deltaTime; // 惊慌倒计时,归零自动恢复常态
+
         if (pauseTimer > 0f)
         {
             pauseTimer -= Time.deltaTime;
@@ -66,7 +87,7 @@ public class AnimalWander : MonoBehaviour
         flat.y = 0f;
         if (flat.sqrMagnitude <= arriveDistance * arriveDistance)
         {
-            PickPause(); // 到点:转 idle 停留,稍后再选下一个目标
+            PickPause(); // 到点:转 idle 停留(惊慌时不停顿,立即换向继续狂奔)
             return;
         }
 
@@ -74,15 +95,17 @@ public class AnimalWander : MonoBehaviour
         Quaternion want = Quaternion.LookRotation(flat.normalized, Vector3.up);
         transform.rotation = Quaternion.RotateTowards(transform.rotation, want, turnSpeed * Time.deltaTime);
 
-        // 沿朝向前进并贴地
-        Vector3 next = transform.position + transform.forward * moveSpeed * Time.deltaTime;
+        // 沿朝向前进并贴地(惊慌时提速)
+        float spd = moveSpeed * (Panicking ? panicSpeedMul : 1f);
+        Vector3 next = transform.position + transform.forward * spd * Time.deltaTime;
         next.y = GroundY(next, transform.position.y);
         transform.position = next;
     }
 
     private void PickTarget()
     {
-        Vector2 r = Random.insideUnitCircle * wanderRadius;
+        float radius = wanderRadius * (Panicking ? panicRadiusMul : 1f);
+        Vector2 r = Random.insideUnitCircle * radius;
         Vector3 p = home + new Vector3(r.x, 0f, r.y);
         p.y = GroundY(p, transform.position.y);
         target = p;
@@ -90,6 +113,8 @@ public class AnimalWander : MonoBehaviour
 
     private void PickPause()
     {
+        // 惊慌时不停顿:到点立刻换个目标继续狂奔
+        if (Panicking) { PickTarget(); SetMoving(true); return; }
         pauseTimer = Random.Range(pauseMin, pauseMax);
         SetMoving(false);
     }
