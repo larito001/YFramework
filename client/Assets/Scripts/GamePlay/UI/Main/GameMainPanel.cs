@@ -87,6 +87,7 @@ public class GameMainPanel : UIPageBase
         ammo = InitialAmmo();
         bulletLevel = SelectedBulletLevel(); // 本局子弹等级(金色猎物身体伤害据此区分)
         disturbRange = SelectedWeaponDisturbRange(); // 本局武器惊扰范围
+        ScopeAim()?.SetSwayAmplitude(SelectedScopeSway()); // 本局瞄准镜的晃动幅度(越好的镜越小)
         SetAiming(false); // 复位:收起准星/黑边遮罩,相机回到正常视野
         if (mapNameText != null) mapNameText.text = !string.IsNullOrEmpty(maps?.SelectedName) ? maps.SelectedName : "未知关卡";
 
@@ -389,6 +390,18 @@ public class GameMainPanel : UIPageBase
         {
             var it = config.itemConfig.Get((uint)weaponId);
             if (it != null) return it.DisturbRange;
+        }
+        return 0f;
+    }
+
+    /// <summary>本局瞄准镜晃动幅度:取选中瞄准镜的 item 配表 aimSway(度);取不到则 0(不晃)。越好的镜配得越小。</summary>
+    private float SelectedScopeSway()
+    {
+        int scopeId = loadout != null ? loadout.GetSelected(ShopCategory.Scope) : 0;
+        if (scopeId > 0 && config != null)
+        {
+            var it = config.itemConfig.Get((uint)scopeId);
+            if (it != null) return it.AimSway;
         }
         return 0f;
     }

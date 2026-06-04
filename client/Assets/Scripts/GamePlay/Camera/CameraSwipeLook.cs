@@ -47,6 +47,9 @@ public class CameraSwipeLook : MonoBehaviour
         SyncToCurrentRotation();
     }
 
+    /// <summary>当前环视基准朝向(yaw/pitch 合成,不含瞄准晃动)。供 <see cref="ScopeAimController"/> 在其之上叠加正弦晃动。</summary>
+    public Quaternion LookRotation => Quaternion.Euler(pitch, yaw, 0f);
+
     /// <summary>把内部 yaw/pitch 重新对齐到相机当前朝向。外部改了机位/朝向后(如尸检镜头复位)调用一次,避免下次拖动跳变。</summary>
     public void SyncToCurrentRotation()
     {

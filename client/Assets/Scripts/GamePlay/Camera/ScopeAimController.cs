@@ -29,6 +29,14 @@ public class ScopeAimController : MonoBehaviour
     [Tooltip("命中判定的最大距离(米)")]
     public float rayDistance = 500f;
 
+    [Header("瞄准晃动(正弦呼吸晃动;幅度由所选瞄准镜配表 aimSway 决定,越好的镜越小)")]
+    [Tooltip("晃动幅度(度);0=不晃。由 SetSwayAmplitude 按所选瞄准镜设置")]
+    public float swayAmplitude = 0f;
+    [Tooltip("晃动频率(弧度/秒):水平方向")]
+    public float swayFrequency = 1.6f;
+    [Tooltip("垂直晃动相对水平的幅度比(<1 → 竖向更小,呈横向 8 字飘移)")]
+    public float swayVerticalRatio = 0.6f;
+
     private Camera cam;
     private CameraSwipeLook look;
 
@@ -55,6 +63,21 @@ public class ScopeAimController : MonoBehaviour
         aiming = on;
         targetFov = on ? aimFov : normalFov;
         if (look != null) look.sensitivity = baseSensitivity * (on ? aimSensitivityScale : 1f);
+        // 退出瞄准:抹掉残留的晃动偏移,回到纯环视朝向(否则上一帧的正弦偏移会被冻结)
+        if (!on && look != null) transform.rotation = look.LookRotation;
+    }
+
+    /// <summary>按所选瞄准镜设置晃动幅度(度)。配表 aimSway:越好的镜越小;0=不晃。</summary>
+    public void SetSwayAmplitude(float amplitude) => swayAmplitude = Mathf.Max(0f, amplitude);
+
+    /// <summary>瞄准时:在环视基准朝向上叠加正弦呼吸晃动(横向 8 字飘移)。LateUpdate 里做,确保在环视写入之后,成为最终朝向。</summary>
+    private void LateUpdate()
+    {
+        if (!aiming || look == null || swayAmplitude <= 0f) return;
+        float t = Time.time;
+        float yawSway = swayAmplitude * Mathf.Sin(t * swayFrequency);
+        float pitchSway = swayAmplitude * swayVerticalRatio * Mathf.Sin(t * swayFrequency * 0.85f + 1.3f);
+        transform.rotation = look.LookRotation * Quaternion.Euler(pitchSway, yawSway, 0f);
     }
 
     /// <summary>
