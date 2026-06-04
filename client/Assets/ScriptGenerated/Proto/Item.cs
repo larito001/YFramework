@@ -25,20 +25,21 @@ namespace YFramework.Config {
       byte[] descriptorData = global::System.Convert.FromBase64String(
           string.Concat(
             "CgppdGVtLnByb3RvEhF5ZnJhbWV3b3JrLmNvbmZpZxoUQ29uZmlnQmFzZVR5",
-            "cGUucHJvdG8itgIKBEl0ZW0SCgoCaWQYASABKA0SDAoEbmFtZRgCIAEoCRIM",
+            "cGUucHJvdG8i7QIKBEl0ZW0SCgoCaWQYASABKA0SDAoEbmFtZRgCIAEoCRIM",
             "CgRkZXNjGAMgASgJEgwKBHR5cGUYBCABKA0SDwoHcXVhbGl0eRgFIAEoDRIQ",
             "CghpY29uUGF0aBgGIAEoCRINCgV3aWR0aBgHIAEoBRIOCgZoZWlnaHQYCCAB",
             "KAUSDQoFc2hhcGUYCSABKAkSEAoIbWF4U3RhY2sYCiABKAUSDQoFdmFsdWUY",
             "CyABKAUSFAoMc29ydFByaW9yaXR5GAwgASgFEhEKCXByaWNlVHlwZRgNIAEo",
             "DRINCgVwcmljZRgOIAEoBRIUCgxzaG9wQ2F0ZWdvcnkYDyABKA0SEQoJbW9k",
             "ZWxQYXRoGBAgASgJEhQKDGRpc3R1cmJSYW5nZRgRIAEoBRIPCgdhaW1Td2F5",
-            "GBIgASgCIkEKF0l0ZW1fTElTVF9UT09MX1JFU0VSVkVEEiYKBWl0ZW1zGAEg",
-            "AygLMhcueWZyYW1ld29yay5jb25maWcuSXRlbUIUqgIRWUZyYW1ld29yay5D",
-            "b25maWdiBnByb3RvMw=="));
+            "GBIgASgCEhAKCG1hZ2F6aW5lGBMgASgFEhMKC3Jlc2VydmVBbW1vGBQgASgF",
+            "Eg4KBmZpcmVDZBgVIAEoAiJBChdJdGVtX0xJU1RfVE9PTF9SRVNFUlZFRBIm",
+            "CgVpdGVtcxgBIAMoCzIXLnlmcmFtZXdvcmsuY29uZmlnLkl0ZW1CFKoCEVlG",
+            "cmFtZXdvcmsuQ29uZmlnYgZwcm90bzM="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::YFramework.Config.ConfigBaseTypeReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(null, new pbr::GeneratedClrTypeInfo[] {
-            new pbr::GeneratedClrTypeInfo(typeof(global::YFramework.Config.Item), global::YFramework.Config.Item.Parser, new[]{ "Id", "Name", "Desc", "Type", "Quality", "IconPath", "Width", "Height", "Shape", "MaxStack", "Value", "SortPriority", "PriceType", "Price", "ShopCategory", "ModelPath", "DisturbRange", "AimSway" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::YFramework.Config.Item), global::YFramework.Config.Item.Parser, new[]{ "Id", "Name", "Desc", "Type", "Quality", "IconPath", "Width", "Height", "Shape", "MaxStack", "Value", "SortPriority", "PriceType", "Price", "ShopCategory", "ModelPath", "DisturbRange", "AimSway", "Magazine", "ReserveAmmo", "FireCd" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::YFramework.Config.Item_LIST_TOOL_RESERVED), global::YFramework.Config.Item_LIST_TOOL_RESERVED.Parser, new[]{ "Items" }, null, null, null)
           }));
     }
@@ -89,6 +90,9 @@ namespace YFramework.Config {
       modelPath_ = other.modelPath_;
       disturbRange_ = other.disturbRange_;
       aimSway_ = other.aimSway_;
+      magazine_ = other.magazine_;
+      reserveAmmo_ = other.reserveAmmo_;
+      fireCd_ = other.fireCd_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -349,6 +353,48 @@ namespace YFramework.Config {
       }
     }
 
+    /// <summary>Field number for the "magazine" field.</summary>
+    public const int MagazineFieldNumber = 19;
+    private int magazine_;
+    /// <summary>
+    ///弹夹容量
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public int Magazine {
+      get { return magazine_; }
+      set {
+        magazine_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "reserveAmmo" field.</summary>
+    public const int ReserveAmmoFieldNumber = 20;
+    private int reserveAmmo_;
+    /// <summary>
+    ///备弹
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public int ReserveAmmo {
+      get { return reserveAmmo_; }
+      set {
+        reserveAmmo_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "fireCd" field.</summary>
+    public const int FireCdFieldNumber = 21;
+    private float fireCd_;
+    /// <summary>
+    ///连射CD
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public float FireCd {
+      get { return fireCd_; }
+      set {
+        fireCd_ = value;
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public override bool Equals(object other) {
       return Equals(other as Item);
@@ -380,6 +426,9 @@ namespace YFramework.Config {
       if (ModelPath != other.ModelPath) return false;
       if (DisturbRange != other.DisturbRange) return false;
       if (!pbc::ProtobufEqualityComparers.BitwiseSingleEqualityComparer.Equals(AimSway, other.AimSway)) return false;
+      if (Magazine != other.Magazine) return false;
+      if (ReserveAmmo != other.ReserveAmmo) return false;
+      if (!pbc::ProtobufEqualityComparers.BitwiseSingleEqualityComparer.Equals(FireCd, other.FireCd)) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -404,6 +453,9 @@ namespace YFramework.Config {
       if (ModelPath.Length != 0) hash ^= ModelPath.GetHashCode();
       if (DisturbRange != 0) hash ^= DisturbRange.GetHashCode();
       if (AimSway != 0F) hash ^= pbc::ProtobufEqualityComparers.BitwiseSingleEqualityComparer.GetHashCode(AimSway);
+      if (Magazine != 0) hash ^= Magazine.GetHashCode();
+      if (ReserveAmmo != 0) hash ^= ReserveAmmo.GetHashCode();
+      if (FireCd != 0F) hash ^= pbc::ProtobufEqualityComparers.BitwiseSingleEqualityComparer.GetHashCode(FireCd);
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -489,6 +541,18 @@ namespace YFramework.Config {
         output.WriteRawTag(149, 1);
         output.WriteFloat(AimSway);
       }
+      if (Magazine != 0) {
+        output.WriteRawTag(152, 1);
+        output.WriteInt32(Magazine);
+      }
+      if (ReserveAmmo != 0) {
+        output.WriteRawTag(160, 1);
+        output.WriteInt32(ReserveAmmo);
+      }
+      if (FireCd != 0F) {
+        output.WriteRawTag(173, 1);
+        output.WriteFloat(FireCd);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -549,6 +613,15 @@ namespace YFramework.Config {
         size += 2 + pb::CodedOutputStream.ComputeInt32Size(DisturbRange);
       }
       if (AimSway != 0F) {
+        size += 2 + 4;
+      }
+      if (Magazine != 0) {
+        size += 2 + pb::CodedOutputStream.ComputeInt32Size(Magazine);
+      }
+      if (ReserveAmmo != 0) {
+        size += 2 + pb::CodedOutputStream.ComputeInt32Size(ReserveAmmo);
+      }
+      if (FireCd != 0F) {
         size += 2 + 4;
       }
       if (_unknownFields != null) {
@@ -615,6 +688,15 @@ namespace YFramework.Config {
       }
       if (other.AimSway != 0F) {
         AimSway = other.AimSway;
+      }
+      if (other.Magazine != 0) {
+        Magazine = other.Magazine;
+      }
+      if (other.ReserveAmmo != 0) {
+        ReserveAmmo = other.ReserveAmmo;
+      }
+      if (other.FireCd != 0F) {
+        FireCd = other.FireCd;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -697,6 +779,18 @@ namespace YFramework.Config {
           }
           case 149: {
             AimSway = input.ReadFloat();
+            break;
+          }
+          case 152: {
+            Magazine = input.ReadInt32();
+            break;
+          }
+          case 160: {
+            ReserveAmmo = input.ReadInt32();
+            break;
+          }
+          case 173: {
+            FireCd = input.ReadFloat();
             break;
           }
         }

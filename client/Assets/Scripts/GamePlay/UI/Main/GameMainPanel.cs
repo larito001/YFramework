@@ -49,7 +49,11 @@ public class GameMainPanel : UIPageBase
     private ScopeAimController scopeAim; // 相机端瞄准机制(变焦 + 命中射线),挂在主相机上
 
     private int score;
-    private int ammo;
+    private int mag;             // 当前弹夹内剩余子弹
+    private int reserve;         // 备弹(弹夹打空后从中换装)
+    private int magazineSize;    // 弹夹容量(所选武器配表 magazine)
+    private float fireCd;        // 连射 CD(所选武器配表 fireCd,秒):两发最小间隔
+    private float lastFireTime = -999f; // 上次开火时刻(realtime),用于连射 CD 限速
     private int bulletLevel = 1; // 本局所选子弹等级(1=标准弹 / 2=空尖弹);决定金色猎物身体所需枪数
     private float disturbRange;  // 本局所选武器的惊扰范围(配表 disturbRange);每次开枪惊扰落点该半径内的动物
     private bool aiming;
@@ -84,7 +88,8 @@ public class GameMainPanel : UIPageBase
         score = 0;
         kills.Clear();
         ending = false; // 新一局:复位结束流程标记
-        ammo = InitialAmmo();
+        InitAmmoFromLoadout(); // 弹夹/备弹/连射CD(均取所选武器配表)
+        lastFireTime = -999f;
         bulletLevel = SelectedBulletLevel(); // 本局子弹等级(金色猎物身体伤害据此区分)
         disturbRange = SelectedWeaponDisturbRange(); // 本局武器惊扰范围
         ScopeAim()?.SetSwayAmplitude(SelectedScopeSway()); // 本局瞄准镜的晃动幅度(越好的镜越小)
@@ -142,11 +147,12 @@ public class GameMainPanel : UIPageBase
     private void Shoot()
     {
         if (!aiming) return;
-        eventMgr?.Trigger(YOTOEventType.Shoot); // 开枪反馈(实弹/空枪干打都触发:镜头抖动 + 后座)
+        if (Time.time - lastFireTime < fireCd) return; // 连射 CD 未到:本次点击不开火(连点也按枪的 fireCd 限速)
+        if (mag <= 0) return; // 保底:弹夹空时本不该还在瞄准(空即关镜换弹),不空打
 
-        if (ammo <= 0) { RefreshAmmo(); return; } // 保底:打光即自动结束,正常不会走到这里(空枪只震屏,不开火、不关镜)
-
-        ammo--;
+        lastFireTime = Time.time;
+        eventMgr?.Trigger(YOTOEventType.Shoot); // 开枪反馈:镜头抖动 + 后座
+        mag--;
 
         // 从屏幕中心(准星处)打射线:普通猎物任意部位一枪死;金色头/心脏一枪、身体按子弹等级(2级1发/1级3发)。只有「这一枪打死了」才加分计数
         var aim = ScopeAim();
@@ -165,11 +171,13 @@ public class GameMainPanel : UIPageBase
                 taskProgress?.AddKill(1);    // 计入"击杀任意动物"类任务进度
                 codex?.Discover(hit.animalId); // 击杀的动物解锁图鉴
                 RefreshScore();
+                // 击杀加分:在怪物头顶飘 "+积分"(用 Quick:最终放大 1.5×,带弹出,比 Normal 大)
+                GetService<FlyTextMgr>()?.AddText($"+{hit.score}", hit.HeadTopWorld(), FlyTextType.Quick, TextPosType.World);
             }
             else
             {
-                // 身体中了一枪但没死:给个「命中」飘字,免得玩家以为打空了
-                GetService<FlyTextMgr>()?.AddTextAtScreenCenter("命中");
+                // 身体中了一枪但没死:给个「命中」飘字(红色),免得玩家以为打空了
+                GetService<FlyTextMgr>()?.AddTextAtScreenCenter("命中", FlyTextType.PlayerHurt);
             }
         }
 
@@ -177,11 +185,25 @@ public class GameMainPanel : UIPageBase
         if (shot.rayHit && disturbRange > 0f)
             animals?.PanicAround(shot.point, disturbRange, PanicDuration);
 
-        SetAiming(false); // 实弹射击后关闭瞄准镜
         RefreshAmmo();
 
-        // 子弹打完:直接进入结束捕猎流程(无需再点「结束打猎」/确认),淡出 HUD → 尸检镜头 → 结算。
-        if (ammo <= 0) BeginEndSequence();
+        // 弹夹清空前:不关镜,保持瞄准可继续连点射击(受 fireCd 限速)。
+        // 弹夹打空:关镜,并从备弹自动换弹;若备弹也空 → 直接结束打猎。
+        if (mag <= 0)
+        {
+            SetAiming(false);
+            Reload();
+        }
+    }
+
+    /// <summary>弹夹打空后从备弹换装下一夹;备弹也空(弹夹+备弹都打光)→ 直接结束打猎。</summary>
+    private void Reload()
+    {
+        if (reserve <= 0) { BeginEndSequence(); return; } // 都打光:走结束捕猎流程
+        int load = Mathf.Min(magazineSize, reserve);
+        mag = load;
+        reserve -= load;
+        RefreshAmmo();
     }
 
     /// <summary>命中头/心脏:在屏幕中上方飘一下「击中」特效(放大 + 上浮 + 淡出,结束自销毁)。
@@ -339,11 +361,11 @@ public class GameMainPanel : UIPageBase
 
     private void RefreshAmmo()
     {
-        if (ammoText != null) ammoText.text = $"剩余子弹：{ammo}";
+        if (ammoText != null) ammoText.text = $"弹夹 {mag} / 备弹 {reserve}";
         RefreshActionButton();
     }
 
-    /// <summary>圆钮文字随状态切换;始终可点(空枪干打也要给震屏反馈)。</summary>
+    /// <summary>圆钮文字随状态切换:未瞄准=「瞄准」,瞄准=「射击」;始终可点。</summary>
     private void RefreshActionButton()
     {
         if (actionLabel != null) actionLabel.text = aiming ? "射击" : "瞄准";
@@ -358,16 +380,19 @@ public class GameMainPanel : UIPageBase
         return es.IsPointerOverGameObject();
     }
 
-    /// <summary>弹匣容量:选中子弹装备的 MaxStack;取不到则默认 10。</summary>
-    private int InitialAmmo()
+    /// <summary>按所选武器初始化弹夹/备弹/连射CD(武器配表 magazine/reserveAmmo/fireCd);取不到则用兜底值。弹夹开局装满。</summary>
+    private void InitAmmoFromLoadout()
     {
-        int bulletId = loadout != null ? loadout.GetSelected(ShopCategory.Bullet) : 0;
-        if (bulletId > 0 && config != null)
+        magazineSize = 10; reserve = 0; fireCd = 0.3f; // 兜底
+        int weaponId = loadout != null ? loadout.GetSelected(ShopCategory.Weapon) : 0;
+        var it = weaponId > 0 && config != null ? config.itemConfig.Get((uint)weaponId) : null;
+        if (it != null)
         {
-            var it = config.itemConfig.Get((uint)bulletId);
-            if (it != null && it.MaxStack > 0) return it.MaxStack;
+            if (it.Magazine > 0) magazineSize = it.Magazine;
+            reserve = Mathf.Max(0, it.ReserveAmmo);
+            if (it.FireCd > 0f) fireCd = it.FireCd;
         }
-        return 10;
+        mag = magazineSize; // 开局装满一夹
     }
 
     /// <summary>本局子弹等级:取选中子弹的 item 配表 quality(标准弹=1 / 空尖弹=2);取不到按 1 级兜底。</summary>

@@ -40,6 +40,20 @@ public class AnimalEntity : MonoBehaviour
 
     private void Awake() => animator = GetComponentInChildren<Animator>();
 
+    /// <summary>头顶世界坐标(渲染包围盒顶部略上方),供击杀飘字定位。跳过弱点高亮盒,取不到渲染器则回退到身体上方。</summary>
+    public Vector3 HeadTopWorld()
+    {
+        bool any = false;
+        Bounds b = default;
+        foreach (var r in GetComponentsInChildren<Renderer>())
+        {
+            if (r.GetComponentInParent<AnimalHitZone>() != null) continue; // 跳过部位高亮盒
+            if (!any) { b = r.bounds; any = true; } else b.Encapsulate(r.bounds);
+        }
+        if (!any) return transform.position + Vector3.up;
+        return new Vector3(b.center.x, b.max.y + 0.3f, b.center.z);
+    }
+
     /// <summary>
     /// 结算一次命中(<paramref name="bulletLevel"/>:1=标准弹 / 2=空尖弹):
     ///   · 普通(非金色)猎物:任何部位、任何子弹一枪即死;
