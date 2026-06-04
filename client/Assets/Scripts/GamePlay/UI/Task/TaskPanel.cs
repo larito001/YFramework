@@ -174,9 +174,9 @@ public class TaskPanel : UIPageBase
         if (task.RewardItemId > 0 && task.RewardItemCount > 0)
             FillReward(view, slot++, ItemIcon(task.RewardItemId), IconBox, task.RewardItemCount);
         if (task.RewardCoin > 0)
-            FillReward(view, slot++, null, CoinIcon, task.RewardCoin);
+            FillReward(view, slot++, view.coinIcon, CoinIcon, task.RewardCoin);     // 烤进预制体的金币图标,缺失才退色块
         if (task.RewardEnergy > 0)
-            FillReward(view, slot++, null, EnergyIcon, task.RewardEnergy);
+            FillReward(view, slot++, view.energyIcon, EnergyIcon, task.RewardEnergy); // 同上,体力图标
 
         // 右下按钮:未完成=前往;已完成未领=领取;已领取=置灰不可点
         bool canClaim = taskProgress != null && taskProgress.CanClaim(task.Id);

@@ -91,6 +91,9 @@ public static class TaskCardBuilder
         view.rewardRoots = roots;
         view.rewardIcons = icons;
         view.rewardCounts = counts;
+        // 金币/体力图标是工程内静态 Sprite(非 Resources),烤进预制体供运行时奖励格引用(与顶部资源胶囊同款)
+        view.coinIcon = LoadIcon(UICurrencyPill.IconGold);
+        view.energyIcon = LoadIcon(UICurrencyPill.IconEnergy);
         view.actionBg = actImg;
         view.actionButton = actBtn;
         view.actionLabel = actLabelTmp;
@@ -103,6 +106,13 @@ public static class TaskCardBuilder
     }
 
     // ============================ 工具 ============================
+
+    private static Sprite LoadIcon(string path)
+    {
+        var s = AssetDatabase.LoadAssetAtPath<Sprite>(path);
+        if (s == null) Debug.LogWarning($"[TaskCardBuilder] 找不到奖励图标 {path}");
+        return s;
+    }
 
     private static GameObject NewUI(string name, out RectTransform rt, Transform parent = null)
     {

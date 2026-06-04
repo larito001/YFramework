@@ -15,6 +15,8 @@ public class TaskCardView : MonoBehaviour
     public GameObject[] rewardRoots;       // 3 个奖励格根(显隐)
     public Image[] rewardIcons;            // 3 个奖励图标(有图=精灵/无图=色块)
     public TextMeshProUGUI[] rewardCounts; // 3 个 ×数量
+    public Sprite coinIcon;                // 金币奖励图标(非 Resources,由生成器烤进预制体)
+    public Sprite energyIcon;              // 体力奖励图标(同上)
     public Image actionBg;                 // 右下按钮底(橙前往/绿领取/灰已领取)
     public Button actionButton;            // 右下按钮
     public TextMeshProUGUI actionLabel;    // 按钮文字
