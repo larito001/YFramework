@@ -227,8 +227,9 @@ public abstract class GridHostPanelBase : UIPageBase, IGridHost
 
     public void OnItemClick(BagGridView view, BagItemWidget widget)
     {
-        // 左键单击不直接使用物品——使用只走右键菜单的「使用」项。
-        // 此处刻意留空(单击仅用于拖拽起手判定,见 BagItemWidget)。
+        // 左键单击:打开通用道具描述弹窗(名称 + 详细描述)。不「使用」物品——使用只走右键菜单的「使用」项。
+        var placed = view != null && view.Bag != null ? view.Bag.GetByInstance(widget.InstanceId) : null;
+        if (placed != null) Show<ItemDescPanel, ItemDescParam>(new ItemDescParam { itemId = placed.itemId });
     }
 
     /// <summary>双击:快速移到另一个网格。默认无另一网格(纯背包)→ 不处理;宝箱面板重写。</summary>

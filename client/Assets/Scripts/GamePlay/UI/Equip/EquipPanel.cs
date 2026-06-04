@@ -171,6 +171,8 @@ public class EquipPanel : UIPageBase
         var sprite = ModelSnapshotCache.CardSprite(item.ModelPath, resMgr)
                      ?? (!string.IsNullOrEmpty(item.IconPath) ? resMgr.Load<Sprite>(item.IconPath) : null);
         view.pic.sprite = sprite; view.pic.enabled = sprite != null;
+        // 点图标弹道具描述(图标区优先;卡片其余区域仍走选中/出战)
+        (view.pic.gameObject.GetComponent<ItemIconDescButton>() ?? view.pic.gameObject.AddComponent<ItemIconDescButton>()).itemId = (int)item.Id;
 
         view.nameText.text = item.Name;
     }

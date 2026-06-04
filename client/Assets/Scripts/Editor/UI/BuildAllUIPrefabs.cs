@@ -27,6 +27,7 @@ public static class BuildAllUIPrefabs
         ("LoginPanel",     LoginPanelBuilder.Build),
         ("MapSelectPanel", MapSelectPanelBuilder.Build),
         ("RewardClaimPanel", RewardClaimPanelBuilder.Build),
+        ("ItemDescPanel",  ItemDescPanelBuilder.Build),
         ("SaveSlotPanel",  SaveSlotPanelBuilder.Build),
         ("SettingPanel",   SettingPanelBuilder.Build),
         ("ShopPanel",      ShopPanelBuilder.Build),

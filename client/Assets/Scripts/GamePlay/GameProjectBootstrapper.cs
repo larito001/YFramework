@@ -145,6 +145,8 @@ public static partial class GameBootstrapper
         uiConfig.Register<ConfirmPanel>(UIEnum.ConfirmPanel, UILayerEnum.Top, "UI/Common/ConfirmPanel");
         // 通用奖励领取弹窗:Top 层,横排展示道具/货币,默认弹出 1 秒自动消失。通过 RewardClaimParam 传奖励清单。
         uiConfig.Register<RewardClaimPanel>(UIEnum.RewardClaimPanel, UILayerEnum.Top, "UI/Common/RewardClaimPanel");
+        // 通用道具描述弹窗:Top 层,点道具图标打开,显示名称 + 详细描述 + 图标。通过 ItemDescParam 传 itemId。
+        uiConfig.Register<ItemDescPanel>(UIEnum.ItemDescPanel, UILayerEnum.Top, "UI/Common/ItemDescPanel");
     }
 
     static partial void RunProjectStartup(GameContext ctx)
