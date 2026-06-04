@@ -7,7 +7,7 @@ using UnityEngine.UI;
 
 /// <summary>
 /// 一键生成图鉴界面预制体 CodexPanel.prefab 到 Resources/UI/Codex 下,供 UIMgr/ResMgr 按路径加载。
-/// 只搭外壳:浅紫背景 + 返回 / 资源金币(绿色胶囊) + 装饰公仔/荣誉卡片 两页签 + 居中内容面板(2 列网格容器) + 底部分页条。
+/// 只搭外壳:浅紫背景 + 返回 / 资源金币(绿色胶囊) + 居中内容面板(2 列网格容器) + 底部分页条。
 /// 卡片(图片 + 解锁徽标)由 <see cref="CodexPanel"/> 运行时按配表 <c>codexConfig</c> 分页构建。
 ///
 /// 尺寸按"画布宽恒为 1920 单位"(CanvasScaler match=width)给,竖屏四边留边自适应。
@@ -60,9 +60,6 @@ public static class CodexPanelBuilder
         ((RectTransform)coinText.transform).offsetMax = new Vector2(-28, 0); // 右侧留边距
         UICurrencyPill.AddIconLeft(coinGo, (RectTransform)coinText.transform, UICurrencyPill.IconGold); // 金币用图标,不写文字
 
-        // 动物图鉴是单分类,「装饰公仔 / 荣誉卡片」两个页签已停用——不再生成,空出的顶部空间让内容面板上移。
-        // (CodexPanel 的 tabDoll/tabCard 字段保持为空,OnLoad 里对空引用已做保护。)
-
         // ---------- 中部:内容面板(2 列网格容器)----------
         var panelGo = NewUI("Panel", out var panelRt, root.transform);
         panelRt.anchorMin = Vector2.zero; panelRt.anchorMax = Vector2.one;
@@ -105,7 +102,6 @@ public static class CodexPanelBuilder
         panel.uiType = UIEnum.CodexPanel;
         panel.backBtn = backBtn;
         panel.coinText = coinText;
-        // tabDoll / tabCard 不再生成,留空(动物图鉴单分类)
         panel.grid = gridRt;
         panel.pageText = pageText;
         panel.btnFirst = btnFirst;

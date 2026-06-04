@@ -11,7 +11,7 @@ using YOTO;
 ///   中部:2 列网格,每页 6 张卡;**被杀死过的动物**解锁(显示名称 + 击杀积分),未击杀显示「？/未解锁」
 ///   底部:首页 / 上一页 / 「当前/总页」/ 下一页 / 末页 分页
 /// 目录读 animal 配表(<see cref="ConfigManager.animalConfig"/>);解锁集合来自 <see cref="CodexSystem"/>(击杀即发现,随存档槽存档)。
-/// 预制体外壳由 <c>Tools/UI/Build CodexPanel Prefab</c> 生成(原装饰公仔/荣誉卡片两个页签已停用并隐藏)。
+/// 预制体外壳由 <c>Tools/UI/Build CodexPanel Prefab</c> 生成。
 /// </summary>
 public class CodexPanel : UIPageBase
 {
@@ -20,10 +20,6 @@ public class CodexPanel : UIPageBase
     [Header("顶部")]
     public Button backBtn;
     public TextMeshProUGUI coinText;
-
-    [Header("页签(动物图鉴单类,停用并隐藏)")]
-    public Button tabDoll;
-    public Button tabCard;
 
     [Header("网格(GridLayoutGroup 容器)")]
     public RectTransform grid;
@@ -63,9 +59,6 @@ public class CodexPanel : UIPageBase
         if (cardPrefab == null) Debug.LogError("[CodexPanel] 未找到 CodexCard 预制体,请先执行 Tools/UI/Build CodexCard Prefab(或 Build ALL UI Prefabs)。");
 
         if (backBtn != null) backBtn.onClick.AddListener(CloseSelf);
-        // 动物图鉴只有一类:隐藏原来的两个分类页签
-        if (tabDoll != null) tabDoll.gameObject.SetActive(false);
-        if (tabCard != null) tabCard.gameObject.SetActive(false);
         if (btnFirst != null) btnFirst.onClick.AddListener(() => GoToPage(0));
         if (btnPrev != null) btnPrev.onClick.AddListener(() => GoToPage(page - 1));
         if (btnNext != null) btnNext.onClick.AddListener(() => GoToPage(page + 1));
