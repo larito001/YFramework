@@ -5,8 +5,8 @@ using YOTO;
 
 /// <summary>
 /// 设置界面:竖屏单页,保留声音设置(按键 / 画面页签已移除) + 两个调试按钮(清空数据 / 加金币)。
-/// 声音控件由 <see cref="SoundSettingsTab"/> 在激活时懒构建并绑定 SoundMgr;本类负责显示/返回与调试按钮。
-/// 预制体由 <c>Tools/UI/Build SettingPanel Prefab</c> 生成。
+/// 声音控件已烤进预制体,<see cref="SoundSettingsTab"/> 激活时只刷新/绑定 SoundMgr;本类负责显示/返回与调试按钮。
+/// 调试按钮仍按 #if 在运行时生成(正式包不出现)。预制体由 <c>Tools/UI/Build SettingPanel Prefab</c> 生成。
 /// </summary>
 public class SettingPanel : UIPageBase
 {

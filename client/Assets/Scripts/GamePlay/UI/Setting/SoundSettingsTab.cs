@@ -2,36 +2,43 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-/// <summary>声音设置页签:音乐/音效 两路音量滑条 + 静音开关,绑定 SoundMgr(改动即生效并存盘)。</summary>
-public class SoundSettingsTab : SettingTabBase
+/// <summary>
+/// 声音设置页签:音乐/音效 两路音量滑条 + 静音开关,绑定 SoundMgr(改动即生效并存盘)。
+/// 控件由 <see cref="SettingPanelBuilder"/> 烤进预制体(不再运行时构建);本类只引用序列化字段做刷新/绑定。
+/// 数组下标对应 <see cref="Channels"/>:0=音乐,1=音效。
+/// </summary>
+public class SoundSettingsTab : MonoBehaviour
 {
     private static readonly SoundChannel[] Channels = { SoundChannel.Music, SoundChannel.Sfx };
-    private static readonly string[] Names = { "音乐", "音效" };
 
-    private readonly Slider[] sliders = new Slider[Channels.Length];
-    private readonly TextMeshProUGUI[] values = new TextMeshProUGUI[Channels.Length];
-    private readonly Toggle[] mutes = new Toggle[Channels.Length];
+    // 由生成器写入,长度与 Channels 一致(0=音乐,1=音效)。
+    public Slider[] sliders = new Slider[Channels.Length];
+    public TextMeshProUGUI[] values = new TextMeshProUGUI[Channels.Length];
+    public Toggle[] mutes = new Toggle[Channels.Length];
+
+    private bool wired;
     private bool refreshing;
 
-    protected override void Build()
+    private void OnEnable()
     {
-        NewLabel(Content, "声音设置", 700, 52, TextAlignmentOptions.Left);
+        WireOnce();
+        Refresh();
+    }
+
+    /// <summary>给预制体里的控件挂一次回调(SetActive 反复触发 OnEnable 也只挂一次)。</summary>
+    private void WireOnce()
+    {
+        if (wired) return;
         for (int i = 0; i < Channels.Length; i++)
         {
             int idx = i;
-            var row = NewRow(Content);
-            NewLabel(row.transform, Names[i], 220, 40, TextAlignmentOptions.Left);
-            sliders[i] = NewSlider(row.transform);
-            values[i] = NewLabel(row.transform, "100%", 130, 36, TextAlignmentOptions.Right);
-            NewLabel(row.transform, "静音", 110, 34, TextAlignmentOptions.Right);
-            mutes[i] = NewToggle(row.transform);
-
-            sliders[i].onValueChanged.AddListener(v => OnVolume(idx, v));
-            mutes[i].onValueChanged.AddListener(b => OnMute(idx, b));
+            if (sliders[i] != null) sliders[i].onValueChanged.AddListener(v => OnVolume(idx, v));
+            if (mutes[i] != null) mutes[i].onValueChanged.AddListener(b => OnMute(idx, b));
         }
+        wired = true;
     }
 
-    protected override void Refresh()
+    private void Refresh()
     {
         var sound = Resolve<SoundMgr>();
         if (sound == null) return;
@@ -39,9 +46,9 @@ public class SoundSettingsTab : SettingTabBase
         for (int i = 0; i < Channels.Length; i++)
         {
             float v = ChannelVolume(sound, i);
-            sliders[i].SetValueWithoutNotify(v);
-            values[i].text = Pct(v);
-            mutes[i].SetIsOnWithoutNotify(sound.IsChannelMuted(Channels[i]));
+            if (sliders[i] != null) sliders[i].SetValueWithoutNotify(v);
+            if (values[i] != null) values[i].text = Pct(v);
+            if (mutes[i] != null) mutes[i].SetIsOnWithoutNotify(sound.IsChannelMuted(Channels[i]));
         }
         refreshing = false;
     }
@@ -58,7 +65,7 @@ public class SoundSettingsTab : SettingTabBase
             case SoundChannel.Sfx: sound.SetSfxVolume(v); break;
             case SoundChannel.Ui: sound.SetUiVolume(v); break;
         }
-        values[idx].text = Pct(v);
+        if (values[idx] != null) values[idx].text = Pct(v);
     }
 
     private void OnMute(int idx, bool muted)
@@ -85,6 +92,9 @@ public class SoundSettingsTab : SettingTabBase
             default: return sound.UiVolume;
         }
     }
+
+    private static T Resolve<T>() where T : class
+        => GameLoop.Instance != null && GameLoop.Instance.Ctx != null ? GameLoop.Instance.Ctx.Get<T>() : null;
 
     private static string Pct(float v) => $"{Mathf.RoundToInt(v * 100f)}%";
 }
