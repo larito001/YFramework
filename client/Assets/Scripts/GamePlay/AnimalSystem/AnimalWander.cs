@@ -32,11 +32,14 @@ public class AnimalWander : MonoBehaviour
 
     // 行走动画候选 bool 参数名,按优先级探测(此美术包:多数动物 isWalking,兔子用 isJumping 触发 hop)
     private static readonly string[] WalkParamCandidates = { "isWalking", "isJumping" };
+    // 奔跑动画候选 bool 参数名(此美术包统一 isRunning):惊慌时叠加播放
+    private static readonly string[] RunParamCandidates = { "isRunning" };
     private static readonly RaycastHit[] HitBuffer = new RaycastHit[8];
 
     private AnimalEntity entity;
     private Animator animator;
     private string walkParam;   // 探测到的行走 bool 参数名(空=该动物无行走动画,只移动不切动画)
+    private string runParam;    // 探测到的奔跑 bool 参数名(空=无奔跑动画,惊慌时退化为更快的走)
     private Vector3 home;       // 出生点,游走围绕它
     private Vector3 target;     // 当前目标点
     private float pauseTimer;   // >0 表示正在 idle 停留
@@ -60,7 +63,8 @@ public class AnimalWander : MonoBehaviour
         entity = GetComponent<AnimalEntity>();
         animator = GetComponentInChildren<Animator>();
         home = transform.position;
-        ResolveWalkParam();
+        walkParam = ResolveParam(WalkParamCandidates);
+        runParam = ResolveParam(RunParamCandidates);
         PickPause(); // 出生先 idle 一小会儿再走,避免整波同时起步
     }
 
@@ -74,7 +78,11 @@ public class AnimalWander : MonoBehaviour
             return;
         }
 
-        if (panicTimer > 0f) panicTimer -= Time.deltaTime; // 惊慌倒计时,归零自动恢复常态
+        if (panicTimer > 0f)
+        {
+            panicTimer -= Time.deltaTime;
+            if (panicTimer <= 0f) ApplyLocomotion(); // 惊慌结束:奔跑→行走(若仍在移动)
+        }
 
         if (pauseTimer > 0f)
         {
@@ -122,22 +130,28 @@ public class AnimalWander : MonoBehaviour
     private void SetMoving(bool on)
     {
         moving = on;
-        if (animator != null && !string.IsNullOrEmpty(walkParam))
-            animator.SetBool(walkParam, on);
+        ApplyLocomotion();
     }
 
-    /// <summary>按候选名在 Animator 里找出第一个存在的行走 bool 参数(找不到则留空,只移动不切动画)。</summary>
-    private void ResolveWalkParam()
+    /// <summary>按当前(是否移动 + 是否惊慌)刷新行走/奔跑动画:移动播 walk;惊慌时叠加 run(保留 walk 为真,
+    /// 兼容「idle→走→跑」式状态机,避免被 isWalking=false 拽出奔跑态)。无对应参数则跳过。</summary>
+    private void ApplyLocomotion()
     {
-        if (animator == null || animator.runtimeAnimatorController == null) return;
+        if (animator == null) return;
+        if (!string.IsNullOrEmpty(walkParam)) animator.SetBool(walkParam, moving);
+        if (!string.IsNullOrEmpty(runParam)) animator.SetBool(runParam, moving && Panicking);
+    }
+
+    /// <summary>按候选名在 Animator 里找出第一个存在的 bool 参数名;找不到返回空串(不切该动画)。</summary>
+    private string ResolveParam(string[] candidates)
+    {
+        if (animator == null || animator.runtimeAnimatorController == null) return string.Empty;
         var ps = animator.parameters;
-        for (int c = 0; c < WalkParamCandidates.Length; c++)
+        for (int c = 0; c < candidates.Length; c++)
             for (int i = 0; i < ps.Length; i++)
-                if (ps[i].type == AnimatorControllerParameterType.Bool && ps[i].name == WalkParamCandidates[c])
-                {
-                    walkParam = WalkParamCandidates[c];
-                    return;
-                }
+                if (ps[i].type == AnimatorControllerParameterType.Bool && ps[i].name == candidates[c])
+                    return candidates[c];
+        return string.Empty;
     }
 
     /// <summary>从点上方往下打射线贴地:取最高的非动物碰撞体命中点 y;打不到地面则保持 fallback(无地面碰撞体时不掉下去)。</summary>

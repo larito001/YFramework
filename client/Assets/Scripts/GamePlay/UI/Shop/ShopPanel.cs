@@ -317,8 +317,8 @@ public class ShopPanel : UIPageBase
         var sprite = ModelSnapshotCache.CardSprite(item.ModelPath, resMgr)
                      ?? (!string.IsNullOrEmpty(item.IconPath) ? resMgr.Load<Sprite>(item.IconPath) : null);
         view.pic.sprite = sprite; view.pic.enabled = sprite != null;
-        // 点图标弹道具描述(图标区优先;卡片其余区域仍走选中/购买)
-        (view.pic.gameObject.GetComponent<ItemIconDescButton>() ?? view.pic.gameObject.AddComponent<ItemIconDescButton>()).itemId = (int)item.Id;
+        // 右上角小「i」按钮弹道具描述(点卡片/图标仍走选中预览,避免切换时误触描述)
+        ItemIconDescButton.AttachInfoBadge((RectTransform)go.transform, (int)item.Id, font);
 
         // 名称 / 价格
         view.nameText.text = item.Name;
