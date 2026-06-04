@@ -29,6 +29,10 @@ public class ShopPanel : UIPageBase
     public Button tabScope;
     public Button tabBullet;
 
+    [Header("看广告领金币(预制体里摆好,展示区左下角)")]
+    public Button adGoldButton;        // 看广告按钮(达上限置灰)
+    public TextMeshProUGUI adGoldLabel; // 按钮文字
+
     private static readonly Color Affordable = new Color(0.30f, 0.78f, 0.36f, 1f); // 绿:买得起
     private static readonly Color Unaffordable = new Color(0.32f, 0.34f, 0.40f, 1f); // 灰:买不起
     private static readonly Color TabOn = new Color(0.30f, 0.55f, 0.85f, 1f);
@@ -39,7 +43,6 @@ public class ShopPanel : UIPageBase
     private LoadoutSystem loadout; // 判断装备是否已拥有(已拥有的按钮置灰)
     private ResMgr resMgr;
     private EventMgr eventMgr;
-    private TMP_FontAsset font;
 
     private ShopCategory current = ShopCategory.Weapon;
     private WeaponModelPreview modelPreview;  // 模型转台(占原商人头像位,扩大到约 2/5 屏);三类(枪/镜/弹)点卡切换展示
@@ -51,8 +54,6 @@ public class ShopPanel : UIPageBase
     private const long AdGoldReward = 1000;                 // 看完一次发放的金币
     private bool adBusy;                                    // 广告进行中:防重复点击
     private DailyAdGoldSystem dailyAdGold;                  // 看广告领金币的每日次数限制(默认 3 次/天)
-    private Button adGoldButton;                            // 看广告按钮(达上限置灰)
-    private TextMeshProUGUI adGoldLabel;                    // 按钮文字
 
     public override void OnLoad()
     {
@@ -61,7 +62,6 @@ public class ShopPanel : UIPageBase
         loadout = GetService<LoadoutSystem>();
         resMgr = GetService<ResMgr>();
         eventMgr = GetService<EventMgr>();
-        if (coinText != null) font = coinText.font; // 复用外壳的中文字体给运行时卡片
         cardPrefab = resMgr.Load<GameObject>("UI/Shop/ShopCard"); // 卡片预制体
         if (cardPrefab == null) Debug.LogError("[ShopPanel] 未找到 ShopCard 预制体,请先执行 Tools/UI/Build ShopCard Prefab(或 Build ALL UI Prefabs)。");
         Context.TryGet<DailyAdGoldSystem>(out dailyAdGold); // 看广告领金币每日次数限制
@@ -72,29 +72,16 @@ public class ShopPanel : UIPageBase
         if (tabBullet != null) tabBullet.onClick.AddListener(() => SelectCategory(ShopCategory.Bullet));
 
         modelPreview = new WeaponModelPreview(CreatePreviewHost(), resMgr);
-        CreateAdRewardButton(); // 武器展示区左下角:看广告 +1000 金币
+        SetupAdRewardButton(); // 武器展示区左下角的「看广告 +1000」按钮(预制体里摆好,这里接事件)
     }
 
-    /// <summary>模型展示框:占原「商人头像」位并扩大到约屏幕上方 2/5;同时把下方网格下压让出空间。</summary>
+    /// <summary>模型展示框:填满「武器展示区」(Merchant)。展示区/页签/列表三段位置已由 ShopPanelBuilder
+    /// 在预制体里摆好(展示区 → 页签 → 列表),这里只把占位头像让位、并铺一个转台容器进去,不再运行时重排布局。</summary>
     private RectTransform CreatePreviewHost()
     {
-        // 网格(Scroll)下压:只占下半屏(顶部让给展示区,底部留页签)
-        if (grid != null && grid.parent != null && grid.parent.parent is RectTransform scroll)
-        {
-            scroll.anchorMin = new Vector2(0f, 0f);
-            scroll.anchorMax = new Vector2(1f, 0.48f);
-            scroll.offsetMin = new Vector2(30f, 240f);
-            scroll.offsetMax = new Vector2(-30f, 0f);
-        }
-
         if (merchantAvatar != null)
         {
-            merchantAvatar.enabled = false; // 让位给模型展示
-            var ar = (RectTransform)merchantAvatar.transform;
-            ar.anchorMin = new Vector2(0.06f, 0.50f); // 上方 ~2/5 屏(50%~93% 高度)
-            ar.anchorMax = new Vector2(0.94f, 0.93f);
-            ar.offsetMin = Vector2.zero; ar.offsetMax = Vector2.zero;
-
+            merchantAvatar.enabled = false; // 让位给模型展示(展示区位置由 Builder 决定)
             var go = new GameObject("ModelPreview", typeof(RectTransform));
             var rt = (RectTransform)go.transform;
             rt.SetParent(merchantAvatar.transform, false);
@@ -103,11 +90,11 @@ public class ShopPanel : UIPageBase
             return rt;
         }
 
-        // 兜底:顶部一大块
+        // 兜底:顶部一大块(与 Builder 的展示区区间一致)
         var host = new GameObject("ModelPreview", typeof(RectTransform));
         host.transform.SetParent(transform, false);
         var hr = (RectTransform)host.transform;
-        hr.anchorMin = new Vector2(0.06f, 0.50f);
+        hr.anchorMin = new Vector2(0.06f, 0.53f);
         hr.anchorMax = new Vector2(0.94f, 0.93f);
         hr.offsetMin = Vector2.zero; hr.offsetMax = Vector2.zero;
         return hr;
@@ -216,36 +203,19 @@ public class ShopPanel : UIPageBase
     private static void SetTabColor(Button btn, bool on)
     {
         if (btn == null) return;
+        // Tab_01 预制体用 "Focus" 子物体表示选中态(无 targetGraphic);旧式按钮则回退到 targetGraphic 变色。
+        var focus = btn.transform.Find("Focus");
+        if (focus != null) { focus.gameObject.SetActive(on); return; }
         var img = btn.targetGraphic as Image;
         if (img != null) img.color = on ? TabOn : TabOff;
     }
 
     // ---------------- 看广告领金币(武器展示区左下角)----------------
 
-    /// <summary>在武器展示区左下角放一个「看广告 +1000」按钮。挂在面板根(最后兄弟→渲染在模型预览之上,可点),
-    /// 锚到展示区左下角(与 CreatePreviewHost 的展示区左缘 6%、下沿 50% 对齐)。只建一次(OnLoad)。</summary>
-    private void CreateAdRewardButton()
+    /// <summary>「看广告 +1000」按钮已由 ShopPanelBuilder 摆进预制体(展示区左下角);这里只接点击事件并按今日次数置态。</summary>
+    private void SetupAdRewardButton()
     {
-        var go = new GameObject("AdGoldBtn", typeof(RectTransform), typeof(Image), typeof(Button));
-        var rt = (RectTransform)go.transform;
-        rt.SetParent(transform, false);
-        rt.anchorMin = rt.anchorMax = new Vector2(0.06f, 0.50f); // 展示区左下角
-        rt.pivot = new Vector2(0f, 0f);
-        rt.sizeDelta = new Vector2(300f, 96f);
-        rt.anchoredPosition = new Vector2(12f, 14f);            // 略内缩,不贴边
-
-        var img = go.GetComponent<Image>();
-        img.color = new Color(0.85f, 0.66f, 0.20f, 1f);        // 金色
-        var btn = go.GetComponent<Button>();
-        btn.targetGraphic = img;
-        btn.onClick.AddListener(OnAdGoldClick);
-        adGoldButton = btn;
-
-        var labelGo = NewChild(rt, "Label", out var lrt);
-        lrt.anchorMin = Vector2.zero; lrt.anchorMax = Vector2.one;
-        lrt.offsetMin = Vector2.zero; lrt.offsetMax = Vector2.zero;
-        NewText(labelGo, $"看广告 +{AdGoldReward}", 26, TextAlignmentOptions.Center, Color.white);
-        adGoldLabel = labelGo.GetComponent<TextMeshProUGUI>();
+        if (adGoldButton != null) adGoldButton.onClick.AddListener(OnAdGoldClick);
         RefreshAdGoldButton(); // 按今日剩余次数置态
     }
 
@@ -317,8 +287,8 @@ public class ShopPanel : UIPageBase
         var sprite = ModelSnapshotCache.CardSprite(item.ModelPath, resMgr)
                      ?? (!string.IsNullOrEmpty(item.IconPath) ? resMgr.Load<Sprite>(item.IconPath) : null);
         view.pic.sprite = sprite; view.pic.enabled = sprite != null;
-        // 右上角小「i」按钮弹道具描述(点卡片/图标仍走选中预览,避免切换时误触描述)
-        ItemIconDescButton.AttachInfoBadge((RectTransform)go.transform, (int)item.Id, font);
+        // 右上角小「i」按钮弹道具描述(已烤进 ShopCard 预制体,这里只填 itemId;点卡片/图标仍走选中预览,避免切换时误触描述)
+        if (view.infoBadge != null) view.infoBadge.itemId = (int)item.Id;
 
         // 名称 / 价格
         view.nameText.text = item.Name;
@@ -399,28 +369,4 @@ public class ShopPanel : UIPageBase
             title = title,
             rewards = new System.Collections.Generic.List<RewardEntry>(rewards),
         });
-
-    // ---------------- 工具 ----------------
-
-    private GameObject NewChild(Transform parent, string name, out RectTransform rt)
-    {
-        var go = new GameObject(name, typeof(RectTransform));
-        rt = (RectTransform)go.transform;
-        rt.SetParent(parent, false);
-        return go;
-    }
-
-    private void NewText(GameObject go, string text, float size, TextAlignmentOptions align, Color color)
-    {
-        var tmp = go.AddComponent<TextMeshProUGUI>();
-        tmp.text = text;
-        tmp.fontSize = UITheme.Font(size);
-        tmp.alignment = align;
-        tmp.color = color;
-        tmp.raycastTarget = false;
-        tmp.enableWordWrapping = false;
-        tmp.overflowMode = TextOverflowModes.Ellipsis;
-        var f = font != null ? font : TMP_Settings.defaultFontAsset;
-        if (f != null) tmp.font = f;
-    }
 }

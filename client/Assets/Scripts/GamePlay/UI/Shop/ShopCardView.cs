@@ -18,4 +18,5 @@ public class ShopCardView : MonoBehaviour
     public Button buyButton;          // 购买按钮
     public TextMeshProUGUI buyLabel;  // 购买按钮文字(购买/已拥有)
     public GameObject selectFrame;    // 金色选中框(预置好,显隐即可,不再运行时拼 4 条边)
+    public ItemIconDescButton infoBadge; // 右上角「i」描述按钮(预置好,运行时只填 itemId)
 }

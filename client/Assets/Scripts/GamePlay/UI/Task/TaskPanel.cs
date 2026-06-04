@@ -109,6 +109,9 @@ public class TaskPanel : UIPageBase
     private static void SetTabColor(Button btn, bool on)
     {
         if (btn == null) return;
+        // Tab_01 预制体用 "Focus" 子物体表示选中态(无 targetGraphic);旧式按钮则回退到 targetGraphic 变色。
+        var focus = btn.transform.Find("Focus");
+        if (focus != null) { focus.gameObject.SetActive(on); return; }
         if (btn.targetGraphic is Image img) img.color = on ? TabOn : TabOff;
     }
 

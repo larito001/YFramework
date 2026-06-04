@@ -75,6 +75,21 @@ public static class ShopCardBuilder
         AddEdge(frameRt, new Vector2(1, 0), new Vector2(1, 1), new Vector2(-8, 0), new Vector2(0, 0), gold); // 右
         frameGo.SetActive(false);
 
+        // 右上角「i」描述按钮(挂 ItemIconDescButton;运行时只填 itemId,不再运行时构建)
+        var infoGo = NewUI("InfoBadge", out var infoRt, root.transform);
+        infoRt.anchorMin = infoRt.anchorMax = infoRt.pivot = new Vector2(1f, 1f); // 右上角
+        infoRt.anchoredPosition = new Vector2(-6f, -6f);
+        infoRt.sizeDelta = new Vector2(56f, 56f);
+        var infoImg = infoGo.AddComponent<Image>();
+        infoImg.color = new Color(0.15f, 0.45f, 0.85f, 0.95f); // 蓝色徽标
+        infoImg.raycastTarget = true;
+        var infoBadge = infoGo.AddComponent<ItemIconDescButton>();
+        var infoLabel = NewUI("i", out var infoLabelRt, infoGo.transform);
+        Stretch(infoLabelRt);
+        var infoTmp = NewText(infoLabel, "i", 34, TextAlignmentOptions.Center, Color.white);
+        infoTmp.fontStyle = FontStyles.Bold;
+        infoGo.transform.SetAsLastSibling(); // 盖在卡片内容之上,确保点得到
+
         // 接 View 字段
         view.bg = bg;
         view.cardButton = cardBtn;
@@ -85,6 +100,7 @@ public static class ShopCardBuilder
         view.buyButton = buyBtn;
         view.buyLabel = buyLabelTmp;
         view.selectFrame = frameGo;
+        view.infoBadge = infoBadge;
 
         PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
         Object.DestroyImmediate(root);

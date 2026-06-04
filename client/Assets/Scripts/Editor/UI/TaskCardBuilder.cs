@@ -17,6 +17,17 @@ public static class TaskCardBuilder
     private const string FontPath = "Assets/Art/Fonts/SIMHEI SDF.asset";
     private static TMP_FontAsset _font;
 
+    // NewUI 共享美术套件:卡面边框(CardFrame_04_White)+ 按钮皮肤(Button_01_White)。九宫格 Sliced。
+    private const string FrameDir = "Assets/Art/UI/NewUI/Shared/Sprite_Common/Frame/CardFrame/";
+    private const string FrameBg = FrameDir + "CardFrame_04_White_Bg.png";
+    private const string FrameInnerBorder = FrameDir + "CardFrame_04_White_InnerBorder.png";
+    private const string FrameBorder = FrameDir + "CardFrame_04_White_Border.png";
+    private const string FrameTitleBg = FrameDir + "CardFrame_04_White_TitleBg.png";
+    private const string FrameTitleBorder = FrameDir + "CardFrame_04_White_TitleBorder.png";
+    private const string BtnDir = "Assets/Art/UI/NewUI/Shared/Sprite_Common/Button/";
+    private const string BtnBg = BtnDir + "Button_01_White_Bg.Png";
+    private const string BtnInnerBorder = BtnDir + "Button_01_White_InnerBorder1.Png";
+
     private static readonly Color CardFrame = new Color(0.90f, 0.89f, 0.93f, 1f);
     private static readonly Color TitleText = new Color(0.25f, 0.24f, 0.30f, 1f);
 
@@ -30,21 +41,31 @@ public static class TaskCardBuilder
         rootRt.sizeDelta = new Vector2(820, 340);
         var bg = root.AddComponent<Image>();
         bg.color = CardFrame;
+        bg.sprite = LoadSprite(FrameBg);     // NewUI 卡底
+        bg.type = Image.Type.Sliced;
         var le = root.AddComponent<LayoutElement>();
         le.preferredHeight = 340;
         var view = root.AddComponent<TaskCardView>();
 
+        // 卡面边框装饰(NewUI CardFrame_04_White)。先建 = 渲染在标题/进度/奖励之下
+        Skin("InnerBorder", root.transform, FrameInnerBorder, new Color(0.6901961f, 0.8862746f, 1f, 1f), Stretch);
+        var titleBg = Skin("TitleBg", root.transform, FrameTitleBg, new Color(0.45098042f, 0.6627451f, 0.75294125f, 1f), null);
+        SetTopLeftRect(titleBg, new Vector2(405.17f, -55.6353f), new Vector2(810.33f, 111.2706f));
+        var titleBorder = Skin("TitleBorder", root.transform, FrameTitleBorder, Color.black, null);
+        SetTopLeftRect(titleBorder, new Vector2(404.9f, -55.5951f), new Vector2(809.81f, 111.19f));
+        Skin("Border", root.transform, FrameBorder, Color.black, Stretch);
+
         // 标题(左上)
         var title = NewUI("Title", out var titleRt, root.transform);
         titleRt.anchorMin = new Vector2(0, 1); titleRt.anchorMax = new Vector2(0, 1); titleRt.pivot = new Vector2(0, 1);
-        titleRt.anchoredPosition = new Vector2(40, -30); titleRt.sizeDelta = new Vector2(760, 104);
-        var titleTmp = NewText(title, "标题", 46, TitleText, TextAlignmentOptions.Left);
+        titleRt.anchoredPosition = new Vector2(46, -5); titleRt.sizeDelta = new Vector2(760, 104);
+        var titleTmp = NewText(title, "标题", 46, Color.white, TextAlignmentOptions.Left);
 
         // 进度(右上,富文本,不省略)
         var prog = NewUI("Progress", out var progRt, root.transform);
         progRt.anchorMin = new Vector2(1, 1); progRt.anchorMax = new Vector2(1, 1); progRt.pivot = new Vector2(1, 1);
-        progRt.anchoredPosition = new Vector2(-30, -30); progRt.sizeDelta = new Vector2(520, 104);
-        var progTmp = NewText(prog, "进度", 38, TitleText, TextAlignmentOptions.Right);
+        progRt.anchoredPosition = new Vector2(-30, -5); progRt.sizeDelta = new Vector2(520, 104);
+        var progTmp = NewText(prog, "进度", 38, Color.white, TextAlignmentOptions.Right);
         progTmp.overflowMode = TextOverflowModes.Overflow; progTmp.richText = true;
 
         // 3 个奖励格(固定位 x=40/408/776),默认隐藏
@@ -81,6 +102,12 @@ public static class TaskCardBuilder
         actImg.color = new Color(0.96f, 0.66f, 0.18f, 1f);
         var actBtn = act.AddComponent<Button>();
         actBtn.targetGraphic = actImg;
+        // 按钮皮肤(NewUI Button_01_White),盖在纯色底上;顺序在 Label 之前
+        Skin("Bg", act.transform, BtnBg, new Color(1f, 0.80392164f, 0.1764706f, 1f), Stretch);
+        var actInner = Skin("InnerBorder1", act.transform, BtnInnerBorder, new Color(0.9686275f, 0.9215687f, 0f, 1f), null);
+        var actInnerRt = (RectTransform)actInner.transform;
+        actInnerRt.anchorMin = Vector2.zero; actInnerRt.anchorMax = Vector2.one;
+        actInnerRt.anchoredPosition = new Vector2(-0.24319458f, 1.1852989f); actInnerRt.sizeDelta = new Vector2(-8.5063f, -8.4427f);
         var actLabel = NewUI("Label", out var actLabelRt, act.transform);
         Stretch(actLabelRt);
         var actLabelTmp = NewText(actLabel, "前往", 40, Color.white, TextAlignmentOptions.Center);
@@ -112,6 +139,33 @@ public static class TaskCardBuilder
         var s = AssetDatabase.LoadAssetAtPath<Sprite>(path);
         if (s == null) Debug.LogWarning($"[TaskCardBuilder] 找不到奖励图标 {path}");
         return s;
+    }
+
+    private static Sprite LoadSprite(string path)
+    {
+        var s = AssetDatabase.LoadAssetAtPath<Sprite>(path);
+        if (s == null) Debug.LogWarning($"[TaskCardBuilder] 找不到精灵 {path}");
+        return s;
+    }
+
+    // 装饰用九宫格图片(NewUI 美术套件)。layout 可为 Stretch(撑满)或 null(由调用方设矩形)。
+    private static Image Skin(string name, Transform parent, string spritePath, Color color, System.Action<RectTransform> layout)
+    {
+        var go = NewUI(name, out var rt, parent);
+        layout?.Invoke(rt);
+        var img = go.AddComponent<Image>();
+        img.sprite = LoadSprite(spritePath);
+        img.type = Image.Type.Sliced;
+        img.color = color;
+        return img;
+    }
+
+    // 左上锚 + 居中 pivot 的矩形(标题底/标题框用,值取自手调预制体)
+    private static void SetTopLeftRect(Image img, Vector2 anchoredPos, Vector2 size)
+    {
+        var rt = (RectTransform)img.transform;
+        rt.anchorMin = new Vector2(0, 1); rt.anchorMax = new Vector2(0, 1); rt.pivot = new Vector2(0.5f, 0.5f);
+        rt.anchoredPosition = anchoredPos; rt.sizeDelta = size;
     }
 
     private static GameObject NewUI(string name, out RectTransform rt, Transform parent = null)
