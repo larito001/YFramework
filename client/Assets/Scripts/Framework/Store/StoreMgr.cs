@@ -78,6 +78,13 @@ namespace YOTO
     {
         IEnumerator WriteCoroutine(string key, string content, Action onComplete = null);
         IEnumerator ReadCoroutine<T>(string key, ISaveStrategy strategy, Action<T> onComplete) where T : class;
+
+        /// <summary>同步写(关闭阶段协程不可用时用,见 <see cref="StoreMgr.WriteData{T}"/>)。</summary>
+        void Write(string key, string content);
+
+        /// <summary>同步读(对称兜底)。无文件/失败回 null。</summary>
+        T Read<T>(string key, ISaveStrategy strategy) where T : class;
+
         bool Exists(string key);
         void Delete(string key);
     }
@@ -89,11 +96,9 @@ namespace YOTO
             return Path.Combine(Application.persistentDataPath, $"{key}.json");
         }
 
-        public IEnumerator WriteCoroutine(string key, string content, Action onComplete = null)
+        public void Write(string key, string content)
         {
             string path = GetPath(key);
-            yield return null;
-
             try
             {
                 // 原子写入:先写临时文件,再替换正式文件。写到一半崩溃也只会留下 .tmp,旧存档在替换成功前始终完好。
@@ -106,6 +111,29 @@ namespace YOTO
             {
                 Debug.LogError($"[Save Error] {e.Message}");
             }
+        }
+
+        public T Read<T>(string key, ISaveStrategy strategy) where T : class
+        {
+            string path = GetPath(key);
+            if (!File.Exists(path)) return null;
+            try
+            {
+                string json = File.ReadAllText(path, Encoding.UTF8);
+                return strategy.Deserialize<T>(json);
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[Load Error] {e.Message}");
+                return null;
+            }
+        }
+
+        public IEnumerator WriteCoroutine(string key, string content, Action onComplete = null)
+        {
+            yield return null; // 错峰一帧,避免与帧内逻辑抢主线程 IO
+
+            Write(key, content);
 
             // 无论成功失败都回调:签名里没有错误通道,onComplete 表示"已结束";漏调会让 SaveAll 屏障永久挂起。
             onComplete?.Invoke();
@@ -113,25 +141,11 @@ namespace YOTO
 
         public IEnumerator ReadCoroutine<T>(string key, ISaveStrategy strategy, Action<T> onComplete) where T : class
         {
-            string path = GetPath(key);
             yield return null;
 
-            T data = null;
-            if (File.Exists(path))
-            {
-                try
-                {
-                    string json = File.ReadAllText(path, Encoding.UTF8);
-                    data = strategy.Deserialize<T>(json);
-                }
-                catch (Exception e)
-                {
-                    Debug.LogError($"[Load Error] {e.Message}");
-                    data = null;
-                }
-            }
+            var data = Read<T>(key, strategy);
 
-            // onComplete 放在 try 之外:回调自身(restore)抛异常时不会被这里的 catch 吞掉并二次触发。
+            // onComplete 放在 Read 之外:回调自身(restore)抛异常时不会被 Read 的 catch 吞掉并二次触发。
             onComplete?.Invoke(data);
         }
 
@@ -191,6 +205,10 @@ namespace YOTO
 
         public IEnumerator ReadCoroutine<T>(string key, ISaveStrategy strategy, Action<T> onComplete) where T : class
             => Resolve(key).ReadCoroutine(key, strategy, onComplete);
+
+        public void Write(string key, string content) => Resolve(key).Write(key, content);
+
+        public T Read<T>(string key, ISaveStrategy strategy) where T : class => Resolve(key).Read<T>(key, strategy);
 
         public bool Exists(string key) => Resolve(key).Exists(key);
 
@@ -481,22 +499,38 @@ namespace YOTO
 
         internal void WriteData<T>(string key, T data, Action onComplete) where T : class
         {
-            if (_storage == null || _coroutineRunner == null)
+            if (_storage == null)
             {
                 Debug.LogWarning($"[StoreMgr] 未初始化或已关闭,忽略保存:{key}");
                 onComplete?.Invoke(); // 仍回调,避免 SaveAll 屏障挂起
                 return;
             }
             string json = _strategy.Serialize(data);
+
+            // 关闭/销毁阶段(GameLoop.OnDestroy → ShutdownAll,此时 GameRoot 已 inactive,协程无法 StartCoroutine)走同步写,
+            // 保证退出时各系统 Shutdown 里的存档真正落盘——否则报 "Coroutine couldn't be started ... inactive" 且数据丢失。
+            if (_coroutineRunner == null || !_coroutineRunner.IsAlive)
+            {
+                _storage.Write(key, json);
+                onComplete?.Invoke();
+                return;
+            }
             _coroutineRunner.Run(_storage.WriteCoroutine(key, json, onComplete));
         }
 
         internal void ReadData<T>(string key, Action<T> onLoaded) where T : class
         {
-            if (_storage == null || _coroutineRunner == null)
+            if (_storage == null)
             {
                 Debug.LogWarning($"[StoreMgr] 未初始化或已关闭,忽略读取:{key}");
                 onLoaded?.Invoke(null); // 仍回调,避免 LoadAll 屏障挂起
+                return;
+            }
+
+            // 同上:协程宿主已失活时同步读,避免 inactive 异常。
+            if (_coroutineRunner == null || !_coroutineRunner.IsAlive)
+            {
+                onLoaded?.Invoke(_storage.Read<T>(key, _strategy));
                 return;
             }
             _coroutineRunner.Run(_storage.ReadCoroutine<T>(key, _strategy, onLoaded));

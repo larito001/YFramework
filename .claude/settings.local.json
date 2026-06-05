@@ -25,7 +25,9 @@
       "Bash(grep -E \"///|summary|金币|体力\")",
       "Bash(grep -E \"///|summary\")",
       "Bash(grep -E \"summary|///\")",
-      "PowerShell(python -c \"from PIL import Image; im=Image.open\\(r'C:\\\\UnityProject\\\\YFramework\\\\20260604-181255.jpg'\\).convert\\('RGB'\\); im.save\\(r'C:\\\\UnityProject\\\\YFramework\\\\20260604-181255.pdf'\\); print\\('OK'\\)\"; Get-ChildItem \"C:\\\\UnityProject\\\\YFramework\\\\20260604-181255.pdf\" | Select-Object Name, Length)"
+      "PowerShell(python -c \"from PIL import Image; im=Image.open\\(r'C:\\\\UnityProject\\\\YFramework\\\\20260604-181255.jpg'\\).convert\\('RGB'\\); im.save\\(r'C:\\\\UnityProject\\\\YFramework\\\\20260604-181255.pdf'\\); print\\('OK'\\)\"; Get-ChildItem \"C:\\\\UnityProject\\\\YFramework\\\\20260604-181255.pdf\" | Select-Object Name, Length)",
+      "Bash(sed -n '55,75p' Framework/GameContext/GameContext.cs)",
+      "Bash(sed -n '40,60p' Framework/GameContext/GameLoop.cs)"
     ]
   }
 }
