@@ -39,6 +39,14 @@ namespace YOTO
         }
     }
 
+    /// <summary>
+    /// 资源管理门面:对外暴露渠道无关的加载/释放 API,内部维护 (path, Type) 引用计数缓存与 <see cref="ResourceHandle{T}"/>,
+    /// 把"取原始 asset / 释放原始 asset / 场景切换清理"委托给可替换的 <see cref="IResProvider"/> 后端。
+    /// 当前后端 <see cref="ResourcesResProvider"/>(Unity Resources);将来接 Addressables 只需换 Provider,业务零改动。
+    ///
+    /// **风格**:操作 fire-and-forget,结果走回调。同步 <see cref="Load{T}"/>/<see cref="LoadHandle{T}"/> 已标记过时
+    /// (Addressables 后端无法同步加载),业务请用 <see cref="LoadAsync{T}"/>/<see cref="LoadHandleAsync{T}"/>。
+    /// </summary>
     public class ResMgr : IGameService
     {
         private readonly struct ResourceCacheKey : IEquatable<ResourceCacheKey>
@@ -76,12 +84,17 @@ namespace YOTO
             public Object asset;
             public int refCount;
             public bool isLoading;
+            public object releaseToken;            // 后端私有释放凭据(Resources=null;Addressables=AsyncOperationHandle)
             public List<Action<Object>> pendingCallbacks;
         }
 
         private readonly Dictionary<ResourceCacheKey, ResourceEntry> cache = new();
-        private ICoroutineRunner runner;
-        private bool pendingUnusedAssetSweep;
+        private readonly IResProvider provider;
+
+        public ResMgr(IResProvider provider = null)
+        {
+            this.provider = provider ?? new ResourcesResProvider();
+        }
 
         public void LoadUI(string key, Action<GameObject> callback)
         {
@@ -101,43 +114,6 @@ namespace YOTO
         public void LoadBytes(string path, Action<TextAsset> callback)
         {
             LoadAsync(path, callback);
-        }
-
-        public T Load<T>(string path) where T : Object
-        {
-            if (!TryCreateKey<T>(path, out var key))
-            {
-                return null;
-            }
-
-            if (cache.TryGetValue(key, out var cached))
-            {
-                cached.refCount++;
-                if (cached.asset == null && cached.isLoading)
-                {
-                    CompleteLoad(key, Resources.Load<T>(path));
-                    if (!cache.TryGetValue(key, out cached))
-                    {
-                        return null;
-                    }
-                }
-
-                return cached.asset as T;
-            }
-
-            var loadedAsset = Resources.Load<T>(path);
-            if (loadedAsset == null)
-            {
-                Debug.LogError($"[ResMgr] Failed to load resource: type={typeof(T).Name}, path={path}");
-                return null;
-            }
-
-            cache[key] = new ResourceEntry
-            {
-                asset = loadedAsset,
-                refCount = 1
-            };
-            return loadedAsset;
         }
 
         public void LoadAsync<T>(string path, Action<T> callback) where T : Object
@@ -182,26 +158,8 @@ namespace YOTO
                 cache[key] = entry;
             }
 
-            if (runner == null)
-            {
-                Debug.LogError("[ResMgr] Coroutine runner is not configured.");
-                CompleteLoad<T>(key, null);
-                return;
-            }
-
             entry.isLoading = true;
-            runner.Run(LoadResourceCoroutine<T>(key));
-        }
-
-        public ResourceHandle<T> LoadHandle<T>(string path) where T : Object
-        {
-            if (!TryCreateKey<T>(path, out var key))
-            {
-                return null;
-            }
-
-            var asset = Load<T>(path);
-            return asset == null ? null : CreateHandle(key, asset);
+            provider.LoadAssetAsync(key.Path, typeof(T), (asset, token) => CompleteLoad<T>(key, asset as T, token));
         }
 
         public void LoadHandleAsync<T>(string path, Action<ResourceHandle<T>> callback) where T : Object
@@ -276,21 +234,7 @@ namespace YOTO
 
         public IEnumerator OnChangeScene(Action callback = null)
         {
-            for (int i = 0; i < 2; i++)
-            {
-                yield return null;
-            }
-
-            if (pendingUnusedAssetSweep)
-            {
-                var unloadAsset = Resources.UnloadUnusedAssets();
-                while (!unloadAsset.isDone)
-                {
-                    yield return null;
-                }
-
-                pendingUnusedAssetSweep = false;
-            }
+            yield return provider.OnChangeScene();
 
             if (cache.Count == 0)
             {
@@ -304,21 +248,21 @@ namespace YOTO
 
         public void Init(GameContext ctx)
         {
-            runner = ctx.Get<ICoroutineRunner>();
+            provider.Init(ctx);
         }
 
         public void Shutdown()
         {
             foreach (var entry in cache.Values)
             {
-                if (entry.asset != null && CanUnloadDirectly(entry.asset))
+                if (entry.asset != null)
                 {
-                    Resources.UnloadAsset(entry.asset);
+                    provider.ReleaseAsset(entry.asset, entry.releaseToken);
                 }
             }
 
             cache.Clear();
-            runner = null;
+            provider.Shutdown();
             GC.Collect();
         }
 
@@ -333,20 +277,22 @@ namespace YOTO
             return new ResourceHandle<T>(key.Path, asset, () => Release(key));
         }
 
-        private static bool CanUnloadDirectly(Object asset)
-        {
-            return asset != null && asset is not GameObject;
-        }
-
-        private void CompleteLoad<T>(ResourceCacheKey key, T loadedAsset) where T : Object
+        private void CompleteLoad<T>(ResourceCacheKey key, T loadedAsset, object token) where T : Object
         {
             if (!cache.TryGetValue(key, out var entry))
             {
+                // entry 已在加载途中被释放(秒开秒关):此 asset 已无人引用,直接释放原始 asset 避免泄漏。
+                if (loadedAsset != null)
+                {
+                    provider.ReleaseAsset(loadedAsset, token);
+                }
+
                 return;
             }
 
             entry.isLoading = false;
             entry.asset = loadedAsset;
+            entry.releaseToken = token;
 
             var callbacks = entry.pendingCallbacks;
             entry.pendingCallbacks = null;
@@ -359,20 +305,6 @@ namespace YOTO
             }
 
             callbacks?.ForEach(callback => callback(loadedAsset));
-        }
-
-        private IEnumerator LoadResourceCoroutine<T>(ResourceCacheKey key) where T : Object
-        {
-            var request = Resources.LoadAsync<T>(key.Path);
-            yield return request;
-
-            var asset = request.asset as T;
-            if (asset == null)
-            {
-                Debug.LogError($"[ResMgr] Failed to async load resource: type={typeof(T).Name}, path={key.Path}");
-            }
-
-            CompleteLoad(key, asset);
         }
 
         private void Release(ResourceCacheKey key)
@@ -391,16 +323,11 @@ namespace YOTO
             cache.Remove(key);
             if (entry.asset == null)
             {
+                // 还在加载途中:CompleteLoad 发现 entry 已移除会自行释放原始 asset。
                 return;
             }
 
-            if (CanUnloadDirectly(entry.asset))
-            {
-                Resources.UnloadAsset(entry.asset);
-                return;
-            }
-
-            pendingUnusedAssetSweep = true;
+            provider.ReleaseAsset(entry.asset, entry.releaseToken);
         }
 
         private static bool TryCreateKey<T>(string path, out ResourceCacheKey key) where T : Object

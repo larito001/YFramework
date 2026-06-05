@@ -12,6 +12,7 @@ public class GameStartScene : YSceneBase
     private bool camHomeCaptured;   // 是否已记下"对局机位"
     private Vector3 camHomePos;     // 对局机位(结束打猎的尸检镜头会抬高相机,下一局还原到这)
     private Quaternion camHomeRot;
+    private bool sceneActive;       // 本场景是否仍在对局中:异步加载(地图/刷怪)回调比对,离场后回来的回调直接丢弃
 
     public override YSceneType SceneType
     {
@@ -26,11 +27,12 @@ public class GameStartScene : YSceneBase
     protected override void OnLoadingEnd()
     {
         base.OnLoadingEnd();
+        sceneActive = true;       // 标记进入对局:在异步地图/刷怪回调跑完前若离场,守卫据此丢弃过期回调
         CloseLobbyUI();           // 进入对局:关闭开始/装备等所有大厅菜单界面,避免遮住 HUD
-        LoadMapScene();           // 按选中关卡加载场景预制体(地面/装饰),需先于刷怪——动物要贴在地面上
+        // 按选中关卡加载场景预制体(地面/装饰,异步),就绪后再刷怪——动物要贴在地面上。
+        LoadMapScene(() => Context.Get<AnimalSystem>().SpawnWave());
         EnableCameraLook();       // 滑屏旋转相机 + 开枪抖动 + 瞄准变焦(先于 HUD,让 HUD 能取到瞄准机制)
         UI.Show<GameMainPanel>(); // 进入对局:显示打猎 HUD(瞄准/射击/积分/弹药)
-        Context.Get<AnimalSystem>().SpawnWave(); // 在地面随机散布动物
         Context.Get<StoreMgr>().SaveAll(); // 游戏开始后写入进度:把当前进度(已扣体力等)整体落到激活槽,作为开局存档点
     }
 
@@ -59,22 +61,34 @@ public class GameStartScene : YSceneBase
     /// 第一章沙漠 = Resources/Map/Chapter1_Desert(由 <c>Tools/TPS/Build Chapter1 Desert Map</c> 生成)。
     /// scenePath 为空(其余关卡暂未做场景)则跳过,仍用原本的空场景。离开对局时 <see cref="OnLeaveScene"/> 销毁。
     /// </summary>
-    private void LoadMapScene()
+    private void LoadMapScene(System.Action onDone)
     {
         if (mapInstance != null) { Object.Destroy(mapInstance); mapInstance = null; } // 再次出发时先清掉上一局的
 
         var maps = Context.Get<MapSystem>();
         var map = maps != null ? maps.Get(maps.SelectedMapId) : null;
         var path = map != null ? map.ScenePath : null;
-        if (string.IsNullOrEmpty(path)) return;
+        if (string.IsNullOrEmpty(path)) { onDone?.Invoke(); return; } // 无场景:仍回调以继续刷怪(空场景 y=0)
 
-        var prefab = Res.Load<GameObject>(path);
-        if (prefab == null)
+        Res.LoadAsync<GameObject>(path, prefab =>
         {
-            Debug.LogWarning($"[GameStartScene] 关卡场景预制体未找到(确认已在 Resources/ 下并已生成): {path}");
-            return;
-        }
-        mapInstance = Object.Instantiate(prefab);
+            // 加载途中已离场(或快速重进另起一次加载):丢弃本次结果并配平引用计数,避免孤儿地图实例 + 把动物刷进死场景。
+            if (!sceneActive)
+            {
+                if (prefab != null) Res.Release<GameObject>(path);
+                return;
+            }
+            if (prefab == null)
+            {
+                Debug.LogWarning($"[GameStartScene] 关卡场景预制体未找到(确认已在 Resources/ 下并已生成): {path}");
+            }
+            else
+            {
+                mapInstance = Object.Instantiate(prefab);
+                Res.Release<GameObject>(path); // 实例已建,释放 prefab 引用(配平 LoadAsync 的 +1)
+            }
+            onDone?.Invoke();
+        });
     }
 
     /// <summary>给主相机挂上滑屏环视控制(已挂则跳过)。无主相机时仅告警。</summary>
@@ -151,6 +165,7 @@ public class GameStartScene : YSceneBase
 
     protected override void OnLeaveScene()
     {
+        sceneActive = false;                 // 离场:在途的地图/刷怪异步回调据此丢弃,不再写场景
         Context.Get<AnimalSystem>().Clear(); // 离开对局:清掉场上动物(它们不在场景 rootObj 下,不会随场景失活)
         if (mapInstance != null) { Object.Destroy(mapInstance); mapInstance = null; } // 销毁本局加载的关卡场景预制体
         if (bloomVolumeGo != null) // 收掉运行时建的全局 Bloom(连同 GO 一起销毁 profile,否则 SO 每局泄漏一份)

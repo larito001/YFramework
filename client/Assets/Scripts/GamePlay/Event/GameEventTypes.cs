@@ -12,7 +12,6 @@ namespace YOTO
         LootTimerNotify,
         VotEndNotify,
 
-        RefreshBagList,
         RefreshTrainHP,
         RefreshTime,
         RefreshCurrency, // 货币余额变化(CurrencySystem 触发,UI 重读各币种刷新)

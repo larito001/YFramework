@@ -45,6 +45,7 @@ public class EquipPanel : UIPageBase
     private WeaponModelPreview weaponPreview; // 底部武器模型转台(展示当前选中出战的枪)
     // 卡片侧视快照已移到全局共享缓存 ModelSnapshotCache(进程级常驻),与商城页等共用同一份,渲过即复用。
     private GameObject cardPrefab; // 装备卡片预制体(Resources/UI/Equip/EquipCard,EquipCardBuilder 生成),运行时 instantiate
+    private ResourceHandle<GameObject> cardPrefabHandle; // 持模板句柄到页面销毁释放
 
     public override void OnLoad()
     {
@@ -54,8 +55,14 @@ public class EquipPanel : UIPageBase
         resMgr = GetService<ResMgr>();
         eventMgr = GetService<EventMgr>();
         if (coinText != null) font = coinText.font;
-        cardPrefab = resMgr.Load<GameObject>("UI/Equip/EquipCard"); // 卡片预制体
-        if (cardPrefab == null) Debug.LogError("[EquipPanel] 未找到 EquipCard 预制体,请先执行 Tools/UI/Build EquipCard Prefab(或 Build ALL UI Prefabs)。");
+        resMgr.LoadHandleAsync<GameObject>("UI/Equip/EquipCard", h => // 卡片预制体(异步)
+        {
+            if (this == null) { h?.Release(); return; }
+            cardPrefabHandle = h;
+            cardPrefab = h?.Asset;
+            if (cardPrefab == null) Debug.LogError("[EquipPanel] 未找到 EquipCard 预制体,请先执行 Tools/UI/Build EquipCard Prefab(或 Build ALL UI Prefabs)。");
+            else RebuildAll(); // 模板就绪后补建
+        });
 
         if (backBtn != null) backBtn.onClick.AddListener(CloseSelf);
         CurrencyIcon.Bind(coinText, CurrencyType.Gold);     // 资源胶囊图标:运行时从 Resources 动态加载(方便换图)
@@ -120,6 +127,8 @@ public class EquipPanel : UIPageBase
 
     // ---------------- 卡片网格 ----------------
 
+    private void OnDestroy() => cardPrefabHandle?.Release(); // 释放卡片模板句柄
+
     private void RebuildAll()
     {
         // 不在这里清快照缓存:重建/选中只复用已渲好的贴图,避免每次点选重渲一遍
@@ -169,10 +178,8 @@ public class EquipPanel : UIPageBase
         view.button.onClick.AddListener(() => loadout.Select(cat, id));
         view.outline.enabled = isSelected; // 选中:黄色描边(预制体里预置好,切 enabled)
 
-        // 图片:渲染出的 3D 道具侧视快照(全局共享缓存,跨面板复用),无模型回退 2D 图标。预制体里 pic 已 preserveAspect。
-        var sprite = ModelSnapshotCache.CardSprite(item.ModelPath, resMgr)
-                     ?? (!string.IsNullOrEmpty(item.IconPath) ? resMgr.Load<Sprite>(item.IconPath) : null);
-        view.pic.sprite = sprite; view.pic.enabled = sprite != null;
+        // 图片:渲染出的 3D 道具侧视快照(全局共享缓存,跨面板复用),无模型回退 2D 图标(异步)。预制体里 pic 已 preserveAspect。
+        ModelSnapshotCache.BindCardImageAsync(view.pic, item.ModelPath, item.IconPath, resMgr);
         // 右上角小「i」按钮弹道具描述(点卡片/图标仍走选中出战,避免切换时误触描述)
         ItemIconDescButton.AttachInfoBadge((RectTransform)go.transform, (int)item.Id, font);
 

@@ -1,3 +1,4 @@
+using System;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -24,15 +25,20 @@ namespace YOTO
             }
         }
 
-        /// <summary>按币种加载图标:优先走框架 <see cref="ResMgr"/>(带缓存),拿不到再退 <c>Resources.Load</c>。找不到返回 null。</summary>
-        public static Sprite Load(CurrencyType type)
+        /// <summary>
+        /// 按币种异步加载图标:优先走框架 <see cref="ResMgr"/>(带缓存)。<see cref="GameLoop"/> 上下文尚未就绪
+        /// (如 MonoBehaviour 的 Awake 阶段)时退 <c>Resources.Load</c> 同步兜底。找不到回 null。
+        /// </summary>
+        public static void LoadAsync(CurrencyType type, Action<Sprite> onReady)
         {
+            if (onReady == null) return;
             var path = ResPath(type);
-            if (string.IsNullOrEmpty(path)) return null;
+            if (string.IsNullOrEmpty(path)) { onReady(null); return; }
             var ctx = GameLoop.Instance != null ? GameLoop.Instance.Ctx : null;
             if (ctx != null && ctx.TryGet<ResMgr>(out var res) && res != null)
-                return res.Load<Sprite>(path);
-            return Resources.Load<Sprite>(path);
+                res.LoadAsync<Sprite>(path, onReady);
+            else
+                onReady(Resources.Load<Sprite>(path)); // ctx 未就绪:同步兜底(仅 Resources 后端)
         }
 
         /// <summary>
@@ -46,8 +52,7 @@ namespace YOTO
             if (iconTf == null) return;
             var img = iconTf.GetComponent<Image>();
             if (img == null) return;
-            var s = Load(type);
-            if (s != null) { img.sprite = s; img.enabled = true; }
+            LoadAsync(type, s => { if (img != null && s != null) { img.sprite = s; img.enabled = true; } });
         }
     }
 }

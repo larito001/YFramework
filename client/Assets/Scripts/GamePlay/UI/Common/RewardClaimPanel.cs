@@ -148,7 +148,7 @@ public class RewardClaimPanel : UIPageBase<RewardClaimParam>
 
     private void BuildCell(RewardEntry r)
     {
-        ResolveDisplay(r, out string name, out Sprite sprite);
+        string name = ResolveName(r);
 
         // 格容器:宽高由 LayoutElement 提供给 HorizontalLayoutGroup,内部子节点按锚点贴边布局。放大以配合更大的窗口。
         var cell = NewChild(rewardContainer, $"Reward_{r.kind}_{r.id}", out _);
@@ -161,7 +161,7 @@ public class RewardClaimPanel : UIPageBase<RewardClaimParam>
         iconRt.anchoredPosition = new Vector2(0, -30); iconRt.sizeDelta = new Vector2(340, 340); // 底部到 y≈270
         var iconImg = icon.AddComponent<Image>();
         iconImg.raycastTarget = false; iconImg.preserveAspect = true;
-        iconImg.sprite = sprite; iconImg.enabled = sprite != null;
+        BindIconAsync(iconImg, r); // 异步:道具优先 3D 模型快照,货币/无模型回退 2D 图标
 
         // 数量(图标正下方,×N,醒目金色)。框高 110(≥ 48×FontScale)+ Overflow,确保放大后的字号完整显示。
         var count = NewChild(cell.transform, "Count", out var countRt);
@@ -178,41 +178,43 @@ public class RewardClaimPanel : UIPageBase<RewardClaimParam>
         NewText(nameGo, name, 40, TextAlignmentOptions.Center, Color.white);
     }
 
-    /// <summary>取奖励显示名与图标 Sprite:道具优先用渲染出的 3D 模型侧视快照(与商店/装备卡一致,武器只有 ModelPath
-    /// 也能正确显示),无模型才回退 2D 图标(item.IconPath);货币走 currency 配表 IconPath。</summary>
-    private void ResolveDisplay(RewardEntry r, out string name, out Sprite icon)
+    /// <summary>取奖励显示名(货币→币种名;道具→配表名,缺名用「道具{id}」)。</summary>
+    private string ResolveName(RewardEntry r)
     {
         if (r.kind == RewardKind.Currency)
         {
             var type = (CurrencyType)r.id;
-            name = currency != null ? currency.DisplayName(type) : type.ToString();
-            icon = CurrencyIconSprite(type); // 金币/体力从 Resources 动态加载(方便换图)
-            if (icon == null)          // 其它币种回退 currency 配表 IconPath(Resources)
+            return currency != null ? currency.DisplayName(type) : type.ToString();
+        }
+
+        var item = bag?.GetItem(r.id);
+        return item != null && !string.IsNullOrEmpty(item.Name) ? item.Name : $"道具{r.id}";
+    }
+
+    /// <summary>异步把奖励图标贴到 <paramref name="img"/>:道具优先 3D 模型侧视快照(与商店/装备卡一致,武器只有 ModelPath
+    /// 也能显示),无模型回退 2D 图标;货币走 <see cref="CurrencyIcon"/>(金币/体力)或 currency 配表 IconPath(其它币种)。</summary>
+    private void BindIconAsync(Image img, RewardEntry r)
+    {
+        if (img == null) return;
+
+        if (r.kind == RewardKind.Currency)
+        {
+            var type = (CurrencyType)r.id;
+            string path = (type == CurrencyType.Gold || type == CurrencyType.Energy)
+                ? CurrencyIcon.ResPath(type)
+                : (currency != null ? currency.IconPath(type) : null);
+            img.sprite = null; img.enabled = false;
+            if (resMgr == null || string.IsNullOrEmpty(path)) return;
+            resMgr.LoadAsync<Sprite>(path, sp =>
             {
-                var path = currency != null ? currency.IconPath(type) : string.Empty;
-                icon = !string.IsNullOrEmpty(path) ? resMgr.Load<Sprite>(path) : null;
-            }
+                if (img == null) { if (sp != null) resMgr.Release<Sprite>(path); return; }
+                img.sprite = sp; img.enabled = sp != null;
+            });
             return;
         }
 
         var item = bag?.GetItem(r.id);
-        name = item != null && !string.IsNullOrEmpty(item.Name) ? item.Name : $"道具{r.id}";
-        icon = item != null
-            ? (ModelSnapshotCache.CardSprite(item.ModelPath, resMgr)                          // 优先 3D 模型快照(武器/镜/弹)
-               ?? (!string.IsNullOrEmpty(item.IconPath) ? resMgr.Load<Sprite>(item.IconPath) : null)) // 无模型回退 2D 图标
-            : null;
-    }
-
-    /// <summary>金币/体力从 Resources 动态加载(<see cref="CurrencyIcon"/>);其它币种返回 null(由调用方回退配表)。</summary>
-    private Sprite CurrencyIconSprite(CurrencyType type)
-    {
-        switch (type)
-        {
-            case CurrencyType.Gold:
-            case CurrencyType.Energy:
-                return CurrencyIcon.Load(type);
-            default: return null;
-        }
+        ModelSnapshotCache.BindCardImageAsync(img, item?.ModelPath, item?.IconPath, resMgr);
     }
 
     // ---------------- 工具 ----------------

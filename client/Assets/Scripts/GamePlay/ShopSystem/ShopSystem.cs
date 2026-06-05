@@ -20,7 +20,7 @@ namespace YOTO
     /// (<see cref="Item.Price"/> + <see cref="Item.PriceType"/> → <see cref="CurrencyType"/>),按 sortPriority 降序排列。
     ///
     /// **购买**:<see cref="Buy"/> 扣货币(<see cref="CurrencySystem.TrySpend"/>)→ 放背包(<see cref="BagSystem.AddItem"/>);
-    /// 背包放不下的部分按比例退款。货币/背包变化各自触发 RefreshCurrency / RefreshBagList 事件,UI 据此刷新。
+    /// 简化版背包无容量上限,放不下的退款分支为防御性保留。货币变化触发 RefreshCurrency 事件,UI 据此刷新。
     /// 不持有自己的存档——余额在 <see cref="CurrencySystem"/>,物品在 <see cref="BagSystem"/>,商店只做撮合。
     /// </summary>
     public class ShopSystem : IGameService
@@ -128,7 +128,7 @@ namespace YOTO
                 return BuyResult.Success;
             }
 
-            int leftover = bag.AddItem(itemId, count); // 触发 RefreshBagList
+            int leftover = bag.AddItem(itemId, count); // 落袋(简化版背包:同 id 累加,随存档持久化)
             if (leftover > 0)
             {
                 long refund = (long)item.Price * leftover; // 放不下的部分退款

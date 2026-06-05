@@ -49,6 +49,7 @@ public class ShopPanel : UIPageBase
     private int selectedId;                   // 当前展示/选中的物品 id(随分类切换)
     private readonly List<(int id, GameObject card)> previewCards = new(); // 当前分类带模型的卡(就地切换描边,避免点击时重建销毁自身)
     private GameObject cardPrefab; // 卡片预制体(Resources/UI/Shop/ShopCard,ShopCardBuilder 生成),运行时 instantiate
+    private ResourceHandle<GameObject> cardPrefabHandle; // 持模板句柄到页面销毁释放
 
     private const string AdPlacementShopGold = "shop_gold"; // 商店看广告领金币的广告位标识(统计用)
     private const long AdGoldReward = 1000;                 // 看完一次发放的金币
@@ -62,8 +63,14 @@ public class ShopPanel : UIPageBase
         loadout = GetService<LoadoutSystem>();
         resMgr = GetService<ResMgr>();
         eventMgr = GetService<EventMgr>();
-        cardPrefab = resMgr.Load<GameObject>("UI/Shop/ShopCard"); // 卡片预制体
-        if (cardPrefab == null) Debug.LogError("[ShopPanel] 未找到 ShopCard 预制体,请先执行 Tools/UI/Build ShopCard Prefab(或 Build ALL UI Prefabs)。");
+        resMgr.LoadHandleAsync<GameObject>("UI/Shop/ShopCard", h => // 卡片预制体(异步)
+        {
+            if (this == null) { h?.Release(); return; }
+            cardPrefabHandle = h;
+            cardPrefab = h?.Asset;
+            if (cardPrefab == null) Debug.LogError("[ShopPanel] 未找到 ShopCard 预制体,请先执行 Tools/UI/Build ShopCard Prefab(或 Build ALL UI Prefabs)。");
+            else RebuildGrid(); // 模板就绪后补建网格
+        });
         Context.TryGet<DailyAdGoldSystem>(out dailyAdGold); // 看广告领金币每日次数限制
 
         if (backBtn != null) backBtn.onClick.AddListener(CloseSelf);
@@ -267,6 +274,8 @@ public class ShopPanel : UIPageBase
 
     // ---------------- 卡片网格 ----------------
 
+    private void OnDestroy() => cardPrefabHandle?.Release(); // 释放卡片模板句柄
+
     private void RebuildGrid()
     {
         if (grid == null) return;
@@ -291,10 +300,8 @@ public class ShopPanel : UIPageBase
         var view = go.GetComponent<ShopCardView>();
         if (view == null) { Destroy(go); return; }
 
-        // 图片:渲染出的 3D 道具侧视快照(全局共享缓存,跨面板复用),无模型回退 2D 图标。预制体里 pic 已 preserveAspect。
-        var sprite = ModelSnapshotCache.CardSprite(item.ModelPath, resMgr)
-                     ?? (!string.IsNullOrEmpty(item.IconPath) ? resMgr.Load<Sprite>(item.IconPath) : null);
-        view.pic.sprite = sprite; view.pic.enabled = sprite != null;
+        // 图片:渲染出的 3D 道具侧视快照(全局共享缓存,跨面板复用),无模型回退 2D 图标(异步)。预制体里 pic 已 preserveAspect。
+        ModelSnapshotCache.BindCardImageAsync(view.pic, item.ModelPath, item.IconPath, resMgr);
         // 右上角小「i」按钮弹道具描述(已烤进 ShopCard 预制体,这里只填 itemId;点卡片/图标仍走选中预览,避免切换时误触描述)
         if (view.infoBadge != null) view.infoBadge.itemId = (int)item.Id;
 

@@ -90,7 +90,6 @@ public class SettingPanel : UIPageBase
             eventMgr?.Trigger(YOTOEventType.RefreshCurrency);
             eventMgr?.Trigger(YOTOEventType.RefreshLoadout);
             eventMgr?.Trigger(YOTOEventType.RefreshCodex);
-            eventMgr?.Trigger(YOTOEventType.RefreshBagList);
             eventMgr?.Trigger(YOTOEventType.RefreshTask);
             GetService<FlyTextMgr>()?.AddTextAtScreenCenter("数据已清空");
         });

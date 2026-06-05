@@ -26,6 +26,7 @@ namespace YOTO
         private readonly List<Animal> catalog = new();
         private readonly List<GameObject> spawned = new();
         private Material goldMaterial; // 金色泛光材质(全部金色动物共用,首次用时按 shader 创建)
+        private int spawnVersion;      // 每次 SpawnWave/SpawnCorpses/Clear 自增:异步加载回调比对,过期则丢弃(防快速重刷覆盖)
 
         public void Init(GameContext ctx)
         {
@@ -83,20 +84,34 @@ namespace YOTO
             for (int i = 0; i < catalog.Count; i++) totalWeight += Mathf.Max(0, catalog[i].Weight);
             if (totalWeight <= 0) return;
 
-            for (int i = 0; i < count; i++)
+            int v = ++spawnVersion;
+            // 先确保金色材质就绪(shader 异步加载),再逐只异步加载预制体生成,避免金色体刷出时材质还没好。
+            EnsureGoldMaterial(() =>
             {
-                var animal = WeightedPick(totalWeight);
-                if (animal == null) continue;
+                if (v != spawnVersion) return; // 期间又重刷/清场:放弃本波
+                for (int i = 0; i < count; i++)
+                {
+                    var animal = WeightedPick(totalWeight);
+                    if (animal != null) SpawnOne(animal, v);
+                }
+            });
+        }
 
-                var prefab = res.Load<GameObject>(animal.Prefab);
+        /// <summary>异步加载并生成一只动物(回调里比对 <see cref="spawnVersion"/>,过期则丢弃)。</summary>
+        private void SpawnOne(Animal animal, int v)
+        {
+            res.LoadAsync<GameObject>(animal.Prefab, prefab =>
+            {
+                if (v != spawnVersion) { if (prefab != null) res.Release<GameObject>(animal.Prefab); return; }
                 if (prefab == null)
                 {
                     Debug.LogWarning($"[AnimalSystem] 找不到动物预制体 {animal.Prefab}");
-                    continue;
+                    return;
                 }
 
                 Vector3 pos = RandomGroundPos();
                 var go = Object.Instantiate(prefab, pos, Quaternion.Euler(0f, Random.Range(0f, 360f), 0f));
+                res.Release<GameObject>(animal.Prefab); // 实例已建,释放 prefab 引用(配平 LoadAsync 的 +1)
                 float s = animal.Scale > 0f ? animal.Scale : 1f;
                 go.transform.localScale = Vector3.one * s;
 
@@ -113,7 +128,7 @@ namespace YOTO
                 if (go.GetComponent<AnimalWander>() == null) go.AddComponent<AnimalWander>();
 
                 spawned.Add(go);
-            }
+            });
         }
 
         /// <summary>
@@ -153,6 +168,7 @@ namespace YOTO
         /// <summary>清除当前所有已生成的动物。</summary>
         public void Clear()
         {
+            spawnVersion++; // 取消在途的异步生成,避免回调把动物又建出来
             for (int i = 0; i < spawned.Count; i++)
                 if (spawned[i] != null) Object.Destroy(spawned[i]);
             spawned.Clear();
@@ -160,10 +176,10 @@ namespace YOTO
 
         /// <summary>
         /// 结束打猎时:清掉场上所有活体,按本局击杀清单(animalId→数量)在地面上摆成尸体网格(死亡姿势、无碰撞、不游走、不高亮)。
-        /// 返回所有尸体的包围盒,供相机抬起检视时取景。没有击杀则返回原点附近的空盒。
-        /// 尸体也记入 <see cref="spawned"/>,离开对局时随 <see cref="Clear"/> 一并清掉。
+        /// 预制体异步加载,全部就绪后通过 <paramref name="onComplete"/> 回传所有尸体的包围盒,供相机抬起检视时取景;
+        /// 没有击杀则回原点附近的空盒。尸体也记入 <see cref="spawned"/>,离开对局时随 <see cref="Clear"/> 一并清掉。
         /// </summary>
-        public Bounds SpawnCorpses(Dictionary<int, int> kills)
+        public void SpawnCorpses(Dictionary<int, int> kills, System.Action<Bounds> onComplete)
         {
             Clear(); // 先移除场上活物
 
@@ -174,7 +190,10 @@ namespace YOTO
                     for (int n = 0; n < kv.Value; n++) ids.Add(kv.Key);
 
             if (ids.Count == 0 || config == null || res == null)
-                return new Bounds(GroundAt(Vector3.zero), Vector3.one);
+            {
+                onComplete?.Invoke(new Bounds(GroundAt(Vector3.zero), Vector3.one));
+                return;
+            }
 
             // 竖屏:窄列、沿纵深(Z)排开,匹配竖屏的"高"画面;≤4 只单列,更多两列
             int cols = ids.Count <= 4 ? 1 : 2;
@@ -183,32 +202,53 @@ namespace YOTO
             float halfX = (cols - 1) * 0.5f * spacing;
             float halfZ = (rows - 1) * 0.5f * spacing;
 
+            int v = ++spawnVersion;
             Bounds bounds = default;
             bool boundsInit = false;
+            int pending = ids.Count;
+            bool reported = false;
+
+            void Finish()
+            {
+                if (reported) return;
+                reported = true;
+                if (!boundsInit) { onComplete?.Invoke(new Bounds(GroundAt(Vector3.zero), Vector3.one)); return; }
+                var b = bounds;
+                b.Expand(spacing); // 四周留点余量,取景不至于贴边
+                onComplete?.Invoke(b);
+            }
 
             for (int i = 0; i < ids.Count; i++)
             {
+                int idx = i;
                 var def = config.animalConfig.Get((uint)ids[i]);
-                if (def == null) continue;
-                var prefab = res.Load<GameObject>(def.Prefab);
-                if (prefab == null) continue;
+                if (def == null) { if (--pending == 0) Finish(); continue; }
+                res.LoadAsync<GameObject>(def.Prefab, prefab =>
+                {
+                    if (v != spawnVersion)
+                    {
+                        if (prefab != null) res.Release<GameObject>(def.Prefab);
+                        if (--pending == 0) Finish();
+                        return;
+                    }
+                    if (prefab != null)
+                    {
+                        int row = idx / cols, col = idx % cols;
+                        Vector3 pos = GroundAt(new Vector3(col * spacing - halfX, 0f, row * spacing - halfZ));
 
-                int row = i / cols, col = i % cols;
-                Vector3 pos = GroundAt(new Vector3(col * spacing - halfX, 0f, row * spacing - halfZ));
+                        var go = Object.Instantiate(prefab, pos, Quaternion.Euler(0f, Random.Range(0f, 360f), 0f));
+                        res.Release<GameObject>(def.Prefab); // 配平 LoadAsync 的 +1
+                        float s = def.Scale > 0f ? def.Scale : 1f;
+                        go.transform.localScale = Vector3.one * s;
+                        MakeCorpse(go);
+                        spawned.Add(go);
 
-                var go = Object.Instantiate(prefab, pos, Quaternion.Euler(0f, Random.Range(0f, 360f), 0f));
-                float s = def.Scale > 0f ? def.Scale : 1f;
-                go.transform.localScale = Vector3.one * s;
-                MakeCorpse(go);
-                spawned.Add(go);
-
-                if (!boundsInit) { bounds = new Bounds(pos, Vector3.zero); boundsInit = true; }
-                else bounds.Encapsulate(pos);
+                        if (!boundsInit) { bounds = new Bounds(pos, Vector3.zero); boundsInit = true; }
+                        else bounds.Encapsulate(pos);
+                    }
+                    if (--pending == 0) Finish();
+                });
             }
-
-            if (!boundsInit) return new Bounds(GroundAt(Vector3.zero), Vector3.one);
-            bounds.Expand(spacing); // 四周留点余量,取景不至于贴边
-            return bounds;
         }
 
         /// <summary>把一只刚实例化的动物变成尸体:摆死亡姿势、关碰撞/弱点高亮、去掉游走,不再可命中。</summary>
@@ -240,9 +280,9 @@ namespace YOTO
         /// <summary>把整只动物(所有子 Renderer 的所有材质槽)换成金色泛光材质;材质共用,失败则静默跳过(仍照常刷怪)。</summary>
         private void ApplyGold(GameObject go)
         {
-            var mat = GetGoldMaterial();
-            if (mat == null) return;
+            if (goldMaterial == null) return; // 由 EnsureGoldMaterial 在生成前异步备好
 
+            var mat = goldMaterial;
             var renderers = go.GetComponentsInChildren<Renderer>(true);
             for (int i = 0; i < renderers.Length; i++)
             {
@@ -254,21 +294,33 @@ namespace YOTO
             }
         }
 
-        /// <summary>懒加载金色泛光材质:按 Resources 下的 AnimalGold shader 建一份共用材质;找不到 shader 则告警返回 null。</summary>
-        private Material GetGoldMaterial()
+        /// <summary>确保金色泛光材质就绪后回调 <paramref name="done"/>:已建好直接回调;否则异步加载 Resources 下的 AnimalGold shader
+        /// 建一份共用材质(找不到 shader 则退 Shader.Find,再不行告警、金色动物退原色)。shader 进程级常驻不释放。</summary>
+        private void EnsureGoldMaterial(System.Action done)
         {
-            if (goldMaterial != null) return goldMaterial;
+            if (goldMaterial != null) { done?.Invoke(); return; }
 
-            var shader = res != null ? res.Load<Shader>(GoldShaderPath) : null;
-            if (shader == null) shader = Shader.Find("Custom/AnimalGold");
-            if (shader == null)
+            if (res == null)
             {
-                Debug.LogWarning($"[AnimalSystem] 找不到金色泛光 shader(Resources/{GoldShaderPath} 或 Custom/AnimalGold),金色动物退化为原色。");
-                return null;
+                var fb = Shader.Find("Custom/AnimalGold");
+                if (fb != null) goldMaterial = new Material(fb) { name = "AnimalGold (runtime)" };
+                else Debug.LogWarning($"[AnimalSystem] 找不到金色泛光 shader(Custom/AnimalGold),金色动物退化为原色。");
+                done?.Invoke();
+                return;
             }
 
-            goldMaterial = new Material(shader) { name = "AnimalGold (runtime)" };
-            return goldMaterial;
+            res.LoadAsync<Shader>(GoldShaderPath, shader =>
+            {
+                if (goldMaterial == null) // 防并发重复创建
+                {
+                    if (shader == null) shader = Shader.Find("Custom/AnimalGold");
+                    if (shader == null)
+                        Debug.LogWarning($"[AnimalSystem] 找不到金色泛光 shader(Resources/{GoldShaderPath} 或 Custom/AnimalGold),金色动物退化为原色。");
+                    else
+                        goldMaterial = new Material(shader) { name = "AnimalGold (runtime)" };
+                }
+                done?.Invoke();
+            });
         }
 
         private Animal WeightedPick(int totalWeight)

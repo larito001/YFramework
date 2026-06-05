@@ -51,6 +51,7 @@ public class TaskPanel : UIPageBase
     private readonly List<Task> entries = new List<Task>();
     private uint currentCategory = CategoryDaily;
     private GameObject cardPrefab; // 任务卡片预制体(Resources/UI/Task/TaskCard,TaskCardBuilder 生成)
+    private ResourceHandle<GameObject> cardPrefabHandle; // 持模板句柄到页面销毁释放
 
     public override void OnLoad()
     {
@@ -60,8 +61,14 @@ public class TaskPanel : UIPageBase
         eventMgr = GetService<EventMgr>();
         taskProgress = GetService<TaskProgressSystem>();
         if (coinText != null) font = coinText.font; // 复用外壳字体给运行时卡片
-        cardPrefab = resMgr.Load<GameObject>("UI/Task/TaskCard"); // 卡片预制体
-        if (cardPrefab == null) Debug.LogError("[TaskPanel] 未找到 TaskCard 预制体,请先执行 Tools/UI/Build TaskCard Prefab(或 Build ALL UI Prefabs)。");
+        resMgr.LoadHandleAsync<GameObject>("UI/Task/TaskCard", h => // 卡片预制体(异步)
+        {
+            if (this == null) { h?.Release(); return; } // 页面已销毁:丢弃并配平
+            cardPrefabHandle = h;
+            cardPrefab = h?.Asset;
+            if (cardPrefab == null) Debug.LogError("[TaskPanel] 未找到 TaskCard 预制体,请先执行 Tools/UI/Build TaskCard Prefab(或 Build ALL UI Prefabs)。");
+            else RebuildList(); // 模板就绪后补建列表(OnShow 时模板未到则当时不填)
+        });
 
         if (backBtn != null) backBtn.onClick.AddListener(CloseSelf);
         CurrencyIcon.Bind(coinText, CurrencyType.Gold); // 资源胶囊图标:运行时从 Resources 动态加载(方便换图)
@@ -87,6 +94,8 @@ public class TaskPanel : UIPageBase
     }
 
     public override void OnResize() { }
+
+    private void OnDestroy() => cardPrefabHandle?.Release(); // 释放卡片模板句柄
 
     // ---------------- 顶部 ----------------
 
@@ -176,11 +185,11 @@ public class TaskPanel : UIPageBase
         for (int i = 0; i < view.rewardRoots.Length; i++) view.rewardRoots[i].SetActive(false);
         int slot = 0;
         if (task.RewardItemId > 0 && task.RewardItemCount > 0)
-            FillReward(view, slot++, ItemIcon(task.RewardItemId), IconBox, task.RewardItemCount);
+            FillReward(view, slot++, ItemIconPath(task.RewardItemId), IconBox, task.RewardItemCount);
         if (task.RewardCoin > 0)
-            FillReward(view, slot++, CurrencyIcon.Load(CurrencyType.Gold), CoinIcon, task.RewardCoin);     // 金币图标从 Resources 动态加载,缺失才退色块
+            FillReward(view, slot++, CurrencyIcon.ResPath(CurrencyType.Gold), CoinIcon, task.RewardCoin);     // 金币图标异步加载,缺失才退色块
         if (task.RewardEnergy > 0)
-            FillReward(view, slot++, CurrencyIcon.Load(CurrencyType.Energy), EnergyIcon, task.RewardEnergy); // 体力图标同上
+            FillReward(view, slot++, CurrencyIcon.ResPath(CurrencyType.Energy), EnergyIcon, task.RewardEnergy); // 体力图标同上
 
         // 右下按钮:未完成=前往;已完成未领=领取;已领取=置灰不可点
         bool canClaim = taskProgress != null && taskProgress.CanClaim(task.Id);
@@ -191,25 +200,23 @@ public class TaskPanel : UIPageBase
         view.actionLabel.text = claimed ? "已领取" : (canClaim ? "领取" : "前往");
     }
 
-    /// <summary>填一格奖励:有 sprite 用精灵,否则用 <paramref name="iconColor"/> 色块占位;显示该格。</summary>
-    private void FillReward(TaskCardView view, int slot, Sprite sprite, Color iconColor, int count)
+    /// <summary>填一格奖励:异步加载 <paramref name="spritePath"/> 的图标,缺图用 <paramref name="iconColor"/> 色块占位;显示该格。</summary>
+    private void FillReward(TaskCardView view, int slot, string spritePath, Color iconColor, int count)
     {
         if (slot < 0 || slot >= view.rewardRoots.Length) return;
         view.rewardRoots[slot].SetActive(true);
         var img = view.rewardIcons[slot];
         img.preserveAspect = true;
-        if (sprite != null) { img.sprite = sprite; img.color = Color.white; }
-        else { img.sprite = null; img.color = iconColor; } // 缺图标用色块占位
+        ResUI.SetSpriteAsync(resMgr, img, spritePath, iconColor); // 异步赋图,缺图标用色块占位
         view.rewardCounts[slot].text = $"×{count}";
     }
 
-    /// <summary>取奖励物品的图标(配表 iconPath → Resources 精灵);取不到返回 null,由调用方用色块占位。</summary>
-    private Sprite ItemIcon(uint itemId)
+    /// <summary>取奖励物品的图标路径(配表 iconPath);取不到返回 null,由调用方用色块占位。</summary>
+    private string ItemIconPath(uint itemId)
     {
-        if (itemId == 0 || config == null || resMgr == null) return null;
+        if (itemId == 0 || config == null) return null;
         var item = config.itemConfig.Get(itemId);
-        if (item == null || string.IsNullOrEmpty(item.IconPath)) return null;
-        return resMgr.Load<Sprite>(item.IconPath);
+        return item == null || string.IsNullOrEmpty(item.IconPath) ? null : item.IconPath;
     }
 
     /// <summary>右下按钮点击:可领取→领奖并飘字(列表由 RefreshTask 事件自动重建);否则前往(关闭界面去做)。</summary>

@@ -20,8 +20,7 @@ namespace YOTO
         {
             var img = GetComponent<Image>();
             if (img == null) return;
-            var s = CurrencyIcon.Load(type);
-            if (s != null) { img.sprite = s; img.enabled = true; }
+            CurrencyIcon.LoadAsync(type, s => { if (img != null && s != null) { img.sprite = s; img.enabled = true; } });
         }
     }
 }

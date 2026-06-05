@@ -55,13 +55,10 @@ public class ItemDescPanel : UIPageBase<ItemDescParam>
 
         if (iconImage != null)
         {
-            // 与商店/装备/奖励卡一致:武器/镜/弹优先用 3D 模型侧视快照,其它回退 2D 图标
-            Sprite sprite = item != null
-                ? (ModelSnapshotCache.CardSprite(item.ModelPath, resMgr)
-                   ?? (!string.IsNullOrEmpty(item.IconPath) ? resMgr.Load<Sprite>(item.IconPath) : null))
-                : null;
-            iconImage.sprite = sprite;
-            iconImage.enabled = sprite != null;
+            // 与商店/装备/奖励卡一致:武器/镜/弹优先用 3D 模型侧视快照,其它回退 2D 图标(异步)
+            if (item != null)
+                ModelSnapshotCache.BindCardImageAsync(iconImage, item.ModelPath, item.IconPath, resMgr);
+            else { iconImage.sprite = null; iconImage.enabled = false; }
         }
     }
 

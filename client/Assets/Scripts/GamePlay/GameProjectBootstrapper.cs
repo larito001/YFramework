@@ -80,8 +80,8 @@ public static partial class GameBootstrapper
         // 货币系统:独立钱包(多币种),与背包解耦。纯逻辑 service,Init 里只取 EventMgr/StoreMgr(均已先注册),
         // 余额变化桥接 RefreshCurrency 给 UI。按 Progress 随存档槽存档。
         ctx.Register(new CurrencySystem());
-        // 背包系统：纯逻辑 service，不需要 Tick。EventMgr / ConfigManager 已在 BuildContext 中先行注册，
-        // BagSystem.Init 里 ctx.Get 取得后接配表 + 桥接 RefreshBagList 给 UI。
+        // 背包系统(简化版):扁平"物品 id→数量"存储,供商店/任务/奖励发物品落袋并随存档持久化。
+        // ConfigManager / StoreMgr 已在 BuildContext 中先行注册,BagSystem.Init 里 ctx.Get 取得。
         ctx.Register(new BagSystem());
         // 装备系统:管理已拥有装备 + 每类出战选择(枪械/瞄准镜/子弹),读 item 配表 shopCategory。
         // 注册在 ShopSystem 之前:商店购买分类商品时 Grant 给它解锁。
@@ -102,8 +102,6 @@ public static partial class GameBootstrapper
         ctx.Register(new DailyAdEnergySystem());
         // 每日商城看广告领金币:独立计数(随存档槽存档 → 本地+云),每天上限见 DailyAdGoldSystem.DailyLimit(默认 3)。
         ctx.Register(new DailyAdGoldSystem());
-        // 世界交互（靠近宝箱 + F 打开）：Init 只订阅 InputService 的 F 键，靠近参照点用主相机（旧 TPS 玩家系统已移除）。
-        ctx.Register(new WorldInteractionSystem());
         // 激励广告(Dirichlet / TapADN):实现框架预留的 IAdService,大厅「体力补充」按钮看完发奖。
         // 激励视频仅 Android;Editor 走"模拟看完"便于联调。PC/Steam 不注册 → StartPanel 自动走"未接入"回退、不发奖。
         // 接入细节(导包/凭证/DIRICHLET_AD 宏/Android 打包)见 DirichletAdService.cs 文件末尾注释。
@@ -130,7 +128,6 @@ public static partial class GameBootstrapper
         uiConfig.Register<GameMainPanel>(UIEnum.GameMainPanel, UILayerEnum.Normal, "UI/Main/GameMainPanel");
         uiConfig.Register<FinishPanel>(UIEnum.FinishPanel, UILayerEnum.Normal, "UI/Main/FinishPanel");
         uiConfig.Register<SettingPanel>(UIEnum.SettingPanel, UILayerEnum.Normal, "UI/Setting/SettingPanel");
-        uiConfig.Register<BagPanel>(UIEnum.BagPanel, UILayerEnum.Normal, "UI/Bag/BagPanel");
         uiConfig.Register<ShopPanel>(UIEnum.ShopPanel, UILayerEnum.Normal, "UI/Shop/ShopPanel");
         uiConfig.Register<EquipPanel>(UIEnum.EquipPanel, UILayerEnum.Normal, "UI/Equip/EquipPanel");
         // 图鉴:装饰公仔 / 荣誉卡片 两类收藏,分页展示锁定/解锁卡片。从主界面「图鉴」按钮进入。

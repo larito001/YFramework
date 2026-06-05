@@ -32,6 +32,7 @@ public class WeaponModelPreview
     private Transform pivot;
     private GameObject model;
     private string shownPath;
+    private int showVersion; // 每次 Show/Clear 自增:异步加载回调比对,过期则丢弃(防快速切换覆盖)
 
     /// <param name="spin">是否缓慢自转(转台);装备卡用 false=不转。</param>
     /// <param name="sideView">true=正侧视图(看模型侧面);false=默认 3/4 取景。</param>
@@ -59,24 +60,34 @@ public class WeaponModelPreview
         if (modelPath == shownPath && model != null) { image.enabled = true; return; }
 
         ClearModel();
-        var prefab = res != null ? res.Load<GameObject>(modelPath) : null;
-        if (prefab == null)
+        shownPath = modelPath;          // 立即占位,避免回调竞态
+        int v = ++showVersion;
+        if (res == null) { image.enabled = false; return; }
+        res.LoadAsync<GameObject>(modelPath, prefab =>
         {
-            Debug.LogWarning($"[WeaponModelPreview] 模型未找到(确认已在 Resources/ 下): {modelPath}");
-            image.enabled = false;
-            return;
-        }
+            if (v != showVersion || rig == null) // 期间又切了模型 / rig 已销毁:丢弃并配平
+            {
+                if (prefab != null) res.Release<GameObject>(modelPath);
+                return;
+            }
+            if (prefab == null)
+            {
+                Debug.LogWarning($"[WeaponModelPreview] 模型未找到(确认已在 Resources/ 下): {modelPath}");
+                image.enabled = false;
+                return;
+            }
 
-        model = Object.Instantiate(prefab, pivot);
-        // 动物预制体带弱点高亮/命中盒(AnimalHitZone),UI 预览里不该显示:整块关掉
-        foreach (var hz in model.GetComponentsInChildren<AnimalHitZone>(true)) hz.gameObject.SetActive(false);
-        WeaponModelUtil.SetLayer(model, PreviewLayer);
-        WeaponModelUtil.DisableColliders(model);
-        WeaponModelUtil.MakeUnlit(model);
-        WeaponModelUtil.Frame(cam, pivot, model); // 先居中 + 默认 3/4 取景
-        if (sideView) SideFrame();                // 需要则改为正侧视图
-        shownPath = modelPath;
-        image.enabled = true;
+            model = Object.Instantiate(prefab, pivot);
+            res.Release<GameObject>(modelPath); // 实例已建,释放 prefab 引用(配平 LoadAsync 的 +1)
+            // 动物预制体带弱点高亮/命中盒(AnimalHitZone),UI 预览里不该显示:整块关掉
+            foreach (var hz in model.GetComponentsInChildren<AnimalHitZone>(true)) hz.gameObject.SetActive(false);
+            WeaponModelUtil.SetLayer(model, PreviewLayer);
+            WeaponModelUtil.DisableColliders(model);
+            WeaponModelUtil.MakeUnlit(model);
+            WeaponModelUtil.Frame(cam, pivot, model); // 先居中 + 默认 3/4 取景
+            if (sideView) SideFrame();                // 需要则改为正侧视图
+            image.enabled = true;
+        });
     }
 
     /// <summary>把相机摆到模型正侧面(垂直于较长水平轴看其侧面),略微抬高。</summary>
@@ -106,6 +117,7 @@ public class WeaponModelPreview
 
     public void Clear()
     {
+        showVersion++; // 取消在途加载,避免回调把模型又建出来
         ClearModel();
         shownPath = null;
         if (image != null) image.enabled = false;

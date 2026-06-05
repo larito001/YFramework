@@ -20,7 +20,8 @@ public static partial class GameBootstrapper
         ctx.Register(new ScreenMonitor());
         ctx.Register(new EventMgr());
         ctx.Register(new StoreMgr());
-        ctx.Register(new ResMgr());
+        // 资源后端可替换:当前 Resources;将来接 Addressables 只需把这里换成 new ResMgr(new AddressablesResProvider())。
+        ctx.Register(new ResMgr(new ResourcesResProvider()));
         ctx.Register(new SceneReferenceService());
         ctx.Register(new CameraManager());
         ctx.Register(new UIMgr(BuildUiConfig()));

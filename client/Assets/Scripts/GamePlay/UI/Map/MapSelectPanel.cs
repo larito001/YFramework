@@ -108,9 +108,7 @@ public class MapSelectPanel : UIPageBase
         picRt.offsetMin = new Vector2(12, 12); picRt.offsetMax = new Vector2(-12, -12);
         var picImg = pic.AddComponent<Image>();
         picImg.raycastTarget = false; picImg.preserveAspect = true;
-        var sprite = !string.IsNullOrEmpty(map.IconPath) ? resMgr.Load<Sprite>(map.IconPath) : null;
-        if (sprite != null) { picImg.sprite = sprite; picImg.color = Color.white; }
-        else picImg.color = PreviewBox; // 缺预览图用色块占位
+        ResUI.SetSpriteAsync(resMgr, picImg, map.IconPath, PreviewBox); // 异步加载预览图,缺图用色块占位
 
         // 标题条:第N关 名称(顶部)
         var bar = NewChild(card.transform, "TitleBar", out var barRt);

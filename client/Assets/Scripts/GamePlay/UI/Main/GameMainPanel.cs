@@ -269,11 +269,16 @@ public class GameMainPanel : UIPageBase
         // 淡出 HUD,留干净的检视画面(协程跑在 ICoroutineRunner 上,不受面板显隐影响)
         if (canvasGroup != null) { canvasGroup.alpha = 0f; canvasGroup.interactable = false; canvasGroup.blocksRaycasts = false; }
 
-        var bounds = animals != null ? animals.SpawnCorpses(kills) : new Bounds(Vector3.zero, Vector3.one);
+        // 尸体异步生成,全部就绪后回传包围盒再抬镜检视(拿不到相机/runner 就直接结算,保证流程不卡)
+        void Inspect(Bounds bounds)
+        {
+            var runner = GetService<ICoroutineRunner>();
+            if (runner != null && cam != null) runner.Run(InspectThenResult(cam, bounds));
+            else ShowResult();
+        }
 
-        var runner = GetService<ICoroutineRunner>();
-        if (runner != null && cam != null) runner.Run(InspectThenResult(cam, bounds));
-        else ShowResult(); // 拿不到相机/runner 就直接结算,保证流程不卡
+        if (animals != null) animals.SpawnCorpses(kills, Inspect);
+        else Inspect(new Bounds(Vector3.zero, Vector3.one));
     }
 
     /// <summary>相机先抬高到尸体上方俯视,再缓慢推近(镜头逐渐拉近)检视成果,最后打开结算界面。</summary>

@@ -46,6 +46,7 @@ public class CodexPanel : UIPageBase
     private readonly List<WeaponModelPreview> previews = new List<WeaponModelPreview>(); // 每张已解锁卡一个 3D 转台
     private int page;
     private GameObject cardPrefab; // 图鉴卡片预制体(Resources/UI/Codex/CodexCard,CodexCardBuilder 生成)
+    private ResourceHandle<GameObject> cardPrefabHandle; // 持模板句柄到页面销毁释放
 
     public override void OnLoad()
     {
@@ -55,8 +56,14 @@ public class CodexPanel : UIPageBase
         eventMgr = GetService<EventMgr>();
         resMgr = GetService<ResMgr>();
         if (coinText != null) font = coinText.font; // 复用外壳中文字体给运行时卡片
-        cardPrefab = resMgr.Load<GameObject>("UI/Codex/CodexCard"); // 卡片预制体
-        if (cardPrefab == null) Debug.LogError("[CodexPanel] 未找到 CodexCard 预制体,请先执行 Tools/UI/Build CodexCard Prefab(或 Build ALL UI Prefabs)。");
+        resMgr.LoadHandleAsync<GameObject>("UI/Codex/CodexCard", h => // 卡片预制体(异步)
+        {
+            if (this == null) { h?.Release(); return; }
+            cardPrefabHandle = h;
+            cardPrefab = h?.Asset;
+            if (cardPrefab == null) Debug.LogError("[CodexPanel] 未找到 CodexCard 预制体,请先执行 Tools/UI/Build CodexCard Prefab(或 Build ALL UI Prefabs)。");
+            else GoToPage(page); // 模板就绪后补建当前页
+        });
 
         if (backBtn != null) backBtn.onClick.AddListener(CloseSelf);
         CurrencyIcon.Bind(coinText, CurrencyType.Gold); // 资源胶囊图标:运行时从 Resources 动态加载(方便换图)
@@ -142,6 +149,8 @@ public class CodexPanel : UIPageBase
     }
 
     // ---------------- 卡片网格 ----------------
+
+    private void OnDestroy() => cardPrefabHandle?.Release(); // 释放卡片模板句柄
 
     private void RebuildGrid()
     {

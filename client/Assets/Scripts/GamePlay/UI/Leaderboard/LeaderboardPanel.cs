@@ -33,14 +33,24 @@ public class LeaderboardPanel : UIPageBase
     private ILeaderboardService leaderboard;
     private TMP_FontAsset font;
     private GameObject rowPrefab; // 排行榜行预制体(Resources/UI/Leaderboard/LeaderboardRow,LeaderboardRowBuilder 生成)
+    private ResourceHandle<GameObject> rowPrefabHandle; // 持模板句柄到页面销毁释放
+    private LeaderboardResult pendingResult; // 榜单数据先到、模板未到时暂存,待模板就绪补渲
+    private bool hasResult;
 
     public override void OnLoad()
     {
         Context.TryGet<ILeaderboardService>(out leaderboard);
         if (statusText != null) font = statusText.font; // 复用外壳字体给运行时行
         var resMgr = GetService<ResMgr>();
-        rowPrefab = resMgr != null ? resMgr.Load<GameObject>("UI/Leaderboard/LeaderboardRow") : null;
-        if (rowPrefab == null) Debug.LogError("[LeaderboardPanel] 未找到 LeaderboardRow 预制体,请先执行 Tools/UI/Build LeaderboardRow Prefab(或 Build ALL UI Prefabs)。");
+        if (resMgr != null)
+            resMgr.LoadHandleAsync<GameObject>("UI/Leaderboard/LeaderboardRow", h => // 行预制体(异步)
+            {
+                if (this == null) { h?.Release(); return; }
+                rowPrefabHandle = h;
+                rowPrefab = h?.Asset;
+                if (rowPrefab == null) Debug.LogError("[LeaderboardPanel] 未找到 LeaderboardRow 预制体,请先执行 Tools/UI/Build LeaderboardRow Prefab(或 Build ALL UI Prefabs)。");
+                else if (hasResult) Render(pendingResult); // 模板后到:补渲已到的榜单数据
+            });
 
         if (backBtn != null) backBtn.onClick.AddListener(CloseSelf);
     }
@@ -63,9 +73,20 @@ public class LeaderboardPanel : UIPageBase
     public override void OnHide() { }
     public override void OnResize() { }
 
+    private void OnDestroy() => rowPrefabHandle?.Release(); // 释放行模板句柄
+
     private void OnLoaded(LeaderboardResult result)
     {
         if (this == null || content == null) return; // 面板可能已被关闭
+        pendingResult = result;
+        hasResult = true;
+        if (rowPrefab == null) return; // 模板未到:保留"加载中…",待模板就绪在加载回调里补渲
+        Render(result);
+    }
+
+    private void Render(LeaderboardResult result)
+    {
+        if (this == null || content == null) return;
         ClearList();
 
         if (result == null || !result.success)

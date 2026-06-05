@@ -1,7 +1,9 @@
+using System;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 using YOTO;
+using Object = UnityEngine.Object;
 
 /// <summary>
 /// 一次性「模型快照」:用一台共用的离屏相机把 Resources 里的模型渲染**一帧**到 Texture2D 返回,然后相机闲置(不常驻渲染)。
@@ -20,17 +22,30 @@ public static class ModelSnapshot
     private static Transform pivot;
     private static Camera cam;
 
-    /// <summary>把模型渲一帧成 Texture2D(侧视、不旋转)。失败返回 null。<paramref name="bg"/> 用透明可衬卡片底色。</summary>
-    public static Texture2D Capture(string modelPath, ResMgr res, int size = 256, bool sideView = true, Color bg = default)
+    /// <summary>把模型渲一帧成 Texture2D(侧视、不旋转)。预制体异步加载,渲完回调 <paramref name="onDone"/>(失败回 null)。
+    /// <paramref name="bg"/> 用透明可衬卡片底色。快照只渲一帧,渲完即释放预制体引用。</summary>
+    public static void CaptureAsync(string modelPath, ResMgr res, Action<Texture2D> onDone, int size = 256, bool sideView = true, Color bg = default)
     {
-        if (string.IsNullOrEmpty(modelPath) || res == null) return null;
-        var prefab = res.Load<GameObject>(modelPath);
-        if (prefab == null)
+        if (onDone == null) return;
+        if (string.IsNullOrEmpty(modelPath) || res == null) { onDone(null); return; }
+        res.LoadAsync<GameObject>(modelPath, prefab =>
         {
-            Debug.LogWarning($"[ModelSnapshot] 模型未找到: {modelPath}");
-            return null;
-        }
+            if (prefab == null)
+            {
+                Debug.LogWarning($"[ModelSnapshot] 模型未找到: {modelPath}");
+                onDone(null);
+                return;
+            }
 
+            var tex = RenderToTexture(prefab, size, sideView, bg);
+            res.Release<GameObject>(modelPath); // 快照只需渲一帧,渲完释放预制体引用(配平 LoadAsync 的 +1)
+            onDone(tex);
+        });
+    }
+
+    /// <summary>把已加载的 prefab 实例化并同步渲一帧到 Texture2D(含 ReadPixels 的一次性 GPU→CPU 等待)。</summary>
+    private static Texture2D RenderToTexture(GameObject prefab, int size, bool sideView, Color bg)
+    {
         EnsureRig();
 
         var model = Object.Instantiate(prefab, pivot);

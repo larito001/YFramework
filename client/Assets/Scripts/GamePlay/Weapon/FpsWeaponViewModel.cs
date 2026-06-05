@@ -31,6 +31,7 @@ public class FpsWeaponViewModel : MonoBehaviour
 
     private GameObject model;
     private int shownId = -1;
+    private int refreshVersion; // 每次 Refresh 自增:异步加载回调比对,过期则丢弃(防快速换枪覆盖)
     private bool forceHidden; // 结束打猎尸检镜头期间强制隐藏手持枪
 
     /// <summary>强制隐藏/显示手持枪(尸检镜头用;进对局 <see cref="Init"/> 会复位为显示)。</summary>
@@ -100,28 +101,38 @@ public class FpsWeaponViewModel : MonoBehaviour
         {
             if (model != null) { Destroy(model); model = null; }
             shownId = -1;
+            refreshVersion++; // 取消在途加载
             return;
         }
 
         if (id == shownId && model != null) return; // 没变
 
         if (model != null) { Destroy(model); model = null; }
-
-        var prefab = res != null ? res.Load<GameObject>(path) : null;
-        if (prefab == null)
+        shownId = id;                   // 立即占位
+        int v = ++refreshVersion;
+        if (res == null) return;
+        res.LoadAsync<GameObject>(path, prefab =>
         {
-            Debug.LogWarning($"[FpsWeaponViewModel] 武器模型未找到(确认已在 Resources/ 下): {path}");
-            return;
-        }
+            if (v != refreshVersion || this == null) // 期间又换枪 / 对象已销毁:丢弃并配平
+            {
+                if (prefab != null) res.Release<GameObject>(path);
+                return;
+            }
+            if (prefab == null)
+            {
+                Debug.LogWarning($"[FpsWeaponViewModel] 武器模型未找到(确认已在 Resources/ 下): {path}");
+                return;
+            }
 
-        Debug.Log($"[FpsWeaponViewModel] 出战武器 id={id} 手持模型={path}");
-        model = Instantiate(prefab, transform); // 作为相机子物体
-        WeaponModelUtil.DisableColliders(model); // 去碰撞体,避免挡住自己的射线/物理
-        var t = model.transform;
-        t.localPosition = localPosition;
-        t.localEulerAngles = localEuler;
-        t.localScale = Vector3.one * scale;
-        recoilPos = recoilEuler = targetRecoilPos = targetRecoilEuler = Vector3.zero; // 换枪清掉残余后座
-        shownId = id;
+            Debug.Log($"[FpsWeaponViewModel] 出战武器 id={id} 手持模型={path}");
+            model = Instantiate(prefab, transform); // 作为相机子物体
+            res.Release<GameObject>(path);           // 实例已建,释放 prefab 引用(配平 LoadAsync 的 +1)
+            WeaponModelUtil.DisableColliders(model); // 去碰撞体,避免挡住自己的射线/物理
+            var t = model.transform;
+            t.localPosition = localPosition;
+            t.localEulerAngles = localEuler;
+            t.localScale = Vector3.one * scale;
+            recoilPos = recoilEuler = targetRecoilPos = targetRecoilEuler = Vector3.zero; // 换枪清掉残余后座
+        });
     }
 }
