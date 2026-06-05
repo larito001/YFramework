@@ -59,6 +59,7 @@ public class CodexPanel : UIPageBase
         if (cardPrefab == null) Debug.LogError("[CodexPanel] 未找到 CodexCard 预制体,请先执行 Tools/UI/Build CodexCard Prefab(或 Build ALL UI Prefabs)。");
 
         if (backBtn != null) backBtn.onClick.AddListener(CloseSelf);
+        CurrencyIcon.Bind(coinText, CurrencyType.Gold); // 资源胶囊图标:运行时从 Resources 动态加载(方便换图)
         if (btnFirst != null) btnFirst.onClick.AddListener(() => GoToPage(0));
         if (btnPrev != null) btnPrev.onClick.AddListener(() => GoToPage(page - 1));
         if (btnNext != null) btnNext.onClick.AddListener(() => GoToPage(page + 1));

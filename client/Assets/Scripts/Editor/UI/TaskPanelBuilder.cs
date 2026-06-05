@@ -7,76 +7,102 @@ using UnityEngine.UI;
 
 /// <summary>
 /// 一键生成任务界面预制体 TaskPanel.prefab 到 Resources/UI/Task 下,供 UIMgr/ResMgr 按路径加载。
-/// 只搭外壳:浅紫背景 + 返回 / 资源金币(绿色胶囊) + 每日任务/常规任务 两页签 + 竖向滚动列表容器(ScrollRect)。
-/// 任务卡(标题 + 进度 + 奖励 + 前往)由 <see cref="TaskPanel"/> 运行时按配表 <c>taskConfig</c> 构建。
+/// 外壳从美术返工后的预制体反推(art-kit 实例 + 自定义布局):
+///   根:浅紫 Image + CanvasGroup + YOTOUIShow + TaskPanel
+///     ├ bg     (Resources/UI/bg)     全屏背景图(prefab 实例,偏置摆放)
+///     ├ back   (Resources/UI/backBtn) 返回(左上,prefab 实例)
+///     ├ Coin   绿色资源胶囊(右上偏左;深绿底 + 左侧金币图标 + 右对齐数值)
+///     ├ Tabs   页签容器(HorizontalLayoutGroup),内含两个 Tab_01.prefab 实例:
+///     │         每日任务 / 主线任务(选中态靠 Tab_01 的 "Focus" 子物体,见 TaskPanel.SetTabColor)
+///     └ Scroll 竖向滚动任务列表(Viewport + VerticalLayoutGroup 容器 Content)
 ///
-/// 尺寸按"画布宽恒为 1920 单位"(CanvasScaler match=width)给,竖屏四边留边自适应。
+/// 任务卡(标题 + 进度 + 奖励 + 前往/领取)由 <see cref="TaskPanel"/> 运行时按配表 <c>taskConfig</c> 动态生成,不进 Builder。
+/// 货币图标不烤进预制体:Icon 上挂 CurrencyIconBinder,运行时按币种从 Resources 动态加载(见 UICurrencyPill.AddIconLeft)。
 /// 菜单:Tools/UI/Build TaskPanel Prefab
 /// </summary>
 public static class TaskPanelBuilder
 {
     private const string Dir = "Assets/Resources/UI/Task";
     private const string PrefabPath = Dir + "/TaskPanel.prefab";
-    private const string ButtonPrefabPath = "Assets/Resources/UI/Common/CommonButton.prefab";
+    private const string BgPrefabPath = "Assets/Resources/UI/bg.prefab";
+    private const string BackBtnPrefabPath = "Assets/Resources/UI/backBtn.prefab";
+    private const string TabPrefabPath = "Assets/Resources/UI/Tab_01.prefab";
     private const string FontPath = "Assets/Art/Fonts/SIMHEI SDF.asset";
+    // 视口底框(art-kit 半透明圆角盒;预制体里 Viewport 用的就是它)
+    private const string ViewportSpritePath = "Assets/Art/UI/NewUI/Shared/Sprite_Common/Popup/Popup_Box_01~03_White_Bg.png";
+
+    // Coin 胶囊为绿色(非 UICurrencyPill 默认深灰),故自定义底色 + AddIconLeft。
+    private static readonly Color CoinPill = new Color(0.56f, 0.78f, 0.30f, 1f);
+    private static readonly Color RootBg = new Color(0.91f, 0.90f, 0.95f, 1f);
+    private static readonly Color ViewportTint = new Color(0f, 0f, 0f, 0.5254902f);
 
     private static TMP_FontAsset _font;
-    private static GameObject _btnPrefab;
+    private static GameObject _bgPrefab, _backBtnPrefab, _tabPrefab;
 
     [MenuItem("Tools/UI/Build TaskPanel Prefab")]
     public static void Build()
     {
         if (!Directory.Exists(Dir)) Directory.CreateDirectory(Dir);
         _font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(FontPath);
-        _btnPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(ButtonPrefabPath);
-        if (_btnPrefab == null)
+        _bgPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(BgPrefabPath);
+        _backBtnPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(BackBtnPrefabPath);
+        _tabPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(TabPrefabPath);
+        if (_bgPrefab == null || _backBtnPrefab == null || _tabPrefab == null)
         {
-            Debug.LogError($"[TaskPanelBuilder] 未找到通用按钮 {ButtonPrefabPath},无法生成。");
+            Debug.LogError($"[TaskPanelBuilder] 缺少 art-kit 预制体(bg/backBtn/Tab_01),无法生成。");
             return;
         }
 
         // ---------- 根(浅紫背景 + CanvasGroup + YOTOUIShow + TaskPanel)----------
         var root = NewUI("TaskPanel", out var rootRt);
         Stretch(rootRt);
-        root.AddComponent<Image>().color = new Color(0.91f, 0.90f, 0.95f, 1f);
+        root.AddComponent<Image>().color = RootBg;
         var cg = root.AddComponent<CanvasGroup>();
         root.AddComponent<YOTOUIShow>();
 
-        // ---------- 顶部:返回(左上)----------
-        var backBtn = BuildButton("Btn_Back", "返回", root.transform, 44);
-        var backRt = (RectTransform)backBtn.transform;
-        backRt.anchorMin = backRt.anchorMax = new Vector2(0, 1); backRt.pivot = new Vector2(0, 1);
-        backRt.anchoredPosition = new Vector2(40, -40); backRt.sizeDelta = new Vector2(220, 110);
+        // ---------- 全屏背景图(art-kit bg.prefab 实例)----------
+        var bg = (GameObject)PrefabUtility.InstantiatePrefab(_bgPrefab, root.transform);
+        var bgRt = (RectTransform)bg.transform;
+        bgRt.anchorMin = bgRt.anchorMax = bgRt.pivot = new Vector2(0.5f, 0.5f);
+        bgRt.anchoredPosition = new Vector2(121f, -60f);
+        bgRt.sizeDelta = new Vector2(5504.974f, 3669.982f);
 
-        // ---------- 顶部:资源金币(绿色胶囊)----------
+        // ---------- 返回(左上,art-kit backBtn.prefab 实例)----------
+        var backGo = (GameObject)PrefabUtility.InstantiatePrefab(_backBtnPrefab, root.transform);
+        backGo.name = "back";
+        var backRt = (RectTransform)backGo.transform;
+        backRt.anchorMin = backRt.anchorMax = new Vector2(0, 1); backRt.pivot = new Vector2(0.5f, 0.5f);
+        backRt.anchoredPosition = new Vector2(155.2f, -111.9f); backRt.sizeDelta = new Vector2(243.246f, 201.326f);
+        var backBtn = backGo.GetComponent<Button>();
+
+        // ---------- 资源金币(右上偏左,绿色胶囊:深绿底 + 左侧金币图标 + 右对齐数值)----------
         var coinGo = NewUI("Coin", out var coinRt, root.transform);
         coinRt.anchorMin = coinRt.anchorMax = new Vector2(0, 1); coinRt.pivot = new Vector2(0, 1);
         coinRt.anchoredPosition = new Vector2(300, -48); coinRt.sizeDelta = new Vector2(360, 120);
         var coinBg = coinGo.AddComponent<Image>();
         coinBg.sprite = BuiltinSprite("UI/Skin/UISprite.psd");
         coinBg.type = Image.Type.Sliced;
-        coinBg.color = new Color(0.56f, 0.78f, 0.30f, 1f);
+        coinBg.color = CoinPill;
         var coinText = NewChildText(coinGo, "Value", "0", 48, TextAlignmentOptions.Right);
-        ((RectTransform)coinText.transform).offsetMax = new Vector2(-28, 0);
-        UICurrencyPill.AddIconLeft(coinGo, (RectTransform)coinText.transform, UICurrencyPill.IconGold); // 金币用图标,不写文字
+        UICurrencyPill.AddIconLeft(coinGo, (RectTransform)coinText.transform, UICurrencyPill.IconGold); // 金币图标运行时动态加载
 
-        // ---------- 顶部页签:每日任务 / 常规任务(移到顶部,资源条下方,横向铺满)----------
+        // ---------- 页签容器:每日任务 / 主线任务(横向铺满,Tab_01.prefab 实例)----------
         var tabs = NewUI("Tabs", out var tabsRt, root.transform);
         tabsRt.anchorMin = new Vector2(0, 1); tabsRt.anchorMax = new Vector2(1, 1); tabsRt.pivot = new Vector2(0.5f, 1);
-        tabsRt.offsetMin = new Vector2(50, -350); tabsRt.offsetMax = new Vector2(-50, -190); // 顶栏(返回/金币)下方,160 高
+        tabsRt.anchoredPosition = new Vector2(0, -216); tabsRt.sizeDelta = new Vector2(-100, 160);
         var tabsHlg = tabs.AddComponent<HorizontalLayoutGroup>();
         tabsHlg.spacing = 24;
         tabsHlg.childAlignment = TextAnchor.MiddleCenter;
         tabsHlg.childControlWidth = true; tabsHlg.childControlHeight = true;
         tabsHlg.childForceExpandWidth = true; tabsHlg.childForceExpandHeight = true;
 
-        var tabDaily = BuildTab("Tab_Daily", "每日任务", tabs.transform, new Color(0.56f, 0.78f, 0.30f, 1f)); // 默认选中
-        var tabRegular = BuildTab("Tab_Regular", "常规任务", tabs.transform, new Color(0.72f, 0.70f, 0.80f, 1f));
+        var tabDaily = BuildTab("Tab_01", "每日任务", tabs.transform);     // 默认选中(Focus 由 TaskPanel 运行时切换)
+        var tabRegular = BuildTab("Tab_01 (1)", "主线任务", tabs.transform);
 
-        // ---------- 中部:竖向滚动列表 ----------
+        // ---------- 竖向滚动任务列表 ----------
         var scrollGo = NewUI("Scroll", out var scrollRt, root.transform);
         scrollRt.anchorMin = Vector2.zero; scrollRt.anchorMax = Vector2.one;
-        scrollRt.offsetMin = new Vector2(50, 250); scrollRt.offsetMax = new Vector2(-50, -370); // 顶部让出页签,底部留出横幅广告(原生浮层)的高度
+        scrollRt.anchoredPosition = new Vector2(0, -60); scrollRt.sizeDelta = new Vector2(-100, -620);
         var scroll = scrollGo.AddComponent<ScrollRect>();
         scroll.horizontal = false; scroll.vertical = true; scroll.scrollSensitivity = 40f;
         scroll.movementType = ScrollRect.MovementType.Clamped;
@@ -85,9 +111,9 @@ public static class TaskPanelBuilder
         var viewport = NewUI("Viewport", out var viewportRt, scrollGo.transform);
         Stretch(viewportRt);
         var vpImg = viewport.AddComponent<Image>();
-        vpImg.sprite = BuiltinSprite("UI/Skin/UISprite.psd");
+        vpImg.sprite = LoadSprite(ViewportSpritePath);
         vpImg.type = Image.Type.Sliced;
-        vpImg.color = new Color(0.86f, 0.84f, 0.93f, 1f);
+        vpImg.color = ViewportTint;
         viewport.AddComponent<RectMask2D>();
 
         // 内容容器(VerticalLayoutGroup + ContentSizeFitter:卡片自上而下排列,高度自适应)
@@ -125,22 +151,15 @@ public static class TaskPanelBuilder
 
     // ============================ 构件 ============================
 
-    private static Button BuildTab(string name, string label, Transform parent, Color color)
+    /// <summary>实例化 Tab_01.prefab 页签并写入子 Text(TMP) 文字;尺寸由父级 HorizontalLayoutGroup 控制,故不设 RectTransform。
+    /// 选中态由 Tab_01 的 "Focus" 子物体表示(TaskPanel.SetTabColor 运行时切换),Builder 不再用 targetGraphic 变色。</summary>
+    private static Button BuildTab(string name, string label, Transform parent)
     {
-        var btn = BuildButton(name, label, parent, 48);
-        var le = btn.gameObject.AddComponent<LayoutElement>();
-        le.preferredWidth = 420; le.preferredHeight = 110;
-        if (btn.targetGraphic is Image img) img.color = color;
-        return btn;
-    }
-
-    private static Button BuildButton(string name, string label, Transform parent, float fontSize)
-    {
-        var go = (GameObject)PrefabUtility.InstantiatePrefab(_btnPrefab, parent);
+        var go = (GameObject)PrefabUtility.InstantiatePrefab(_tabPrefab, parent);
         go.name = name;
         go.SetActive(true);
         var text = go.GetComponentInChildren<TextMeshProUGUI>(true);
-        if (text != null) { text.text = label; text.fontSize = UITheme.Font(fontSize); }
+        if (text != null) text.text = label;
         return go.GetComponent<Button>();
     }
 
@@ -179,6 +198,11 @@ public static class TaskPanelBuilder
     private static Sprite BuiltinSprite(string path)
     {
         return AssetDatabase.GetBuiltinExtraResource<Sprite>(path);
+    }
+
+    private static Sprite LoadSprite(string path)
+    {
+        return AssetDatabase.LoadAssetAtPath<Sprite>(path);
     }
 }
 #endif

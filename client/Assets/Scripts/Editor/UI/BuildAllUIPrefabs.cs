@@ -35,7 +35,6 @@ public static class BuildAllUIPrefabs
         ("StartPanel",     StartPanelBuilder.Build),
         ("TaskPanel",      TaskPanelBuilder.Build),
         ("TaskCard",       TaskCardBuilder.Build),   // 任务卡片 Item 预制体(TaskPanel 运行时 instantiate)
-        ("Bag UI",         BagPrefabBuilder.BuildAll),
     };
 
     [MenuItem("Tools/UI/Build ALL UI Prefabs", priority = 0)]

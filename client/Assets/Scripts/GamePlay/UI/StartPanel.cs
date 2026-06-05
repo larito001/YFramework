@@ -47,6 +47,8 @@ public class StartPanel : UIPageBase
         if (btn_codex != null) btn_codex.onClick.AddListener(OnCodexClick);
         if (btn_task != null) btn_task.onClick.AddListener(OnTaskClick);
         if (btn_leaderboard != null) btn_leaderboard.onClick.AddListener(OnLeaderboardClick);
+        CurrencyIcon.Bind(goldText, CurrencyType.Gold);     // 资源胶囊图标:运行时从 Resources 动态加载(方便换图)
+        CurrencyIcon.Bind(energyText, CurrencyType.Energy);
     }
 
     public override void OnShow()
@@ -119,7 +121,7 @@ public class StartPanel : UIPageBase
         // 每天最多补 DailyAdEnergySystem.DailyLimit 次(次数随存档槽落盘 → 本地+云)
         if (dailyAd != null && !dailyAd.CanWatch)
         {
-            GetService<FlyTextMgr>()?.AddTextAtScreenCenter($"今日体力补充已达上限({dailyAd.DailyLimit}次)");
+            GetService<FlyTextMgr>()?.AddTextAtScreenCenter($"每日最多恢复{dailyAd.DailyLimit}次体力");
             RefreshEnergyAdButton();
             return;
         }
@@ -149,9 +151,9 @@ public class StartPanel : UIPageBase
         }
     }
 
-    /// <summary>达上限时把广告补体力按钮置灰不可点。</summary>
+    /// <summary>广告补体力按钮保持可点:达上限时点击给「每日最多恢复 N 次体力」提示,而不是置灰不可点(置灰就收不到点击、弹不出提示)。</summary>
     private void RefreshEnergyAdButton()
     {
-        if (btn_energyAd != null) btn_energyAd.interactable = dailyAd == null || dailyAd.CanWatch;
+        if (btn_energyAd != null) btn_energyAd.interactable = true;
     }
 }

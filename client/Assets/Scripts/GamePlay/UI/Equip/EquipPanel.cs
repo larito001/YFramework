@@ -58,6 +58,8 @@ public class EquipPanel : UIPageBase
         if (cardPrefab == null) Debug.LogError("[EquipPanel] 未找到 EquipCard 预制体,请先执行 Tools/UI/Build EquipCard Prefab(或 Build ALL UI Prefabs)。");
 
         if (backBtn != null) backBtn.onClick.AddListener(CloseSelf);
+        CurrencyIcon.Bind(coinText, CurrencyType.Gold);     // 资源胶囊图标:运行时从 Resources 动态加载(方便换图)
+        CurrencyIcon.Bind(energyText, CurrencyType.Energy);
         if (departBtn != null) departBtn.onClick.AddListener(OnDepart);
 
         weaponPreview = new WeaponModelPreview(CreatePreviewHost(), resMgr);

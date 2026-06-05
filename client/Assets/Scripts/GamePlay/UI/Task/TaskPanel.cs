@@ -64,6 +64,7 @@ public class TaskPanel : UIPageBase
         if (cardPrefab == null) Debug.LogError("[TaskPanel] 未找到 TaskCard 预制体,请先执行 Tools/UI/Build TaskCard Prefab(或 Build ALL UI Prefabs)。");
 
         if (backBtn != null) backBtn.onClick.AddListener(CloseSelf);
+        CurrencyIcon.Bind(coinText, CurrencyType.Gold); // 资源胶囊图标:运行时从 Resources 动态加载(方便换图)
         if (tabDaily != null) tabDaily.onClick.AddListener(() => SelectCategory(CategoryDaily));
         if (tabRegular != null) tabRegular.onClick.AddListener(() => SelectCategory(CategoryRegular));
     }
@@ -177,9 +178,9 @@ public class TaskPanel : UIPageBase
         if (task.RewardItemId > 0 && task.RewardItemCount > 0)
             FillReward(view, slot++, ItemIcon(task.RewardItemId), IconBox, task.RewardItemCount);
         if (task.RewardCoin > 0)
-            FillReward(view, slot++, view.coinIcon, CoinIcon, task.RewardCoin);     // 烤进预制体的金币图标,缺失才退色块
+            FillReward(view, slot++, CurrencyIcon.Load(CurrencyType.Gold), CoinIcon, task.RewardCoin);     // 金币图标从 Resources 动态加载,缺失才退色块
         if (task.RewardEnergy > 0)
-            FillReward(view, slot++, view.energyIcon, EnergyIcon, task.RewardEnergy); // 同上,体力图标
+            FillReward(view, slot++, CurrencyIcon.Load(CurrencyType.Energy), EnergyIcon, task.RewardEnergy); // 体力图标同上
 
         // 右下按钮:未完成=前往;已完成未领=领取;已领取=置灰不可点
         bool canClaim = taskProgress != null && taskProgress.CanClaim(task.Id);

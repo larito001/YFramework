@@ -7,8 +7,16 @@ using UnityEngine.UI;
 
 /// <summary>
 /// 一键生成选择关卡界面预制体 MapSelectPanel.prefab 到 Resources/UI/Map 下。
-/// 外壳:浅紫背景 + 返回 / 资源金币(绿色胶囊) + 「关卡列表」标题 + 竖向滚动的 2 列卡片网格容器。
-/// 关卡卡(预览图 + 第N关名称 + 锁罩)由 <see cref="MapSelectPanel"/> 运行时按配表 <c>mapConfig</c> 构建。
+/// 本构建器对齐美术返工后的现预制体外壳:
+///   根 MapSelectPanel:浅紫底色 Image + CanvasGroup + YOTOUIShow + MapSelectPanel
+///     ├ bg      (Resources/UI/bg.prefab,art-kit 实例)   全屏背景图,压在浅紫底色之上
+///     ├ backBtn (Resources/UI/backBtn.prefab,art-kit 实例) 返回(左上)
+///     ├ Coin    资源金币胶囊(绿色底 + 左侧货币图标 + 右对齐数值)
+///     ├ Title   「关卡列表」标题
+///     └ Scroll  竖向滚动的 2 列卡片网格容器(Viewport/Grid)
+///
+/// 关卡卡(预览图 + 第N关名称 + 锁罩)由 <see cref="MapSelectPanel"/> 运行时按配表 <c>mapConfig</c> 动态构建,不进本外壳。
+/// 货币图标不烤进预制体:由 <see cref="UICurrencyPill.AddIconLeft"/> 挂 CurrencyIconBinder,运行时按币种从 Resources 加载。
 ///
 /// 尺寸按"画布宽恒为 1920 单位"(CanvasScaler match=width)给。
 /// 菜单:Tools/UI/Build MapSelectPanel Prefab
@@ -17,38 +25,47 @@ public static class MapSelectPanelBuilder
 {
     private const string Dir = "Assets/Resources/UI/Map";
     private const string PrefabPath = Dir + "/MapSelectPanel.prefab";
-    private const string ButtonPrefabPath = "Assets/Resources/UI/Common/CommonButton.prefab";
+    private const string BgPrefabPath = "Assets/Resources/UI/bg.prefab";
+    private const string BackBtnPrefabPath = "Assets/Resources/UI/backBtn.prefab";
     private const string FontPath = "Assets/Art/Fonts/SIMHEI SDF.asset";
 
     private static TMP_FontAsset _font;
-    private static GameObject _btnPrefab;
+    private static GameObject _bgPrefab, _backBtnPrefab;
 
     [MenuItem("Tools/UI/Build MapSelectPanel Prefab")]
     public static void Build()
     {
         if (!Directory.Exists(Dir)) Directory.CreateDirectory(Dir);
         _font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(FontPath);
-        _btnPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(ButtonPrefabPath);
-        if (_btnPrefab == null)
-        {
-            Debug.LogError($"[MapSelectPanelBuilder] 未找到通用按钮 {ButtonPrefabPath},无法生成。");
-            return;
-        }
+        _bgPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(BgPrefabPath);
+        _backBtnPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(BackBtnPrefabPath);
+        if (_bgPrefab == null) { Debug.LogError($"[MapSelectPanelBuilder] 未找到背景 {BgPrefabPath},无法生成。"); return; }
+        if (_backBtnPrefab == null) { Debug.LogError($"[MapSelectPanelBuilder] 未找到返回按钮 {BackBtnPrefabPath},无法生成。"); return; }
 
-        // ---------- 根(浅紫背景 + CanvasGroup + YOTOUIShow + MapSelectPanel)----------
+        // ---------- 根(浅紫底色 + CanvasGroup + YOTOUIShow + MapSelectPanel)----------
         var root = NewUI("MapSelectPanel", out var rootRt);
         Stretch(rootRt);
         root.AddComponent<Image>().color = new Color(0.91f, 0.90f, 0.95f, 1f);
         var cg = root.AddComponent<CanvasGroup>();
         root.AddComponent<YOTOUIShow>();
 
-        // ---------- 顶部:返回(左上)----------
-        var backBtn = BuildButton("Btn_Back", "返回", root.transform, 44);
-        var backRt = (RectTransform)backBtn.transform;
-        backRt.anchorMin = backRt.anchorMax = new Vector2(0, 1); backRt.pivot = new Vector2(0, 1);
-        backRt.anchoredPosition = new Vector2(40, -40); backRt.sizeDelta = new Vector2(200, 90);
+        // ---------- 全屏背景图(art-kit:bg.prefab,首位子物体,压住浅紫底色)----------
+        var bg = (GameObject)PrefabUtility.InstantiatePrefab(_bgPrefab, root.transform);
+        bg.name = "bg";
+        var bgRt = (RectTransform)bg.transform;
+        bgRt.anchorMin = bgRt.anchorMax = bgRt.pivot = new Vector2(0.5f, 0.5f);
+        bgRt.anchoredPosition = Vector2.zero;
+        bgRt.sizeDelta = new Vector2(5504.974f, 3669.982f);
 
-        // ---------- 顶部:资源金币(绿色胶囊)----------
+        // ---------- 返回(art-kit:backBtn.prefab,左上)----------
+        var backGo = (GameObject)PrefabUtility.InstantiatePrefab(_backBtnPrefab, root.transform);
+        backGo.name = "backBtn";
+        var backRt = (RectTransform)backGo.transform;
+        backRt.anchorMin = backRt.anchorMax = new Vector2(0, 1); backRt.pivot = new Vector2(0.5f, 0.5f);
+        backRt.anchoredPosition = new Vector2(155.2f, -111.9f); backRt.sizeDelta = new Vector2(243.246f, 201.326f);
+        var backBtn = backGo.GetComponent<Button>();
+
+        // ---------- 顶部:资源金币(绿色胶囊;图标走 CurrencyIconBinder 运行时加载)----------
         var coinGo = NewUI("Coin", out var coinRt, root.transform);
         coinRt.anchorMin = coinRt.anchorMax = new Vector2(0, 1); coinRt.pivot = new Vector2(0, 1);
         coinRt.anchoredPosition = new Vector2(280, -48); coinRt.sizeDelta = new Vector2(340, 96);
@@ -79,7 +96,7 @@ public static class MapSelectPanelBuilder
         var vpImg = viewport.AddComponent<Image>();
         vpImg.sprite = BuiltinSprite("UI/Skin/UISprite.psd");
         vpImg.type = Image.Type.Sliced;
-        vpImg.color = new Color(0.86f, 0.84f, 0.93f, 1f);
+        vpImg.color = new Color(0f, 0f, 0f, 0.5294118f); // 半透明黑底(对齐美术返工后的预制体)
         viewport.AddComponent<RectMask2D>();
 
         var grid = NewUI("Grid", out var gridRt, viewport.transform);
@@ -114,16 +131,6 @@ public static class MapSelectPanelBuilder
     }
 
     // ============================ 工具 ============================
-
-    private static Button BuildButton(string name, string label, Transform parent, float fontSize)
-    {
-        var go = (GameObject)PrefabUtility.InstantiatePrefab(_btnPrefab, parent);
-        go.name = name;
-        go.SetActive(true);
-        var text = go.GetComponentInChildren<TextMeshProUGUI>(true);
-        if (text != null) { text.text = label; text.fontSize = UITheme.Font(fontSize); }
-        return go.GetComponent<Button>();
-    }
 
     private static GameObject NewUI(string name, out RectTransform rt, Transform parent = null)
     {

@@ -10,7 +10,7 @@ using YOTO;
 /// 网格容器页面基类:实现 <see cref="IGridHost"/>,集中处理拖拽(含**跨网格转移**)、tooltip、右键菜单、拆分弹窗。
 /// 子类(<see cref="BagPanel"/> 纯背包)只需:
 ///   - 在 <see cref="OnShow"/> 里 <see cref="SetupGrid"/> 每个 <see cref="BagGridView"/> 并 Bind 对应 <see cref="GridBag"/>;
-///   - 把本基类的公共 UI 引用(itemWidgetPrefab/菜单/拆分/tooltip)在预制体里接好(BagPrefabBuilder 生成)。
+///   - 把本基类的公共 UI 引用(itemWidgetPrefab/菜单/拆分/tooltip)在预制体里接好。
 ///
 /// 拖拽落点用「指针当前所在的那个 GridView」决定目标容器:同一网格内→移动/合并/交换;跨网格→<see cref="GridBag.Transfer"/>。
 /// 拆分/丢弃/使用/旋转只作用于物品所在的源容器。

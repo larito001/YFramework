@@ -133,13 +133,17 @@ public class AnimalWander : MonoBehaviour
         ApplyLocomotion();
     }
 
-    /// <summary>按当前(是否移动 + 是否惊慌)刷新行走/奔跑动画:移动播 walk;惊慌时叠加 run(保留 walk 为真,
-    /// 兼容「idle→走→跑」式状态机,避免被 isWalking=false 拽出奔跑态)。无对应参数则跳过。</summary>
+    /// <summary>按当前(是否移动 + 是否惊慌)刷新行走/奔跑动画。
+    /// 此美术包的状态机里 Run 只能从 Idle 进(Walk 的唯一出口是 isWalking=false→Idle,Walk 内并没有 →Run 的过渡),
+    /// 所以惊慌奔跑时必须**撤掉 isWalking**,让 Walk→Idle→Run 走通;否则会一直卡在 Walk(表现为「只走不跑」)。
+    /// Run 的唯一出口是 isRunning=false→Idle,与 isWalking 无关,撤掉 walk 不会把它拽出奔跑态。
+    /// 没有奔跑动画的动物(runParam 为空)则保持原行为:惊慌时继续用更快的「走/跳」兜底。</summary>
     private void ApplyLocomotion()
     {
         if (animator == null) return;
-        if (!string.IsNullOrEmpty(walkParam)) animator.SetBool(walkParam, moving);
-        if (!string.IsNullOrEmpty(runParam)) animator.SetBool(runParam, moving && Panicking);
+        bool running = moving && Panicking && !string.IsNullOrEmpty(runParam); // 有奔跑动画且惊慌中才进奔跑
+        if (!string.IsNullOrEmpty(walkParam)) animator.SetBool(walkParam, moving && !running); // 进奔跑时撤掉行走
+        if (!string.IsNullOrEmpty(runParam)) animator.SetBool(runParam, running);
     }
 
     /// <summary>按候选名在 Animator 里找出第一个存在的 bool 参数名;找不到返回空串(不切该动画)。</summary>

@@ -10,7 +10,7 @@ using UnityEngine.UI;
 /// 交互全部转交所属 <see cref="BagGridView"/>(再由其转发给宿主页面):
 ///   - 左键点击 = 使用 / 右键 = 菜单 / 拖拽 = 移动·合并·交换·跨容器转移 / 悬停 = tooltip
 ///
-/// 预制体只需一个挂了本组件的空 RectTransform(BagPrefabBuilder 生成);格块/图标/名称/数量运行时构建。
+/// 预制体只需一个挂了本组件的空 RectTransform;格块/图标/名称/数量运行时构建。
 /// </summary>
 public class BagItemWidget : MonoBehaviour,
     IBeginDragHandler, IDragHandler, IEndDragHandler, IPointerClickHandler,

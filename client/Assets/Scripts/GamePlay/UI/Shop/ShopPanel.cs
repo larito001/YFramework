@@ -67,6 +67,8 @@ public class ShopPanel : UIPageBase
         Context.TryGet<DailyAdGoldSystem>(out dailyAdGold); // 看广告领金币每日次数限制
 
         if (backBtn != null) backBtn.onClick.AddListener(CloseSelf);
+        CurrencyIcon.Bind(coinText, CurrencyType.Gold);     // 资源胶囊图标:运行时从 Resources 动态加载(方便换图)
+        CurrencyIcon.Bind(energyText, CurrencyType.Energy);
         if (tabWeapon != null) tabWeapon.onClick.AddListener(() => SelectCategory(ShopCategory.Weapon));
         if (tabScope != null) tabScope.onClick.AddListener(() => SelectCategory(ShopCategory.Scope));
         if (tabBullet != null) tabBullet.onClick.AddListener(() => SelectCategory(ShopCategory.Bullet));
@@ -223,7 +225,13 @@ public class ShopPanel : UIPageBase
     private void RefreshAdGoldButton()
     {
         bool can = dailyAdGold == null || dailyAdGold.CanWatch; // 无系统(理论不会)时不限制
-        if (adGoldButton != null) adGoldButton.interactable = can;
+        // 保持可点:达上限时点击给「每日最多恢复 N 次金币」提示;视觉上靠改字 + 置灰底色表示已用完(不置 interactable=false,否则收不到点击)。
+        if (adGoldButton != null)
+        {
+            adGoldButton.interactable = true;
+            if (adGoldButton.targetGraphic is Image img)
+                img.color = can ? new Color(0.85f, 0.66f, 0.20f, 1f) : new Color(0.45f, 0.45f, 0.48f, 1f);
+        }
         if (adGoldLabel != null) adGoldLabel.text = can ? $"看广告 +{AdGoldReward}" : "今日已领完";
     }
 
@@ -234,7 +242,7 @@ public class ShopPanel : UIPageBase
         if (adBusy) return;
         if (dailyAdGold != null && !dailyAdGold.CanWatch) // 今日次数已用完
         {
-            FlyText($"今日看广告次数已用完({dailyAdGold.DailyLimit}次)");
+            FlyText($"每日最多恢复{dailyAdGold.DailyLimit}次金币");
             RefreshAdGoldButton();
             return;
         }

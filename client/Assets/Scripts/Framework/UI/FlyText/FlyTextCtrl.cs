@@ -63,11 +63,15 @@ public class FlyTextCtrl : AsyncPooledObject, PoolItem<Transform>
     
     }
     
+    // 全体飘字整体放大倍率(start/max/last 三段缩放统一乘它,改这一个数即可整体缩放)
+    private const float GlobalScaleMul = 1.5f;
+
     public void StartAnim(float startScale, float MaxScale, float lastScale,
         float toMaxDuration, float toLastDuration,
         float upTime, float fadeTime,
         Ease upAnim, Ease downAnim,bool uesBurst)
     {
+        startScale *= GlobalScaleMul; MaxScale *= GlobalScaleMul; lastScale *= GlobalScaleMul;
         rct.transform.position = currentPos;
         rct.localScale = Vector3.one * startScale;
 

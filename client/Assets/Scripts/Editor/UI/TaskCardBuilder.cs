@@ -102,8 +102,9 @@ public static class TaskCardBuilder
         actImg.color = new Color(0.96f, 0.66f, 0.18f, 1f);
         var actBtn = act.AddComponent<Button>();
         actBtn.targetGraphic = actImg;
-        // 按钮皮肤(NewUI Button_01_White),盖在纯色底上;顺序在 Label 之前
-        Skin("Bg", act.transform, BtnBg, new Color(1f, 0.80392164f, 0.1764706f, 1f), Stretch);
+        // 按钮皮肤(NewUI Button_01_White),盖在纯色底上;顺序在 Label 之前。
+        // 这个皮肤 Bg 才是「可见」的按钮底,状态色(橙前往/绿领取/灰已领取)要染它——所以它就是 view.actionBg。
+        var actSkinBg = Skin("Bg", act.transform, BtnBg, new Color(1f, 0.80392164f, 0.1764706f, 1f), Stretch);
         var actInner = Skin("InnerBorder1", act.transform, BtnInnerBorder, new Color(0.9686275f, 0.9215687f, 0f, 1f), null);
         var actInnerRt = (RectTransform)actInner.transform;
         actInnerRt.anchorMin = Vector2.zero; actInnerRt.anchorMax = Vector2.one;
@@ -118,10 +119,8 @@ public static class TaskCardBuilder
         view.rewardRoots = roots;
         view.rewardIcons = icons;
         view.rewardCounts = counts;
-        // 金币/体力图标是工程内静态 Sprite(非 Resources),烤进预制体供运行时奖励格引用(与顶部资源胶囊同款)
-        view.coinIcon = LoadIcon(UICurrencyPill.IconGold);
-        view.energyIcon = LoadIcon(UICurrencyPill.IconEnergy);
-        view.actionBg = actImg;
+        // 金币/体力奖励图标不再烤进预制体:TaskPanel 运行时按币种从 Resources 动态加载(CurrencyIcon.Load)
+        view.actionBg = actSkinBg; // 可见皮肤底(状态色染它);底层 actImg 被它盖住,仅作 Button 的 targetGraphic
         view.actionButton = actBtn;
         view.actionLabel = actLabelTmp;
 
@@ -133,13 +132,6 @@ public static class TaskCardBuilder
     }
 
     // ============================ 工具 ============================
-
-    private static Sprite LoadIcon(string path)
-    {
-        var s = AssetDatabase.LoadAssetAtPath<Sprite>(path);
-        if (s == null) Debug.LogWarning($"[TaskCardBuilder] 找不到奖励图标 {path}");
-        return s;
-    }
 
     private static Sprite LoadSprite(string path)
     {

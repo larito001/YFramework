@@ -66,10 +66,6 @@ public class RewardClaimPanel : UIPageBase<RewardClaimParam>
     public TextMeshProUGUI titleText;
     public RectTransform rewardContainer; // HorizontalLayoutGroup 容器,运行时填奖励格
 
-    [Header("货币图标(由 Builder 烘入,运行时按币种取;货币图标在 Art 目录非 Resources,故走序列化引用)")]
-    public Sprite goldIcon;
-    public Sprite energyIcon;
-
     private BagSystem bag;
     private CurrencySystem currency;
     private ResMgr resMgr;
@@ -190,7 +186,7 @@ public class RewardClaimPanel : UIPageBase<RewardClaimParam>
         {
             var type = (CurrencyType)r.id;
             name = currency != null ? currency.DisplayName(type) : type.ToString();
-            icon = CurrencyIcon(type); // 优先用 Builder 烘入的金币/体力图标(Art 目录,序列化引用)
+            icon = CurrencyIconSprite(type); // 金币/体力从 Resources 动态加载(方便换图)
             if (icon == null)          // 其它币种回退 currency 配表 IconPath(Resources)
             {
                 var path = currency != null ? currency.IconPath(type) : string.Empty;
@@ -207,13 +203,14 @@ public class RewardClaimPanel : UIPageBase<RewardClaimParam>
             : null;
     }
 
-    /// <summary>金币/体力用 Builder 烘入的图标;其它币种返回 null(由调用方回退配表)。</summary>
-    private Sprite CurrencyIcon(CurrencyType type)
+    /// <summary>金币/体力从 Resources 动态加载(<see cref="CurrencyIcon"/>);其它币种返回 null(由调用方回退配表)。</summary>
+    private Sprite CurrencyIconSprite(CurrencyType type)
     {
         switch (type)
         {
-            case CurrencyType.Gold: return goldIcon;
-            case CurrencyType.Energy: return energyIcon;
+            case CurrencyType.Gold:
+            case CurrencyType.Energy:
+                return CurrencyIcon.Load(type);
             default: return null;
         }
     }

@@ -66,9 +66,7 @@ public static class RewardClaimPanelBuilder
         panel.uiType = UIEnum.RewardClaimPanel;
         panel.titleText = titleText;
         panel.rewardContainer = containerRt;
-        // 货币图标烘入(与各面板资源胶囊同款,Art 目录、非 Resources → 走序列化引用,运行时直接用)。
-        panel.goldIcon = AssetDatabase.LoadAssetAtPath<Sprite>(UICurrencyPill.IconGold);
-        panel.energyIcon = AssetDatabase.LoadAssetAtPath<Sprite>(UICurrencyPill.IconEnergy);
+        // 货币图标不再烘入:运行时按币种从 Resources 动态加载(RewardClaimPanel.CurrencyIconSprite → CurrencyIcon.Load)
 
         PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
         Object.DestroyImmediate(root);

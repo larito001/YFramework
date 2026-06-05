@@ -16,7 +16,7 @@ public interface IInteractable
 /// 世界交互系统(<see cref="IGameService"/> + <see cref="ITickable"/>)。
 /// 每帧找出离视点(主相机)最近、且在自身交互范围内的 <see cref="IInteractable"/>,显示提示;
 /// 按下 F(<see cref="InputService.OnInteractWorldDown"/>)时触发它。
-/// 提示 UI 用 <c>UI/Bag/InteractPrompt</c> 预制体(SIMHEI 字体,BagPrefabBuilder 生成),挂在 Top 层。
+/// 提示 UI 用 <c>UI/Bag/InteractPrompt</c> 预制体(SIMHEI 字体),挂在 Top 层。
 ///
 /// 注：原本以玩家(Character)世界坐标为靠近参照,旧 TPS 角色系统已移除,
 /// 暂以主相机位置为参照。后续接入新角色系统时把参照点换成玩家坐标即可。

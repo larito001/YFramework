@@ -48,6 +48,7 @@ public class MapSelectPanel : UIPageBase
         if (coinText != null) font = coinText.font;
 
         if (backBtn != null) backBtn.onClick.AddListener(CloseSelf);
+        CurrencyIcon.Bind(coinText, CurrencyType.Gold); // 资源胶囊图标:运行时从 Resources 动态加载(方便换图)
     }
 
     public override void OnShow()
