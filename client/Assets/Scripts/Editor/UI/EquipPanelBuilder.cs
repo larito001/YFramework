@@ -97,6 +97,8 @@ public static class EquipPanelBuilder
         // ---------- 出发(底部居中,art-kit CommonButton)----------
         var departGo = (GameObject)PrefabUtility.InstantiatePrefab(_departBtnPrefab, root.transform);
         departGo.name = "Btn_Depart";
+        // CommonButton 预制体根 localScale 被烤成 3(art-kit 返工残留),会把下面设的 sizeDelta 再放大 3 倍。复位为 1,使 sizeDelta 所见即所得。
+        ((RectTransform)departGo.transform).localScale = Vector3.one;
         var departRt = (RectTransform)departGo.transform;
         departRt.anchorMin = departRt.anchorMax = new Vector2(0.5f, 0); departRt.pivot = new Vector2(0.5f, 0);
         departRt.anchoredPosition = new Vector2(0, 230); departRt.sizeDelta = new Vector2(700, 200);

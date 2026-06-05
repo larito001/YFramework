@@ -122,6 +122,9 @@ public static class LoginPanelBuilder
         var go = (GameObject)PrefabUtility.InstantiatePrefab(prefab, parent);
         go.name = name;
         go.SetActive(true);
+        // CommonButton 预制体根 localScale 被烤成 3(art-kit 返工残留),会把下面设的 sizeDelta 再放大 3 倍。
+        // 这里复位为 1,让本 Builder 显式设置的 sizeDelta 成为真实尺寸(所见即所得)。
+        ((RectTransform)go.transform).localScale = Vector3.one;
 
         var text = go.GetComponentInChildren<TextMeshProUGUI>(true);
         if (text != null)

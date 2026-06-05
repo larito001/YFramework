@@ -122,6 +122,8 @@ public static class FinishPanelBuilder
         var go = (GameObject)PrefabUtility.InstantiatePrefab(_btnPrefab, parent);
         go.name = name;
         go.SetActive(true);
+        // CommonButton 预制体根 localScale 被烤成 3(art-kit 返工残留),会把调用方设的 sizeDelta 再放大 3 倍。复位为 1,使 sizeDelta 所见即所得。
+        ((RectTransform)go.transform).localScale = Vector3.one;
         var text = go.GetComponentInChildren<TextMeshProUGUI>(true);
         if (text != null) { text.text = label; text.fontSize = UITheme.Font(fontSize); }
         return go.GetComponent<Button>();
