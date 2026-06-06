@@ -117,7 +117,7 @@ public static class ModelSnapshot
         for (int i = 1; i < rs.Length; i++) b.Encapsulate(rs[i].bounds);
 
         float radius = Mathf.Max(b.extents.magnitude, 0.05f);
-        float dist = radius / Mathf.Sin(Mathf.Deg2Rad * cam.fieldOfView * 0.5f) * 1.15f;
+        float dist = radius / Mathf.Sin(Mathf.Deg2Rad * cam.fieldOfView * 0.5f) * 0.95f; // 取景留白收紧(原 1.15),道具更大
         Vector3 dir = (b.size.z >= b.size.x) ? new Vector3(1f, 0.12f, 0f) : new Vector3(0f, 0.12f, 1f);
         dir = dir.normalized;
         cam.transform.position = b.center + dir * dist;

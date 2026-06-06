@@ -12,8 +12,8 @@ using UnityEngine.UI;
 ///     ├ bg      (Resources/UI/bg.prefab,art-kit 实例)   全屏背景图,压在浅紫底色之上
 ///     ├ backBtn (Resources/UI/backBtn.prefab,art-kit 实例) 返回(左上)
 ///     ├ Coin    资源金币胶囊(绿色底 + 左侧货币图标 + 右对齐数值)
-///     ├ Title   「关卡列表」标题
-///     └ Scroll  竖向滚动的 2 列卡片网格容器(Viewport/Grid)
+///     ├ Title   「关卡选择」标题整图(美术 sprite,替换原文本标题)
+///     └ Scroll  竖向滚动的 2 列卡片网格容器(Viewport/Grid;整图标题后已适当缩小)
 ///
 /// 关卡卡(预览图 + 第N关名称 + 锁罩)由 <see cref="MapSelectPanel"/> 运行时按配表 <c>mapConfig</c> 动态构建,不进本外壳。
 /// 货币图标不烤进预制体:由 <see cref="UICurrencyPill.AddIconLeft"/> 挂 CurrencyIconBinder,运行时按币种从 Resources 加载。
@@ -28,6 +28,7 @@ public static class MapSelectPanelBuilder
     private const string BgPrefabPath = "Assets/Resources/UI/bg.prefab";
     private const string BackBtnPrefabPath = "Assets/Resources/UI/backBtn.prefab";
     private const string FontPath = "Assets/Art/Fonts/SIMHEI SDF.asset";
+    private const string TitleSpritePath = "Assets/Art/UI/NewUI/Theme_Blue/Sprites/levelTItle.png"; // 关卡选择标题整图
 
     private static TMP_FontAsset _font;
     private static GameObject _bgPrefab, _backBtnPrefab;
@@ -65,26 +66,22 @@ public static class MapSelectPanelBuilder
         backRt.anchoredPosition = new Vector2(155.2f, -111.9f); backRt.sizeDelta = new Vector2(243.246f, 201.326f);
         var backBtn = backGo.GetComponent<Button>();
 
-        // ---------- 顶部:资源金币(统一资源胶囊;图标走 CurrencyIconBinder 运行时加载)----------
-        var coinGo = NewUI("Coin", out var coinRt, root.transform);
-        coinRt.anchorMin = coinRt.anchorMax = new Vector2(0, 1); coinRt.pivot = new Vector2(0, 1);
-        coinRt.anchoredPosition = new Vector2(280, -48); coinRt.sizeDelta = new Vector2(340, 96);
-        var coinBg = coinGo.AddComponent<Image>();
-        UICurrencyPill.ApplyBackground(coinBg);
-        var coinText = NewChildText(coinGo, "Value", "0", 48, TextAlignmentOptions.Right);
-        ((RectTransform)coinText.transform).offsetMax = new Vector2(-28, 0);
-        UICurrencyPill.AddIconLeft(coinGo, (RectTransform)coinText.transform, UICurrencyPill.IconGold); // 金币用图标,不写文字
+        // ---------- 顶部:资源金币(统一资源胶囊;宽度随数字自适应,不超框)----------
+        var coinText = UICurrencyPill.Build(root.transform, "Coin", UICurrencyPill.IconGold, _font,
+            new Vector2(0, 1), new Vector2(280, -48), new Vector2(0, 96), 48);
 
-        // ---------- 标题:关卡列表 ----------
+        // ---------- 标题:关卡选择(美术整图,替换原「关卡列表」文本)----------
         var titleGo = NewUI("Title", out var titleRt, root.transform);
-        titleRt.anchorMin = new Vector2(0, 1); titleRt.anchorMax = new Vector2(1, 1); titleRt.pivot = new Vector2(0.5f, 1);
-        titleRt.anchoredPosition = new Vector2(0, -190); titleRt.sizeDelta = new Vector2(0, 110);
-        NewText(titleGo, "关卡列表", 64, TextAlignmentOptions.Center, new Color(0.25f, 0.24f, 0.30f, 1f));
+        titleRt.anchorMin = titleRt.anchorMax = new Vector2(0.5f, 1); titleRt.pivot = new Vector2(0.5f, 1);
+        titleRt.anchoredPosition = new Vector2(0, 190); titleRt.sizeDelta = new Vector2(1320, 880);
+        var titleImg = titleGo.AddComponent<Image>();
+        titleImg.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(TitleSpritePath);
+        titleImg.preserveAspect = true; titleImg.raycastTarget = false;
 
-        // ---------- 中部:竖向滚动的双列网格 ----------
+        // ---------- 中部:竖向滚动的双列网格(整图标题更大,列表相应缩小:上方让位、下方收边)----------
         var scrollGo = NewUI("Scroll", out var scrollRt, root.transform);
         scrollRt.anchorMin = Vector2.zero; scrollRt.anchorMax = Vector2.one;
-        scrollRt.offsetMin = new Vector2(50, 140); scrollRt.offsetMax = new Vector2(-50, -340);
+        scrollRt.offsetMin = new Vector2(50, 280); scrollRt.offsetMax = new Vector2(-50, -580);
         var scroll = scrollGo.AddComponent<ScrollRect>();
         scroll.horizontal = false; scroll.vertical = true; scroll.scrollSensitivity = 40f;
         scroll.movementType = ScrollRect.MovementType.Clamped;
@@ -92,9 +89,9 @@ public static class MapSelectPanelBuilder
         var viewport = NewUI("Viewport", out var viewportRt, scrollGo.transform);
         Stretch(viewportRt);
         var vpImg = viewport.AddComponent<Image>();
-        vpImg.sprite = BuiltinSprite("UI/Skin/UISprite.psd");
+        vpImg.sprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/NewUI/Shared/Sprite_Common/Frame/PanelFrame/PanelFrame_03_White_Bg.png");
         vpImg.type = Image.Type.Sliced;
-        vpImg.color = new Color(0f, 0f, 0f, 0.5294118f); // 半透明黑底(对齐美术返工后的预制体)
+        vpImg.color = UITheme.PanelBacking; // 统一内容底板(深冷色,非纯黑)
         viewport.AddComponent<RectMask2D>();
 
         var grid = NewUI("Grid", out var gridRt, viewport.transform);

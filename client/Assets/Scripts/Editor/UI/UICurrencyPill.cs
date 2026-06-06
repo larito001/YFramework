@@ -21,39 +21,64 @@ public static class UICurrencyPill
     private static readonly Color PillColor = new Color(0f, 0f, 0f, 0.5294118f); // 纯黑 α≈53%(与主界面 Energy 胶囊同款)
 
     /// <summary>
-    /// 新建一个完整资源胶囊(自带深色底 + 图标 + 数值),返回数值文本(运行时只填数字)。
-    /// anchor 同时作为 anchorMin/Max/pivot(取某个角,如右上 (1,1))。
+    /// 新建一个完整资源胶囊(深色底 + 左图标 + 数值),返回数值文本(运行时只填数字)。
+    /// anchor 同时作为 anchorMin/Max/pivot(取某个角,如右上 (1,1));<paramref name="size"/>.y 为胶囊高度,
+    /// **宽度由 ContentSizeFitter 按内容自适应**——数字位数再多也不超框(取 pivot 反方向延展:右上锚点向左长,左上锚点向右长)。
     /// </summary>
     public static TextMeshProUGUI Build(Transform parent, string name, CurrencyType type, TMP_FontAsset font,
-        Vector2 anchor, Vector2 anchoredPos, Vector2 size, float fontSize = 44f)
+        Vector2 anchor, Vector2 anchoredPos, Vector2 size, float fontSize = 44f, float minWidth = 280f)
     {
         var go = new GameObject(name, typeof(RectTransform), typeof(Image));
         var rt = (RectTransform)go.transform;
         rt.SetParent(parent, false);
         rt.anchorMin = rt.anchorMax = rt.pivot = anchor;
         rt.anchoredPosition = anchoredPos;
-        rt.sizeDelta = size;
+        rt.sizeDelta = size; // 高度用 size.y;宽度被下面的 ContentSizeFitter 覆盖为内容宽度
 
         var bg = go.GetComponent<Image>();
         ApplyBackground(bg);
 
-        var valueGo = new GameObject("Value", typeof(RectTransform));
-        var vrt = (RectTransform)valueGo.transform;
-        vrt.SetParent(go.transform, false);
-        vrt.anchorMin = Vector2.zero; vrt.anchorMax = Vector2.one;
-        vrt.offsetMin = Vector2.zero; vrt.offsetMax = new Vector2(-28, 0);
+        // 横向布局:图标 + 数值;胶囊宽度随数值长度自适应,数字再长也不超框。
+        var hlg = go.AddComponent<HorizontalLayoutGroup>();
+        hlg.childAlignment = TextAnchor.MiddleLeft;
+        hlg.childControlWidth = true; hlg.childControlHeight = true;
+        hlg.childForceExpandWidth = false; hlg.childForceExpandHeight = false;
+        hlg.spacing = 12;
+        hlg.padding = new RectOffset(24, 32, 0, 0); // 左右留圆角端内边距
+        var csf = go.AddComponent<ContentSizeFitter>();
+        csf.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
+        csf.verticalFit = ContentSizeFitter.FitMode.Unconstrained;
+
+        // 图标(LayoutElement 固定方形);Sprite 不烤进预制体——挂 CurrencyIconBinder 运行时按币种动态加载。
+        float iconSize = size.y * 0.6f;
+        var ig = new GameObject("Icon", typeof(RectTransform), typeof(Image), typeof(CurrencyIconBinder), typeof(LayoutElement));
+        ig.transform.SetParent(go.transform, false);
+        var im = ig.GetComponent<Image>();
+        im.preserveAspect = true; im.raycastTarget = false;
+        ig.GetComponent<CurrencyIconBinder>().type = type;
+        var ile = ig.GetComponent<LayoutElement>();
+        ile.minWidth = ile.preferredWidth = iconSize;
+        ile.minHeight = ile.preferredHeight = iconSize;
+
+        // 数值(TMP 按内容报告 preferred 宽度,胶囊据此撑开;居中,短数字时两侧留白均衡)
+        var valueGo = new GameObject("Value", typeof(RectTransform), typeof(LayoutElement));
+        valueGo.transform.SetParent(go.transform, false);
         var tmp = valueGo.AddComponent<TextMeshProUGUI>();
         tmp.text = "0";
         tmp.fontSize = UITheme.Font(fontSize);
-        tmp.alignment = TextAlignmentOptions.Right;
+        tmp.alignment = TextAlignmentOptions.Midline;
         tmp.color = Color.white;
         tmp.raycastTarget = false;
-        tmp.enableWordWrapping = false;                 // 数字位数多也不换行,横向延展
+        tmp.enableWordWrapping = false;
         tmp.overflowMode = TextOverflowModes.Overflow;
         var f = font != null ? font : TMP_Settings.defaultFontAsset;
         if (f != null) tmp.font = f;
 
-        AddIconLeft(go, vrt, type, 72f, 16f);
+        // 数值区最小宽度:短数字(如体力 62)也保持像样的胶囊长度,避免过短难看。
+        // 总最小宽度 minWidth 扣掉左右内边距(24+32)、图标间距(12)与图标本身,余下给数值区。
+        var vle = valueGo.GetComponent<LayoutElement>();
+        vle.minWidth = Mathf.Max(0f, minWidth - (24 + 32 + 12 + iconSize));
+
         return tmp;
     }
 
@@ -92,6 +117,10 @@ public static class UICurrencyPill
             {
                 tmp.enableWordWrapping = false;             // 数字位数多也不换行,横向延展
                 tmp.overflowMode = TextOverflowModes.Overflow;
+                // 数字过长(如金币上万)时自动缩字号适配胶囊宽度,避免「超框」。所有走 AddIconLeft 的胶囊统一生效。
+                tmp.fontSizeMax = tmp.fontSize;
+                tmp.fontSizeMin = Mathf.Max(1f, tmp.fontSize * 0.5f);
+                tmp.enableAutoSizing = true;
             }
         }
     }

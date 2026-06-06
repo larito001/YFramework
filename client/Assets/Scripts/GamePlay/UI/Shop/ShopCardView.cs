@@ -11,9 +11,11 @@ public class ShopCardView : MonoBehaviour
 {
     public Image bg;                  // 卡底(也是整卡点击的 targetGraphic)
     public Button cardButton;         // 整卡点击:选中并在上方展示模型(带模型的卡才启用)
+    public Image qualityFrame;        // 品质框(道具图之下,按品质染色 = icon 背景)
     public Image pic;                 // 道具图(快照/图标,preserveAspect)
     public TextMeshProUGUI nameText;  // 名称
-    public TextMeshProUGUI priceText; // 价格
+    public Image priceIcon;           // 价格币种图标(按 PriceType 运行时动态加载)
+    public TextMeshProUGUI priceText; // 价格数字
     public Image buyBg;               // 购买按钮底(绿=可买/灰=买不起或已拥有)
     public Button buyButton;          // 购买按钮
     public TextMeshProUGUI buyLabel;  // 购买按钮文字(购买/已拥有)

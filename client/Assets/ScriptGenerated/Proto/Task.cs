@@ -25,17 +25,18 @@ namespace YFramework.Config {
       byte[] descriptorData = global::System.Convert.FromBase64String(
           string.Concat(
             "Cgp0YXNrLnByb3RvEhF5ZnJhbWV3b3JrLmNvbmZpZxoUQ29uZmlnQmFzZVR5",
-            "cGUucHJvdG8iyAEKBFRhc2sSCgoCaWQYASABKA0SDAoEbmFtZRgCIAEoCRIQ",
+            "cGUucHJvdG8i2gEKBFRhc2sSCgoCaWQYASABKA0SDAoEbmFtZRgCIAEoCRIQ",
             "CghjYXRlZ29yeRgDIAEoDRIUCgx0YXJnZXRBbW91bnQYBCABKAUSFAoMcmV3",
             "YXJkSXRlbUlkGAUgASgNEhcKD3Jld2FyZEl0ZW1Db3VudBgGIAEoBRISCgpy",
             "ZXdhcmRDb2luGAcgASgFEhQKDHNvcnRQcmlvcml0eRgIIAEoBRIUCgxyZXdh",
-            "cmRFbmVyZ3kYCSABKAUSDwoHb2JqVHlwZRgKIAEoDSJBChdUYXNrX0xJU1Rf",
-            "VE9PTF9SRVNFUlZFRBImCgVpdGVtcxgBIAMoCzIXLnlmcmFtZXdvcmsuY29u",
-            "ZmlnLlRhc2tCFKoCEVlGcmFtZXdvcmsuQ29uZmlnYgZwcm90bzM="));
+            "cmRFbmVyZ3kYCSABKAUSDwoHb2JqVHlwZRgKIAEoDRIQCghpY29uUGF0aBgL",
+            "IAEoCSJBChdUYXNrX0xJU1RfVE9PTF9SRVNFUlZFRBImCgVpdGVtcxgBIAMo",
+            "CzIXLnlmcmFtZXdvcmsuY29uZmlnLlRhc2tCFKoCEVlGcmFtZXdvcmsuQ29u",
+            "ZmlnYgZwcm90bzM="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::YFramework.Config.ConfigBaseTypeReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(null, new pbr::GeneratedClrTypeInfo[] {
-            new pbr::GeneratedClrTypeInfo(typeof(global::YFramework.Config.Task), global::YFramework.Config.Task.Parser, new[]{ "Id", "Name", "Category", "TargetAmount", "RewardItemId", "RewardItemCount", "RewardCoin", "SortPriority", "RewardEnergy", "ObjType" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::YFramework.Config.Task), global::YFramework.Config.Task.Parser, new[]{ "Id", "Name", "Category", "TargetAmount", "RewardItemId", "RewardItemCount", "RewardCoin", "SortPriority", "RewardEnergy", "ObjType", "IconPath" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::YFramework.Config.Task_LIST_TOOL_RESERVED), global::YFramework.Config.Task_LIST_TOOL_RESERVED.Parser, new[]{ "Items" }, null, null, null)
           }));
     }
@@ -78,6 +79,7 @@ namespace YFramework.Config {
       sortPriority_ = other.sortPriority_;
       rewardEnergy_ = other.rewardEnergy_;
       objType_ = other.objType_;
+      iconPath_ = other.iconPath_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -226,6 +228,20 @@ namespace YFramework.Config {
       }
     }
 
+    /// <summary>Field number for the "iconPath" field.</summary>
+    public const int IconPathFieldNumber = 11;
+    private string iconPath_ = "";
+    /// <summary>
+    ///图标路径
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    public string IconPath {
+      get { return iconPath_; }
+      set {
+        iconPath_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     public override bool Equals(object other) {
       return Equals(other as Task);
@@ -249,6 +265,7 @@ namespace YFramework.Config {
       if (SortPriority != other.SortPriority) return false;
       if (RewardEnergy != other.RewardEnergy) return false;
       if (ObjType != other.ObjType) return false;
+      if (IconPath != other.IconPath) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -265,6 +282,7 @@ namespace YFramework.Config {
       if (SortPriority != 0) hash ^= SortPriority.GetHashCode();
       if (RewardEnergy != 0) hash ^= RewardEnergy.GetHashCode();
       if (ObjType != 0) hash ^= ObjType.GetHashCode();
+      if (IconPath.Length != 0) hash ^= IconPath.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -318,6 +336,10 @@ namespace YFramework.Config {
         output.WriteRawTag(80);
         output.WriteUInt32(ObjType);
       }
+      if (IconPath.Length != 0) {
+        output.WriteRawTag(90);
+        output.WriteString(IconPath);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -355,6 +377,9 @@ namespace YFramework.Config {
       }
       if (ObjType != 0) {
         size += 1 + pb::CodedOutputStream.ComputeUInt32Size(ObjType);
+      }
+      if (IconPath.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(IconPath);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -396,6 +421,9 @@ namespace YFramework.Config {
       }
       if (other.ObjType != 0) {
         ObjType = other.ObjType;
+      }
+      if (other.IconPath.Length != 0) {
+        IconPath = other.IconPath;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -446,6 +474,10 @@ namespace YFramework.Config {
           }
           case 80: {
             ObjType = input.ReadUInt32();
+            break;
+          }
+          case 90: {
+            IconPath = input.ReadString();
             break;
           }
         }

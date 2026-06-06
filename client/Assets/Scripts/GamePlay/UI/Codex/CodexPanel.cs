@@ -173,6 +173,9 @@ public class CodexPanel : UIPageBase
         var view = go.GetComponent<CodexCardView>();
         if (view == null) { Destroy(go); return; }
 
+        // 左上角编号(动物 Id;解锁与否都显示)
+        if (view.indexText != null) view.indexText.text = entry.Id.ToString();
+
         // 上部:已解锁=动物 3D 模型(转台旋转,隐藏「？」);未解锁=显示「？」
         if (unlocked && resMgr != null && !string.IsNullOrEmpty(entry.Prefab))
         {

@@ -104,13 +104,11 @@ public static class StartPanelBuilder
         var btnEnergyAd = plusGo.GetComponent<Button>();
         if (btnEnergyAd == null) btnEnergyAd = plusGo.AddComponent<Button>(); // 源预制体根无 Button,实例上补一个
 
-        // ---------- 右上:体力胶囊(图标 + 数值,图标动态加载)----------
-        var energyText = BuildPill(root.transform, "Energy", "50",
-            new Vector2(-176, -80), new Vector2(300, 100), CurrencyType.Energy);
-
-        // ---------- 右上:金币胶囊(与体力同排,金币在左、体力在右)----------
-        var goldText = BuildPill(root.transform, "Gold", "0",
-            new Vector2(-500, -80), new Vector2(360, 100), CurrencyType.Gold);
+        // ---------- 右上:资源胶囊(金币在左 + 体力在右;宽度随数字自适应,不超框)----------
+        var energyText = UICurrencyPill.Build(root.transform, "Energy", UICurrencyPill.IconEnergy, _font,
+            new Vector2(1, 1), new Vector2(-176, -80), new Vector2(0, 100), 48);
+        var goldText = UICurrencyPill.Build(root.transform, "Gold", UICurrencyPill.IconGold, _font,
+            new Vector2(1, 1), new Vector2(-500, -80), new Vector2(0, 100), 48);
 
         // ---------- 底部左竖排:任务(上)/ 商店(下)----------
         var leftCol = NewUI("LeftColumn", out var leftRt, root.transform);
@@ -249,6 +247,10 @@ public static class StartPanelBuilder
         var tmp = NewText(textGo, text, 96, TextAlignmentOptions.Right);
         tmp.enableWordWrapping = false;
         tmp.overflowMode = TextOverflowModes.Overflow;
+        // 数字过长(如金币上万)时自动缩字号适配胶囊宽度,避免「超框」。
+        tmp.fontSizeMax = tmp.fontSize;
+        tmp.fontSizeMin = Mathf.Max(1f, tmp.fontSize * 0.5f);
+        tmp.enableAutoSizing = true;
         return tmp;
     }
 

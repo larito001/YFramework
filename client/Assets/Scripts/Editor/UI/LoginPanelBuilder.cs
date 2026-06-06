@@ -25,6 +25,7 @@ public static class LoginPanelBuilder
     private const string ButtonPrefabPath = "Assets/Resources/UI/Common/CommonButton.prefab";
     private const string FontPath = "Assets/Art/Fonts/SIMHEI SDF.asset";
     private const string TapTapButtonSpritePath = "Assets/Art/UI/taptapButton.png";
+    private const string LogoSpritePath = "Assets/Art/UI/NewUI/Theme_Blue/Sprites/logo_transparent.png"; // 与 StartPanel 中心同款
 
     private static TMP_FontAsset _font;
 
@@ -49,13 +50,16 @@ public static class LoginPanelBuilder
         var cg = root.AddComponent<CanvasGroup>();
         root.AddComponent<YOTOUIShow>();
 
-        // ---------- 中上:游戏标题(用产品名,程序化烘焙便于改名后重建)----------
-        var title = NewUI("Title", out var titleRt, root.transform);
+        // ---------- 中上:游戏标题 LOGO(与 StartPanel 中心同款图片,替代原「打猎模拟器」文字)----------
+        var title = NewUI("Logo", out var titleRt, root.transform);
         titleRt.anchorMin = titleRt.anchorMax = new Vector2(0.5f, 0.62f);
         titleRt.pivot = new Vector2(0.5f, 0.5f);
         titleRt.anchoredPosition = Vector2.zero;
-        titleRt.sizeDelta = new Vector2(1700, 400);
-        NewText(title, PlayerSettings.productName, 140, TextAlignmentOptions.Center);
+        titleRt.sizeDelta = new Vector2(1815, 866); // logo_transparent 原始比例
+        var logoImg = title.AddComponent<Image>();
+        logoImg.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(LogoSpritePath);
+        logoImg.preserveAspect = true;
+        logoImg.raycastTarget = false;
 
         // ---------- 左上:版本号(运行时填 Application.version,这里占位)----------
         var ver = NewUI("Version", out var verRt, root.transform);

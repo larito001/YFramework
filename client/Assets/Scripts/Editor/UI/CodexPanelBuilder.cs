@@ -67,15 +67,9 @@ public static class CodexPanelBuilder
         backRt.anchoredPosition = new Vector2(155.2f, -111.9f); backRt.sizeDelta = new Vector2(243.246f, 201.326f);
         var backBtn = backGo.GetComponent<Button>();
 
-        // ---------- 顶部:资源金币(统一资源胶囊,返回按钮右侧;图标运行时动态加载)----------
-        var coinGo = NewUI("Coin", out var coinRt, root.transform);
-        coinRt.anchorMin = coinRt.anchorMax = new Vector2(0, 1); coinRt.pivot = new Vector2(0, 1);
-        coinRt.anchoredPosition = new Vector2(280, -48); coinRt.sizeDelta = new Vector2(820, 96);
-        var coinBg = coinGo.AddComponent<Image>();
-        UICurrencyPill.ApplyBackground(coinBg);
-        var coinText = NewChildText(coinGo, "Value", "0", 40, TextAlignmentOptions.Right);
-        ((RectTransform)coinText.transform).offsetMax = new Vector2(-28, 0); // 右侧留边距
-        UICurrencyPill.AddIconLeft(coinGo, (RectTransform)coinText.transform, UICurrencyPill.IconGold); // 金币图标,运行时加载
+        // ---------- 顶部:资源金币(统一资源胶囊,返回按钮右侧;宽度随数字自适应,不超框)----------
+        var coinText = UICurrencyPill.Build(root.transform, "Coin", UICurrencyPill.IconGold, _font,
+            new Vector2(0, 1), new Vector2(280, -48), new Vector2(0, 96), 40);
 
         // ---------- 中部:内容面板(深色半透明底 + 2 列网格容器)----------
         var panelGo = NewUI("Panel", out var panelRt, root.transform);
@@ -83,9 +77,9 @@ public static class CodexPanelBuilder
         panelRt.anchoredPosition = new Vector2(0, 53.23253f);
         panelRt.sizeDelta = new Vector2(-100, -613.5349f);
         var panelBg = panelGo.AddComponent<Image>();
-        panelBg.sprite = BuiltinSprite("UI/Skin/UISprite.psd");
+        panelBg.sprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/UI/NewUI/Shared/Sprite_Common/Frame/PanelFrame/PanelFrame_03_White_Bg.png");
         panelBg.type = Image.Type.Sliced;
-        panelBg.color = new Color(0f, 0f, 0f, 0.5294118f); // 深色半透明底
+        panelBg.color = UITheme.PanelBacking; // 统一内容底板(深冷色,非纯黑)
 
         var gridGo = NewUI("Grid", out var gridRt, panelGo.transform);
         gridRt.anchorMin = Vector2.zero; gridRt.anchorMax = Vector2.one; gridRt.pivot = new Vector2(0.5f, 0.5f);

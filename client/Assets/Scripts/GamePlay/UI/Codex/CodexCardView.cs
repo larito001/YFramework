@@ -9,7 +9,8 @@ using UnityEngine.UI;
 /// </summary>
 public class CodexCardView : MonoBehaviour
 {
-    public Image bg;                   // 卡片底框
+    public Image bg;                   // 卡片底框(根上挂 Outline 黑色描边)
+    public TextMeshProUGUI indexText;  // 左上角编号(动物 Id;解锁与否都显示)
     public RectTransform picHost;      // 模型预览/问号 容器(解锁:挂 3D 转台;未解锁:显示问号)
     public TextMeshProUGUI lockedText; // 「？」(未解锁显示,解锁隐藏)
     public Image badgeBg;              // 徽标底(绿=已解锁/灰=未解锁)

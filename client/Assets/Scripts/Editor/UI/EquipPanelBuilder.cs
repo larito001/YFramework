@@ -13,8 +13,8 @@ using UnityEngine.UI;
 ///     ├ TransBg  (Resources/UI/TransBg) 窗口半透明底板(居中)
 ///     ├ backBtn  (Resources/UI/backBtn) 返回(左上,art-kit 按钮)
 ///     ├ Gold / Energy 资源胶囊(右上,UICurrencyPill,图标运行时动态加载)
-///     ├ Title    标题「选择你的装备」(左对齐,顶部)
-///     ├ Section_Weapon / Section_Scope / Section_Bullet 三个分类块(标签 + 横向滚动行)
+///     ├ Title    标题整图「选择你的装备」(美术 sprite,顶部居中)
+///     ├ Section_Weapon / Section_Scope / Section_Bullet 三个分类块(深色圆角头标签[图标占位+名称] + 横向滚动行)
 ///     └ Btn_Depart (Resources/UI/Common/CommonButton) 出发(底部居中,art-kit 按钮)
 ///
 /// 每行的装备卡由 <see cref="EquipPanel"/> 运行时按 <see cref="LoadoutSystem.CategoryItems"/> 构建(Builder 只还原外壳)。
@@ -30,6 +30,9 @@ public static class EquipPanelBuilder
     private const string BackBtnPrefabPath = "Assets/Resources/UI/backBtn.prefab";
     private const string DepartBtnPrefabPath = "Assets/Resources/UI/Common/CommonButton.prefab";
     private const string FontPath = "Assets/Art/Fonts/SIMHEI SDF.asset";
+    private const string TitleSpritePath = "Assets/Art/UI/NewUI/Theme_Blue/Sprites/equipTitle.png"; // 标题整图「选择你的装备」
+    // 分类头标签底:art-kit 圆角胶囊(与资源胶囊同一张,染深色)
+    private const string HeaderPillSpritePath = "Assets/Art/UI/NewUI/Shared/Sprite_Common/Slider/Slider_Swipe_01_Bg.png";
 
     // 三个分类块在根内的顶部纵向位置(锚到顶,pivot(0.5,1)):枪械 → 瞄准镜 → 子弹,自上而下。
     private const float WeaponTop = -393f, ScopeTop = -913f, BulletTop = -1433f;
@@ -83,11 +86,13 @@ public static class EquipPanelBuilder
         var energyText = UICurrencyPill.Build(root.transform, "Energy", UICurrencyPill.IconEnergy, _font,
             new Vector2(1, 1), new Vector2(-40, -132), new Vector2(300, 80));
 
-        // ---------- 标题 ----------
+        // ---------- 标题(美术整图「选择你的装备」,替换原文本)----------
         var titleGo = NewUI("Title", out var titleRt, root.transform);
-        titleRt.anchorMin = new Vector2(0, 1); titleRt.anchorMax = new Vector2(1, 1); titleRt.pivot = new Vector2(0, 1);
-        titleRt.anchoredPosition = new Vector2(40, -273); titleRt.sizeDelta = new Vector2(-80, 90);
-        NewText(titleGo, "选择你的装备", 56, TextAlignmentOptions.Left);
+        titleRt.anchorMin = titleRt.anchorMax = new Vector2(0.5f, 1); titleRt.pivot = new Vector2(0.5f, 1);
+        titleRt.anchoredPosition = new Vector2(0, 250); titleRt.sizeDelta = new Vector2(1200, 800);
+        var titleImg = titleGo.AddComponent<Image>();
+        titleImg.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(TitleSpritePath);
+        titleImg.preserveAspect = true; titleImg.raycastTarget = false;
 
         // ---------- 三个分类行 ----------
         var weaponRow = BuildSection("Weapon", "枪械", root.transform, WeaponTop);
@@ -133,11 +138,34 @@ public static class EquipPanelBuilder
         blockRt.anchorMin = new Vector2(0, 1); blockRt.anchorMax = new Vector2(1, 1); blockRt.pivot = new Vector2(0.5f, 1);
         blockRt.anchoredPosition = new Vector2(0, yTop); blockRt.sizeDelta = new Vector2(-80, 480);
 
-        // 标签
-        var labelGo = NewUI("Label", out var labelRt, block.transform);
-        labelRt.anchorMin = new Vector2(0, 1); labelRt.anchorMax = new Vector2(1, 1); labelRt.pivot = new Vector2(0, 1);
-        labelRt.anchoredPosition = new Vector2(0, 0); labelRt.sizeDelta = new Vector2(0, 70);
-        NewText(labelGo, label, 44, TextAlignmentOptions.Left);
+        // 分类头:深色圆角胶囊(左对齐,内含 白色图标占位 + 名称),宽度随内容自适应
+        var headerGo = NewUI("Header", out var headerRt, block.transform);
+        headerRt.anchorMin = headerRt.anchorMax = new Vector2(0, 1); headerRt.pivot = new Vector2(0, 1);
+        headerRt.anchoredPosition = new Vector2(0, 0); headerRt.sizeDelta = new Vector2(0, 70);
+        var headerImg = headerGo.AddComponent<Image>();
+        headerImg.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(HeaderPillSpritePath);
+        headerImg.type = Image.Type.Sliced;
+        headerImg.color = new Color(0.11f, 0.12f, 0.11f, 0.92f); // 深色头底
+        headerImg.raycastTarget = false;
+        var headerHlg = headerGo.AddComponent<HorizontalLayoutGroup>();
+        headerHlg.padding = new RectOffset(16, 28, 8, 8);
+        headerHlg.spacing = 14;
+        headerHlg.childAlignment = TextAnchor.MiddleLeft;
+        headerHlg.childControlWidth = true; headerHlg.childControlHeight = true;
+        headerHlg.childForceExpandWidth = false; headerHlg.childForceExpandHeight = false;
+        var headerCsf = headerGo.AddComponent<ContentSizeFitter>();
+        headerCsf.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+        // 分类图标占位(暂无美术图:白色空图顶替,后续把图标拖进来即可)
+        var iconGo = NewUI("Icon", out _, headerGo.transform);
+        var iconLe = iconGo.AddComponent<LayoutElement>();
+        iconLe.preferredWidth = 52; iconLe.preferredHeight = 52;
+        var iconImg = iconGo.AddComponent<Image>();
+        iconImg.color = Color.white; iconImg.preserveAspect = true; iconImg.raycastTarget = false;
+
+        // 名称
+        var labelGo = NewUI("Label", out _, headerGo.transform);
+        NewText(labelGo, label, 36, TextAlignmentOptions.Left);
 
         // 横向滚动行(标签下方)
         var scrollGo = NewUI("Scroll", out var scrollRt, block.transform);

@@ -30,7 +30,7 @@ public static class ItemDescPanelBuilder
         var root = NewUI("ItemDescPanel", out var rootRt);
         Stretch(rootRt);
         var rootImg = root.AddComponent<Image>();
-        rootImg.color = new Color(0f, 0f, 0f, 0.6f);
+        rootImg.color = UITheme.Scrim; // 统一弹窗遮罩
         rootImg.raycastTarget = true;
         var bgBtn = root.AddComponent<Button>();
         bgBtn.targetGraphic = rootImg;

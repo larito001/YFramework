@@ -17,29 +17,33 @@ using YOTO;
 public class TaskPanel : UIPageBase
 {
     // 配表 category 取值:与 task.xlsx 第 3 列约定一致
-    private const uint CategoryDaily = 1;   // 每日任务
-    private const uint CategoryRegular = 2; // 常规任务
+    private const uint CategoryDaily = 1;   // 日常任务
+    private const uint CategoryRegular = 2; // 成就任务
 
     [Header("顶部")]
     public Button backBtn;
     public TextMeshProUGUI coinText;
+    public TextMeshProUGUI energyText; // 体力数值(与主页一致:顶部同时显示金币与体力)
 
-    [Header("页签")]
+    [Header("页签(通用绿色按钮:选中绿/未选灰)")]
     public Button tabDaily;
     public Button tabRegular;
 
     [Header("列表(ScrollRect 的 VerticalLayoutGroup 容器)")]
     public RectTransform content;
 
-    private static readonly Color TabOn = new Color(0.56f, 0.78f, 0.30f, 1f);      // 绿:当前分类
-    private static readonly Color TabOff = new Color(0.72f, 0.70f, 0.80f, 1f);     // 灰紫:未选
+    private static readonly Color TabOn = new Color(0.4666667f, 0.89019614f, 0.20784315f, 1f);     // 选中:通用按钮原绿(Bg)
+    private static readonly Color TabOnInner = new Color(0.7411765f, 0.98823535f, 0.29411766f, 1f); // 选中:原浅绿(InnerBorder)
+    private static readonly Color TabOff = new Color(0.58f, 0.58f, 0.60f, 1f);     // 未选:灰(Bg)
+    private static readonly Color TabOffInner = new Color(0.70f, 0.70f, 0.72f, 1f); // 未选:浅灰(InnerBorder)
     private static readonly Color IconBox = new Color(0.78f, 0.80f, 0.86f, 1f);    // 物品图标缺失时的占位底
     private static readonly Color CoinIcon = new Color(0.45f, 0.74f, 0.36f, 1f);   // 金币图标(绿色块占位)
     private static readonly Color EnergyIcon = new Color(0.36f, 0.62f, 0.86f, 1f); // 体力图标(蓝色块占位)
-    private static readonly Color GotoBtn = new Color(0.96f, 0.66f, 0.18f, 1f);    // 「前往」橙钮
-    private static readonly Color ClaimBtn = new Color(0.30f, 0.74f, 0.36f, 1f);   // 「领取」绿钮(已完成可领)
-    private static readonly Color ClaimedBtn = new Color(0.62f, 0.62f, 0.66f, 1f); // 「已领取」灰钮(不可点)
-    // 卡片底框/标题文字色已烘进 TaskCard 预制体。
+    private static readonly Color ClaimBtn = new Color(0.30f, 0.74f, 0.36f, 1f);      // 「领取」绿钮(可领取)
+    private static readonly Color IncompleteBtn = new Color(0.98f, 0.80f, 0.20f, 1f); // 「未完成」黄钮
+    private static readonly Color ClaimedBtn = new Color(0.52f, 0.52f, 0.55f, 1f);    // 「已领取」灰钮
+
+    // 卡片样式已烘进 TaskCard 预制体(横向:目标圆图标 + 标题 + 绿色进度条 + 奖励 + 按钮)。
 
     private ConfigManager config;
     private CurrencySystem currency;
@@ -72,6 +76,7 @@ public class TaskPanel : UIPageBase
 
         if (backBtn != null) backBtn.onClick.AddListener(CloseSelf);
         CurrencyIcon.Bind(coinText, CurrencyType.Gold); // 资源胶囊图标:运行时从 Resources 动态加载(方便换图)
+        CurrencyIcon.Bind(energyText, CurrencyType.Energy);
         if (tabDaily != null) tabDaily.onClick.AddListener(() => SelectCategory(CategoryDaily));
         if (tabRegular != null) tabRegular.onClick.AddListener(() => SelectCategory(CategoryRegular));
     }
@@ -101,8 +106,9 @@ public class TaskPanel : UIPageBase
 
     private void RefreshCoin()
     {
-        if (coinText == null || currency == null) return;
-        coinText.text = currency.Get(CurrencyType.Gold).ToString();
+        if (currency == null) return;
+        if (coinText != null) coinText.text = currency.Get(CurrencyType.Gold).ToString();
+        if (energyText != null) energyText.text = currency.Get(CurrencyType.Energy).ToString();
     }
 
     // ---------------- 页签 ----------------
@@ -119,10 +125,13 @@ public class TaskPanel : UIPageBase
     private static void SetTabColor(Button btn, bool on)
     {
         if (btn == null) return;
-        // Tab_01 预制体用 "Focus" 子物体表示选中态(无 targetGraphic);旧式按钮则回退到 targetGraphic 变色。
-        var focus = btn.transform.Find("Focus");
-        if (focus != null) { focus.gameObject.SetActive(on); return; }
-        if (btn.targetGraphic is Image img) img.color = on ? TabOn : TabOff;
+        // 通用绿色按钮:染 Bg + InnerBorder1 + 文字(选中绿/白字,未选灰/深字)。
+        var bg = btn.transform.Find("Bg")?.GetComponent<Image>();
+        if (bg != null) bg.color = on ? TabOn : TabOff;
+        var inner = btn.transform.Find("InnerBorder1")?.GetComponent<Image>();
+        if (inner != null) inner.color = on ? TabOnInner : TabOffInner;
+        var txt = btn.GetComponentInChildren<TextMeshProUGUI>(true);
+        if (txt != null) txt.color = on ? Color.white : new Color(0.36f, 0.36f, 0.38f, 1f);
     }
 
     /// <summary>从配表拉取当前分类任务,按 SortPriority 升序。</summary>
@@ -179,36 +188,42 @@ public class TaskPanel : UIPageBase
         if (view == null) { Destroy(go); return; }
 
         view.titleText.text = task.Name;
-        view.progressText.text = $"进度 <color=#D94C40>{CurrentProgress(task.Id)}</color> / {task.TargetAmount}";
 
-        // 奖励:按 物品→金币→体力 顺序填进预置的 3 个格,多余的隐藏
-        for (int i = 0; i < view.rewardRoots.Length; i++) view.rewardRoots[i].SetActive(false);
-        int slot = 0;
-        if (task.RewardItemId > 0 && task.RewardItemCount > 0)
-            FillReward(view, slot++, ItemIconPath(task.RewardItemId), IconBox, task.RewardItemCount);
-        if (task.RewardCoin > 0)
-            FillReward(view, slot++, CurrencyIcon.ResPath(CurrencyType.Gold), CoinIcon, task.RewardCoin);     // 金币图标异步加载,缺失才退色块
-        if (task.RewardEnergy > 0)
-            FillReward(view, slot++, CurrencyIcon.ResPath(CurrencyType.Energy), EnergyIcon, task.RewardEnergy); // 体力图标同上
+        // 进度条(Slider value = 比例) + X/Y
+        int cur = CurrentProgress(task.Id);
+        int target = Mathf.Max(1, task.TargetAmount);
+        if (view.progressSlider != null) view.progressSlider.value = Mathf.Clamp01((float)cur / target);
+        if (view.progressText != null) view.progressText.text = $"{cur}/{task.TargetAmount}";
+
+        // 左侧目标图标(配表 iconPath;暂用白图占位,填了就换)
+        if (view.objectiveIcon != null && !string.IsNullOrEmpty(task.IconPath))
+            ResUI.SetSpriteAsync(resMgr, view.objectiveIcon, task.IconPath, IconBox);
+
+        // 奖励(单个,主奖励:物品 > 金币 > 体力)
+        BindReward(view, task);
 
         // 右下按钮:未完成=前往;已完成未领=领取;已领取=置灰不可点
         bool canClaim = taskProgress != null && taskProgress.CanClaim(task.Id);
         bool claimed = taskProgress != null && taskProgress.IsClaimed(task.Id);
-        view.actionBg.color = claimed ? ClaimedBtn : (canClaim ? ClaimBtn : GotoBtn);
-        view.actionButton.interactable = !claimed;
+        view.actionBg.color = claimed ? ClaimedBtn : (canClaim ? ClaimBtn : IncompleteBtn);
+        view.actionButton.interactable = canClaim; // 只有可领取才可点
         view.actionButton.onClick.AddListener(() => OnActionClick(task));
-        view.actionLabel.text = claimed ? "已领取" : (canClaim ? "领取" : "前往");
+        view.actionLabel.text = claimed ? "已领取" : (canClaim ? "领取" : "未完成");
+        view.actionLabel.color = claimed ? new Color(0.32f, 0.32f, 0.34f, 1f) : Color.white;
     }
 
-    /// <summary>填一格奖励:异步加载 <paramref name="spritePath"/> 的图标,缺图用 <paramref name="iconColor"/> 色块占位;显示该格。</summary>
-    private void FillReward(TaskCardView view, int slot, string spritePath, Color iconColor, int count)
+    /// <summary>绑定单个奖励图标 + ×数量(主奖励优先级:物品 > 金币 > 体力)。</summary>
+    private void BindReward(TaskCardView view, Task task)
     {
-        if (slot < 0 || slot >= view.rewardRoots.Length) return;
-        view.rewardRoots[slot].SetActive(true);
-        var img = view.rewardIcons[slot];
-        img.preserveAspect = true;
-        ResUI.SetSpriteAsync(resMgr, img, spritePath, iconColor); // 异步赋图,缺图标用色块占位
-        view.rewardCounts[slot].text = $"×{count}";
+        if (view.rewardIcon == null) return;
+        string path; Color fallback; int count;
+        if (task.RewardItemId > 0 && task.RewardItemCount > 0) { path = ItemIconPath(task.RewardItemId); fallback = IconBox; count = task.RewardItemCount; }
+        else if (task.RewardCoin > 0) { path = CurrencyIcon.ResPath(CurrencyType.Gold); fallback = CoinIcon; count = task.RewardCoin; }
+        else if (task.RewardEnergy > 0) { path = CurrencyIcon.ResPath(CurrencyType.Energy); fallback = EnergyIcon; count = task.RewardEnergy; }
+        else { view.rewardIcon.enabled = false; if (view.rewardCount != null) view.rewardCount.text = ""; return; }
+        view.rewardIcon.enabled = true; view.rewardIcon.preserveAspect = true;
+        ResUI.SetSpriteAsync(resMgr, view.rewardIcon, path, fallback);
+        if (view.rewardCount != null) view.rewardCount.text = $"×{count}";
     }
 
     /// <summary>取奖励物品的图标路径(配表 iconPath);取不到返回 null,由调用方用色块占位。</summary>

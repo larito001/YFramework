@@ -28,7 +28,7 @@ public static class ConfirmPanelBuilder
         // 根:全屏遮罩(挡住下层点击)
         var root = NewUI("ConfirmPanel", out var rootRt);
         Stretch(rootRt);
-        root.AddComponent<Image>().color = new Color(0f, 0f, 0f, 0.6f);
+        root.AddComponent<Image>().color = UITheme.Scrim; // 统一弹窗遮罩
         var cg = root.AddComponent<CanvasGroup>();
         root.AddComponent<YOTOUIShow>();
 

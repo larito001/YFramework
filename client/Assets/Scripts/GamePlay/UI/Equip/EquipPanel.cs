@@ -42,7 +42,6 @@ public class EquipPanel : UIPageBase
     private bool busy;
     private bool loadoutDirty; // 装备变化标记:延到 LateUpdate 重建,避免在卡片自身 onClick 里把自己 Destroy 掉破坏 EventSystem
 
-    private WeaponModelPreview weaponPreview; // 底部武器模型转台(展示当前选中出战的枪)
     // 卡片侧视快照已移到全局共享缓存 ModelSnapshotCache(进程级常驻),与商城页等共用同一份,渲过即复用。
     private GameObject cardPrefab; // 装备卡片预制体(Resources/UI/Equip/EquipCard,EquipCardBuilder 生成),运行时 instantiate
     private ResourceHandle<GameObject> cardPrefabHandle; // 持模板句柄到页面销毁释放
@@ -68,22 +67,6 @@ public class EquipPanel : UIPageBase
         CurrencyIcon.Bind(coinText, CurrencyType.Gold);     // 资源胶囊图标:运行时从 Resources 动态加载(方便换图)
         CurrencyIcon.Bind(energyText, CurrencyType.Energy);
         if (departBtn != null) departBtn.onClick.AddListener(OnDepart);
-
-        weaponPreview = new WeaponModelPreview(CreatePreviewHost(), resMgr);
-    }
-
-    /// <summary>在屏幕下半部居中放一个大的武器模型预览框(返回其宿主 RectTransform)。
-    /// 锚到底部居中,落在「子弹行」(底边约距底 1330)与「出发」按钮(顶边距底 280)之间的空区。
-    /// 尺寸/位置不合适改这里的 sizeDelta / anchoredPosition。</summary>
-    private RectTransform CreatePreviewHost()
-    {
-        var host = new GameObject("WeaponPreview", typeof(RectTransform));
-        host.transform.SetParent(transform, false);
-        var hr = (RectTransform)host.transform;
-        hr.anchorMin = hr.anchorMax = hr.pivot = new Vector2(0.5f, 0f); // 底部居中
-        hr.sizeDelta = new Vector2(900f, 900f);                         // 放大(原 300 太小)
-        hr.anchoredPosition = new Vector2(0f, 320f);                    // 出发按钮上方,处于下半屏空区
-        return hr;
     }
 
     public override void OnShow()
@@ -91,7 +74,6 @@ public class EquipPanel : UIPageBase
         busy = false;
         eventMgr?.Add(YOTOEventType.RefreshLoadout, MarkLoadoutDirty);
         eventMgr?.Add(YOTOEventType.RefreshCurrency, RefreshCoin);
-        weaponPreview?.SetActive(true);
         RebuildAll(); // 首次直接建(不在点击栈内,安全)
         RefreshCoin();
     }
@@ -100,10 +82,7 @@ public class EquipPanel : UIPageBase
     {
         eventMgr?.Remove(YOTOEventType.RefreshLoadout, MarkLoadoutDirty);
         eventMgr?.Remove(YOTOEventType.RefreshCurrency, RefreshCoin);
-        // 彻底回收离屏相机 + RenderTexture(面板默认关闭 10s 后销毁,只 SetActive 会让 rig/rt 成为孤儿泄漏)。
-        // Dispose 后重新打开时 Show()→EnsureRig() 会自动重建,功能不受影响。
-        weaponPreview?.Dispose();
-        // 快照不在此释放:已移到全局共享缓存 ModelSnapshotCache(进程级常驻),装备页/商城页跨面板复用,渲过即留。
+        // 卡片快照不在此释放:已移到全局共享缓存 ModelSnapshotCache(进程级常驻),装备页/商城页跨面板复用,渲过即留。
     }
 
     /// <summary>装备变化先打标记,延到 LateUpdate 再重建——避免点击卡片时同步重建把刚点的卡销毁、破坏 EventSystem。</summary>
@@ -135,21 +114,6 @@ public class EquipPanel : UIPageBase
         BuildRow(weaponRow, ShopCategory.Weapon);
         BuildRow(scopeRow, ShopCategory.Scope);
         BuildRow(bulletRow, ShopCategory.Bullet);
-        UpdateWeaponPreview();
-    }
-
-    /// <summary>把预览转台切到当前选中的枪(取其 item.ModelPath);没选中或无模型则清空。</summary>
-    private void UpdateWeaponPreview()
-    {
-        if (weaponPreview == null) return;
-        int sel = loadout.GetSelected(ShopCategory.Weapon);
-        string path = null;
-        if (sel > 0)
-        {
-            foreach (var it in loadout.CategoryItems(ShopCategory.Weapon))
-                if (it.Id == (uint)sel) { path = it.ModelPath; break; }
-        }
-        weaponPreview.Show(path);
     }
 
     private void BuildRow(RectTransform row, ShopCategory cat)
@@ -180,6 +144,7 @@ public class EquipPanel : UIPageBase
 
         // 图片:渲染出的 3D 道具侧视快照(全局共享缓存,跨面板复用),无模型回退 2D 图标(异步)。预制体里 pic 已 preserveAspect。
         ModelSnapshotCache.BindCardImageAsync(view.pic, item.ModelPath, item.IconPath, resMgr);
+        if (view.qualityFrame != null) view.qualityFrame.color = ItemQualityPalette.FrameColor(item.Quality); // 品质框颜色 = icon 背景
         // 右上角小「i」按钮弹道具描述(点卡片/图标仍走选中出战,避免切换时误触描述)
         ItemIconDescButton.AttachInfoBadge((RectTransform)go.transform, (int)item.Id, font);
 

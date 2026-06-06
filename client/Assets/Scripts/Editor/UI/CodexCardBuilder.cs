@@ -28,6 +28,10 @@ public static class CodexCardBuilder
         var bg = root.AddComponent<Image>();
         bg.color = new Color(0.97f, 0.97f, 1f, 1f);
         bg.raycastTarget = false;
+        // 卡片黑色描边(Outline 效果:bg 矩形四周生成黑边)
+        var outline = root.AddComponent<Outline>();
+        outline.effectColor = Color.black;
+        outline.effectDistance = new Vector2(4, 4);
         var view = root.AddComponent<CodexCardView>();
 
         // 模型/问号 容器
@@ -50,7 +54,13 @@ public static class CodexCardBuilder
         labelRt.offsetMin = new Vector2(8, 0); labelRt.offsetMax = new Vector2(-8, 0);
         var badgeLabelTmp = NewText(label, "积分", 30, TextAlignmentOptions.Center, Color.white);
 
-        view.bg = bg; view.picHost = picRt; view.lockedText = lockedTmp; view.badgeBg = badgeImg; view.badgeLabel = badgeLabelTmp;
+        // 左上角编号(运行时由 CodexPanel 写入动物 Id;放最后保证盖在模型/问号之上)
+        var index = NewUI("Index", out var indexRt, root.transform);
+        indexRt.anchorMin = indexRt.anchorMax = new Vector2(0, 1); indexRt.pivot = new Vector2(0, 1);
+        indexRt.anchoredPosition = new Vector2(24, -24); indexRt.sizeDelta = new Vector2(220, 90);
+        var indexTmp = NewText(index, "1", 40, TextAlignmentOptions.TopLeft, new Color(0.10f, 0.10f, 0.12f, 1f));
+
+        view.bg = bg; view.indexText = indexTmp; view.picHost = picRt; view.lockedText = lockedTmp; view.badgeBg = badgeImg; view.badgeLabel = badgeLabelTmp;
 
         PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
         Object.DestroyImmediate(root);

@@ -16,7 +16,7 @@ using Object = UnityEngine.Object;
 /// </summary>
 public static class ModelSnapshotCache
 {
-    private static readonly Color CardBg = new Color(0.12f, 0.13f, 0.16f, 1f); // 与原装备页 SnapshotBg 一致
+    private static readonly Color CardBg = new Color(0f, 0f, 0f, 0f); // 透明:icon 背景改由卡片上的「品质框」提供(按品质染色)
 
     private static readonly Dictionary<string, Texture2D> texCache = new();
     private static readonly Dictionary<string, Sprite> spriteCache = new();

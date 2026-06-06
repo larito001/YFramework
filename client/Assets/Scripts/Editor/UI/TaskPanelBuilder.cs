@@ -11,9 +11,10 @@ using UnityEngine.UI;
 ///   根:浅紫 Image + CanvasGroup + YOTOUIShow + TaskPanel
 ///     ├ bg     (Resources/UI/bg)     全屏背景图(prefab 实例,偏置摆放)
 ///     ├ back   (Resources/UI/backBtn) 返回(左上,prefab 实例)
-///     ├ Coin   绿色资源胶囊(右上偏左;深绿底 + 左侧金币图标 + 右对齐数值)
-///     ├ Tabs   页签容器(HorizontalLayoutGroup),内含两个 Tab_01.prefab 实例:
-///     │         每日任务 / 主线任务(选中态靠 Tab_01 的 "Focus" 子物体,见 TaskPanel.SetTabColor)
+///     ├ Coin/Energy 资源胶囊(顶部;UICurrencyPill,半透明黑底 + 图标 + 右对齐数值)
+///     ├ PanelTitle  顶部「任务」标题整图(美术 sprite)
+///     ├ Tabs   页签容器(HorizontalLayoutGroup),内含两个 CommonButton 实例:
+///     │         日常任务 / 成就任务(选中绿/未选灰由 TaskPanel.SetTabColor 染 Bg 控制)
 ///     └ Scroll 竖向滚动任务列表(Viewport + VerticalLayoutGroup 容器 Content)
 ///
 /// 任务卡(标题 + 进度 + 奖励 + 前往/领取)由 <see cref="TaskPanel"/> 运行时按配表 <c>taskConfig</c> 动态生成,不进 Builder。
@@ -29,10 +30,12 @@ public static class TaskPanelBuilder
     private const string TabPrefabPath = "Assets/Resources/UI/Tab_01.prefab";
     private const string FontPath = "Assets/Art/Fonts/SIMHEI SDF.asset";
     // 视口底框(art-kit 半透明圆角盒;预制体里 Viewport 用的就是它)
-    private const string ViewportSpritePath = "Assets/Art/UI/NewUI/Shared/Sprite_Common/Popup/Popup_Box_01~03_White_Bg.png";
+    private const string ViewportSpritePath = "Assets/Art/UI/NewUI/Shared/Sprite_Common/Frame/PanelFrame/PanelFrame_03_White_Bg.png";
+    // 顶部标题图(美术整图「任务」,反推自预制体 PanelTitle 的 sprite)
+    private const string PanelTitleSpritePath = "Assets/Art/UI/NewUI/Theme_Blue/Sprites/20260606-195615.png";
 
     private static readonly Color RootBg = new Color(0.91f, 0.90f, 0.95f, 1f);
-    private static readonly Color ViewportTint = new Color(0f, 0f, 0f, 0.5254902f);
+    private static readonly Color ViewportTint = UITheme.PanelBacking; // 统一内容底板(深冷色,非纯黑)
 
     private static TMP_FontAsset _font;
     private static GameObject _bgPrefab, _backBtnPrefab, _tabPrefab;
@@ -73,32 +76,40 @@ public static class TaskPanelBuilder
         backRt.anchoredPosition = new Vector2(155.2f, -111.9f); backRt.sizeDelta = new Vector2(243.246f, 201.326f);
         var backBtn = backGo.GetComponent<Button>();
 
-        // ---------- 资源金币(右上偏左,统一资源胶囊:美术九宫格底 + 左侧金币图标 + 右对齐数值)----------
-        var coinGo = NewUI("Coin", out var coinRt, root.transform);
-        coinRt.anchorMin = coinRt.anchorMax = new Vector2(0, 1); coinRt.pivot = new Vector2(0, 1);
-        coinRt.anchoredPosition = new Vector2(300, -48); coinRt.sizeDelta = new Vector2(360, 120);
-        var coinBg = coinGo.AddComponent<Image>();
-        UICurrencyPill.ApplyBackground(coinBg);
-        var coinText = NewChildText(coinGo, "Value", "0", 48, TextAlignmentOptions.Right);
-        UICurrencyPill.AddIconLeft(coinGo, (RectTransform)coinText.transform, UICurrencyPill.IconGold); // 金币图标运行时动态加载
+        // ---------- 资源胶囊(顶部,与主页一致:金币在左 + 体力在右;胶囊宽度随数字自适应,不超框)----------
+        // 左上锚点向右延展;金币与体力拉开足够间距(数字再多金币也长不到体力上)。
+        var coinText = UICurrencyPill.Build(root.transform, "Coin", UICurrencyPill.IconGold, _font,
+            new Vector2(0, 1), new Vector2(300, -48), new Vector2(0, 120), 48);
+        var energyText = UICurrencyPill.Build(root.transform, "Energy", UICurrencyPill.IconEnergy, _font,
+            new Vector2(0, 1), new Vector2(760, -48), new Vector2(0, 120), 48);
 
-        // ---------- 页签容器:每日任务 / 主线任务(横向铺满,Tab_01.prefab 实例)----------
+        // ---------- 顶部标题「任务」图(美术整图;反推自预制体的 sprite 与尺寸)----------
+        var panelTitle = NewUI("PanelTitle", out var panelTitleRt, root.transform);
+        panelTitleRt.anchorMin = panelTitleRt.anchorMax = new Vector2(0.5f, 1); panelTitleRt.pivot = new Vector2(0.5f, 1);
+        panelTitleRt.anchoredPosition = new Vector2(0, -294); panelTitleRt.sizeDelta = new Vector2(853.2109f, 625.8423f);
+        var panelTitleImg = panelTitle.AddComponent<Image>();
+        panelTitleImg.sprite = LoadSprite(PanelTitleSpritePath);
+        panelTitleImg.color = Color.white; panelTitleImg.preserveAspect = true; panelTitleImg.raycastTarget = false;
+
+        // ---------- 页签容器:日常任务 / 成就任务(横向铺满,CommonButton 实例;下移到标题下方)----------
         var tabs = NewUI("Tabs", out var tabsRt, root.transform);
         tabsRt.anchorMin = new Vector2(0, 1); tabsRt.anchorMax = new Vector2(1, 1); tabsRt.pivot = new Vector2(0.5f, 1);
-        tabsRt.anchoredPosition = new Vector2(0, -216); tabsRt.sizeDelta = new Vector2(-100, 160);
+        tabsRt.anchoredPosition = new Vector2(0, -883); tabsRt.sizeDelta = new Vector2(-574.6357f, 160);
         var tabsHlg = tabs.AddComponent<HorizontalLayoutGroup>();
-        tabsHlg.spacing = 24;
+        tabsHlg.spacing = 100;
         tabsHlg.childAlignment = TextAnchor.MiddleCenter;
         tabsHlg.childControlWidth = true; tabsHlg.childControlHeight = true;
         tabsHlg.childForceExpandWidth = true; tabsHlg.childForceExpandHeight = true;
 
-        var tabDaily = BuildTab("Tab_01", "每日任务", tabs.transform);     // 默认选中(Focus 由 TaskPanel 运行时切换)
-        var tabRegular = BuildTab("Tab_01 (1)", "主线任务", tabs.transform);
+        // 两个通用绿色按钮(日常/成就);选中绿、未选灰由 TaskPanel.SetTabColor 染 Bg 控制。
+        var commonBtn = AssetDatabase.LoadAssetAtPath<GameObject>(UIButtonFactory.CommonButtonPath);
+        var tabDaily = UIButtonFactory.Build(commonBtn, "Tab_Daily", "日常任务", tabs.transform, fontSize: 34);
+        var tabRegular = UIButtonFactory.Build(commonBtn, "Tab_Achieve", "成就任务", tabs.transform, fontSize: 34);
 
-        // ---------- 竖向滚动任务列表 ----------
+        // ---------- 竖向滚动任务列表(反推自预制体:撑到标题/页签下方) ----------
         var scrollGo = NewUI("Scroll", out var scrollRt, root.transform);
         scrollRt.anchorMin = Vector2.zero; scrollRt.anchorMax = Vector2.one;
-        scrollRt.anchoredPosition = new Vector2(0, -60); scrollRt.sizeDelta = new Vector2(-100, -620);
+        scrollRt.anchoredPosition = new Vector2(0, -260.45792f); scrollRt.sizeDelta = new Vector2(-100, -1565.116f);
         var scroll = scrollGo.AddComponent<ScrollRect>();
         scroll.horizontal = false; scroll.vertical = true; scroll.scrollSensitivity = 40f;
         scroll.movementType = ScrollRect.MovementType.Clamped;
@@ -107,9 +118,7 @@ public static class TaskPanelBuilder
         var viewport = NewUI("Viewport", out var viewportRt, scrollGo.transform);
         Stretch(viewportRt);
         var vpImg = viewport.AddComponent<Image>();
-        vpImg.sprite = LoadSprite(ViewportSpritePath);
-        vpImg.type = Image.Type.Sliced;
-        vpImg.color = ViewportTint;
+        vpImg.color = new Color(1f, 1f, 1f, 0.004f); // 透明:去掉列表背景(仅接拖拽)
         viewport.AddComponent<RectMask2D>();
 
         // 内容容器(VerticalLayoutGroup + ContentSizeFitter:卡片自上而下排列,高度自适应)
@@ -134,6 +143,7 @@ public static class TaskPanelBuilder
         panel.uiType = UIEnum.TaskPanel;
         panel.backBtn = backBtn;
         panel.coinText = coinText;
+        panel.energyText = energyText;
         panel.tabDaily = tabDaily;
         panel.tabRegular = tabRegular;
         panel.content = contentRt;

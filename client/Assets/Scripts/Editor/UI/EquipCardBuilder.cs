@@ -23,13 +23,18 @@ public static class EquipCardBuilder
         if (!Directory.Exists(Dir)) Directory.CreateDirectory(Dir);
         _font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(FontPath);
 
-        // 根:卡底 + 选中按钮 + 选中描边(默认关) + 尺寸 + View
+        // 根:卡底 + 选中按钮 + 黑色描边(常驻) + 选中描边(默认关) + 尺寸 + View
         var root = NewUI("EquipCard", out var rootRt);
         rootRt.sizeDelta = new Vector2(320, 340);
         var bg = root.AddComponent<Image>();
         bg.color = new Color(0.30f, 0.78f, 0.36f, 1f); // 默认绿,绑定时按 owned 改
         var btn = root.AddComponent<Button>();
         btn.targetGraphic = bg;
+        // 黑色描边(常驻:每个装备卡都有黑框)
+        var blackBorder = root.AddComponent<Outline>();
+        blackBorder.effectColor = Color.black;
+        blackBorder.effectDistance = new Vector2(3, 3);
+        // 黄色选中描边(默认关,选中时启用;叠在黑框之外)
         var outline = root.AddComponent<Outline>();
         outline.effectColor = new Color(1f, 0.85f, 0.2f, 1f);
         outline.effectDistance = new Vector2(6, 6);
@@ -37,6 +42,14 @@ public static class EquipCardBuilder
         var le = root.AddComponent<LayoutElement>();
         le.preferredWidth = 320; le.preferredHeight = 340;
         var view = root.AddComponent<EquipCardView>();
+
+        // 品质框(道具图之下,按品质染色;快照已透明,这层就是 icon 背景)
+        var qFrame = NewUI("QualityFrame", out var qRt, root.transform);
+        qRt.anchorMin = Vector2.zero; qRt.anchorMax = Vector2.one;
+        qRt.offsetMin = new Vector2(16, 90); qRt.offsetMax = new Vector2(-16, -16);
+        var qImg = qFrame.AddComponent<Image>();
+        qImg.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(ItemQualityPalette.FrameSpritePath);
+        qImg.type = Image.Type.Sliced; qImg.raycastTarget = false;
 
         // 图片(上部):preserveAspect,默认隐藏(绑定按有无图启用)
         var pic = NewUI("Pic", out var picRt, root.transform);
@@ -51,7 +64,7 @@ public static class EquipCardBuilder
         nameRt.offsetMin = new Vector2(6, 12); nameRt.offsetMax = new Vector2(-6, 78);
         var nameTmp = NewText(name, "名称", 32, TextAlignmentOptions.Center, Color.white);
 
-        view.bg = bg; view.button = btn; view.outline = outline; view.pic = picImg; view.nameText = nameTmp; view.layout = le;
+        view.bg = bg; view.button = btn; view.outline = outline; view.qualityFrame = qImg; view.pic = picImg; view.nameText = nameTmp; view.layout = le;
 
         PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
         Object.DestroyImmediate(root);

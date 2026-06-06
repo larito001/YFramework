@@ -49,6 +49,40 @@ public static class UIButtonFactory
         return go.GetComponent<Button>();
     }
 
+    /// <summary>
+    /// 在 <see cref="Build"/> 基础上,于按钮文字左侧加一个图标(图标在前、文字在后),用于带图标的页签等。
+    /// 图标锚到左侧垂直居中;文字左边内缩给图标让位后仍居中。尺寸由父级布局(如 HorizontalLayoutGroup)控制。
+    /// </summary>
+    /// <param name="icon">图标 sprite(null 时仍建空图位,便于美术后补)。</param>
+    /// <param name="iconSize">图标边长(像素,按返工后真实尺寸)。</param>
+    /// <param name="iconInset">图标距按钮左内边距。</param>
+    public static Button BuildWithLeftIcon(GameObject prefab, string name, string label, Sprite icon, Transform parent,
+        bool resetScale = true, float? fontSize = null, float iconSize = 64f, float iconInset = 36f)
+    {
+        var btn = Build(prefab, name, label, parent, resetScale, fontSize);
+        var go = btn.gameObject;
+
+        // 图标:左侧垂直居中(置于最后兄弟→盖在按钮底图之上可见)
+        var iconGo = new GameObject("Icon", typeof(RectTransform));
+        var iconRt = (RectTransform)iconGo.transform;
+        iconRt.SetParent(go.transform, false);
+        iconRt.anchorMin = iconRt.anchorMax = new Vector2(0, 0.5f);
+        iconRt.pivot = new Vector2(0, 0.5f);
+        iconRt.anchoredPosition = new Vector2(iconInset, 0);
+        iconRt.sizeDelta = new Vector2(iconSize, iconSize);
+        var img = iconGo.AddComponent<Image>();
+        img.sprite = icon; img.preserveAspect = true; img.raycastTarget = false;
+
+        // 文字:左边内缩给图标让位(仍在剩余空间居中,呈「图标 + 文字」并排)
+        var text = go.GetComponentInChildren<TextMeshProUGUI>(true);
+        if (text != null)
+        {
+            var trt = (RectTransform)text.transform;
+            trt.offsetMin = new Vector2(iconInset + iconSize, trt.offsetMin.y);
+        }
+        return btn;
+    }
+
     /// <summary>设置按钮内 TMP 文字(label 为 null 时不改);fontSize 非 null 时用 UITheme.Font 设字号。</summary>
     public static void SetLabel(GameObject buttonGo, string label, float? fontSize = null)
     {

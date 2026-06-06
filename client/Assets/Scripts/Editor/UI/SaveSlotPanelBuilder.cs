@@ -29,7 +29,7 @@ public static class SaveSlotPanelBuilder
         // ---------- 根 ----------
         var root = NewUI("SaveSlotPanel", out var rootRt);
         Stretch(rootRt);
-        root.AddComponent<Image>().color = new Color(0f, 0f, 0f, 0.6f);
+        root.AddComponent<Image>().color = UITheme.Scrim; // 统一弹窗遮罩
         var cg = root.AddComponent<CanvasGroup>();
         root.AddComponent<YOTOUIShow>();
 

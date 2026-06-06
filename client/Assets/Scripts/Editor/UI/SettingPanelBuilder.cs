@@ -64,7 +64,7 @@ public static class SettingPanelBuilder
         // ---------- 根(全屏遮罩 + CanvasGroup + YOTOUIShow + SettingPanel)----------
         var root = NewUI("SettingPanel", out var rootRt);
         Stretch(rootRt);
-        root.AddComponent<Image>().color = new Color(0f, 0f, 0f, 0.6f);
+        root.AddComponent<Image>().color = UITheme.Scrim;
         var cg = root.AddComponent<CanvasGroup>();
         root.AddComponent<YOTOUIShow>();
 
@@ -88,7 +88,7 @@ public static class SettingPanelBuilder
         ovRt.anchorMin = ovRt.anchorMax = ovRt.pivot = new Vector2(0.5f, 0.5f);
         ovRt.anchoredPosition = Vector2.zero;
         ovRt.sizeDelta = BgSize;
-        overlay.AddComponent<Image>().color = new Color(0f, 0f, 0f, 0.6f);
+        overlay.AddComponent<Image>().color = UITheme.Scrim;
 
         // ---------- 返回(art-kit backBtn.prefab,左上)----------
         Button backBtn = null;
@@ -210,8 +210,8 @@ public static class SettingPanelBuilder
             var row = NewRow(content.transform, 100);
             NewLabel(row.transform, names[i], 220, 40, TextAlignmentOptions.Left);
             tab.sliders[i] = NewSlider(row.transform);
-            tab.values[i] = NewLabel(row.transform, "100%", 130, 36, TextAlignmentOptions.Right);
-            NewLabel(row.transform, "静音", 110, 34, TextAlignmentOptions.Right);
+            tab.values[i] = NewLabel(row.transform, "100%", 190, 36, TextAlignmentOptions.Right);
+            NewLabel(row.transform, "静音", 170, 34, TextAlignmentOptions.Right);
             tab.mutes[i] = NewToggle(row.transform);
         }
     }
@@ -245,11 +245,14 @@ public static class SettingPanelBuilder
         return tmp;
     }
 
-    /// <summary>带 LayoutElement 宽度约束的文本(用于行内标签/数值)。</summary>
+    /// <summary>带 LayoutElement 宽度约束的文本(用于行内标签/数值)。
+    /// 单词不换行:这些是「音乐/100%/静音」等单标签,字号经 UITheme.Font 放大(×2)后若窄于文本会被 TMP 竖向折行,故强制单行。</summary>
     private static TextMeshProUGUI NewLabel(Transform parent, string text, float width, float size, TextAlignmentOptions align)
     {
         var go = NewUI("Text", out _, parent);
         var tmp = NewText(go, text, size, align);
+        tmp.enableWordWrapping = false;
+        tmp.overflowMode = TextOverflowModes.Overflow;
         var le = go.AddComponent<LayoutElement>();
         le.minWidth = width;
         le.preferredWidth = width;

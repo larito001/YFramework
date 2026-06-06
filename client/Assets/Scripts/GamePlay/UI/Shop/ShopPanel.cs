@@ -35,8 +35,14 @@ public class ShopPanel : UIPageBase
 
     private static readonly Color Affordable = new Color(0.30f, 0.78f, 0.36f, 1f); // 绿:买得起
     private static readonly Color Unaffordable = new Color(0.32f, 0.34f, 0.40f, 1f); // 灰:买不起
-    private static readonly Color TabOn = new Color(0.30f, 0.55f, 0.85f, 1f);
-    private static readonly Color TabOff = new Color(0.25f, 0.27f, 0.33f, 1f);
+    // 页签(绿色通用按钮)选中/未选配色,与任务界面一致
+    private static readonly Color TabOn = new Color(0.4666667f, 0.89019614f, 0.20784315f, 1f);     // 选中:原绿(Bg)
+    private static readonly Color TabOnInner = new Color(0.7411765f, 0.98823535f, 0.29411766f, 1f); // 选中:浅绿(InnerBorder1)
+    private static readonly Color TabOff = new Color(0.58f, 0.58f, 0.60f, 1f);      // 未选:灰(Bg)
+    private static readonly Color TabOffInner = new Color(0.70f, 0.70f, 0.72f, 1f); // 未选:浅灰(InnerBorder1)
+    // 金色选中框:买得起=金,买不起/已拥有(购买按钮置灰)时同步置灰
+    private static readonly Color FrameGold = new Color(1f, 0.85f, 0.2f, 1f);
+    private static readonly Color FrameGray = new Color(0.45f, 0.45f, 0.48f, 1f);
 
     private ShopSystem shop;
     private CurrencySystem currency;
@@ -191,6 +197,15 @@ public class ShopPanel : UIPageBase
         if (view != null && view.selectFrame != null) view.selectFrame.SetActive(on);
     }
 
+    /// <summary>选中框颜色随购买按钮状态:可买=金,买不起/已拥有(按钮变灰)=灰。染框内四条边的 Image。</summary>
+    private static void TintSelectFrame(ShopCardView view, bool affordable)
+    {
+        if (view == null || view.selectFrame == null) return;
+        var c = affordable ? FrameGold : FrameGray;
+        var edges = view.selectFrame.GetComponentsInChildren<Image>(true);
+        for (int i = 0; i < edges.Length; i++) edges[i].color = c;
+    }
+
     /// <summary>上方转台展示当前分类选中物品的模型(三类通用:枪/镜/弹)。</summary>
     private void UpdatePreview()
     {
@@ -212,11 +227,13 @@ public class ShopPanel : UIPageBase
     private static void SetTabColor(Button btn, bool on)
     {
         if (btn == null) return;
-        // Tab_01 预制体用 "Focus" 子物体表示选中态(无 targetGraphic);旧式按钮则回退到 targetGraphic 变色。
-        var focus = btn.transform.Find("Focus");
-        if (focus != null) { focus.gameObject.SetActive(on); return; }
-        var img = btn.targetGraphic as Image;
-        if (img != null) img.color = on ? TabOn : TabOff;
+        // 绿色通用按钮:染 Bg + InnerBorder1 + 文字(选中绿/白字,未选灰/深字),与任务界面一致。
+        var bg = btn.transform.Find("Bg")?.GetComponent<Image>();
+        if (bg != null) bg.color = on ? TabOn : TabOff;
+        var inner = btn.transform.Find("InnerBorder1")?.GetComponent<Image>();
+        if (inner != null) inner.color = on ? TabOnInner : TabOffInner;
+        var txt = btn.GetComponentInChildren<TextMeshProUGUI>(true);
+        if (txt != null) txt.color = on ? Color.white : new Color(0.36f, 0.36f, 0.38f, 1f);
     }
 
     // ---------------- 看广告领金币(武器展示区左下角)----------------
@@ -237,7 +254,7 @@ public class ShopPanel : UIPageBase
         {
             adGoldButton.interactable = true;
             if (adGoldButton.targetGraphic is Image img)
-                img.color = can ? new Color(0.85f, 0.66f, 0.20f, 1f) : new Color(0.45f, 0.45f, 0.48f, 1f);
+                img.color = can ? Color.white : new Color(0.45f, 0.45f, 0.48f, 1f); // 通用黄按钮:可领=原色,用完=置灰
         }
         if (adGoldLabel != null) adGoldLabel.text = can ? $"看广告 +{AdGoldReward}" : "今日已领完";
     }
@@ -302,13 +319,16 @@ public class ShopPanel : UIPageBase
 
         // 图片:渲染出的 3D 道具侧视快照(全局共享缓存,跨面板复用),无模型回退 2D 图标(异步)。预制体里 pic 已 preserveAspect。
         ModelSnapshotCache.BindCardImageAsync(view.pic, item.ModelPath, item.IconPath, resMgr);
+        if (view.qualityFrame != null) view.qualityFrame.color = ItemQualityPalette.FrameColor(item.Quality); // 品质框颜色 = icon 背景
         // 右上角小「i」按钮弹道具描述(已烤进 ShopCard 预制体,这里只填 itemId;点卡片/图标仍走选中预览,避免切换时误触描述)
         if (view.infoBadge != null) view.infoBadge.itemId = (int)item.Id;
 
-        // 名称 / 价格
+        // 名称 / 价格(价格 = 币种图标 + 数字;图标按 PriceType 运行时动态加载到「Icon」兄弟)
         view.nameText.text = item.Name;
-        string priceDesc = $"{currency.DisplayName((CurrencyType)item.PriceType)} {item.Price}";
-        view.priceText.text = priceDesc;
+        var priceType = (CurrencyType)item.PriceType;
+        string priceDesc = $"{currency.DisplayName(priceType)} {item.Price}"; // 确认弹窗/飘字仍用带币种名的文案
+        view.priceText.text = item.Price.ToString();
+        CurrencyIcon.Bind(view.priceText, priceType);
 
         // 带模型的卡(枪/镜/弹):整卡可点 = 选中并在上方展示模型;金色选中框就地显隐
         bool hasModel = !string.IsNullOrEmpty(item.ModelPath);
@@ -331,10 +351,10 @@ public class ShopPanel : UIPageBase
         bool affordable = !owned && shop.CanAfford(item);
         view.buyBg.color = affordable ? Affordable : Unaffordable;
         view.buyLabel.text = owned ? "已拥有" : "购买";
+        TintSelectFrame(view, affordable); // 购买按钮变灰(买不起/已拥有)时,金色高亮框同步置灰
 
         int id = (int)item.Id;            // 闭包捕获副本
         string itemName = item.Name;
-        var priceType = (CurrencyType)item.PriceType;
         if (owned)
             view.buyButton.onClick.AddListener(() => FlyText($"{itemName}已拥有"));
         else
