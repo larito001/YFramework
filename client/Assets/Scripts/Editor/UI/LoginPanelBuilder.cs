@@ -24,6 +24,7 @@ public static class LoginPanelBuilder
     private const string PrefabPath = Dir + "/LoginPanel.prefab";
     private const string ButtonPrefabPath = "Assets/Resources/UI/Common/CommonButton.prefab";
     private const string FontPath = "Assets/Art/Fonts/SIMHEI SDF.asset";
+    private const string TapTapButtonSpritePath = "Assets/Art/UI/taptapButton.png";
 
     private static TMP_FontAsset _font;
 
@@ -79,13 +80,16 @@ public static class LoginPanelBuilder
         statusText.color = new Color(1f, 0.5f, 0.45f, 1f);
 
         // ---------- 底部:TapTap 登录主按钮(复用通用按钮)----------
-        var btnLogin = BuildButton(btnPrefab, "Btn_TapTapLogin", "TapTap 登录", root.transform, 60);
+        var btnLogin = UIButtonFactory.Build(btnPrefab, "Btn_TapTapLogin", "TapTap 登录", root.transform, fontSize: 60);
         var loginRt = (RectTransform)btnLogin.transform;
         loginRt.anchorMin = loginRt.anchorMax = new Vector2(0.5f, 0);
         loginRt.pivot = new Vector2(0.5f, 0);
         loginRt.anchoredPosition = new Vector2(0, 540);
         loginRt.sizeDelta = new Vector2(760, 200);
         var loginLabel = btnLogin.GetComponentInChildren<TextMeshProUGUI>(true);
+        // 用美术整图 taptapButton 替换通用按钮皮肤:整张图已含「TapTap 登录」文字与底色,
+        // 故把底图 Bg 换成该 Sprite、隐藏绿色内描边与 TMP 文字,避免与整图重叠。
+        ApplyTapTapSkin(btnLogin.gameObject, loginLabel);
 
         // ---------- 最底部:版号 / 出版信息(合规占位,上线前补全真实信息)----------
         var copy = NewUI("Copyright", out var copyRt, root.transform);
@@ -114,26 +118,34 @@ public static class LoginPanelBuilder
         Debug.Log($"[LoginPanelBuilder] Built {PrefabPath}");
     }
 
-    // ============================ 工具(与 StartPanelBuilder 一致)============================
+    // ============================ 工具 ============================
 
-    /// <summary>实例化通用按钮预制体,设置名称/文本/字号,返回其 Button(YOTOButton)。位置/尺寸由调用方决定。</summary>
-    private static Button BuildButton(GameObject prefab, string name, string label, Transform parent, float fontSize)
+    /// <summary>
+    /// 把通用按钮换成美术整图 taptapButton:底图 Bg 用该 Sprite(白色、Simple、保持比例),
+    /// 隐藏 InnerBorder1 绿色描边与 TMP 文字(整图已自带文字),让按钮外观就是这张图。
+    /// </summary>
+    private static void ApplyTapTapSkin(GameObject button, TextMeshProUGUI label)
     {
-        var go = (GameObject)PrefabUtility.InstantiatePrefab(prefab, parent);
-        go.name = name;
-        go.SetActive(true);
-        // CommonButton 预制体根 localScale 被烤成 3(art-kit 返工残留),会把下面设的 sizeDelta 再放大 3 倍。
-        // 这里复位为 1,让本 Builder 显式设置的 sizeDelta 成为真实尺寸(所见即所得)。
-        ((RectTransform)go.transform).localScale = Vector3.one;
-
-        var text = go.GetComponentInChildren<TextMeshProUGUI>(true);
-        if (text != null)
+        var sprite = AssetDatabase.LoadAssetAtPath<Sprite>(TapTapButtonSpritePath);
+        if (sprite == null)
         {
-            text.text = label;
-            text.fontSize = UITheme.Font(fontSize);
+            Debug.LogWarning($"[LoginPanelBuilder] 未找到 {TapTapButtonSpritePath},沿用通用按钮皮肤。");
+            return;
         }
 
-        return go.GetComponent<Button>(); // YOTOButton : Button
+        var bg = button.transform.Find("Bg");
+        if (bg != null && bg.TryGetComponent<Image>(out var bgImg))
+        {
+            bgImg.sprite = sprite;
+            bgImg.color = Color.white;          // 还原整图本色(通用按钮原本染成绿色)
+            bgImg.type = Image.Type.Simple;     // 整图非九宫格
+            bgImg.preserveAspect = true;        // 不拉伸变形
+        }
+
+        var border = button.transform.Find("InnerBorder1");
+        if (border != null) border.gameObject.SetActive(false);
+
+        if (label != null) label.gameObject.SetActive(false); // 文字已烤进整图
     }
 
     private static GameObject NewUI(string name, out RectTransform rt, Transform parent = null)

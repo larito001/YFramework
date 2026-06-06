@@ -16,7 +16,9 @@ public static class UICurrencyPill
     public const CurrencyType IconGold   = CurrencyType.Gold;
     public const CurrencyType IconEnergy = CurrencyType.Energy;
 
-    private static readonly Color PillColor = new Color(0.25f, 0.27f, 0.33f, 1f); // 与主界面胶囊同色
+    // 资源胶囊统一背景:美术九宫格图 + 纯黑半透明底。所有面板的资源胶囊都走 ApplyBackground,改背景只动这两行即可全局生效。
+    public const string PillBgSpritePath = "Assets/Art/UI/NewUI/Shared/Sprite_Common/Slider/Slider_Swipe_01_Bg.png";
+    private static readonly Color PillColor = new Color(0f, 0f, 0f, 0.5294118f); // 纯黑 α≈53%(与主界面 Energy 胶囊同款)
 
     /// <summary>
     /// 新建一个完整资源胶囊(自带深色底 + 图标 + 数值),返回数值文本(运行时只填数字)。
@@ -33,9 +35,7 @@ public static class UICurrencyPill
         rt.sizeDelta = size;
 
         var bg = go.GetComponent<Image>();
-        bg.sprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/UISprite.psd");
-        bg.type = Image.Type.Sliced;
-        bg.color = PillColor;
+        ApplyBackground(bg);
 
         var valueGo = new GameObject("Value", typeof(RectTransform));
         var vrt = (RectTransform)valueGo.transform;
@@ -55,6 +55,16 @@ public static class UICurrencyPill
 
         AddIconLeft(go, vrt, type, 72f, 16f);
         return tmp;
+    }
+
+    /// <summary>给资源胶囊底图 Image 应用统一背景:美术九宫格 sprite + 纯黑半透明 + Sliced。
+    /// 所有面板(主界面/商店/装备/任务/图鉴/地图)的资源胶囊底都调这里,想换背景只改 <see cref="PillBgSpritePath"/> 与 <c>PillColor</c>。</summary>
+    public static void ApplyBackground(Image bg)
+    {
+        var sprite = AssetDatabase.LoadAssetAtPath<Sprite>(PillBgSpritePath);
+        if (sprite != null) bg.sprite = sprite;
+        bg.type = Image.Type.Sliced;
+        bg.color = PillColor;
     }
 
     /// <summary>在已有胶囊里(左侧竖直居中)加一个货币图标,并把右对齐的数值文本左边距让开图标。

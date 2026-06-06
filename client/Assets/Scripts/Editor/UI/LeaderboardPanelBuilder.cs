@@ -43,7 +43,7 @@ public static class LeaderboardPanelBuilder
         root.AddComponent<YOTOUIShow>();
 
         // ---------- 顶部:返回(左上)----------
-        var backBtn = BuildButton("Btn_Back", "返回", root.transform, 44);
+        var backBtn = UIButtonFactory.Build(_btnPrefab, "Btn_Back", "返回", root.transform, fontSize: 44);
         var backRt = (RectTransform)backBtn.transform;
         backRt.anchorMin = backRt.anchorMax = new Vector2(0, 1); backRt.pivot = new Vector2(0, 1);
         backRt.anchoredPosition = new Vector2(40, -40); backRt.sizeDelta = new Vector2(220, 110);
@@ -106,18 +106,6 @@ public static class LeaderboardPanelBuilder
     }
 
     // ============================ 构件 / 工具 ============================
-
-    private static Button BuildButton(string name, string label, Transform parent, float fontSize)
-    {
-        var go = (GameObject)PrefabUtility.InstantiatePrefab(_btnPrefab, parent);
-        go.name = name;
-        go.SetActive(true);
-        // CommonButton 预制体根 localScale 被烤成 3(art-kit 返工残留),会把调用方设的 sizeDelta 再放大 3 倍。复位为 1,使 sizeDelta 所见即所得。
-        ((RectTransform)go.transform).localScale = Vector3.one;
-        var text = go.GetComponentInChildren<TextMeshProUGUI>(true);
-        if (text != null) { text.text = label; text.fontSize = UITheme.Font(fontSize); }
-        return go.GetComponent<Button>();
-    }
 
     private static GameObject NewUI(string name, out RectTransform rt, Transform parent = null)
     {

@@ -177,7 +177,9 @@
       "Bash(pdfinfo \"软著源程序_前30后30.pdf\")",
       "Bash(python /c/UnityProject/YFramework/tools/soft_copyright/gen_copyright_pdf.py)",
       "Bash(grep -rl \"4e29b1a8efbd4b44bb3f3716e73f07ff\" --include=*.cs.meta .)",
-      "Bash(grep -rl \"4e29b1a8efbd4b44bb3f3716e73f07ff\" --include=*.dll.meta .)"
+      "Bash(grep -rl \"4e29b1a8efbd4b44bb3f3716e73f07ff\" --include=*.dll.meta .)",
+      "Bash(Get-ChildItem -Path \"C:\\\\UnityProject\\\\YFramework\\\\client\\\\Assets\\\\Resources\\\\UI\" -Recurse -Filter \"*.prefab\")",
+      "Bash(Select-Object FullName)"
     ]
   }
 }

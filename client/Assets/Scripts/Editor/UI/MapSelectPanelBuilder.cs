@@ -65,14 +65,12 @@ public static class MapSelectPanelBuilder
         backRt.anchoredPosition = new Vector2(155.2f, -111.9f); backRt.sizeDelta = new Vector2(243.246f, 201.326f);
         var backBtn = backGo.GetComponent<Button>();
 
-        // ---------- 顶部:资源金币(绿色胶囊;图标走 CurrencyIconBinder 运行时加载)----------
+        // ---------- 顶部:资源金币(统一资源胶囊;图标走 CurrencyIconBinder 运行时加载)----------
         var coinGo = NewUI("Coin", out var coinRt, root.transform);
         coinRt.anchorMin = coinRt.anchorMax = new Vector2(0, 1); coinRt.pivot = new Vector2(0, 1);
         coinRt.anchoredPosition = new Vector2(280, -48); coinRt.sizeDelta = new Vector2(340, 96);
         var coinBg = coinGo.AddComponent<Image>();
-        coinBg.sprite = BuiltinSprite("UI/Skin/UISprite.psd");
-        coinBg.type = Image.Type.Sliced;
-        coinBg.color = new Color(0.56f, 0.78f, 0.30f, 1f);
+        UICurrencyPill.ApplyBackground(coinBg);
         var coinText = NewChildText(coinGo, "Value", "0", 48, TextAlignmentOptions.Right);
         ((RectTransform)coinText.transform).offsetMax = new Vector2(-28, 0);
         UICurrencyPill.AddIconLeft(coinGo, (RectTransform)coinText.transform, UICurrencyPill.IconGold); // 金币用图标,不写文字

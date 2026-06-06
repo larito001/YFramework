@@ -31,8 +31,6 @@ public static class TaskPanelBuilder
     // 视口底框(art-kit 半透明圆角盒;预制体里 Viewport 用的就是它)
     private const string ViewportSpritePath = "Assets/Art/UI/NewUI/Shared/Sprite_Common/Popup/Popup_Box_01~03_White_Bg.png";
 
-    // Coin 胶囊为绿色(非 UICurrencyPill 默认深灰),故自定义底色 + AddIconLeft。
-    private static readonly Color CoinPill = new Color(0.56f, 0.78f, 0.30f, 1f);
     private static readonly Color RootBg = new Color(0.91f, 0.90f, 0.95f, 1f);
     private static readonly Color ViewportTint = new Color(0f, 0f, 0f, 0.5254902f);
 
@@ -75,14 +73,12 @@ public static class TaskPanelBuilder
         backRt.anchoredPosition = new Vector2(155.2f, -111.9f); backRt.sizeDelta = new Vector2(243.246f, 201.326f);
         var backBtn = backGo.GetComponent<Button>();
 
-        // ---------- 资源金币(右上偏左,绿色胶囊:深绿底 + 左侧金币图标 + 右对齐数值)----------
+        // ---------- 资源金币(右上偏左,统一资源胶囊:美术九宫格底 + 左侧金币图标 + 右对齐数值)----------
         var coinGo = NewUI("Coin", out var coinRt, root.transform);
         coinRt.anchorMin = coinRt.anchorMax = new Vector2(0, 1); coinRt.pivot = new Vector2(0, 1);
         coinRt.anchoredPosition = new Vector2(300, -48); coinRt.sizeDelta = new Vector2(360, 120);
         var coinBg = coinGo.AddComponent<Image>();
-        coinBg.sprite = BuiltinSprite("UI/Skin/UISprite.psd");
-        coinBg.type = Image.Type.Sliced;
-        coinBg.color = CoinPill;
+        UICurrencyPill.ApplyBackground(coinBg);
         var coinText = NewChildText(coinGo, "Value", "0", 48, TextAlignmentOptions.Right);
         UICurrencyPill.AddIconLeft(coinGo, (RectTransform)coinText.transform, UICurrencyPill.IconGold); // 金币图标运行时动态加载
 

@@ -95,16 +95,10 @@ public static class EquipPanelBuilder
         var bulletRow = BuildSection("Bullet", "子弹", root.transform, BulletTop);
 
         // ---------- 出发(底部居中,art-kit CommonButton)----------
-        var departGo = (GameObject)PrefabUtility.InstantiatePrefab(_departBtnPrefab, root.transform);
-        departGo.name = "Btn_Depart";
-        // CommonButton 预制体根 localScale 被烤成 3(art-kit 返工残留),会把下面设的 sizeDelta 再放大 3 倍。复位为 1,使 sizeDelta 所见即所得。
-        ((RectTransform)departGo.transform).localScale = Vector3.one;
-        var departRt = (RectTransform)departGo.transform;
+        var departBtn = UIButtonFactory.Build(_departBtnPrefab, "Btn_Depart", "出发", root.transform, fontSize: 56);
+        var departRt = (RectTransform)departBtn.transform;
         departRt.anchorMin = departRt.anchorMax = new Vector2(0.5f, 0); departRt.pivot = new Vector2(0.5f, 0);
         departRt.anchoredPosition = new Vector2(0, 230); departRt.sizeDelta = new Vector2(700, 200);
-        var departText = departGo.GetComponentInChildren<TextMeshProUGUI>(true);
-        if (departText != null) { departText.text = "出发"; departText.fontSize = UITheme.Font(56); }
-        var departBtn = departGo.GetComponent<Button>();
 
         // 兄弟顺序:bg, TransBg, backBtn, Gold, Energy, Title, Section_Weapon, Section_Scope, Section_Bullet, Btn_Depart
         // (InstantiatePrefab / NewUI 按创建顺序入栈,与预制体一致,无需手动重排)

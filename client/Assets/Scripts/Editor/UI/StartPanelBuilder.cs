@@ -108,9 +108,9 @@ public static class StartPanelBuilder
         var energyText = BuildPill(root.transform, "Energy", "50",
             new Vector2(-176, -80), new Vector2(300, 100), CurrencyType.Energy);
 
-        // ---------- 右上:金币胶囊(体力下一行)----------
+        // ---------- 右上:金币胶囊(与体力同排,金币在左、体力在右)----------
         var goldText = BuildPill(root.transform, "Gold", "0",
-            new Vector2(-60, -196), new Vector2(360, 100), CurrencyType.Gold);
+            new Vector2(-500, -80), new Vector2(360, 100), CurrencyType.Gold);
 
         // ---------- 底部左竖排:任务(上)/ 商店(下)----------
         var leftCol = NewUI("LeftColumn", out var leftRt, root.transform);
@@ -122,16 +122,13 @@ public static class StartPanelBuilder
         var btnTask = BuildYellowButton("Btn_Task", "任务", leftCol.transform, null);
         var btnShop = BuildYellowButton("Btn_Shop", "商店", leftCol.transform, LoadSprite(ShopIconPath), Color.black);
 
-        // ---------- 底部中间:准备(CommonButton 主按钮)----------
-        var prepareGo = (GameObject)PrefabUtility.InstantiatePrefab(_commonButton, root.transform);
-        prepareGo.name = "Btn_Prepare";
-        var prepareRt = (RectTransform)prepareGo.transform;
+        // ---------- 底部中间:准备(CommonButton 主按钮;保留 art-kit 3 倍缩放,故 resetScale: false)----------
+        var btnPrepare = UIButtonFactory.Build(_commonButton, "Btn_Prepare", "准备", root.transform, resetScale: false);
+        var prepareRt = (RectTransform)btnPrepare.transform;
         prepareRt.anchorMin = prepareRt.anchorMax = new Vector2(0.5f, 0);
         prepareRt.pivot = new Vector2(0.5f, 0);
         prepareRt.anchoredPosition = new Vector2(0, 177);
         prepareRt.sizeDelta = new Vector2(202.4951f, 115.8548f);
-        var btnPrepare = prepareGo.GetComponent<Button>();
-        SetButtonText(prepareGo, "准备");
 
         // ---------- 底部右竖排:图鉴(上)/ 排行榜(下)----------
         var rightCol = NewUI("RightColumn", out var rightRt, root.transform);
@@ -169,32 +166,10 @@ public static class StartPanelBuilder
     /// <summary>实例化 CommonButtonYellow,设置名称/文本/(可选)图标 sprite 与颜色,返回其 Button。尺寸由父级 VLG 控制。</summary>
     private static Button BuildYellowButton(string name, string label, Transform parent, Sprite icon, Color? iconColor = null)
     {
-        var go = (GameObject)PrefabUtility.InstantiatePrefab(_commonButtonYellow, parent);
-        go.name = name;
-        go.SetActive(true);
-
-        SetButtonText(go, label);
-
-        if (icon != null)
-        {
-            // CommonButtonYellow 的 "Image" 子物体承载图标 sprite
-            var imageTr = go.transform.Find("Image");
-            var img = imageTr != null ? imageTr.GetComponent<Image>() : null;
-            if (img != null)
-            {
-                img.sprite = icon;
-                if (iconColor.HasValue) img.color = iconColor.Value;
-            }
-        }
-
-        return go.GetComponent<Button>();
-    }
-
-    /// <summary>把按钮内的 TMP 文本设为 label(CommonButton / CommonButtonYellow 内含 Text(TMP))。</summary>
-    private static void SetButtonText(GameObject buttonGo, string label)
-    {
-        var text = buttonGo.GetComponentInChildren<TextMeshProUGUI>(true);
-        if (text != null) text.text = label;
+        // 黄色侧栏键依赖 art-kit 3 倍缩放(尺寸由父级 VLG 控制),故 resetScale: false。
+        var btn = UIButtonFactory.Build(_commonButtonYellow, name, label, parent, resetScale: false);
+        UIButtonFactory.SetIcon(btn.gameObject, icon, iconColor); // CommonButtonYellow 的 "Image" 子物体承载图标
+        return btn;
     }
 
     private static void AddVLG(GameObject go, float spacing)
@@ -248,9 +223,7 @@ public static class StartPanelBuilder
         var go = NewUI(name, out var rt, parent);
         TopRight(rt, anchoredPos, size);
         var bg = go.AddComponent<Image>();
-        bg.sprite = BuiltinSprite("UI/Skin/UISprite.psd");
-        bg.type = Image.Type.Sliced;
-        bg.color = new Color(0.25f, 0.27f, 0.33f, 1f);
+        UICurrencyPill.ApplyBackground(bg); // 统一资源胶囊背景(美术九宫格 + 纯黑半透明)
 
         if (iconType.HasValue)
         {

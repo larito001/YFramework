@@ -94,7 +94,7 @@ public static class FinishPanelBuilder
         var totalText = NewText(totalGo, "总积分：0", 52, TextAlignmentOptions.Right, new Color(0.25f, 0.24f, 0.30f, 1f));
 
         // ---------- 返回大厅按钮(卡片底部)----------
-        var confirmBtn = BuildButton("Btn_Confirm", "返回大厅", card.transform, 50);
+        var confirmBtn = UIButtonFactory.Build(_btnPrefab, "Btn_Confirm", "返回大厅", card.transform, fontSize: 50);
         var confirmRt = (RectTransform)confirmBtn.transform;
         confirmRt.anchorMin = confirmRt.anchorMax = new Vector2(0.5f, 0); confirmRt.pivot = new Vector2(0.5f, 0);
         confirmRt.anchoredPosition = new Vector2(0, 50); confirmRt.sizeDelta = new Vector2(420, 120);
@@ -116,18 +116,6 @@ public static class FinishPanelBuilder
     }
 
     // ============================ 工具 ============================
-
-    private static Button BuildButton(string name, string label, Transform parent, float fontSize)
-    {
-        var go = (GameObject)PrefabUtility.InstantiatePrefab(_btnPrefab, parent);
-        go.name = name;
-        go.SetActive(true);
-        // CommonButton 预制体根 localScale 被烤成 3(art-kit 返工残留),会把调用方设的 sizeDelta 再放大 3 倍。复位为 1,使 sizeDelta 所见即所得。
-        ((RectTransform)go.transform).localScale = Vector3.one;
-        var text = go.GetComponentInChildren<TextMeshProUGUI>(true);
-        if (text != null) { text.text = label; text.fontSize = UITheme.Font(fontSize); }
-        return go.GetComponent<Button>();
-    }
 
     private static GameObject NewUI(string name, out RectTransform rt, Transform parent = null)
     {
