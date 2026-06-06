@@ -16,9 +16,9 @@ public static class UICurrencyPill
     public const CurrencyType IconGold   = CurrencyType.Gold;
     public const CurrencyType IconEnergy = CurrencyType.Energy;
 
-    // 资源胶囊统一背景:美术九宫格图 + 纯黑半透明底。所有面板的资源胶囊都走 ApplyBackground,改背景只动这两行即可全局生效。
-    public const string PillBgSpritePath = "Assets/Art/UI/NewUI/Shared/Sprite_Common/Slider/Slider_Swipe_01_Bg.png";
-    private static readonly Color PillColor = new Color(0f, 0f, 0f, 0.5294118f); // 纯黑 α≈53%(与主界面 Energy 胶囊同款)
+    // 资源框统一背景:美术整图 equipTitleBlock(黑底 + 绿边)。所有面板的资源框都走 ApplyBackground,改背景只动这两行即可全局生效。
+    public const string PillBgSpritePath = "Assets/Art/UI/NewUI/Theme_Blue/Sprites/equipTitleBlock.png";
+    private static readonly Color PillColor = Color.white; // 显示整图本色(不再叠黑半透明)
 
     /// <summary>
     /// 新建一个完整资源胶囊(深色底 + 左图标 + 数值),返回数值文本(运行时只填数字)。
@@ -50,7 +50,8 @@ public static class UICurrencyPill
         csf.verticalFit = ContentSizeFitter.FitMode.Unconstrained;
 
         // 图标(LayoutElement 固定方形);Sprite 不烤进预制体——挂 CurrencyIconBinder 运行时按币种动态加载。
-        float iconSize = size.y * 0.6f;
+        // 资源 icon 放大一倍(0.6→1.2;新图标带光晕留白,放大后视觉才正常)。奖励弹窗图标在 RewardClaimPanel 自管,不受此影响。
+        float iconSize = size.y * 1.2f;
         var ig = new GameObject("Icon", typeof(RectTransform), typeof(Image), typeof(CurrencyIconBinder), typeof(LayoutElement));
         ig.transform.SetParent(go.transform, false);
         var im = ig.GetComponent<Image>();
@@ -82,13 +83,13 @@ public static class UICurrencyPill
         return tmp;
     }
 
-    /// <summary>给资源胶囊底图 Image 应用统一背景:美术九宫格 sprite + 纯黑半透明 + Sliced。
-    /// 所有面板(主界面/商店/装备/任务/图鉴/地图)的资源胶囊底都调这里,想换背景只改 <see cref="PillBgSpritePath"/> 与 <c>PillColor</c>。</summary>
+    /// <summary>给资源框底图 Image 应用统一背景:美术整图 sprite(本色显示)。
+    /// 所有面板(主界面/商店/装备/任务/图鉴/地图)的资源框底都调这里,想换背景只改 <see cref="PillBgSpritePath"/> 与 <c>PillColor</c>。</summary>
     public static void ApplyBackground(Image bg)
     {
         var sprite = AssetDatabase.LoadAssetAtPath<Sprite>(PillBgSpritePath);
         if (sprite != null) bg.sprite = sprite;
-        bg.type = Image.Type.Sliced;
+        bg.type = Image.Type.Simple; // equipTitleBlock 非九宫格整图,用 Simple 拉伸
         bg.color = PillColor;
     }
 

@@ -65,6 +65,8 @@ public class RewardClaimPanel : UIPageBase<RewardClaimParam>
     [Header("外壳(由 Builder 接好)")]
     public TextMeshProUGUI titleText;
     public RectTransform rewardContainer; // HorizontalLayoutGroup 容器,运行时填奖励格
+    public Sprite goldRewardIcon;         // 金币奖励整图(getCoin;在 Art 下故烘入引用)
+    public Sprite energyRewardIcon;       // 体力奖励整图(getHeart)
 
     private BagSystem bag;
     private CurrencySystem currency;
@@ -148,51 +150,31 @@ public class RewardClaimPanel : UIPageBase<RewardClaimParam>
 
     private void BuildCell(RewardEntry r)
     {
-        string name = ResolveName(r);
-
-        // 格容器:宽高由 LayoutElement 提供给 HorizontalLayoutGroup,内部子节点按锚点贴边布局。放大以配合更大的窗口。
+        // 格容器:宽高由 LayoutElement 提供给 HorizontalLayoutGroup,容器自身在白色内容框内居中。
+        // 奖励居中显示:上图标 + 下数量(不显示名称)。
         var cell = NewChild(rewardContainer, $"Reward_{r.kind}_{r.id}", out _);
         var le = cell.AddComponent<LayoutElement>();
-        le.preferredWidth = 460; le.preferredHeight = 640;
+        le.preferredWidth = 360; le.preferredHeight = 440;
 
-        // 图标(上部方形区)。缩到 340 给下方数量/名称腾出足够高度(字号 ×2 后约 100px,文字框必须够高)。
+        // 图标(上部,水平居中)
         var icon = NewChild(cell.transform, "Icon", out var iconRt);
         iconRt.anchorMin = new Vector2(0.5f, 1f); iconRt.anchorMax = new Vector2(0.5f, 1f); iconRt.pivot = new Vector2(0.5f, 1f);
-        iconRt.anchoredPosition = new Vector2(0, -30); iconRt.sizeDelta = new Vector2(340, 340); // 底部到 y≈270
+        iconRt.anchoredPosition = new Vector2(0, -30); iconRt.sizeDelta = new Vector2(290, 290); // 底部到 y≈120
         var iconImg = icon.AddComponent<Image>();
         iconImg.raycastTarget = false; iconImg.preserveAspect = true;
-        BindIconAsync(iconImg, r); // 异步:道具优先 3D 模型快照,货币/无模型回退 2D 图标
+        BindIconAsync(iconImg, r); // 货币用专用整图(金币/体力),道具优先 3D 模型快照、回退 2D 图标
 
-        // 数量(图标正下方,×N,醒目金色)。框高 110(≥ 48×FontScale)+ Overflow,确保放大后的字号完整显示。
+        // 数量(图标正下方,居中,×N,醒目金色)。框高 90 + Overflow,放大字号也完整显示。
         var count = NewChild(cell.transform, "Count", out var countRt);
         countRt.anchorMin = new Vector2(0, 0); countRt.anchorMax = new Vector2(1, 0); countRt.pivot = new Vector2(0.5f, 0);
-        countRt.offsetMin = new Vector2(0, 160); countRt.offsetMax = new Vector2(0, 270);
-        NewText(count, $"×{r.count}", 48, TextAlignmentOptions.Center, new Color(1f, 0.83f, 0.47f, 1f));
+        countRt.offsetMin = new Vector2(0, 20); countRt.offsetMax = new Vector2(0, 110);
+        NewText(count, $"×{r.count}", 48, TextAlignmentOptions.Center, new Color(0.10f, 0.10f, 0.12f, 1f)); // 黑色数字(衬白色内容框)
         var countTmp = count.GetComponent<TextMeshProUGUI>();
         if (countTmp != null) countTmp.overflowMode = TextOverflowModes.Overflow; // 不裁切,放大字号也完整显示
-
-        // 名称(底部)
-        var nameGo = NewChild(cell.transform, "Name", out var nameRt);
-        nameRt.anchorMin = new Vector2(0, 0); nameRt.anchorMax = new Vector2(1, 0); nameRt.pivot = new Vector2(0.5f, 0);
-        nameRt.offsetMin = new Vector2(0, 50); nameRt.offsetMax = new Vector2(0, 160);
-        NewText(nameGo, name, 40, TextAlignmentOptions.Center, Color.white);
     }
 
-    /// <summary>取奖励显示名(货币→币种名;道具→配表名,缺名用「道具{id}」)。</summary>
-    private string ResolveName(RewardEntry r)
-    {
-        if (r.kind == RewardKind.Currency)
-        {
-            var type = (CurrencyType)r.id;
-            return currency != null ? currency.DisplayName(type) : type.ToString();
-        }
-
-        var item = bag?.GetItem(r.id);
-        return item != null && !string.IsNullOrEmpty(item.Name) ? item.Name : $"道具{r.id}";
-    }
-
-    /// <summary>异步把奖励图标贴到 <paramref name="img"/>:道具优先 3D 模型侧视快照(与商店/装备卡一致,武器只有 ModelPath
-    /// 也能显示),无模型回退 2D 图标;货币走 <see cref="CurrencyIcon"/>(金币/体力)或 currency 配表 IconPath(其它币种)。</summary>
+    /// <summary>把奖励图标贴到 <paramref name="img"/>:金币/体力优先用 Builder 接入的奖励整图(getCoin/getHeart);
+    /// 其它货币走 currency 配表 IconPath;道具优先 3D 模型侧视快照(武器只有 ModelPath 也能显示),无模型回退 2D 图标。</summary>
     private void BindIconAsync(Image img, RewardEntry r)
     {
         if (img == null) return;
@@ -200,6 +182,11 @@ public class RewardClaimPanel : UIPageBase<RewardClaimParam>
         if (r.kind == RewardKind.Currency)
         {
             var type = (CurrencyType)r.id;
+            // 金币/体力:优先用 Builder 接入的奖励整图(getCoin/getHeart),无需异步加载
+            Sprite direct = type == CurrencyType.Gold ? goldRewardIcon
+                          : type == CurrencyType.Energy ? energyRewardIcon : null;
+            if (direct != null) { img.sprite = direct; img.enabled = true; return; }
+
             string path = (type == CurrencyType.Gold || type == CurrencyType.Energy)
                 ? CurrencyIcon.ResPath(type)
                 : (currency != null ? currency.IconPath(type) : null);

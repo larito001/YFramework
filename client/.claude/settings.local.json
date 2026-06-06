@@ -179,7 +179,15 @@
       "Bash(grep -rl \"4e29b1a8efbd4b44bb3f3716e73f07ff\" --include=*.cs.meta .)",
       "Bash(grep -rl \"4e29b1a8efbd4b44bb3f3716e73f07ff\" --include=*.dll.meta .)",
       "Bash(Get-ChildItem -Path \"C:\\\\UnityProject\\\\YFramework\\\\client\\\\Assets\\\\Resources\\\\UI\" -Recurse -Filter \"*.prefab\")",
-      "Bash(Select-Object FullName)"
+      "Bash(Select-Object FullName)",
+      "Bash(cp -f Assets/Art/UI/NewUI/Theme_Blue/Sprites/getCoin.png Assets/Resources/UI/Icons/coin_2.png)",
+      "Bash(cp -f Assets/Art/UI/NewUI/Theme_Blue/Sprites/getHeart.png Assets/Resources/UI/Icons/energy.png)",
+      "Bash(ls -la Assets/Art/UI/NewUI/Theme_Blue/Sprites/equipTitleBlock.png)",
+      "Bash(grep -E \"textureType:|spriteMode:\" Assets/Art/UI/NewUI/Theme_Blue/Sprites/equipTitleBlock.png.meta)",
+      "Bash(file Assets/Art/UI/NewUI/Theme_Blue/Sprites/equipTitleBlock.png)",
+      "Bash(python3 -c \"from PIL import Image; print\\('PIL OK'\\)\")",
+      "Bash(which magick *)",
+      "Bash(python3 -c ' *)"
     ]
   }
 }
