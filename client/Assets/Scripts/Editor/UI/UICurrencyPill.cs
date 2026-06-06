@@ -50,8 +50,8 @@ public static class UICurrencyPill
         csf.verticalFit = ContentSizeFitter.FitMode.Unconstrained;
 
         // 图标(LayoutElement 固定方形);Sprite 不烤进预制体——挂 CurrencyIconBinder 运行时按币种动态加载。
-        // 资源 icon 放大一倍(0.6→1.2;新图标带光晕留白,放大后视觉才正常)。奖励弹窗图标在 RewardClaimPanel 自管,不受此影响。
-        float iconSize = size.y * 1.2f;
+        // 资源 icon 再放大一倍(1.2→2.4;新图标带光晕留白,放大后视觉才正常)。奖励弹窗图标在 RewardClaimPanel 自管,不受此影响。
+        float iconSize = size.y * 2.4f;
         var ig = new GameObject("Icon", typeof(RectTransform), typeof(Image), typeof(CurrencyIconBinder), typeof(LayoutElement));
         ig.transform.SetParent(go.transform, false);
         var im = ig.GetComponent<Image>();

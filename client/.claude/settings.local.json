@@ -187,7 +187,8 @@
       "Bash(file Assets/Art/UI/NewUI/Theme_Blue/Sprites/equipTitleBlock.png)",
       "Bash(python3 -c \"from PIL import Image; print\\('PIL OK'\\)\")",
       "Bash(which magick *)",
-      "Bash(python3 -c ' *)"
+      "Bash(python3 -c ' *)",
+      "Bash(grep -E \"\\\\.\\(unity|cs\\)$\")"
     ]
   }
 }
