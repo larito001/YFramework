@@ -21,8 +21,9 @@ public class CameraManager : IGameService, ILateTickable
 
     /// <summary>跟随目标（俯视角玩家）。SetFollow 设进来。Cinemachine 启用时不生效，由虚拟相机接管。</summary>
     public Transform FollowTarget { get; private set; }
-    /// <summary>相机相对玩家的偏移，默认顶视稍倾后角（60° 俯角）。</summary>
-    public Vector3 FollowOffset = new Vector3(0f, 10f, -7f);
+    /// <summary>相机相对玩家的偏移，顶视稍倾后角（约 55° 俯角）。从 (0,10,-7) 整体压低拉近 ~30%，
+    /// 相机不再过高、玩家在画面里更大；俯角基本不变。想再高/低改这里：等比缩放保角，单调 y 改俯角。</summary>
+    public Vector3 FollowOffset = new Vector3(0f, 7f, -5f);
     /// <summary>跟随的指数平滑系数，值越大越紧跟。</summary>
     public float FollowSmoothing = 20f;
 

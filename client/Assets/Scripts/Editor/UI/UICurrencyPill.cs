@@ -49,17 +49,25 @@ public static class UICurrencyPill
         csf.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
         csf.verticalFit = ContentSizeFitter.FitMode.Unconstrained;
 
-        // 图标(LayoutElement 固定方形);Sprite 不烤进预制体——挂 CurrencyIconBinder 运行时按币种动态加载。
-        // 资源 icon 再放大一倍(1.2→2.4;新图标带光晕留白,放大后视觉才正常)。奖励弹窗图标在 RewardClaimPanel 自管,不受此影响。
-        float iconSize = size.y * 2.4f;
-        var ig = new GameObject("Icon", typeof(RectTransform), typeof(Image), typeof(CurrencyIconBinder), typeof(LayoutElement));
+        // 图标:布局只占「一个胶囊高」的方形槽(背景宽度据此自适应,不会被放大的图标撑长);
+        // 视觉放大交给子 Image,超出槽位的部分是图标四周透明光晕,overhang 不挡数字。
+        // 奖励弹窗图标在 RewardClaimPanel 自管,不受此影响。
+        float iconSlot = size.y;          // 布局footprint(决定背景长度)
+        float iconVisual = size.y * 2.0f; // 图标视觉放大(想更大改这里,不会再撑长背景)
+        var ig = new GameObject("Icon", typeof(RectTransform), typeof(LayoutElement));
         ig.transform.SetParent(go.transform, false);
-        var im = ig.GetComponent<Image>();
-        im.preserveAspect = true; im.raycastTarget = false;
-        ig.GetComponent<CurrencyIconBinder>().type = type;
         var ile = ig.GetComponent<LayoutElement>();
-        ile.minWidth = ile.preferredWidth = iconSize;
-        ile.minHeight = ile.preferredHeight = iconSize;
+        ile.minWidth = ile.preferredWidth = iconSlot;
+        ile.minHeight = ile.preferredHeight = iconSlot;
+        var imgGo = new GameObject("Img", typeof(RectTransform), typeof(Image), typeof(CurrencyIconBinder));
+        var irt = (RectTransform)imgGo.transform;
+        irt.SetParent(ig.transform, false);
+        irt.anchorMin = irt.anchorMax = irt.pivot = new Vector2(0.5f, 0.5f);
+        irt.anchoredPosition = Vector2.zero;
+        irt.sizeDelta = new Vector2(iconVisual, iconVisual);
+        var im = imgGo.GetComponent<Image>();
+        im.preserveAspect = true; im.raycastTarget = false;
+        imgGo.GetComponent<CurrencyIconBinder>().type = type;
 
         // 数值(TMP 按内容报告 preferred 宽度,胶囊据此撑开;居中,短数字时两侧留白均衡)
         var valueGo = new GameObject("Value", typeof(RectTransform), typeof(LayoutElement));
@@ -78,7 +86,7 @@ public static class UICurrencyPill
         // 数值区最小宽度:短数字(如体力 62)也保持像样的胶囊长度,避免过短难看。
         // 总最小宽度 minWidth 扣掉左右内边距(24+32)、图标间距(12)与图标本身,余下给数值区。
         var vle = valueGo.GetComponent<LayoutElement>();
-        vle.minWidth = Mathf.Max(0f, minWidth - (24 + 32 + 12 + iconSize));
+        vle.minWidth = Mathf.Max(0f, minWidth - (24 + 32 + 12 + iconSlot));
 
         return tmp;
     }

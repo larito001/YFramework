@@ -188,7 +188,8 @@
       "Bash(python3 -c \"from PIL import Image; print\\('PIL OK'\\)\")",
       "Bash(which magick *)",
       "Bash(python3 -c ' *)",
-      "Bash(grep -E \"\\\\.\\(unity|cs\\)$\")"
+      "Bash(grep -E \"\\\\.\\(unity|cs\\)$\")",
+      "Bash(grep -E \"\\\\.prefab$\")"
     ]
   }
 }

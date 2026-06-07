@@ -32,7 +32,7 @@ public static class TaskPanelBuilder
     // 视口底框(art-kit 半透明圆角盒;预制体里 Viewport 用的就是它)
     private const string ViewportSpritePath = "Assets/Art/UI/NewUI/Shared/Sprite_Common/Frame/PanelFrame/PanelFrame_03_White_Bg.png";
     // 顶部标题图(美术整图「任务」,反推自预制体 PanelTitle 的 sprite)
-    private const string PanelTitleSpritePath = "Assets/Art/UI/NewUI/Theme_Blue/Sprites/20260606-195615.png";
+    private const string PanelTitleSpritePath = "Assets/Art/UI/NewUI/Theme_Blue/Sprites/TaskTitle.png";
 
     private static readonly Color RootBg = new Color(0.91f, 0.90f, 0.95f, 1f);
     private static readonly Color ViewportTint = UITheme.PanelBacking; // 统一内容底板(深冷色,非纯黑)
