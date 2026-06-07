@@ -83,6 +83,10 @@ public class Character : Actor
     /// -1 = 回退技能 0（保持旧"V 近战"行为）。</summary>
     public int WeaponSecondarySkill = -1;
 
+    /// <summary>当前武器的连招图（<see cref="ComboGraph"/>）资源路径。WeaponComponent.ApplySwap 从 currentWeapon.ComboGraphPath 镜像写入。
+    /// 空 / null = 当前武器无连招（ComboComponent 回退单招 WeaponPrimarySkill/WeaponSecondarySkill）。ComboComponent 轮询本字段变化即重载图。</summary>
+    public string CurrentComboGraphPath;
+
     /// <summary>当前武器对应的 <see cref="WeaponAnimSet"/> 资源路径（Resources 相对路径）。WeaponComponent.ApplySwap 时
     /// 从 currentWeapon.AnimSetPath 镜像写入。空 / null = 持有者 view 走默认 idle pose。</summary>
     public string CurrentWeaponAnimSetPath;

@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5ec6ec7f262c1a7429bcd00d1ba4bfa9, type: 3}
+  m_Name: KnifeCombo
+  m_EditorClassIdentifier: 
+  Nodes:
+  - Name: Neutral
+    Skill: {fileID: 0}
+    Links:
+    - Button: 0
+      Direction: 0
+      TargetNode: 1
+    - Button: 1
+      Direction: 0
+      TargetNode: 4
+  - Name: Atk1
+    Skill: {fileID: 11400000, guid: d69f051988ab5e0479c0496016f17058, type: 2}
+    Links:
+    - Button: 0
+      Direction: 0
+      TargetNode: 2
+  - Name: Atk2
+    Skill: {fileID: 11400000, guid: a45202c228212d2419e1fcf9dbcd0dd7, type: 2}
+    Links:
+    - Button: 0
+      Direction: 0
+      TargetNode: 3
+    - Button: 1
+      Direction: 0
+      TargetNode: 4
+  - Name: Atk3
+    Skill: {fileID: 11400000, guid: 6099c243c76357e4b8e59efa8e0505c2, type: 2}
+    Links: []
+  - Name: Heavy
+    Skill: {fileID: 11400000, guid: 764036320c427a642b2d1d3e70d92efd, type: 2}
+    Links: []

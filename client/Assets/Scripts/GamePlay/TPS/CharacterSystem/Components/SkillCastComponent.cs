@@ -37,6 +37,11 @@ public class SkillCastComponent : ICharacterComponent
     /// <summary>已加载的可释放技能数量（= SkillPaths 数）。AI 取随机技能下标用，避免在别处手抄数量。</summary>
     public int SkillCount => skills.Count;
 
+    /// <summary>是否正在释放技能。连招前端（<see cref="ComboComponent"/>）据此判断"起手 vs 接招 vs 掉连归零"。</summary>
+    public bool IsCasting => active != null;
+    /// <summary>当前是否可被下一击打断接招（= 已进入取消窗 <see cref="InCancelWindow"/>）。ComboComponent 据此决定接不接下一招。</summary>
+    public bool CanChainNow => InCancelWindow();
+
     // ── runtime ──
     private SkillDef active;
     private int segIndex;
@@ -114,21 +119,28 @@ public class SkillCastComponent : ICharacterComponent
         base.Detach();
     }
 
-    /// <summary>释放第 index 个技能。已在释放中（不可打断）/ 死亡 / 切枪过场中 静默忽略；越界 / 资产空 报 warning。</summary>
+    /// <summary>释放第 index 个技能（指向 <see cref="SkillPaths"/>）。越界报 warning；其余门控见 <see cref="Cast(SkillDef)"/>。
+    /// AI 走这条（OnCastSkill 订阅）；玩家连招走 <see cref="ComboComponent"/> → <see cref="Cast(SkillDef)"/>。</summary>
     public void Cast(int index)
+    {
+        if (index < 0 || index >= skills.Count)
+        {
+            Debug.LogWarning($"[SkillCastComponent] Cast 技能下标越界: {index}（共 {skills.Count} 个技能）。Actor {Owner?.ID}");
+            return;
+        }
+        Cast(skills[index]);
+    }
+
+    /// <summary>释放指定 <see cref="SkillDef"/>。已在释放中（不可打断，除非进入取消窗→连招打断）/ 死亡 / 切枪过场中 静默忽略；资产空报 warning。
+    /// 连招前端（<see cref="ComboComponent"/>）按招式图直接传 def 调本方法；StartSegment(0) 会清掉上一招残留的命中窗/动效/位移记录。</summary>
+    public void Cast(SkillDef def)
     {
         if (Owner == null || Owner.IsDead) return;
         if (Owner.IsSwapping) return;                        // 切枪过场中不能放技能（与"技能中不能切枪"对称）
         if (active != null && !InCancelWindow()) return;     // 不可打断——除非已进入取消窗（命中后摇可被下一击打断 = 连招）
-        if (index < 0 || index >= skills.Count)
-        {
-            Debug.LogWarning($"[SkillCastComponent] Cast 技能下标越界: {index}（共 {skills.Count} 个技能）。Actor {Owner.ID}");
-            return;
-        }
-        var def = skills[index];
         if (def == null || def.Segments == null || def.Segments.Length == 0)
         {
-            Debug.LogWarning($"[SkillCastComponent] Cast 技能 [{index}] 资产空 / 无 segment（路径 {(index < SkillPaths.Count ? SkillPaths[index] : "?")}）。Actor {Owner.ID}");
+            Debug.LogWarning($"[SkillCastComponent] Cast 技能资产空 / 无 segment。Actor {Owner.ID}");
             return;
         }
 

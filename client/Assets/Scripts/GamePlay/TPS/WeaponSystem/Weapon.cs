@@ -59,6 +59,11 @@ public class Weapon : Actor
     /// 切枪时写到 Character.WeaponSecondarySkill。</summary>
     public int SecondarySkillIndex = -1;
 
+    /// <summary>本武器的连招招式图（<see cref="ComboGraph"/>）资源路径（Resources 相对路径，如 "Skill/KnifeCombo"）。
+    /// 空 / null（默认）= 本武器无连招：攻击键回退到单招（左键放 <see cref="PrimarySkillIndex"/>、V 放 <see cref="SecondarySkillIndex"/>）。
+    /// 配了图 = 走连招（左键/V 按图分支接招）。切枪时 WeaponComponent.ApplySwap 镜像到 Character.CurrentComboGraphPath，ComboComponent 据此重载图。</summary>
+    public string ComboGraphPath;
+
     // ── 开火几何（武器自配，持枪人读着算 FireOrigin） ──
     /// <summary>枪口相对持有者 (Position + Rotation) 的本地坐标偏移（米）。x=横向、y=高度、z=朝前推。
     /// 持枪人组件（玩家 WeaponComponent / 塔 TowerWeaponComponent）算 FireOrigin 都是：

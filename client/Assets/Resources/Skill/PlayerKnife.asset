@@ -18,6 +18,7 @@ MonoBehaviour:
   - Clip: {fileID: 7400002, guid: 6ee5c0f8025162c428ad98b2cfcd7526, type: 3}
     Fade: 0.1
     HoldDuration: 0
+    CancelFromNorm: 0.6
     ForwardDistance: 1.2
     DistanceProfile:
       serializedVersion: 2

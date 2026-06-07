@@ -23,14 +23,18 @@ public abstract class InputComponentBase : ICharacterComponent
     /// <summary>瞄准世界点（AimHeld 时有效）。玩家=鼠标射线∩枪口高度平面；AI 不瞄准则忽略。</summary>
     public Vector3 AimWorldPoint { get; protected set; }
 
-    /// <summary>释放技能请求（参数=技能下标）。玩家 V 键→0；AI→随机。<see cref="SkillCastComponent"/> 订阅。</summary>
+    /// <summary>释放技能请求（参数=技能下标）。AI→随机下标，<see cref="SkillCastComponent"/> 直接订阅。
+    /// 玩家走 <see cref="OnAttack"/> + <see cref="ComboComponent"/>（连招前端），不直接发本事件。</summary>
     public event Action<int> OnCastSkill;
+    /// <summary>攻击键事件（连招用，参数=语义按键）。玩家左键→Light、V→Heavy。<see cref="ComboComponent"/> 订阅、按武器连招图路由成具体技能。</summary>
+    public event Action<ComboButton> OnAttack;
     /// <summary>换弹请求。<see cref="WeaponComponent"/> 订阅。</summary>
     public event Action OnReload;
     /// <summary>选武器槽请求（0..8）。<see cref="WeaponComponent"/> 订阅。</summary>
     public event Action<int> OnWeaponSelect;
 
     protected void RaiseCastSkill(int index) => OnCastSkill?.Invoke(index);
+    protected void RaiseAttack(ComboButton button) => OnAttack?.Invoke(button);
     protected void RaiseReload() => OnReload?.Invoke();
     protected void RaiseWeaponSelect(int slot) => OnWeaponSelect?.Invoke(slot);
 

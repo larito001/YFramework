@@ -58,6 +58,9 @@ public class CharacterFactory
             SkillPaths = new List<string> { "Skill/PlayerMelee", "Skill/PlayerKnife", "Skill/PlayerKnifeV" },
             // HitLayers 默认全开。生产期建议改成只含敌人层。
         });
+        // 连招前端：把左键(Light)/V(Heavy) 按当前武器的 ComboGraph 路由成连段，交 SkillCast 执行。
+        // 无图的武器（枪 / 当前 knife 未配图）自动回退单招——接连招前的行为零改变。必须在 Input + SkillCast 之后 Add。
+        character.AddAfter<ComboComponent, SkillCastComponent>(new ComboComponent());
         // 重力 + 贴地。写 WishVelocity.y，放在所有写 x/z 的组件之后
         character.Add(new GravityComponent());
         character.Add(new HealthComponent
@@ -357,9 +360,13 @@ public class CharacterFactory
             HolsterDuration = 1.8f,
             EquipDuration = 1.8f,
             SwapAnimSpeed = 1f,
-            // 左键→技能 PlayerKnife（SkillPaths[1]）；V→技能 PlayerKnifeV（SkillPaths[2]）
+            // 左键→技能 PlayerKnife（SkillPaths[1]）；V→技能 PlayerKnifeV（SkillPaths[2]）。
+            // 这两条是**无连招图时的单招回退**——配了 ComboGraphPath 后走连招、忽略这两个下标。
             PrimarySkillIndex = 1,
             SecondarySkillIndex = 2,
+            // 连招图（菜单 Tools/TPS/Build Combo Demo (Knife) 一键生成）：左键三连段 + 重击分支。
+            // 资产缺失（没跑生成器）→ ComboComponent 回退到上面 Primary/Secondary 单招（仅一条 warning，不崩）。
+            ComboGraphPath = "Skill/KnifeCombo",
         };
     }
 }

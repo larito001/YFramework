@@ -82,13 +82,10 @@ public class InputComponent : InputComponentBase
         }
     }
 
-    /// <summary>左键按下：仅近战/技能武器（WeaponPrimarySkill&gt;=0）放第一个技能（一次按一下）。常规枪左键开火走 FireHeld，不在此处理。</summary>
-    private void HandleFireDown()
-    {
-        if (Owner != null && Owner.WeaponPrimarySkill >= 0) RaiseCastSkill(Owner.WeaponPrimarySkill);
-    }
+    /// <summary>左键按下 → 语义"轻击"（Light）。<see cref="ComboComponent"/> 接管：有连招图走图、无图回退单招（WeaponPrimarySkill）、
+    /// 常规枪（WeaponPrimarySkill&lt;0）则被 ComboComponent 忽略、左键开火照常走 FireHeld。这里不再直接判技能下标。</summary>
+    private void HandleFireDown() => RaiseAttack(ComboButton.Light);
 
-    /// <summary>V 键：放当前武器的第二个技能（WeaponSecondarySkill）。常规枪 = -1 → 回退技能 0（保持旧"V 近战"）。</summary>
-    private void HandleMelee()
-        => RaiseCastSkill(Owner != null && Owner.WeaponSecondarySkill >= 0 ? Owner.WeaponSecondarySkill : 0);
+    /// <summary>V 键 → 语义"重击"（Heavy）。ComboComponent 接管：有图走图、无图回退单招（WeaponSecondarySkill，-1 回退技能 0 = 旧"V 近战"）。</summary>
+    private void HandleMelee() => RaiseAttack(ComboButton.Heavy);
 }

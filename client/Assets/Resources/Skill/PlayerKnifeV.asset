@@ -14,12 +14,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Name: PlayerMelee
   RecoverFade: 0.2
-  ShakeIntensity: 0
-  ShakeDuration: 0
   Segments:
   - Clip: {fileID: 7400002, guid: 899ccc5bb593a7f43aa8c65d4178d9fc, type: 3}
     Fade: 0.1
     HoldDuration: 0
+    CancelFromNorm: 0.6
     ForwardDistance: 4
     DistanceProfile:
       serializedVersion: 2
@@ -174,3 +173,4 @@ MonoBehaviour:
       RotationEuler: {x: 0, y: 0, z: 0}
       Scale: 0
       AttachToOwner: 0
+    Shake: []

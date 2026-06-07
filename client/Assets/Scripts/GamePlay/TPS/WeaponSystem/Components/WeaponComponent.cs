@@ -99,6 +99,7 @@ public class WeaponComponent : ICharacterComponent
             Owner.SwapAnimSpeed = 1f;
             Owner.WeaponPrimarySkill = -1;
             Owner.WeaponSecondarySkill = -1;
+            Owner.CurrentComboGraphPath = null;
             // 清动画 set 链：触发 view 回 idle pose
             Owner.CurrentWeaponAnimSetPath = null;
             Owner.WeaponAnimDirty = true;
@@ -306,9 +307,11 @@ public class WeaponComponent : ICharacterComponent
             // 取出/收回速度倍率：driver 据此设 Equip/Holster one-shot 的 Speed（过场时长在 EquipInternal 已同步缩放）
             Owner.SwapAnimSpeed = currentWeapon.SwapAnimSpeed > 0f ? currentWeapon.SwapAnimSpeed : 1f;
         }
-        // 武器的技能映射推给 Owner（InputComponent 据此决定左键/V 放哪个技能、近战武器免开火）。无武器回 -1。
+        // 武器的技能映射推给 Owner（ComboComponent 据此回退单招、近战武器免开火）。无武器回 -1。
         Owner.WeaponPrimarySkill = currentWeapon?.PrimarySkillIndex ?? -1;
         Owner.WeaponSecondarySkill = currentWeapon?.SecondarySkillIndex ?? -1;
+        // 武器的连招图路径推给 Owner（ComboComponent 轮询变化重载图）。空 = 该武器无连招 → ComboComponent 回退单招。
+        Owner.CurrentComboGraphPath = currentWeapon?.ComboGraphPath;
 
         // 通知 view 切 WeaponAnimSet（path 空 = 回退默认 idle pose）
         // CharacterView 检测 WeaponAnimDirty trigger 后 ResMgr.Load<WeaponAnimSet> + Animancer.Play 替代原 Animator state
