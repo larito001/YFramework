@@ -24,6 +24,9 @@ namespace YOTO.Network
 #if !DISABLESTEAMWORKS
         public SteamId LocalSteamId => IsValid ? SteamClient.SteamId : default;
         public string LocalName => IsValid ? SteamClient.Name : string.Empty;
+#else
+        // Steamworks 禁用时（非 standalone 构建）仍提供同名属性，避免业务/测试层散落宏判断。
+        public string LocalName => string.Empty;
 #endif
 
         public PeerId LocalPeer

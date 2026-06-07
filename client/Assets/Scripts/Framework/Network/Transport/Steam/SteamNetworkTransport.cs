@@ -32,12 +32,14 @@ namespace YOTO.Network
         public event Action<string> ConnectFailed;
 
         public bool IsServer => _host != null;
+#if !DISABLESTEAMWORKS
         public bool IsConnected => _host != null || (_client != null && _client.IsConnected);
 
-#if !DISABLESTEAMWORKS
         private HostSocket _host;
         private ClientConn _client;
 #else
+        public bool IsConnected => false;
+
         private object _host, _client;
 #endif
 
