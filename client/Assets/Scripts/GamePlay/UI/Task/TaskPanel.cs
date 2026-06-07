@@ -195,9 +195,12 @@ public class TaskPanel : UIPageBase
         if (view.progressSlider != null) view.progressSlider.value = Mathf.Clamp01((float)cur / target);
         if (view.progressText != null) view.progressText.text = $"{cur}/{task.TargetAmount}";
 
-        // 左侧目标图标(配表 iconPath;暂用白图占位,填了就换)
-        if (view.objectiveIcon != null && !string.IsNullOrEmpty(task.IconPath))
-            ResUI.SetSpriteAsync(resMgr, view.objectiveIcon, task.IconPath, IconBox);
+        // 左侧目标图标:配表 iconPath 优先;没配则按任务类型给个默认图标(Resources/UI/Icons 下)
+        if (view.objectiveIcon != null)
+        {
+            string objIcon = !string.IsNullOrEmpty(task.IconPath) ? task.IconPath : DefaultObjIconPath(task.ObjType);
+            ResUI.SetSpriteAsync(resMgr, view.objectiveIcon, objIcon, IconBox);
+        }
 
         // 奖励(单个,主奖励:物品 > 金币 > 体力)
         BindReward(view, task);
@@ -224,6 +227,20 @@ public class TaskPanel : UIPageBase
         view.rewardIcon.enabled = true; view.rewardIcon.preserveAspect = true;
         ResUI.SetSpriteAsync(resMgr, view.rewardIcon, path, fallback);
         if (view.rewardCount != null) view.rewardCount.text = $"×{count}";
+    }
+
+    /// <summary>配表没填 iconPath 时,按任务类型(objType)给个默认目标图标(Resources/UI/Icons 下)。</summary>
+    private static string DefaultObjIconPath(uint objType)
+    {
+        switch ((TaskObjType)objType)
+        {
+            case TaskObjType.DailyLogin:       return "UI/Icons/calendar_4";
+            case TaskObjType.ConsecutiveLogin: return "UI/Icons/clock";
+            case TaskObjType.WatchAd:          return "UI/Icons/ad_blue";
+            case TaskObjType.KillAny:          return "UI/Icons/skull";
+            case TaskObjType.AcquireWeapon:    return "UI/Icons/gun";
+            default:                           return "UI/Icons/skull";
+        }
     }
 
     /// <summary>取奖励物品的图标路径(配表 iconPath);取不到返回 null,由调用方用色块占位。</summary>

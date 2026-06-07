@@ -96,7 +96,7 @@ public static class TaskCardBuilder
         var rCntGo = NewUI("Count", out var rCntRt, rewardWrap.transform);
         rCntRt.anchorMin = rCntRt.anchorMax = rCntRt.pivot = new Vector2(0.5f, 1f);
         rCntRt.anchoredPosition = new Vector2(-7, -136.98f); rCntRt.sizeDelta = new Vector2(170.115f, 93.0156f);
-        var rCntTmp = NewText(rCntGo, "×0", 27.5f, Color.white, TextAlignmentOptions.Center);
+        var rCntTmp = NewText(rCntGo, "×0", 27.5f, Color.black, TextAlignmentOptions.Center);
 
         // 右侧按钮(领取/未完成;美术皮肤,状态色染 Bg。右锚,加大不挤)
         var act = NewUI("Action", out var actRt, root.transform);

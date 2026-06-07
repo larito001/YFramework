@@ -618,6 +618,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: TestGradeMap
       objectReference: {fileID: 0}
+    - target: {fileID: 7883616970246230065, guid: bcf936de72623ac4aaa8c4b843af18a9, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 8940424746102416447, guid: bcf936de72623ac4aaa8c4b843af18a9, type: 3}
       propertyPath: m_Materials.Array.data[0]
       value: 

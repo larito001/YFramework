@@ -16,9 +16,9 @@ public static class UICurrencyPill
     public const CurrencyType IconGold   = CurrencyType.Gold;
     public const CurrencyType IconEnergy = CurrencyType.Energy;
 
-    // 资源框统一背景:美术整图 equipTitleBlock(黑底 + 绿边)。所有面板的资源框都走 ApplyBackground,改背景只动这两行即可全局生效。
-    public const string PillBgSpritePath = "Assets/Art/UI/NewUI/Theme_Blue/Sprites/equipTitleBlock.png";
-    private static readonly Color PillColor = Color.white; // 显示整图本色(不再叠黑半透明)
+    // 资源胶囊统一背景:美术九宫格图 + 纯黑半透明底。所有面板的资源胶囊都走 ApplyBackground,改背景只动这两行即可全局生效。
+    public const string PillBgSpritePath = "Assets/Art/UI/NewUI/Shared/Sprite_Common/Slider/Slider_Swipe_01_Bg.png";
+    private static readonly Color PillColor = new Color(0f, 0f, 0f, 0.5294118f); // 纯黑 α≈53%(与主界面 Energy 胶囊同款)
 
     /// <summary>
     /// 新建一个完整资源胶囊(深色底 + 左图标 + 数值),返回数值文本(运行时只填数字)。
@@ -49,25 +49,16 @@ public static class UICurrencyPill
         csf.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
         csf.verticalFit = ContentSizeFitter.FitMode.Unconstrained;
 
-        // 图标:布局只占「一个胶囊高」的方形槽(背景宽度据此自适应,不会被放大的图标撑长);
-        // 视觉放大交给子 Image,超出槽位的部分是图标四周透明光晕,overhang 不挡数字。
-        // 奖励弹窗图标在 RewardClaimPanel 自管,不受此影响。
-        float iconSlot = size.y;          // 布局footprint(决定背景长度)
-        float iconVisual = size.y * 2.0f; // 图标视觉放大(想更大改这里,不会再撑长背景)
-        var ig = new GameObject("Icon", typeof(RectTransform), typeof(LayoutElement));
+        // 图标(LayoutElement 固定方形);Sprite 不烤进预制体——挂 CurrencyIconBinder 运行时按币种动态加载。
+        float iconSize = size.y * 0.6f;
+        var ig = new GameObject("Icon", typeof(RectTransform), typeof(Image), typeof(CurrencyIconBinder), typeof(LayoutElement));
         ig.transform.SetParent(go.transform, false);
-        var ile = ig.GetComponent<LayoutElement>();
-        ile.minWidth = ile.preferredWidth = iconSlot;
-        ile.minHeight = ile.preferredHeight = iconSlot;
-        var imgGo = new GameObject("Img", typeof(RectTransform), typeof(Image), typeof(CurrencyIconBinder));
-        var irt = (RectTransform)imgGo.transform;
-        irt.SetParent(ig.transform, false);
-        irt.anchorMin = irt.anchorMax = irt.pivot = new Vector2(0.5f, 0.5f);
-        irt.anchoredPosition = Vector2.zero;
-        irt.sizeDelta = new Vector2(iconVisual, iconVisual);
-        var im = imgGo.GetComponent<Image>();
+        var im = ig.GetComponent<Image>();
         im.preserveAspect = true; im.raycastTarget = false;
-        imgGo.GetComponent<CurrencyIconBinder>().type = type;
+        ig.GetComponent<CurrencyIconBinder>().type = type;
+        var ile = ig.GetComponent<LayoutElement>();
+        ile.minWidth = ile.preferredWidth = iconSize;
+        ile.minHeight = ile.preferredHeight = iconSize;
 
         // 数值(TMP 按内容报告 preferred 宽度,胶囊据此撑开;居中,短数字时两侧留白均衡)
         var valueGo = new GameObject("Value", typeof(RectTransform), typeof(LayoutElement));
@@ -86,18 +77,18 @@ public static class UICurrencyPill
         // 数值区最小宽度:短数字(如体力 62)也保持像样的胶囊长度,避免过短难看。
         // 总最小宽度 minWidth 扣掉左右内边距(24+32)、图标间距(12)与图标本身,余下给数值区。
         var vle = valueGo.GetComponent<LayoutElement>();
-        vle.minWidth = Mathf.Max(0f, minWidth - (24 + 32 + 12 + iconSlot));
+        vle.minWidth = Mathf.Max(0f, minWidth - (24 + 32 + 12 + iconSize));
 
         return tmp;
     }
 
-    /// <summary>给资源框底图 Image 应用统一背景:美术整图 sprite(本色显示)。
-    /// 所有面板(主界面/商店/装备/任务/图鉴/地图)的资源框底都调这里,想换背景只改 <see cref="PillBgSpritePath"/> 与 <c>PillColor</c>。</summary>
+    /// <summary>给资源胶囊底图 Image 应用统一背景:美术九宫格 sprite + 纯黑半透明 + Sliced。
+    /// 所有面板(主界面/商店/装备/任务/图鉴/地图)的资源胶囊底都调这里,想换背景只改 <see cref="PillBgSpritePath"/> 与 <c>PillColor</c>。</summary>
     public static void ApplyBackground(Image bg)
     {
         var sprite = AssetDatabase.LoadAssetAtPath<Sprite>(PillBgSpritePath);
         if (sprite != null) bg.sprite = sprite;
-        bg.type = Image.Type.Simple; // equipTitleBlock 非九宫格整图,用 Simple 拉伸
+        bg.type = Image.Type.Sliced;
         bg.color = PillColor;
     }
 
