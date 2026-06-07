@@ -35,6 +35,8 @@ public class SkillDef : ScriptableObject
         public float Fade;
         [Tooltip("本段持续策略：0=播到 clip 自然结束（按 clip.length）；>0=循环该 clip 这么多秒再进下一段（循环段的 clip 需在 import 设为 Loop）")]
         public float HoldDuration;
+        [Tooltip("取消窗开启的归一化时间 [0,1]：到此之后【玩家有后续输入时】才提前结束本段砍掉收招后摇——移动→脱离收招、再次攻击→连招打断；【无输入则照常播完整段】(完整后摇)。1 或 0=不开取消窗(默认，后摇不可取消)。必须 ≥ 本段所有 HitWindow.EndNorm，否则连招会吃掉命中。例：命中在 0.45 结束，填 0.5 让 0.5 之后可被取消。")]
+        public float CancelFromNorm = 1f;
         [Tooltip("本段沿角色 forward 的总位移（米）。0=原地（攻击）；正=前冲（飞扑 Air 段填大值如 4）；负=后退")]
         public float ForwardDistance;
         [Tooltip("位移随段内进度的分布曲线（x:段进度 0→1，y:已位移占比 0→1）。留空/少于2帧=线性匀速。可做'前段爆发后段刹车'")]

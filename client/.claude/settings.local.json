@@ -71,7 +71,8 @@
       "PowerShell(cmd /c \"C:\\\\UnityProject\\\\YFramework\\\\tools\\\\build_tables.bat\" 2>&1 | Select-Object -First 15)",
       "Bash(awk 'NR>=108 && NR<=117 {print NR\": \"$0}' Assets/Scripts/GamePlay/UI/Bag/GridHostPanelBase.cs)",
       "Bash(Get-ChildItem -Path \"C:\\\\UnityProject\\\\YFramework\\\\client\" -Directory)",
-      "Bash(Select-Object Name)"
+      "Bash(Select-Object Name)",
+      "Bash(Get-ChildItem -Path . -Directory)"
     ]
   }
 }

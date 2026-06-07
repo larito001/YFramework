@@ -20,6 +20,18 @@ public class SkillCastComponent : ICharacterComponent
     /// <summary>OverlapSphere 物理 layer 过滤。生产期设成仅含敌人层。默认 ~0 全开（调试）。</summary>
     public LayerMask HitLayers = ~0;
 
+    [Header("近战吸附 (Melee Snap / Magnetism)")]
+    /// <summary>开启近战吸附：起手锁前向锥内最佳敌人 → 即时转向它 + 前冲主动收敛到其身前站位（双吸附）。false=旧行为（按当前朝向直冲）。</summary>
+    public bool SnapEnabled = true;
+    /// <summary>捕获半径（米）：起手在此半径内找敌人。建议 ≈ 段最大 ForwardDistance + SnapDesiredGap，保证锁到的都够得着。</summary>
+    public float SnapRange = 3.5f;
+    /// <summary>捕获半角（度）：只锁前向 ±此角度锥内的敌人，避免吸到背后。70 ≈ God of War 宽容档。</summary>
+    public float SnapHalfAngle = 70f;
+    /// <summary>站位间隙（米）：吸附前冲到距目标中心这么近就停，停在其胶囊外侧——杜绝怼进身体被 collide-and-slide 顶歪。≈ 双方胶囊半径之和 + 余量。</summary>
+    public float SnapDesiredGap = 1.1f;
+    /// <summary>释放途中持续转向目标的 slerp 速率（指数收敛，帧率无关）。25~35 ≈ 5 帧追平，有起手转身感不硬切。</summary>
+    public float SnapTurnRate = 30f;
+
     private readonly List<SkillDef> skills = new List<SkillDef>();
 
     /// <summary>已加载的可释放技能数量（= SkillPaths 数）。AI 取随机技能下标用，避免在别处手抄数量。</summary>
@@ -31,7 +43,8 @@ public class SkillCastComponent : ICharacterComponent
     private float segElapsed;
     private float segDuration;          // 当前段时长（HoldDuration 或 clip.length）
     private float segPrevDistFrac;      // 上帧已位移占比
-    private Vector3 castForward;        // 起技能时锁定的水平前向（释放途中 Aim 被门控，朝向冻结）
+    private Vector3 castForward;        // 当前水平前向：无吸附=起手锁定不变；有吸附=每帧跟随活目标（Aim 被门控，本组件权威写朝向）
+    private int snapTargetId = -1;      // 近战吸附锁定的目标 actor.ID；-1=无（走原直冲）。Cast 时 acquire，EndCast/Detach 清
     // per-window 命中去重（StartSegment 清）
     private readonly Dictionary<SkillDef.HitWindow, HashSet<int>> windowHits = new Dictionary<SkillDef.HitWindow, HashSet<int>>();
     // VFX：本段已触发的动效（防重复生成）+ 跟随型动效的活跃 handle（到 EndNorm / 段切换 / 结束时 Stop）
@@ -46,6 +59,7 @@ public class SkillCastComponent : ICharacterComponent
     private VfxManager vfxMgr;
     private InputComponentBase input;
     private static readonly Collider[] overlapBuf = new Collider[16];
+    private static readonly List<Actor> snapScanBuf = new List<Actor>(64); // 吸附扫敌复用 buffer（单线程顺序 Tick，所有角色共享）
 
     public override void Attach(Character owner)
     {
@@ -86,6 +100,7 @@ public class SkillCastComponent : ICharacterComponent
             Owner.SkillRecoverFade = 0f;
         }
         active = null;
+        snapTargetId = -1;
         StopAllAttachedVfx(); // 离场前回收跟随型动效（vfxMgr 置 null 之前）
         firedVfx.Clear();
         firedShake.Clear();
@@ -104,7 +119,7 @@ public class SkillCastComponent : ICharacterComponent
     {
         if (Owner == null || Owner.IsDead) return;
         if (Owner.IsSwapping) return;                        // 切枪过场中不能放技能（与"技能中不能切枪"对称）
-        if (active != null) return;                          // 不可打断
+        if (active != null && !InCancelWindow()) return;     // 不可打断——除非已进入取消窗（命中后摇可被下一击打断 = 连招）
         if (index < 0 || index >= skills.Count)
         {
             Debug.LogWarning($"[SkillCastComponent] Cast 技能下标越界: {index}（共 {skills.Count} 个技能）。Actor {Owner.ID}");
@@ -119,11 +134,60 @@ public class SkillCastComponent : ICharacterComponent
 
         active = def;
         Owner.IsCastingSkill = true;
-        // 锁定前向（释放途中 Aim 被门控，朝向冻结，这里取一次即可）
+        // 起手前向：先取当前朝向（无吸附时即为最终前向）
         var fwd = Owner.Rotation * Vector3.forward;
         fwd.y = 0f;
         castForward = fwd.sqrMagnitude > 1e-4f ? fwd.normalized : Vector3.forward;
+        // 近战吸附：在前向锥内挑目标，命中则即时转向它（首帧硬转，GoW soft-target），castForward 改指目标
+        if (SnapEnabled) AcquireSnapTarget();
         StartSegment(0);
+    }
+
+    /// <summary>近战吸附目标捕获：在 castForward 前向 ±SnapHalfAngle 锥内、SnapRange 半径内挑最佳敌人
+    /// （角度优先、距离次之——先吸你正对着的，商业动作游戏通用打分）。命中则锁 snapTargetId 并**首帧即时转向**
+    /// （GoW "按下攻击即转向"）。找不到 → snapTargetId=-1，本次回退原"按朝向直冲"。
+    /// 筛选复用 AIInputComponent / TowerTargetingComponent 同款：非自己 + 非中立 + 阵营不同 + 有 HealthComponent + 未死。</summary>
+    private void AcquireSnapTarget()
+    {
+        snapTargetId = -1;
+        if (world == null) return;
+        snapScanBuf.Clear();
+        world.AppendAll(snapScanBuf);
+
+        float cosHalf = Mathf.Cos(SnapHalfAngle * Mathf.Deg2Rad);
+        float rangeSqr = SnapRange * SnapRange;
+        float bestScore = float.MaxValue;
+        Actor best = null;
+        var selfPos = Owner.Position;
+        int selfTeam = Owner.TeamId;
+
+        for (int i = 0; i < snapScanBuf.Count; i++)
+        {
+            var a = snapScanBuf[i];
+            if (a == null || a == Owner) continue;
+            if (a.TeamId == 0 || a.TeamId == selfTeam) continue;     // 友军 / 中立不吸
+            if (a.IsDead || a.Get<HealthComponent>() == null) continue;
+
+            var to = a.Position - selfPos; to.y = 0f;                // 水平距离
+            float sqr = to.x * to.x + to.z * to.z;
+            if (sqr > rangeSqr || sqr < 1e-6f) continue;             // 超出捕获半径
+            var dir = to / Mathf.Sqrt(sqr);
+            float dot = castForward.x * dir.x + castForward.z * dir.z;
+            if (dot < cosHalf) continue;                             // 锥外（含背后）不吸
+
+            // 打分：角度差(1-dot) 占大头，距离作次权——保证"吸正对着的"而非"吸最近的"
+            float score = (1f - dot) * 2f + Mathf.Sqrt(sqr) * 0.1f;
+            if (score < bestScore) { bestScore = score; best = a; }
+        }
+
+        if (best == null) return;
+        snapTargetId = best.ID;
+        var d = best.Position - selfPos; d.y = 0f;
+        if (d.sqrMagnitude > 1e-4f)
+        {
+            castForward = d.normalized;
+            Owner.Rotation = Quaternion.LookRotation(castForward, Vector3.up); // 首帧即时转向（释放途中 Aim 被门控）
+        }
     }
 
     public override void Tick(float dt)
@@ -145,12 +209,43 @@ public class SkillCastComponent : ICharacterComponent
         float n = Mathf.Clamp01(segElapsed / segDuration);
         var seg = active.Segments[segIndex];
 
-        // 1. 位移：权威写 x/z（杜绝释放期间滑步），y 不动留给 Gravity
+        // 1. 位移 + 吸附（权威写 x/z 杜绝滑步，y 留给 Gravity）：
+        //    有吸附目标 → 朝其"身前站位点"主动收敛（位移吸附/suction）+ 持续转向（转向吸附）；
+        //    无目标 → 回退原"沿 castForward 走 authored ForwardDistance"。
         float fracNow = SampleProfile(seg.DistanceProfile, n);
-        float dFrac = fracNow - segPrevDistFrac;
+        Vector3 planar;
+        if (snapTargetId >= 0 && world != null && world.TryGet(snapTargetId, out var snapT) && !snapT.IsDead)
+        {
+            var toT = snapT.Position - Owner.Position; toT.y = 0f;
+            float dist = toT.magnitude;
+            Vector3 dirT = dist > 1e-4f ? toT / dist : castForward;
+
+            // 转向吸附：每帧快 slerp 跟随活目标（castForward 同步，hitbox/VFX 自动贴着目标）
+            castForward = dirT;
+            if (dt > 0f)
+            {
+                var rot = Quaternion.LookRotation(dirT, Vector3.up);
+                Owner.Rotation = Quaternion.Slerp(Owner.Rotation, rot, 1f - Mathf.Exp(-SnapTurnRate * dt));
+            }
+
+            // 位移吸附：到"身前站位点"的剩余距离，被 authored ForwardDistance 限幅（=最大吸附距离，防跨场拉拽）。
+            // ForwardDistance<=0 的原地段 → reach=0，只转向不前冲。
+            float gap = Mathf.Max(0f, dist - SnapDesiredGap);
+            float reach = seg.ForwardDistance > 1e-5f ? Mathf.Min(gap, seg.ForwardDistance) : 0f;
+            // 用 DistanceProfile 把"剩余距离"铺到"剩余段时间"：覆盖剩余 profile 占比 → 目标移动也平滑收敛，段末必达
+            float profRemain = 1f - segPrevDistFrac;
+            float frac = profRemain > 1e-4f ? Mathf.Clamp01((fracNow - segPrevDistFrac) / profRemain) : 1f;
+            float vmag = dt > 0f ? reach * frac / dt : 0f;
+            planar = dirT * vmag;
+        }
+        else
+        {
+            float dFrac = fracNow - segPrevDistFrac;
+            float vmag = (dt > 0f && Mathf.Abs(seg.ForwardDistance) > 1e-5f) ? seg.ForwardDistance * dFrac / dt : 0f;
+            planar = castForward * vmag;
+        }
         segPrevDistFrac = fracNow;
-        float v = (dt > 0f && Mathf.Abs(seg.ForwardDistance) > 1e-5f) ? seg.ForwardDistance * dFrac / dt : 0f;
-        Owner.WishVelocity = new Vector3(castForward.x * v, Owner.WishVelocity.y, castForward.z * v);
+        Owner.WishVelocity = new Vector3(planar.x, Owner.WishVelocity.y, planar.z);
 
         // 2. 伤害：遍历所有含 n 的命中窗（支持同段多窗），每窗独立去重
         if (seg.HitWindows != null)
@@ -169,14 +264,31 @@ public class SkillCastComponent : ICharacterComponent
         // 2c. 相机震屏：到各自 StartNorm 触发一次（与 HitWindow 解耦，独立配置）
         DriveShake(seg, n);
 
-        // 3. 段结束 → 下一段 / 结束技能
-        if (segElapsed >= segDuration) AdvanceOrEnd();
+        // 3. 段结束 / 取消窗：
+        //    无后续输入 → 播完整段（完整后摇，不提前结束）。
+        //    进入取消窗（n >= CancelFromNorm，应配在命中窗之后）后，玩家有移动意图 → 提前 EndCast 脱离收招、恢复移动。
+        //    连招的"下一击"取消走 Cast（见 InCancelWindow），不在此处。
+        if (segElapsed >= segDuration) { AdvanceOrEnd(); return; }
+        float cancelN = seg.CancelFromNorm > 0f ? Mathf.Clamp01(seg.CancelFromNorm) : 1f;
+        if (cancelN < 1f && n >= cancelN && input != null && input.MoveWorld.sqrMagnitude > 0.01f)
+            EndCast();
     }
 
     private void AdvanceOrEnd()
     {
         if (segIndex + 1 < active.Segments.Length) StartSegment(segIndex + 1);
         else EndCast();
+    }
+
+    /// <summary>当前技能是否已进入"取消窗"（活动段 n >= CancelFromNorm 且该段开了取消窗）。
+    /// <see cref="Cast"/> 据此决定能否在释放途中被下一击打断（连招）。无 active / 该段未开窗（CancelFromNorm>=1 或 <=0）→ false。</summary>
+    private bool InCancelWindow()
+    {
+        if (active == null || segDuration <= 0f) return false;
+        var seg = active.Segments[segIndex];
+        float cancelN = seg.CancelFromNorm > 0f ? Mathf.Clamp01(seg.CancelFromNorm) : 1f;
+        if (cancelN >= 1f) return false;
+        return Mathf.Clamp01(segElapsed / segDuration) >= cancelN;
     }
 
     private void StartSegment(int i)
@@ -209,6 +321,7 @@ public class SkillCastComponent : ICharacterComponent
             Owner.WishVelocity = new Vector3(0f, Owner.WishVelocity.y, 0f);
         }
         active = null;
+        snapTargetId = -1;
         StopAllAttachedVfx(); // 技能结束回收跟随型动效（世界一次性动效自销毁不管）
         firedVfx.Clear();
         firedShake.Clear();
