@@ -123,8 +123,9 @@ public class CharacterAnimancerController : LocomotionAnimController
             // dt<=0 时**跳过** SmoothDamp：Unity 的 Mathf.SmoothDamp 在"已 settle（current==target）"那一帧会走 overshoot 分支
             // 执行 (output-target)/deltaTime，deltaTime==0 → 0/0 = NaN，把 ref 速度 smoothMove*Vel 永久污染成 NaN，
             // 之后每帧把 NaN 喂给 mixer.ParameterX/Y → ArgumentOutOfRangeException(value must not be NaN/Infinity)。
-            // Time.deltaTime 在暂停（Time.timeScale=0）/ 首帧 / 编辑器刚恢复时为 0，而 LateUpdate 仍会跑。dt<=0 时沿用上一帧平滑值即可。
-            float dt = Time.deltaTime;
+            // 用 unscaledDeltaTime × 有效缩放（全局缩放不走 Time.timeScale）：暂停 / 卡肉（CurrentTimeScale=0）/
+            // 首帧 / 编辑器刚恢复时 dt=0，而 LateUpdate 仍会跑。dt<=0 时沿用上一帧平滑值即可。
+            float dt = Time.unscaledDeltaTime * CurrentTimeScale;
             if (dt > 0f)
             {
                 smoothedAnimMoveX = Mathf.SmoothDamp(smoothedAnimMoveX, character.AnimMoveX, ref smoothMoveXVel, AnimMoveDampTime, Mathf.Infinity, dt);

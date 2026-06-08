@@ -16,6 +16,10 @@ public sealed class GameLoop : MonoBehaviour
 
     public GameContext Ctx { get; private set; }
 
+    // 全局时间缩放源。gameplay 时钟 = unscaledDeltaTime × GlobalScale，不走 Unity Time.timeScale。
+    // BuildContext 后缓存一次；取不到则退化为 scale=1（正常速度）。
+    private TimeScaleService timeScale;
+
     [Header("Boot")] [SerializeField] private bool autoStart = true;
     [Header("测试模式")] public bool isTest = false;
     private void Awake()
@@ -37,15 +41,22 @@ public sealed class GameLoop : MonoBehaviour
 
         Ctx = GameBootstrapper.BuildContext(); // 组装所有系统
         Ctx.InitAll();
+        Ctx.TryGet(out timeScale); // 缓存全局缩放源，驱动 gameplay 时钟
         if (autoStart)
         {
             GameBootstrapper.RunStartup(Ctx);
         }
     }
 
-    private void Update() => Ctx.Tick(Time.deltaTime);
+    /// <summary>本帧 gameplay dt：未缩放真实 dt × 全局缩放因子。
+    /// 不读 Time.deltaTime（那会被 Time.timeScale 影响，而我们保持 timeScale=1）。</summary>
+    private float GameDeltaTime => Time.unscaledDeltaTime * (timeScale != null ? timeScale.GlobalScale : 1f);
+
+    private void Update() => Ctx.Tick(GameDeltaTime);
+    // FixedTick 当前无任何 IFixedTickable 消费者；且 Unity 物理步长本就跟 Time.timeScale 走，
+    // 不在此处缩放（保持真实 fixedDeltaTime）。将来若加自管物理模拟再按需折算 GlobalScale。
     private void FixedUpdate() => Ctx.FixedTick(Time.fixedDeltaTime);
-    private void LateUpdate() => Ctx.LateTick(Time.deltaTime);
+    private void LateUpdate() => Ctx.LateTick(GameDeltaTime);
     
     private void OnDestroy()
     {

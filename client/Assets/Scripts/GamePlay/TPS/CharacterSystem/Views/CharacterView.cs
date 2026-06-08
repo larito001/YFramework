@@ -37,6 +37,7 @@ public class CharacterView : BaseView
     private HealthComponent subscribedHealth;
     private FlyTextMgr flyTextMgr;
     private ResMgr resMgr;
+    private TimeScaleService timeScaleService;
     private LocomotionAnimController animController;
 
     private Renderer[] flashRenderers;
@@ -95,6 +96,7 @@ public class CharacterView : BaseView
         {
             ctx.TryGet(out flyTextMgr);
             ctx.TryGet(out resMgr);
+            ctx.TryGet(out timeScaleService);
         }
 
         // 接入 animController：传 CharacterAnimSet path（一次性加载，运行时不换）
@@ -126,6 +128,7 @@ public class CharacterView : BaseView
         }
         flyTextMgr = null;
         resMgr = null;
+        timeScaleService = null;
         character = null;
         ID = -1;
     }
@@ -173,8 +176,11 @@ public class CharacterView : BaseView
     {
         if (character == null) return;
 
-        float scale = character.TimeScale;
-        float scaledDt = scale == 1f ? Time.deltaTime : Time.deltaTime * scale;
+        // 有效缩放 = 全局缩放 × 本 actor 局部缩放。全局缩放不再走 Time.timeScale（恒为 1），
+        // 所以 view 用 unscaledDeltaTime × 有效缩放 自己折算（CC 物理、闪烁、溶解、动画速度全用它）。
+        float globalScale = timeScaleService != null ? timeScaleService.GlobalScale : 1f;
+        float scale = globalScale * character.TimeScale;
+        float scaledDt = Time.unscaledDeltaTime * scale;
 
         // 1. CC 物理 + transform 同步
         if (Controller != null && Controller.enabled)

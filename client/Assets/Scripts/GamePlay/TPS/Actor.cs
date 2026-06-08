@@ -25,8 +25,9 @@ public class Actor
 
     /// <summary>本 actor 的局部时间缩放因子。1=正常，0=完全冻结。
     /// 由 <see cref="TimeScaleService"/> 写入（卡肉 / 局部慢动作），<see cref="Tick"/> 内部用它缩放 dt 再派发给组件。
-    /// View 端如果用 Unity Time.deltaTime 跑物理 / 动画，也应读这个字段把 dt 乘上去（参考 CharacterView）。
-    /// 全局慢动作走 Unity Time.timeScale，跟这个字段相乘叠加。</summary>
+    /// View 端用 unscaledDeltaTime 跑物理 / 动画时，应读这个字段把 dt 乘上去（参考 CharacterView）。
+    /// 全局慢动作是 <see cref="TimeScaleService.GlobalScale"/>（不走 Unity Time.timeScale），跟这个字段相乘叠加；
+    /// 全局部分由 GameLoop 在 Ctx.Tick 的 dt 里已折算，per-actor 部分在本字段。</summary>
     public float TimeScale = 1f;
 
     // ── 空间（所有 Actor 都需要） ──

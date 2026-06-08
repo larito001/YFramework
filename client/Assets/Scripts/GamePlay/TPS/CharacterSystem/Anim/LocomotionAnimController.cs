@@ -45,6 +45,11 @@ public abstract class LocomotionAnimController
     /// <summary>true = characterAnimSet 配了 UpperBodyMask，启用 Layer 1 上下身分离。</summary>
     protected bool useUpperBodyLayer;
 
+    /// <summary>本帧有效时间缩放 = 全局缩放 × 本 actor 局部缩放（view 在 <see cref="Tick"/> 传入）。
+    /// 同时写到 <see cref="AnimancerGraph.Speed"/>；派生类做 Unity 时间相关平滑（SmoothDamp）时用
+    /// <c>Time.unscaledDeltaTime × CurrentTimeScale</c> 代替 Time.deltaTime——因为全局缩放不再走 Time.timeScale。</summary>
+    protected float CurrentTimeScale { get; private set; } = 1f;
+
     /// <summary>退出 layer0 fullbody 回 locomotion 时的一次性 override fade。退出 fullbody 时由
     /// <see cref="GetFullBodyRecoverFade"/> 写入，UpdateLocomotion 下次 Play 消费后清零。
     /// 解决"全身攻击 → 跑步"切换 DefaultFade 太短突兀。</summary>
@@ -78,16 +83,18 @@ public abstract class LocomotionAnimController
         LoadCharacterAnimSet(characterAnimSetPath);
     }
 
-    /// <summary>每帧驱动。</summary>
-    public void Tick(Character character, float globalTimeScale)
+    /// <summary>每帧驱动。<paramref name="effectiveTimeScale"/> = 全局缩放 × 本 actor 局部缩放
+    /// （由 view 折算后传入）。Time.timeScale 恒为 1 不再帮忙减速 playable graph，所以这里把它写进 Graph.Speed。</summary>
+    public void Tick(Character character, float effectiveTimeScale)
     {
         if (Animancer == null || character == null) return;
 
         // 派生类的"切 AnimSet"等前置（玩家在这里按 WeaponAnimDirty 加载 weaponAnimSet）
         PreDrive(character);
 
-        // 全局动画速度（卡肉 / 局部慢动作）
-        Animancer.Graph.Speed = globalTimeScale;
+        // 动画速度（全局慢动作 / 卡肉 / 局部慢动作 合并后的有效缩放）
+        CurrentTimeScale = effectiveTimeScale;
+        Animancer.Graph.Speed = effectiveTimeScale;
 
         // characterAnimSet 没加载就跳——locomotion / death 都依赖它
         if (characterAnimSet == null) return;

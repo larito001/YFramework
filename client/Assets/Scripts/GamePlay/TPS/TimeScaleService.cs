@@ -19,14 +19,19 @@ public enum HitstopTier
 /// <summary>
 /// 时间缩放服务：统一管理"卡肉 (hit-stop)"、局部慢动作、全局慢动作。
 ///
+/// **不使用 Unity <c>Time.timeScale</c>**（它恒为 1）：全局缩放是本服务持有的一个普通因子
+/// <see cref="GlobalScale"/>，由 <see cref="GameLoop"/> 用 <c>unscaledDeltaTime × GlobalScale</c> 驱动
+/// gameplay 时钟（Ctx.Tick）。好处：UI / 音频 / DOTween 这些读 unscaled 时间的系统不被慢动作 / 卡肉波及，
+/// 只有 gameplay 模拟 + 角色表现（CharacterView / Animancer / 粒子）跟随缩放。
+///
 /// 设计原则：
-///   - **受击 hit-stop 默认走全局缩放**（<see cref="GlobalHitstop"/>，写 Time.timeScale=0）——
-///     攻击者动画、子弹、Animator、Physics 全部一起冻一小段，反馈最强。
+///   - **受击 hit-stop 默认走全局缩放**（<see cref="GlobalHitstop"/>，把 GlobalScale 压到 0 一小段）——
+///     gameplay 模拟、子弹、Animancer、粒子全部一起冻一小段，反馈最强。
 ///     按 actor 局部冻只能让被打的人冻住，俯视角下不易察觉，且攻击者动作会"穿过"冻住的目标。
 ///   - <see cref="HitstopByTier"/>（伤害链调用入口）默认走 GlobalHitstop。
 ///   - **局部缩放 API 保留**（<see cref="Hitstop"/> + <see cref="Actor.TimeScale"/>）给"特定角色减速 / 个别 buff"用，
 ///     调用 Hitstop(actorId, ...) 仍然可用，伤害链不走这条。
-///   - 所有 timer 用 <c>Time.unscaledDeltaTime</c> 推进——Time.timeScale=0 时常规 dt=0，自己解不开。
+///   - 所有 timer 用 <c>Time.unscaledDeltaTime</c> 推进——GlobalScale=0 时 gameplay dt=0，自己解不开。
 ///
 /// Tick 顺序：必须在 CharacterManager / WeaponManager / BulletManager **之前**注册。
 ///
@@ -46,10 +51,13 @@ public class TimeScaleService : IGameService, ITickable
     private readonly List<int> tickKeys = new List<int>();   // 复用避免每帧 alloc
     private readonly List<int> toRemove = new List<int>();
 
+    // ── 全局缩放因子（不写 Unity Time.timeScale）。GameLoop 用它 × unscaledDeltaTime 驱动 gameplay 时钟。──
+    private float globalScale = 0.5f;
+
     // ── 全局 hitstop 状态 ──
     private float globalHitstopRemaining;     // >0 表示全局卡肉中，timer 用 unscaledDeltaTime 推
-    private float globalHitstopRestoreScale = 1f; // 卡肉结束时恢复的 Time.timeScale（进入时记录的"原值"）
-    private float globalHitstopActiveScale = 1f;  // 进入时写到 Time.timeScale 的值。恢复时如果 Time.timeScale != active，
+    private float globalHitstopRestoreScale = 1f; // 卡肉结束时恢复的 globalScale（进入时记录的"原值"）
+    private float globalHitstopActiveScale = 1f;  // 进入时写到 globalScale 的值。恢复时如果 globalScale != active，
                                                   // 说明 hitstop 期间外部（暂停/慢动作系统）改过 scale，尊重外部值不覆盖
 
     public void Init(GameContext ctx)
@@ -59,22 +67,21 @@ public class TimeScaleService : IGameService, ITickable
 
     public void Shutdown()
     {
-        // Shutdown 时如果仍在 hitstop，需要安全恢复 Time.timeScale，否则进程级状态会被卡在 0
-        // （Unity 的 Time.timeScale 不会随 GameContext 销毁自动重置）。
-        if (globalHitstopRemaining > 0f && Mathf.Approximately(Time.timeScale, globalHitstopActiveScale))
-            Time.timeScale = globalHitstopRestoreScale;
+        // 本服务从不写 Unity Time.timeScale（进程级状态无需恢复），只复位自身缩放因子。
+        globalScale = 1f;
         globalHitstopRemaining = 0f;
         hitstop.Clear();
         tickKeys.Clear();
         toRemove.Clear();
     }
 
-    /// <summary>全局时间缩放。直接读写 <c>Time.timeScale</c>。0=完全暂停（Update / Animator / Physics 全停）。
-    /// 注意：&lt;0 会被夹到 0；想做"倒放"那种效果不能用这个，得做反向播放。</summary>
+    /// <summary>全局时间缩放因子。1=正常，0=完全暂停（gameplay 模拟 / Animancer / 粒子全停，但 UI / 音频不受影响）。
+    /// **不写 Unity <c>Time.timeScale</c>**——<see cref="GameLoop"/> 读它 × unscaledDeltaTime 驱动 Ctx.Tick，
+    /// CharacterView / 动画 / 粒子各自读它折算。注意：&lt;0 会被夹到 0；想做"倒放"得做反向播放。</summary>
     public float GlobalScale
     {
-        get => Time.timeScale;
-        set => Time.timeScale = Mathf.Max(0f, value);
+        get => globalScale;
+        set => globalScale = Mathf.Max(0f, value);
     }
 
     // ── 卡肉分级配置：tier → (duration, scale) ──
@@ -102,10 +109,10 @@ public class TimeScaleService : IGameService, ITickable
         }
     }
 
-    /// <summary>全局 hit-stop：Time.timeScale=scale 持续 duration 秒后恢复。
-    /// 期间 Animator/Particle/Physics/所有 ITickable.Tick(dt) 拿到的 dt 都是 0（除 service 本身用 unscaledDt）。
+    /// <summary>全局 hit-stop：GlobalScale=scale 持续 duration 秒后恢复。
+    /// 期间 Animancer/粒子/所有 ITickable.Tick(dt) 拿到的 gameplay dt 都是 0（service 自身用 unscaledDt 推 timer）。
     /// 重叠触发：取较长剩余时长（连击不被新一发短卡肉缩短），scale 用最新一次的。
-    /// 注意：进入卡肉时记录当时的 Time.timeScale，到点恢复（兼容全局慢动作场景）。</summary>
+    /// 注意：进入卡肉时记录当时的 GlobalScale，到点恢复（兼容全局慢动作场景）。</summary>
     public void GlobalHitstop(float duration, float scale)
     {
         if (duration <= 0f) return;
@@ -113,11 +120,11 @@ public class TimeScaleService : IGameService, ITickable
 
         // 首次进入卡肉时锁定恢复值。后续重叠触发不刷新（避免把已经设成 scale=0 的当前值当成"原值"记下来）
         if (globalHitstopRemaining <= 0f)
-            globalHitstopRestoreScale = Time.timeScale;
+            globalHitstopRestoreScale = globalScale;
 
         globalHitstopRemaining = Mathf.Max(globalHitstopRemaining, duration);
         globalHitstopActiveScale = scale;
-        Time.timeScale = scale;
+        globalScale = scale;
     }
 
     /// <summary>对指定 actor 发起一次卡肉。<paramref name="duration"/> 时长内
@@ -147,7 +154,7 @@ public class TimeScaleService : IGameService, ITickable
 
     public void Tick(float dt)
     {
-        // 用 unscaledDeltaTime 推所有 timer：全局 hitstop 把 Time.timeScale=0 时，传入的 dt 也是 0，
+        // 用 unscaledDeltaTime 推所有 timer：全局 hitstop 把 GlobalScale=0 时，传入的 dt 也是 0，
         // 如果用 dt 推，timer 永远不到点，自己解不开。
         float realDt = Time.unscaledDeltaTime;
 
@@ -158,10 +165,10 @@ public class TimeScaleService : IGameService, ITickable
             if (globalHitstopRemaining <= 0f)
             {
                 globalHitstopRemaining = 0f;
-                // 仅当 Time.timeScale 仍是我们设的 active 值时才恢复——hitstop 期间外部（暂停/慢动作系统）
+                // 仅当 globalScale 仍是我们设的 active 值时才恢复——hitstop 期间外部（暂停/慢动作系统）
                 // 改过 scale 的话尊重外部值，避免拿"卡肉前"的旧快照覆盖外部决定。
-                if (Mathf.Approximately(Time.timeScale, globalHitstopActiveScale))
-                    Time.timeScale = globalHitstopRestoreScale;
+                if (Mathf.Approximately(globalScale, globalHitstopActiveScale))
+                    globalScale = globalHitstopRestoreScale;
             }
         }
 
