@@ -179,9 +179,9 @@ public class CharacterView : BaseView
         // 有效缩放 = 全局缩放 × 本 actor 局部缩放。全局缩放不再走 Time.timeScale（恒为 1），
         // 所以 view 用 unscaledDeltaTime × 有效缩放 自己折算（CC 物理、闪烁、溶解、动画速度全用它）。
         float globalScale = timeScaleService != null ? timeScaleService.GlobalScale : 1f;
-        // 有效缩放 = 全局 × 局部卡肉(TimeScale) × 区域减速(ZoneScale)。后两者是独立来源，都要乘进来，
-        // 否则角色在减速圈里 CC 物理 / 动画不会变慢（ZoneScale 由 TimeScaleZoneService 每帧按位置写）。
-        float scale = globalScale * character.TimeScale * character.ZoneScale;
+        // 有效缩放 = 全局 × 有效局部缩放(Actor.LocalScale = TimeScale 卡肉 × ZoneScale 区域减速)。
+        // 主动 view 自己跑 unscaledDeltaTime 物理/动画，必须乘 LocalScale，否则角色在减速圈/卡肉时不会变慢。
+        float scale = globalScale * character.LocalScale;
         float scaledDt = Time.unscaledDeltaTime * scale;
 
         // 1. CC 物理 + transform 同步

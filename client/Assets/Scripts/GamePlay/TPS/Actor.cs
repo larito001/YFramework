@@ -36,6 +36,13 @@ public class Actor
     /// 例如身处 0.5 减速圈又被卡肉 0 → 乘积 0 冻结；卡肉结束 TimeScale 回 1，乘积 0.5 仍保持区域减速，不会漏还原。</summary>
     public float ZoneScale = 1f;
 
+    /// <summary>本 actor 的**有效局部时间缩放** = <see cref="TimeScale"/> × <see cref="ZoneScale"/>（两路独立来源相乘）。
+    /// 唯一权威出口：<see cref="Tick"/> 用它缩放派发给组件的 dt；**主动 view**（自己用 unscaledDeltaTime 跑物理/动画的，
+    /// 如 <see cref="CharacterView"/>）也读它（再乘全局 <see cref="TimeScaleService.GlobalScale"/>）。
+    /// 被动 view（只同步逻辑 Position/Rotation 的，如 Bullet/Tower）无需理会——逻辑已在缩放后的 dt 里跑过。
+    /// 任何新增 actor 类型按这个约定接入即可，不用各自重复 TimeScale×ZoneScale。</summary>
+    public float LocalScale => TimeScale * ZoneScale;
+
     // ── 空间（所有 Actor 都需要） ──
     /// <summary>世界坐标。Character 由 View 物理后回写、Bullet 由 BulletMoveComponent 推进。</summary>
     public Vector3 Position;
@@ -178,7 +185,7 @@ public class Actor
         // Manager 调用方仍传"游戏帧 dt"即可，不用知道 TimeScale 的存在。
         // 注意：dt 缩到 0 时仍然派发给组件——组件自己决定是否在 dt=0 时做 dt-独立的事
         // （比如 AimComponent 在 dt<=0 时早退，避免冻结期间还转身瞄准）。基类不替子类做决定。
-        float localScale = TimeScale * ZoneScale; // 卡肉/per-actor × 区域缩放，独立来源相乘
+        float localScale = LocalScale; // 卡肉/per-actor × 区域缩放，独立来源相乘
         if (localScale != 1f) dt *= localScale;
 
         _isTicking = true;
