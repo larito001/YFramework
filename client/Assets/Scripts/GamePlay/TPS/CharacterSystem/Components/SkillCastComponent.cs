@@ -63,8 +63,10 @@ public class SkillCastComponent : ICharacterComponent
     private CameraManager cameraMgr;
     private VfxManager vfxMgr;
     private InputComponentBase input;
-    private static readonly Collider[] overlapBuf = new Collider[16];
-    private static readonly List<Actor> snapScanBuf = new List<Actor>(64); // 吸附扫敌复用 buffer（单线程顺序 Tick，所有角色共享）
+    // 命中 / 吸附各自一份**实例** buffer（不再 static 共享）：杜绝"命中→同帧触发反击 Cast"之类重入把对方的扫描结果踩掉。
+    // 代价是每个角色多两个定长数组（几百字节），角色量级下可忽略。
+    private readonly Collider[] overlapBuf = new Collider[16];   // DoHit 命中检测用
+    private readonly Collider[] snapBuf = new Collider[32];      // AcquireSnapTarget 吸附候选粗筛用（与命中分开）
 
     public override void Attach(Character owner)
     {
@@ -158,13 +160,15 @@ public class SkillCastComponent : ICharacterComponent
     /// <summary>近战吸附目标捕获：在 castForward 前向 ±SnapHalfAngle 锥内、SnapRange 半径内挑最佳敌人
     /// （角度优先、距离次之——先吸你正对着的，商业动作游戏通用打分）。命中则锁 snapTargetId 并**首帧即时转向**
     /// （GoW "按下攻击即转向"）。找不到 → snapTargetId=-1，本次回退原"按朝向直冲"。
-    /// 筛选复用 AIInputComponent / TowerTargetingComponent 同款：非自己 + 非中立 + 阵营不同 + 有 HealthComponent + 未死。</summary>
+    /// 筛选复用 AIInputComponent / TowerTargetingComponent 同款：非自己 + 非中立 + 阵营不同 + 有 HealthComponent + 未死。
+    ///
+    /// **候选来源**：先用 <see cref="Physics.OverlapSphereNonAlloc"/> 在 SnapRange 内按 HitLayers 粗筛（交给物理空间分区），
+    /// 候选数从"全场 actor"降到"球内 collider"，再跑原有锥角/阵营/血量过滤 + 打分。
+    /// 同一 actor 多 collider 会被打分多次但取同一最优，无害；snapBuf 满（>32 collider 在范围内）时多余候选被丢，近战吸附可接受。</summary>
     private void AcquireSnapTarget()
     {
         snapTargetId = -1;
         if (world == null) return;
-        snapScanBuf.Clear();
-        world.AppendAll(snapScanBuf);
 
         float cosHalf = Mathf.Cos(SnapHalfAngle * Mathf.Deg2Rad);
         float rangeSqr = SnapRange * SnapRange;
@@ -173,16 +177,17 @@ public class SkillCastComponent : ICharacterComponent
         var selfPos = Owner.Position;
         int selfTeam = Owner.TeamId;
 
-        for (int i = 0; i < snapScanBuf.Count; i++)
+        int count = Physics.OverlapSphereNonAlloc(selfPos, SnapRange, snapBuf, HitLayers);
+        for (int i = 0; i < count; i++)
         {
-            var a = snapScanBuf[i];
-            if (a == null || a == Owner) continue;
+            int id = DamageRouter.ResolveActorId(snapBuf[i], Owner.ID);   // 反查 actor + 过滤自身
+            if (id < 0 || !world.TryGet(id, out var a) || a == null || a == Owner) continue;
             if (a.TeamId == 0 || a.TeamId == selfTeam) continue;     // 友军 / 中立不吸
             if (a.IsDead || a.Get<HealthComponent>() == null) continue;
 
             var to = a.Position - selfPos; to.y = 0f;                // 水平距离
             float sqr = to.x * to.x + to.z * to.z;
-            if (sqr > rangeSqr || sqr < 1e-6f) continue;             // 超出捕获半径
+            if (sqr > rangeSqr || sqr < 1e-6f) continue;             // 超出捕获半径（水平）
             var dir = to / Mathf.Sqrt(sqr);
             float dot = castForward.x * dir.x + castForward.z * dir.z;
             if (dot < cosHalf) continue;                             // 锥外（含背后）不吸

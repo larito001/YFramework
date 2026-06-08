@@ -26,6 +26,50 @@ public class SkillDef : ScriptableObject
     [Tooltip("按顺序播放的段。每段播完（clip 自然结束或 HoldDuration 到点）进下一段，最后一段完回 locomotion。")]
     public SkillSegment[] Segments;
 
+#if UNITY_EDITOR
+    /// <summary>编辑器校验：把原先只写在 Tooltip 里的隐式契约（取消窗必须 ≥ 命中窗结束等）变成可点选的 Console 警告，
+    /// 避免配错后静默吞命中 / 永不触发的窗 / 退化段。仅编辑期跑，不进包、运行时零成本。</summary>
+    private void OnValidate()
+    {
+        if (Segments == null) return;
+        for (int s = 0; s < Segments.Length; s++)
+        {
+            var seg = Segments[s];
+            if (seg == null) continue;
+
+            // 退化段：无 clip 且无 HoldDuration → 运行时 segDuration<=0 被跳过（不播 / 不命中 / 不位移）
+            if (seg.Clip == null && seg.HoldDuration <= 0f)
+                Debug.LogWarning($"[SkillDef:{name}] 第 {s} 段无 Clip 且 HoldDuration<=0，运行时会被跳过。", this);
+
+            // 命中窗自检 + 记录最大 EndNorm（给取消窗契约用）
+            float maxHitEnd = 0f;
+            if (seg.HitWindows != null)
+                for (int i = 0; i < seg.HitWindows.Length; i++)
+                {
+                    var w = seg.HitWindows[i];
+                    if (w == null) continue;
+                    if (w.StartNorm > w.EndNorm)
+                        Debug.LogWarning($"[SkillDef:{name}] 第 {s} 段 HitWindow[{i}] StartNorm({w.StartNorm:F2}) > EndNorm({w.EndNorm:F2})，该窗永不触发。", this);
+                    if (w.EndNorm > maxHitEnd) maxHitEnd = w.EndNorm;
+                }
+
+            // 取消窗契约：CancelFromNorm ∈ (0,1) 且早于命中窗最大 EndNorm → 进取消窗后接招 / 移动取消会吞掉还没打完的命中
+            float cancelN = seg.CancelFromNorm;
+            if (cancelN > 0f && cancelN < 1f && cancelN < maxHitEnd)
+                Debug.LogWarning($"[SkillDef:{name}] 第 {s} 段 CancelFromNorm({cancelN:F2}) < 命中窗最大 EndNorm({maxHitEnd:F2})，连招 / 移动取消会吞掉未结束的命中。把 CancelFromNorm 提到 ≥ {maxHitEnd:F2}。", this);
+
+            // 跟随型 VFX 区间自检：Start > End 会"生成即销毁"
+            if (seg.Vfx != null)
+                for (int i = 0; i < seg.Vfx.Length; i++)
+                {
+                    var v = seg.Vfx[i];
+                    if (v != null && v.AttachToOwner && v.StartNorm > v.EndNorm)
+                        Debug.LogWarning($"[SkillDef:{name}] 第 {s} 段 Vfx[{i}] 跟随型 StartNorm({v.StartNorm:F2}) > EndNorm({v.EndNorm:F2})，生成即销毁。", this);
+                }
+        }
+    }
+#endif
+
     /// <summary>技能的一段：一个全身 clip + 持续策略 + 前向位移 + 命中窗。</summary>
     [Serializable]
     public class SkillSegment
