@@ -73,7 +73,12 @@
       "Bash(Get-ChildItem -Path \"C:\\\\UnityProject\\\\YFramework\\\\client\" -Directory)",
       "Bash(Select-Object Name)",
       "Bash(Get-ChildItem -Path . -Directory)",
-      "Skill(code-review)"
+      "Skill(code-review)",
+      "Bash(xargs -I {} sh -c 'echo \"=== {} ===\" && head -3 {}')",
+      "Bash(git -C C:/UnityProject/YFramework/client log --oneline --all)",
+      "Bash(git add *)",
+      "Bash(git commit -m '@ *)",
+      "Bash(git commit *)"
     ]
   }
 }

@@ -19,6 +19,7 @@ MonoBehaviour:
     Fade: 0.08
     HoldDuration: 0
     CancelFromNorm: 0.5
+    MoveCancelable: 1
     ForwardDistance: 1
     DistanceProfile:
       serializedVersion: 2
