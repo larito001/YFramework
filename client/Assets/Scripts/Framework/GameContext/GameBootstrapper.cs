@@ -76,6 +76,9 @@ public static partial class GameBootstrapper
         // TimeScaleService 必须在 CharacterManager 之前注册：它用 GameLoop 未缩放 dt 推进卡肉 timer，
         // 同帧写完 character.TimeScale 后，CharacterManager.Tick 读到的就是当帧的缩放值。
         ctx.Register(new TimeScaleService());
+        // 局部减速圈：纯逻辑驱动（不走 Unity 物理）。每帧遍历所有 Actor 按距离写 Actor.ZoneScale。
+        // 须在 CharacterManager / BulletManager 之前注册 → 本帧先算好 ZoneScale，随后各 Actor.Tick 读到当帧值。
+        ctx.Register(new TimeScaleZoneService());
         // ── TPS Manager Tick 顺序（不要随意调整）──
         //   CharacterManager → WeaponManager → BulletManager
         //

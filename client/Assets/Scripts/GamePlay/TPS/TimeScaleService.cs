@@ -52,7 +52,7 @@ public class TimeScaleService : IGameService, ITickable
     private readonly List<int> toRemove = new List<int>();
 
     // ── 全局缩放因子（不写 Unity Time.timeScale）。GameLoop 用它 × unscaledDeltaTime 驱动 gameplay 时钟。──
-    private float globalScale = 0.5f;
+    private float globalScale = 1f;
 
     // ── 全局 hitstop 状态 ──
     private float globalHitstopRemaining;     // >0 表示全局卡肉中，timer 用 unscaledDeltaTime 推

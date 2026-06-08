@@ -21,6 +21,9 @@ public class GameStartScene : YSceneBase
 
         RegisterItemUseHandlers(); // 物品使用逻辑(gameplay 内容,放场景而非组装层)
         SpawnChests();             // 玩家附近随机散布三种品质的宝箱
+
+        // 【测试用】玩家正前方放一个局部时间缩放圈：站进去角色变 0.5 倍速，全局保持 1 倍。不想要删这行。
+        TimeScaleZone.Spawn(GetPlayerSpawnPos() + new Vector3(0f, 0f, 5f), radius: 3f, insideScale: 0.1f);
     }
 
     /// <summary>注册各消耗品的使用逻辑(按物品 id 绑处理器)。处理器内部延迟查找玩家,注册时机不要求玩家已就绪。</summary>

@@ -62,7 +62,10 @@ public static class DamageRouter
         Vector3 origin, Vector3 dir, float maxDist, LayerMask mask,
         int attackerId, RaycastHit[] hitBuf, out RaycastHit best)
     {
-        int n = Physics.RaycastNonAlloc(origin, dir, hitBuf, maxDist, mask);
+        // QueryTriggerInteraction.Ignore：弹道只跟实体碰撞体结算命中，穿透触发器体积
+        // （减速圈 TimeScaleZone / 交互圈 / 感应区等都是 isTrigger，不该挡子弹、更不该让子弹在其表面 Despawn）。
+        // 不传这个参数时用全局 Physics.queriesHitTriggers（默认 true）→ 子弹会命中圈的触发球而消失。
+        int n = Physics.RaycastNonAlloc(origin, dir, hitBuf, maxDist, mask, QueryTriggerInteraction.Ignore);
         int bestIdx = -1;
         float bestDist = float.MaxValue;
         for (int i = 0; i < n; i++)

@@ -40,7 +40,14 @@ MonoBehaviour:
         CritMultiplier: 0
         Element: 0
         AppliedBuffs: []
-    Vfx: []
+    Vfx:
+    - Path: VFX/ATK_01
+      StartNorm: 0
+      EndNorm: 1
+      LocalOffset: {x: 0, y: 0, z: 0}
+      RotationEuler: {x: 0, y: 0, z: 0}
+      Scale: 0
+      AttachToOwner: 1
     Shake:
     - StartNorm: 0.25
       Intensity: 0.16

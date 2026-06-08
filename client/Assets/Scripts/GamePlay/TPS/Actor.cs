@@ -30,6 +30,12 @@ public class Actor
     /// 全局部分由 GameLoop 在 Ctx.Tick 的 dt 里已折算，per-actor 部分在本字段。</summary>
     public float TimeScale = 1f;
 
+    /// <summary>局部**区域**时间缩放因子（1=正常，0.5=半速，0=冻结）。由 <see cref="TimeScaleZoneService"/> 每帧
+    /// 按 actor 位置是否落在某个 <see cref="TimeScaleZone"/> 内写入——纯逻辑距离判断，不走任何物理碰撞。
+    /// 和 <see cref="TimeScale"/>（卡肉 / per-actor 慢动作）是**独立来源**，在 <see cref="Tick"/> 里相乘叠加：
+    /// 例如身处 0.5 减速圈又被卡肉 0 → 乘积 0 冻结；卡肉结束 TimeScale 回 1，乘积 0.5 仍保持区域减速，不会漏还原。</summary>
+    public float ZoneScale = 1f;
+
     // ── 空间（所有 Actor 都需要） ──
     /// <summary>世界坐标。Character 由 View 物理后回写、Bullet 由 BulletMoveComponent 推进。</summary>
     public Vector3 Position;
@@ -172,7 +178,8 @@ public class Actor
         // Manager 调用方仍传"游戏帧 dt"即可，不用知道 TimeScale 的存在。
         // 注意：dt 缩到 0 时仍然派发给组件——组件自己决定是否在 dt=0 时做 dt-独立的事
         // （比如 AimComponent 在 dt<=0 时早退，避免冻结期间还转身瞄准）。基类不替子类做决定。
-        if (TimeScale != 1f) dt *= TimeScale;
+        float localScale = TimeScale * ZoneScale; // 卡肉/per-actor × 区域缩放，独立来源相乘
+        if (localScale != 1f) dt *= localScale;
 
         _isTicking = true;
         try
