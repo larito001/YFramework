@@ -67,8 +67,6 @@ public static partial class GameBootstrapper
         }
 
         ctx.Register<ICoroutineRunner>(runner);
-        var aStarManager = new YAStarManager(ctx.Get<SceneReferenceService>(), ctx.Get<ResMgr>());
-        ctx.Register(aStarManager);
         RegisterProjectServices(ctx);
         Debug.Log(ctx.Get<ConfigManager>().heroConfig.Get(1001).HeroName);
         ctx.Register(new ActorWorld());
