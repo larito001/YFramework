@@ -21,6 +21,11 @@ public class VfxManager : IGameService, ITickable
     private ResMgr resMgr;
     private ViewManager viewMgr;
     private TimeScaleService timeScaleService;
+    // 跟随型特效跟拥有者一起缩放：取 owner.LocalScale（= 卡肉 TimeScale × 区域 ZoneScale）。
+    // 卡肉是 per-actor 的、跟位置无关，只能从拥有者拿——owner 被打卡肉冻住时，挂它身上的特效一起冻。
+    private ActorWorld world;
+    // 无拥有者的世界一次性特效（爆炸/弹着点等）才退回按位置采样区域圈。
+    private TimeScaleZoneService zoneService;
 
     private class PoolEntry
     {
@@ -34,6 +39,7 @@ public class VfxManager : IGameService, ITickable
         public int handle;
         public string path;
         public Transform tr;
+        public int ownerActorId;  // >=0 跟随某 actor（取其 LocalScale，含卡肉）；-1 = 无主，按 tr 位置采样区域缩放
         public float remaining;   // >0 倒计时自动回收（世界一次性）；<0 = 仅 Stop 回收（跟随型）
         // 全局缩放不走 Time.timeScale，粒子默认按真实时间播 → 每帧把 simulationSpeed = 作者原速 × GlobalScale。
         public ParticleSystem[] particles;   // 实例下所有粒子系统（含未激活），缓存避免每帧 GetComponentsInChildren
@@ -47,6 +53,8 @@ public class VfxManager : IGameService, ITickable
         resMgr = ctx.Get<ResMgr>();
         viewMgr = ctx.Get<ViewManager>();
         ctx.TryGet(out timeScaleService); // 全局缩放源，驱动粒子 simulationSpeed
+        ctx.TryGet(out world);            // 跟随型特效取 owner.LocalScale（含卡肉）
+        ctx.TryGet(out zoneService);      // 无主特效按位置采样区域缩放
     }
 
     public void Shutdown()
@@ -65,6 +73,8 @@ public class VfxManager : IGameService, ITickable
         resMgr = null;
         viewMgr = null;
         timeScaleService = null;
+        world = null;
+        zoneService = null;
     }
 
     private float CurrentGlobalScale() => timeScaleService != null ? timeScaleService.GlobalScale : 1f;
@@ -76,7 +86,7 @@ public class VfxManager : IGameService, ITickable
         if (entry == null) return 0;
         var tr = entry.pool.Get(worldPos, worldRot, null);
         ApplyScale(tr, entry.baseScale, scale);
-        var a = new Active { handle = nextHandle++, path = path, tr = tr };
+        var a = new Active { handle = nextHandle++, path = path, tr = tr, ownerActorId = -1 };
         float dur = PlayParticles(a, tr);
         a.remaining = dur > 0f ? dur : DefaultLifetime;
         actives.Add(a);
@@ -94,7 +104,7 @@ public class VfxManager : IGameService, ITickable
         tr.localPosition = localOffset;
         tr.localRotation = localRot;
         ApplyScale(tr, entry.baseScale, scale);
-        var a = new Active { handle = nextHandle++, path = path, tr = tr, remaining = -1f }; // 仅 Stop 回收
+        var a = new Active { handle = nextHandle++, path = path, tr = tr, ownerActorId = actorId, remaining = -1f }; // 仅 Stop 回收
         PlayParticles(a, tr);
         actives.Add(a);
         return a.handle;
@@ -117,21 +127,34 @@ public class VfxManager : IGameService, ITickable
 
     public void Tick(float dt)
     {
-        float scale = CurrentGlobalScale();
+        float globalScale = CurrentGlobalScale();
         for (int i = actives.Count - 1; i >= 0; i--)
         {
             var a = actives[i];
-            // 每帧同步粒子模拟速度（全局缩放可能在慢动作 ramp / 卡肉中变化）。跟随型也要同步。
-            SyncParticleSpeed(a, scale);
+            // 有效缩放 = 全局 × 本特效局部缩放。跟随型跟拥有者一起缩放（取 owner.LocalScale，含卡肉）；
+            // 无主的世界特效退回按位置采样区域圈。每帧取：全局/区域/卡肉都可能在 ramp 中变化。
+            float localScale = ResolveLocalScale(a);
+            SyncParticleSpeed(a, globalScale * localScale);
             if (a.remaining < 0f) continue; // 跟随型不自动回收
-            // remaining 用 gameplay dt（= unscaledDt × GlobalScale）倒计时：与 simulationSpeed×缩放 后的实际播放时长一致。
-            a.remaining -= dt;
+            // remaining 用"实际播放速度"对应的 dt 倒计时：dt 已含全局缩放（= unscaledDt × GlobalScale），
+            // 再乘 localScale 与 simulationSpeed 完全一致，避免特效在减速圈里被提前回收。
+            a.remaining -= dt * localScale;
             if (a.remaining <= 0f)
             {
                 ReleaseToPool(a);
                 actives.RemoveAt(i);
             }
         }
+    }
+
+    /// <summary>本特效的局部时间缩放（不含全局）：有拥有者 → 取 owner <see cref="Actor.LocalScale"/>
+    /// （含卡肉 TimeScale + 区域 ZoneScale，跟拥有者一起冻/慢）；无主的世界特效 → 按特效当前世界位置采样减速圈。
+    /// owner 已销毁 / 圈服务缺失 / tr 已毁时回退 1。</summary>
+    private float ResolveLocalScale(Active a)
+    {
+        if (a.ownerActorId >= 0)
+            return world != null && world.TryGet(a.ownerActorId, out var actor) && actor != null ? actor.LocalScale : 1f;
+        return zoneService != null && a.tr != null ? zoneService.SampleScale(a.tr.position) : 1f;
     }
 
     /// <summary>把一个特效实例下所有粒子系统的 simulationSpeed 设为 作者原速 × 全局缩放。</summary>
