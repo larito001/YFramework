@@ -72,7 +72,8 @@
       "Bash(awk 'NR>=108 && NR<=117 {print NR\": \"$0}' Assets/Scripts/GamePlay/UI/Bag/GridHostPanelBase.cs)",
       "Bash(Get-ChildItem -Path \"C:\\\\UnityProject\\\\YFramework\\\\client\" -Directory)",
       "Bash(Select-Object Name)",
-      "Bash(Get-ChildItem -Path . -Directory)"
+      "Bash(Get-ChildItem -Path . -Directory)",
+      "Skill(code-review)"
     ]
   }
 }

@@ -118,7 +118,7 @@ public class ComboComponent : ICharacterComponent
                 int next = FindLink(currentNode, bufferedButton, bufferedDir);
                 if (next >= 0) PlayNode(next);
             }
-            // 窗未开 / 无匹配边 → 保留缓冲，等窗开（缓冲在释放途中不过期）
+            // 窗未开 / 无匹配边 → 保留缓冲（缓冲仍按 BufferWindow 计时过期，见 Tick 顶部），等窗开或过期
         }
         else
         {
@@ -183,10 +183,11 @@ public class ComboComponent : ICharacterComponent
     private void SyncGraph()
     {
         string path = Owner.CurrentComboGraphPath;
-        if (path == loadedPath) return;        // 没变
+        if (path == loadedPath) return;                              // 没变（含都为空）
+        if (!string.IsNullOrEmpty(path) && resMgr == null) return;   // resMgr 未就绪：不锁 loadedPath，下帧重试（不锁死）
         loadedPath = path;
         currentNode = -1;
-        graph = (!string.IsNullOrEmpty(path) && resMgr != null) ? resMgr.Load<ComboGraph>(path) : null;
+        graph = string.IsNullOrEmpty(path) ? null : resMgr.Load<ComboGraph>(path);
         if (!string.IsNullOrEmpty(path) && graph == null)
             Debug.LogWarning($"[ComboComponent] ComboGraph 加载失败: {path}（回退单招）。");
     }

@@ -240,15 +240,25 @@ public class SkillCastComponent : ICharacterComponent
                 Owner.Rotation = Quaternion.Slerp(Owner.Rotation, rot, 1f - Mathf.Exp(-SnapTurnRate * dt));
             }
 
-            // 位移吸附：到"身前站位点"的剩余距离，被 authored ForwardDistance 限幅（=最大吸附距离，防跨场拉拽）。
-            // ForwardDistance<=0 的原地段 → reach=0，只转向不前冲。
-            float gap = Mathf.Max(0f, dist - SnapDesiredGap);
-            float reach = seg.ForwardDistance > 1e-5f ? Mathf.Min(gap, seg.ForwardDistance) : 0f;
-            // 用 DistanceProfile 把"剩余距离"铺到"剩余段时间"：覆盖剩余 profile 占比 → 目标移动也平滑收敛，段末必达
-            float profRemain = 1f - segPrevDistFrac;
-            float frac = profRemain > 1e-4f ? Mathf.Clamp01((fracNow - segPrevDistFrac) / profRemain) : 1f;
-            float vmag = dt > 0f ? reach * frac / dt : 0f;
-            planar = dirT * vmag;
+            if (seg.ForwardDistance > 1e-5f)
+            {
+                // 前冲招：位移吸附——朝"身前站位点"主动收敛，reach 被 authored ForwardDistance 限幅（=最大吸附距离，防跨场拉拽）。
+                float gap = Mathf.Max(0f, dist - SnapDesiredGap);
+                float reach = Mathf.Min(gap, seg.ForwardDistance);
+                // 用 DistanceProfile 把"剩余距离"铺到"剩余段时间"：覆盖剩余 profile 占比 → 目标移动也平滑收敛，段末必达
+                float profRemain = 1f - segPrevDistFrac;
+                float frac = profRemain > 1e-4f ? Mathf.Clamp01((fracNow - segPrevDistFrac) / profRemain) : 1f;
+                float vmag = dt > 0f ? reach * frac / dt : 0f;
+                planar = dirT * vmag;
+            }
+            else
+            {
+                // 原地（=0）/ 后退（<0）招：不做距离吸附，按 authored 位移沿 castForward（已转向目标，负值=远离目标后退）。
+                // 仍享转向吸附（上面已转向目标），只是位移不收敛——撤步/原地攻击不会被吸附清零。
+                float dFrac = fracNow - segPrevDistFrac;
+                float vmag = (dt > 0f && Mathf.Abs(seg.ForwardDistance) > 1e-5f) ? seg.ForwardDistance * dFrac / dt : 0f;
+                planar = castForward * vmag;
+            }
         }
         else
         {
@@ -276,13 +286,14 @@ public class SkillCastComponent : ICharacterComponent
         // 2c. 相机震屏：到各自 StartNorm 触发一次（与 HitWindow 解耦，独立配置）
         DriveShake(seg, n);
 
-        // 3. 段结束 / 取消窗：
+        // 3. 段结束 / 移动取消：
         //    无后续输入 → 播完整段（完整后摇，不提前结束）。
-        //    进入取消窗（n >= CancelFromNorm，应配在命中窗之后）后，玩家有移动意图 → 提前 EndCast 脱离收招、恢复移动。
-        //    连招的"下一击"取消走 Cast（见 InCancelWindow），不在此处。
+        //    仅当本段开了 MoveCancelable：进入取消窗后玩家有移动意图 → 提前 EndCast 脱离收招、恢复移动。
+        //    连招的"下一击"取消走 Cast（见 InCancelWindow），与移动取消解耦——所以连招招式可 MoveCancelable=false，
+        //    避免"一边走一边连招"时被走位掐断（移动取消默认关，按需 per-skill 开）。
         if (segElapsed >= segDuration) { AdvanceOrEnd(); return; }
         float cancelN = seg.CancelFromNorm > 0f ? Mathf.Clamp01(seg.CancelFromNorm) : 1f;
-        if (cancelN < 1f && n >= cancelN && input != null && input.MoveWorld.sqrMagnitude > 0.01f)
+        if (seg.MoveCancelable && cancelN < 1f && n >= cancelN && input != null && input.MoveWorld.sqrMagnitude > 0.01f)
             EndCast();
     }
 

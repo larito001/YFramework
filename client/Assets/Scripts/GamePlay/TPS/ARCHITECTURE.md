@@ -79,7 +79,7 @@ Tick 顺序由 Add 顺序决定，Factory 是唯一约定 Add 顺序的地方。
 - **通用组件**：直接继承 `IActorComponent`，Owner=Actor。**只读写 Actor 基类字段**。可挂任何 Actor 子类（Character / Weapon / Bullet / 未来的 NPC / Pickup / Destructible）。
   例：`HealthComponent` / `HitstopOnDamageComponent` / `GravityComponent` / `AutoDespawnComponent`。
 - **特化组件**：继承 `ICharacterComponent` / `IWeaponComponent` / `IBulletComponent` / `ITowerComponent`，Owner=对应子类。需要子类专属字段时走这个，或语义上只该挂某子类时也走这个（即便当前没专属字段）。
-  例：`InputComponent` / `AIInputComponent` / `MoveComponent` / `AimComponent` / `WeaponComponent` / `SkillCastComponent` / `FireComponent` / `ReloadComponent` / `BulletMoveComponent` / `MissileMoveComponent` / `TowerTargetingComponent` / `TowerWeaponComponent`。
+  例：`InputComponent` / `AIInputComponent` / `MoveComponent` / `AimComponent` / `WeaponComponent` / `SkillCastComponent` / `ComboComponent` / `FireComponent` / `ReloadComponent` / `BulletMoveComponent` / `MissileMoveComponent` / `TowerTargetingComponent` / `TowerWeaponComponent`。
 
 判断：组件 Tick 里**只读写 Actor 基类字段** → 通用组件；只要 cast Owner 取子类字段 → 特化组件。**通用组件里禁止 `Owner as Character` / `Owner as Bullet` 等 cast**——cast 即承认特化，应改回对应子家族继承。
 
@@ -292,13 +292,14 @@ Weapon 体系不假设持有者类型——**Character / 塔 / 敌人 / 载具 /
 ```
 InputComponentBase（abstract ICharacterComponent，世界空间意图面）
   状态：MoveWorld(世界方向) / SprintHeld / AimHeld / FireHeld / AimWorldPoint(瞄准世界点)
-  事件：OnCastSkill(int) / OnReload / OnWeaponSelect(int)
-  ├─ InputComponent（玩家）：InputService + 相机的唯一消费者，做 WASD→世界 / 鼠标→世界点 解释
-  └─ AIInputComponent（AI/僵尸）：同一意图面，由行为树/状态机产出（当前随机占位）
+  事件：OnCastSkill(int) / OnAttack(ComboButton) / OnReload / OnWeaponSelect(int)
+  ├─ InputComponent（玩家）：InputService + 相机的唯一消费者，做 WASD→世界 / 鼠标→世界点 解释；左键→OnAttack(Light)、V→OnAttack(Heavy)
+  └─ AIInputComponent（AI/僵尸）：同一意图面，由行为树/状态机产出（当前随机占位）；走 OnCastSkill，不发 OnAttack
 ```
 
 - **职责边界**：相机/鼠标/键位解释**只在 InputComponent**；玩法组件吃世界空间意图，玩家/AI 通用。
-- 玩家和僵尸**共用 Aim+Move+SkillCast 管线**，只换输入组件（CreateCharacter 用 InputComponent，CreateZombie 用 AIInputComponent）。
+- **攻击键两条路**：AI 走 `OnCastSkill(下标)` → `SkillCastComponent` 直接订阅；玩家走 `OnAttack(语义键)` → `ComboComponent` 按连招图路由成具体 `SkillDef`（见"连招系统"）。
+- 玩家和僵尸**共用 Aim+Move+SkillCast 管线**，只换输入组件（CreateCharacter 用 InputComponent + ComboComponent，CreateZombie 用 AIInputComponent）。
 - Add 顺序：输入组件**最先**，玩法组件在 Attach 里 Get 它。
 - 换真 AI：实现一个 `InputComponentBase` 子类（或改 AIInputComponent）写 MoveWorld + Raise*，下游零改动。
 
@@ -341,14 +342,25 @@ view 侧通过 `CharacterView.CreateController()`（protected virtual）选 cont
 
 ### 技能系统（SkillDef + SkillCastComponent）
 
-**全身不可打断战斗动作**（玩家近战、僵尸攻击/飞扑）统一为**技能**——职责划分（结构）：
+**全身战斗动作**（玩家近战、僵尸攻击/飞扑）统一为**技能**——职责划分（结构）：
 
-- **`SkillDef`**（ScriptableObject，数据）：一组按顺序播的 `SkillSegment`（clip + 位移 + 命中窗）。纯数据，不含行为。
-- **`SkillCastComponent`**（ICharacterComponent，逻辑 owner，取代旧 MeleeComponent）：`Cast(i)` 不可打断；逐段推进时间线；命中窗内 OverlapSphere 扣血（复用 `DamageRouter`）；位移写 `WishVelocity.xz`（逻辑侧，Gravity 定 y）；置 `IsCastingSkill` 锁全角色；把当前段 clip 交给 controller。
+- **`SkillDef`**（ScriptableObject，数据）：一组按顺序播的 `SkillSegment`（clip + 位移 + 命中窗 + 动效/震屏 + `CancelFromNorm` 取消窗 + `MoveCancelable`）。纯数据，不含行为。
+- **`SkillCastComponent`**（ICharacterComponent，逻辑 owner，取代旧 MeleeComponent）：`Cast(int)` / `Cast(SkillDef)`；逐段推进时间线；命中窗内 OverlapSphere 扣血（复用 `DamageRouter`）；位移写 `WishVelocity.xz`（逻辑侧，Gravity 定 y）；置 `IsCastingSkill` 锁全角色；近战吸附（起手锁敌、转向 + 前冲收敛到目标身前）；把当前段 clip 交给 controller。
 - **controller**（基类 `LocomotionAnimController` 的技能全身分支）：纯**跟随器**——只按 `SkillClip`/`SkillClipDirty` 播放，不持技能时间线。
-- **触发**：订阅输入组件的 `InputComponentBase.OnCastSkill(int)`（玩家 V 键→0；AI→随机下标）；也可外部直接 `Cast(i)`。
+- **触发**：AI 订阅 `InputComponentBase.OnCastSkill(int)`（随机下标）；玩家走 `ComboComponent`（见下）；也可外部直接 `Cast`。
 
-> 字段语义、编辑步骤、配置范例、一键生成菜单 → 见 **`Docs/技能系统使用指南.md`**（本文件只描述结构与职责，不放使用细节）。
+**取消窗（可打断）**：段配 `CancelFromNorm<1` 后，到该归一化时间开窗——**再次攻击**可打断接下一招（连招），`MoveCancelable=true` 时**移动**可脱离收招。`=1`（默认）则全程不可打断、播完整段。`CanChainNow`/`InCancelWindow` 暴露给连招层判定。
+
+### 连招系统（ComboGraph + ComboComponent）
+
+把多个独立 `SkillDef` 编排成**招式图**，玩家攻击键按图接续成连段——职责划分：
+
+- **`ComboGraph`**（ScriptableObject，数据）：节点=一招（`SkillDef`），边=`(ComboButton + ComboDir)→目标节点`；`[0]=Neutral` 入口。另持手感参数 `BufferWindow`/`ComboGraceWindow`/`DirInputThreshold`（**所有连招时机都在数据里，代码不写死**）。
+- **`ComboComponent`**（ICharacterComponent，连招前端，Character 侧）：订阅 `InputComponentBase.OnAttack`；按当前武器 `Character.CurrentComboGraphPath` 加载的图，把按键路由成 `SkillCastComponent.Cast(SkillDef)`。**输入缓冲**（窗前预输入）+ **续接宽限**（窗后宽限）两个短窗夹着取消点；**无图回退单招**（保留接连招前行为）。本身不持时间线/不写意图，只决定"接哪一招"。
+- **数据流**：`OnAttack` → ComboComponent（查图）→ `Cast(SkillDef)` → SkillCast（执行/取消窗/吸附）。每招的位移/命中/吸附全归 SkillCast，连招层只管编排。
+- **武器绑定**：`Weapon.ComboGraphPath` 切枪时镜像到 `Character.CurrentComboGraphPath`（同 AnimSet/技能下标的镜像通道），ComboComponent 轮询重载图。空=该武器无连招。
+
+> 字段语义、编辑步骤、配置范例、连招/吸附调参、一键生成菜单 → 见 **`Docs/技能系统使用指南.md`**（本文件只描述结构与职责，不放使用细节）。
 
 ### 双 AnimSet 分工
 
