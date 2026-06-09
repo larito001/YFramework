@@ -83,6 +83,8 @@ public class SkillDef : ScriptableObject
         public float CancelFromNorm = 1f;
         [Tooltip("是否允许【移动】取消本段收招（进入取消窗后玩家有移动意图就 EndCast 脱离）。默认 false：避免与连招抢取消窗——一边走一边连招时不会被走位掐断。\n仅对'想用移动主动脱离后摇'的招（如重攻击想取消去走位）才开。连招招式保持 false，靠'再次攻击'接续。")]
         public bool MoveCancelable = false;
+        [Tooltip("本段是否【自动追踪敌人】：true=每帧持续转向锁定目标，前冲段还会主动收敛到其身前站位（= 近战吸附的逐帧跟随，打中走位的目标）；false=本段不追踪，按起手/上段锁定的朝向走 authored 位移。\n需配合 SkillCastComponent.SnapEnabled（起手锁定目标）；无锁定目标时本字段无效（回退按朝向直冲）。\n默认 true 保持原吸附行为；想让某段'原地不跟人'（如定向横扫 / 不收敛的突进）就关掉。")]
+        public bool TrackTarget = true;
         [Tooltip("本段沿角色 forward 的总位移（米）。0=原地（攻击）；正=前冲（飞扑 Air 段填大值如 4）；负=后退")]
         public float ForwardDistance;
         [Tooltip("位移随段内进度的分布曲线（x:段进度 0→1，y:已位移占比 0→1）。留空/少于2帧=线性匀速。可做'前段爆发后段刹车'")]

@@ -14,12 +14,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Name: ZombieLeap
   RecoverFade: 0.25
-  ShakeIntensity: 0.3
-  ShakeDuration: 0.2
   Segments:
   - Clip: {fileID: 7400000, guid: 0b4959ee09d07f749943183c2ee3ce77, type: 3}
     Fade: 0.1
     HoldDuration: 0
+    CancelFromNorm: 1
+    MoveCancelable: 0
+    TrackTarget: 0
     ForwardDistance: 6
     DistanceProfile:
       serializedVersion: 2
@@ -94,9 +95,14 @@ MonoBehaviour:
         CritMultiplier: 0
         Element: 0
         AppliedBuffs: []
+    Vfx: []
+    Shake: []
   - Clip: {fileID: 7400000, guid: 33024e1eb0e19ab4b947ad7511abbc62, type: 3}
     Fade: 0.1
     HoldDuration: 0
+    CancelFromNorm: 1
+    MoveCancelable: 0
+    TrackTarget: 0
     ForwardDistance: 0
     DistanceProfile:
       serializedVersion: 2
@@ -132,3 +138,5 @@ MonoBehaviour:
       m_PostInfinity: 2
       m_RotationOrder: 4
     HitWindows: []
+    Vfx: []
+    Shake: []

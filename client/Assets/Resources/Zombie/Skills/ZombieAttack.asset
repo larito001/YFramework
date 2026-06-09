@@ -14,12 +14,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Name: ZombieAttack
   RecoverFade: 0.2
-  ShakeIntensity: 0.15
-  ShakeDuration: 0.12
   Segments:
   - Clip: {fileID: 7400000, guid: ba4a038ef75f8284d868b052eb665be7, type: 3}
     Fade: 0.1
     HoldDuration: 0
+    CancelFromNorm: 1
+    MoveCancelable: 0
+    TrackTarget: 0
     ForwardDistance: 0
     DistanceProfile:
       serializedVersion: 2
@@ -40,9 +41,14 @@ MonoBehaviour:
         CritMultiplier: 0
         Element: 0
         AppliedBuffs: []
+    Vfx: []
+    Shake: []
   - Clip: {fileID: 7400000, guid: 862dfc1fe4b9bae478dc65ca071342dc, type: 3}
     Fade: 0.05
     HoldDuration: 0.7
+    CancelFromNorm: 1
+    MoveCancelable: 0
+    TrackTarget: 1
     ForwardDistance: 0
     DistanceProfile:
       serializedVersion: 2
@@ -63,9 +69,14 @@ MonoBehaviour:
         CritMultiplier: 0
         Element: 0
         AppliedBuffs: []
+    Vfx: []
+    Shake: []
   - Clip: {fileID: 7400000, guid: 17a048d96cd39924faa3168945c686ea, type: 3}
     Fade: 0.05
     HoldDuration: 0
+    CancelFromNorm: 1
+    MoveCancelable: 0
+    TrackTarget: 0
     ForwardDistance: 0
     DistanceProfile:
       serializedVersion: 2
@@ -86,3 +97,5 @@ MonoBehaviour:
         CritMultiplier: 0
         Element: 0
         AppliedBuffs: []
+    Vfx: []
+    Shake: []

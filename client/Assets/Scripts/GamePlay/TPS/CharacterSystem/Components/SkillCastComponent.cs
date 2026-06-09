@@ -228,11 +228,11 @@ public class SkillCastComponent : ICharacterComponent
         var seg = active.Segments[segIndex];
 
         // 1. 位移 + 吸附（权威写 x/z 杜绝滑步，y 留给 Gravity）：
-        //    有吸附目标 → 朝其"身前站位点"主动收敛（位移吸附/suction）+ 持续转向（转向吸附）；
-        //    无目标 → 回退原"沿 castForward 走 authored ForwardDistance"。
+        //    本段 TrackTarget 开 且 有吸附目标 → 朝其"身前站位点"主动收敛（位移吸附/suction）+ 持续转向（转向吸附）；
+        //    本段 TrackTarget 关 / 无目标 → 回退原"沿 castForward 走 authored ForwardDistance"（本段不跟人）。
         float fracNow = SampleProfile(seg.DistanceProfile, n);
         Vector3 planar;
-        if (snapTargetId >= 0 && world != null && world.TryGet(snapTargetId, out var snapT) && !snapT.IsDead)
+        if (seg.TrackTarget && snapTargetId >= 0 && world != null && world.TryGet(snapTargetId, out var snapT) && !snapT.IsDead)
         {
             var toT = snapT.Position - Owner.Position; toT.y = 0f;
             float dist = toT.magnitude;
