@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using YFramework.Config;
 
@@ -20,6 +21,8 @@ public class DropItemSystem : IGameService
     private CharacterManager characterMgr;
     private ViewManager viewMgr;
     private BagSystem bagSystem;
+    // 占位 box 材质按品质缓存复用:每丢一次 new Material 会泄漏(不随 GameObject 回收),故只建 5 个共用。
+    private readonly Dictionary<ItemQuality, Material> matCache = new Dictionary<ItemQuality, Material>();
 
     public void Init(GameContext context)
     {
@@ -29,6 +32,9 @@ public class DropItemSystem : IGameService
 
     public void Shutdown()
     {
+        foreach (var mat in matCache.Values)
+            if (mat != null) Object.Destroy(mat);
+        matCache.Clear();
         ctx = null;
         characterMgr = null;
         viewMgr = null;
@@ -78,16 +84,19 @@ public class DropItemSystem : IGameService
         go.transform.localScale = new Vector3(w * 0.3f, 0.3f, h * 0.3f); // 不同物品尺寸有别
 
         var rend = go.GetComponent<MeshRenderer>();
-        if (rend != null)
-        {
-            var shader = Shader.Find("Universal Render Pipeline/Lit"); // URP:默认材质会变粉,显式建材质
-            if (shader == null) shader = Shader.Find("Standard");
-            rend.sharedMaterial = new Material(shader)
-            {
-                color = ItemQualityPalette.Accent((ItemQuality)cfg.Quality) // 按品质上色
-            };
-        }
+        if (rend != null) rend.sharedMaterial = GetQualityMaterial((ItemQuality)cfg.Quality);
         return go;
+    }
+
+    /// <summary>取/建某品质的占位材质(按品质上色,缓存复用,避免每次掉落泄漏 Material)。</summary>
+    private Material GetQualityMaterial(ItemQuality quality)
+    {
+        if (matCache.TryGetValue(quality, out var mat) && mat != null) return mat;
+        var shader = Shader.Find("Universal Render Pipeline/Lit"); // URP:默认材质会变粉,显式建材质
+        if (shader == null) shader = Shader.Find("Standard");
+        mat = new Material(shader) { color = ItemQualityPalette.Accent(quality) };
+        matCache[quality] = mat;
+        return mat;
     }
 
     /// <summary>玩家世界坐标与朝向:优先用 view 的 transform(实时);取不到退回逻辑 Position。</summary>
