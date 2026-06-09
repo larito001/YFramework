@@ -60,6 +60,8 @@ public static partial class GameBootstrapper
         ctx.Register(new ChestSystem());
         // 世界交互（靠近宝箱 + F 打开）：Init 只订阅 InputService 的 F 键，CharacterManager/ViewManager 在 Tick 里懒取。
         ctx.Register(new WorldInteractionSystem());
+        // 掉落物系统：丢弃物品时在玩家身前生成可拾取的世界掉落物(靠近 + F 捡回)。BagSystem.Discard 调它。
+        ctx.Register(new DropItemSystem());
         // ctx.Register(new EnemiesManager());
         // ctx.Register(new SceneResManager());
     }

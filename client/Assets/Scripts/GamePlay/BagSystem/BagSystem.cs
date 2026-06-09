@@ -21,11 +21,13 @@ public class BagSystem : IGameService
     private const int DefaultGridWidth = 10;
     private const int DefaultGridHeight = 8;
 
+    private GameContext ctx;
     private ConfigManager config;
     private EventMgr eventMgr;
     private InputService input;
     private UIMgr uiMgr;
     private StoreMgr store;
+    private DropItemSystem dropSystem;
     private ISaveHandle saveHandle;
     private GridBag bag;
     private readonly Dictionary<int, IItemUseHandler> useHandlers = new Dictionary<int, IItemUseHandler>();
@@ -35,6 +37,7 @@ public class BagSystem : IGameService
 
     public void Init(GameContext ctx)
     {
+        this.ctx = ctx; // 丢弃时懒取 DropItemSystem(注册晚于本系统)
         config = ctx.Get<ConfigManager>();
         eventMgr = ctx.Get<EventMgr>();
         // InputService 在本系统之前注册、UIMgr 框架层先注册,此处可直接取。
@@ -144,14 +147,24 @@ public class BagSystem : IGameService
     /// <summary>整理(各朝向择优 + 紧凑重排)。</summary>
     public void SortBag() => bag?.SortBag();
 
-    /// <summary>丢弃实例(<see cref="ItemType.QuestItem"/> 任务物品不可丢弃)。</summary>
+    /// <summary>
+    /// 丢弃实例(<see cref="ItemType.QuestItem"/> 任务物品不可丢弃)。
+    /// 成功从背包移除后,经 <see cref="DropItemSystem"/> 在玩家身前生成可拾取的世界掉落物。
+    /// </summary>
     public bool Discard(int instanceId)
     {
         if (bag == null) return false;
         var item = bag.GetByInstance(instanceId);
         if (item == null) return false;
         if (GetItemType(item.itemId) == ItemType.QuestItem) return false;
-        return bag.RemoveItem(instanceId);
+
+        // 先抓数据(移除后实例失效),再移除,最后丢到世界。
+        int itemId = item.itemId, count = item.count, rotation = item.rotation;
+        if (!bag.RemoveItem(instanceId)) return false;
+
+        if (dropSystem == null && ctx != null) ctx.TryGet(out dropSystem);
+        dropSystem?.DropAtPlayer(itemId, count, rotation);
+        return true;
     }
 
     // ---------------- 物品使用 ----------------
