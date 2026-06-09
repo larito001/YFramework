@@ -43,6 +43,24 @@ public class Character : Actor
     /// <summary>技能结束回 locomotion 的淡入时长（秒）。SkillCastComponent EndCast 时写（= SkillDef.RecoverFade）。0 = 默认。</summary>
     public float SkillRecoverFade;
 
+    // ── 闪避（DodgeComponent 写，view 读 + 其他组件门控）。与技能并列的另一类"全身、自带位移、可带无敌帧"动作，
+    //    但方向在运行时按移动意图选（4 向 clip 来自 CharacterAnimSet），由专用 DodgeComponent 驱动，不走技能/连招的资产编排。──
+    /// <summary>闪避进行中。DodgeComponent 起闪避置 true、结束清 false。
+    /// 经 <see cref="IsBusy"/> 与 <see cref="IsCastingSkill"/> 一起门控 Move/Aim/Weapon（闪避途中锁移动/转身/开火）；controller 用它锁全身覆盖。</summary>
+    public bool IsDodging;
+    /// <summary>当前闪避要播的 clip（DodgeComponent 按方向从 CharacterAnimSet 选 DodgeFwd/Bwd/Left/Right）。controller 消费 <see cref="DodgeClipDirty"/> 时播放。</summary>
+    public AnimationClip DodgeClip;
+    /// <summary>一次性：有新闪避 clip 待播。DodgeComponent 起闪避置 true，controller 全身分支 Play(DodgeClip) 后清回。</summary>
+    public bool DodgeClipDirty;
+    /// <summary>闪避进入淡入时长（秒）。0 = 用 CharacterAnimSet.DefaultFade。</summary>
+    public float DodgeClipFade;
+    /// <summary>闪避结束回 locomotion 的淡入时长（秒）。DodgeComponent 结束时写。0 = 默认。</summary>
+    public float DodgeRecoverFade;
+
+    /// <summary>角色是否正被"全身互斥动作"占用（技能释放 <see cref="IsCastingSkill"/> 或闪避 <see cref="IsDodging"/>）。
+    /// Move/Aim/Weapon 统一据此门控锁移动/转身/开火——这两类动作的位移与朝向都由各自组件权威写，不该被常规移动/瞄准覆盖。</summary>
+    public bool IsBusy => IsCastingSkill || IsDodging;
+
     /// <summary>切枪进行中，WeaponComponent 用它门控开火。计时器到期自动清零（覆盖 Holster + Equip 两阶段）。</summary>
     public bool IsSwapping;
     /// <summary>取出新枪的一次性 trigger（Equip 阶段开始）：WeaponComponent 在 Holster 阶段结束时置 true，view 消费 SetTrigger("WeaponSwap") 后清回。</summary>

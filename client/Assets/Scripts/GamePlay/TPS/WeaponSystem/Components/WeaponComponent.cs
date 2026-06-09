@@ -147,10 +147,10 @@ public class WeaponComponent : ICharacterComponent
         if (currReloading && !prevReloading) Owner.Reload = true;
         prevReloading = currReloading;
 
-        // 开火条件：瞄准 + 没在切枪 + 没在近战 + 没在换弹 + 没死 + 有弹（MagCapacity=0 是无限弹药武器，跳过弹药门控）
+        // 开火条件：瞄准 + 没在切枪 + 没在近战/闪避 + 没在换弹 + 没死 + 有弹（MagCapacity=0 是无限弹药武器，跳过弹药门控）
         //   + 非近战武器（WeaponPrimarySkill<0；近战/技能武器左键放技能，永不开火）
         bool hasAmmo = currentWeapon == null || currentWeapon.MagCapacity <= 0 || currentWeapon.CurrentAmmo > 0;
-        Owner.IsShooting = input.FireHeld && Owner.IsAiming && !Owner.IsSwapping && !Owner.IsCastingSkill && !Owner.IsReloading && !Owner.IsDead && hasAmmo && Owner.WeaponPrimarySkill < 0;
+        Owner.IsShooting = input.FireHeld && Owner.IsAiming && !Owner.IsSwapping && !Owner.IsBusy && !Owner.IsReloading && !Owner.IsDead && hasAmmo && Owner.WeaponPrimarySkill < 0;
 
         // 射击一次性 trigger 镜像：FireComponent 每发射成功置 ShootEvent，view 端 SetTrigger("Shoot") 重启 Recoil 动画
         if (currentWeapon != null && currentWeapon.ShootEvent)
@@ -234,10 +234,10 @@ public class WeaponComponent : ICharacterComponent
         if (Owner == null) return;
         if (Weapons == null || slot < 0 || slot >= Weapons.Count) return;
 
-        // 死亡 / 技能释放中静默忽略（手部 / 全身被占用）。playAnim=false 分支是 Factory 强制 spawn 路径，不走这两条门控。
+        // 死亡 / 技能释放 / 闪避中静默忽略（手部 / 全身被占用）。playAnim=false 分支是 Factory 强制 spawn 路径，不走这两条门控。
         // **不**拦 IsReloading：换弹中切枪打断 reload 是设计内的（ApplySwap 主动清旧武器 IsReloading=false）。
         if (playAnim && Owner.IsDead) return;
-        if (playAnim && Owner.IsCastingSkill) return;
+        if (playAnim && Owner.IsBusy) return;
 
         // mid-swap 守卫：动画切枪期间禁止再切。用 Owner.IsSwapping（由 swapLockTimer 覆盖全 Holster+Equip 时长驱动）
         // 比 holsterTimer/mountToHandTimer 更严密 —— 当 BackSocketName 空或 MountToHandDelay<=0 时两个 timer 可能没启动，
@@ -339,8 +339,8 @@ public class WeaponComponent : ICharacterComponent
     {
         if (Owner == null || Owner.IsDead) return;
         if (currentWeapon == null) return;
-        // 切枪/技能释放中不响应：这些状态下角色手是占用的
-        if (Owner.IsSwapping || Owner.IsCastingSkill) return;
+        // 切枪/技能释放/闪避中不响应：这些状态下角色手是占用的
+        if (Owner.IsSwapping || Owner.IsBusy) return;
         currentWeapon.ReloadRequest = true;
     }
 }

@@ -57,6 +57,7 @@ public class HealthComponent : IActorComponent
     public void ApplyDamage(in DamageInfo info)
     {
         if (Owner == null || Owner.IsDead) return;
+        if (Owner.IsInvulnerable) return;   // 无敌帧（闪避 / 出生保护等）：完全免伤
         if (info.Amount <= 0f) return;
         // 友军伤害过滤：双方都非中立 + 同阵营 → 跳过。中立（TeamId=0）任何一方都正常扣血。
         if (info.AttackerTeamId != 0 && Owner.TeamId != 0 && info.AttackerTeamId == Owner.TeamId) return;

@@ -28,6 +28,8 @@ public abstract class InputComponentBase : ICharacterComponent
     public event Action<int> OnCastSkill;
     /// <summary>攻击键事件（连招用，参数=语义按键）。玩家左键→Light、V→Heavy。<see cref="ComboComponent"/> 订阅、按武器连招图路由成具体技能。</summary>
     public event Action<ComboButton> OnAttack;
+    /// <summary>闪避请求。<see cref="DodgeComponent"/> 订阅，按当前移动意图选向翻滚 + 无敌帧。玩家=空格；AI 可在行为树里 <see cref="RaiseDodge"/>（如躲避来袭）。</summary>
+    public event Action OnDodge;
     /// <summary>换弹请求。<see cref="WeaponComponent"/> 订阅。</summary>
     public event Action OnReload;
     /// <summary>选武器槽请求（0..8）。<see cref="WeaponComponent"/> 订阅。</summary>
@@ -35,6 +37,7 @@ public abstract class InputComponentBase : ICharacterComponent
 
     protected void RaiseCastSkill(int index) => OnCastSkill?.Invoke(index);
     protected void RaiseAttack(ComboButton button) => OnAttack?.Invoke(button);
+    protected void RaiseDodge() => OnDodge?.Invoke();
     protected void RaiseReload() => OnReload?.Invoke();
     protected void RaiseWeaponSelect(int slot) => OnWeaponSelect?.Invoke(slot);
 

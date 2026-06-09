@@ -127,9 +127,9 @@ public abstract class LocomotionAnimController
     protected virtual bool DriveCombat(Character character, float fade) => false;
 
     /// <summary>全身覆盖 one-shot（layer0FullBodyActive）是否仍在锁定中。
-    /// 基类默认 = <c>character.IsCastingSkill</c>——技能释放途中持续锁全身（SkillCastComponent 结束清 IsCastingSkill 才退出）。
-    /// 派生类一般不需 override（技能是通用全身动作）。</summary>
-    protected virtual bool IsFullBodyHeld(Character character) => character.IsCastingSkill;
+    /// 基类默认 = <c>IsCastingSkill || IsDodging</c>——技能释放 / 闪避途中持续锁全身（各自组件结束清标志才退出）。
+    /// 派生类一般不需 override（技能 / 闪避都是通用全身动作）。</summary>
+    protected virtual bool IsFullBodyHeld(Character character) => character.IsCastingSkill || character.IsDodging;
 
     /// <summary>退出全身覆盖回 locomotion 的 fade。基类用 DefaultFade；技能结束走 <see cref="Character.SkillRecoverFade"/>（在 3a 处理）。</summary>
     protected virtual float GetFullBodyRecoverFade(float defaultFade) => defaultFade;
@@ -297,7 +297,24 @@ public abstract class LocomotionAnimController
             }
             EnterFullBodyOverride(f, immediate: false); // Layer 1 让位（淡出）
         }
-        if (character.IsCastingSkill) return; // 技能播放中：锁全身，跳过 combat + locomotion
+
+        // 2'. 闪避（全身覆盖，与技能同机制）：DodgeComponent 起闪避写 DodgeClip + DodgeClipDirty，这里全身 Play、
+        //     IsDodging 期间锁全身（经 3a 的 IsFullBodyHeld）。方向 clip 已由 DodgeComponent 按移动意图选好，本层只管播。
+        if (character.DodgeClipDirty)
+        {
+            character.DodgeClipDirty = false;
+            layer0FullBodyActive = true;
+            currentLayer0Mixer = null;
+            float f = character.DodgeClipFade > 0f ? character.DodgeClipFade : fade;
+            if (character.DodgeClip != null)
+            {
+                var s = BaseLayer.Play(character.DodgeClip, f);
+                if (s != null) s.Time = 0f; // 从头播
+                activeOneShotState = s;
+            }
+            EnterFullBodyOverride(f, immediate: false); // Layer 1 让位（淡出）
+        }
+        if (character.IsCastingSkill || character.IsDodging) return; // 技能 / 闪避播放中：锁全身，跳过 combat + locomotion
 
         // 3. 战斗段（派生类：玩家武器 one-shot）。返回 true = 触发了全身 one-shot，本帧短路。
         // upperBase 模式下 DriveCombat 短路（trigger 交给 UpdateUpperBody 消费），仅退化/僵尸走旧逻辑。
@@ -312,7 +329,12 @@ public abstract class LocomotionAnimController
         {
             if (IsFullBodyHeld(character)) return; // 仍在锁定中，继续锁 fullbody
             layer0FullBodyActive = false;
-            float recoverFade = character.SkillRecoverFade > 0f ? character.SkillRecoverFade : GetFullBodyRecoverFade(fade);
+            // 恢复 fade：技能优先，其次闪避，最后默认。消费后清零两者，避免下次恢复读到上一次的残值（两类动作互斥，各自结束时只写自己那个）。
+            float recoverFade = character.SkillRecoverFade > 0f ? character.SkillRecoverFade
+                              : character.DodgeRecoverFade > 0f ? character.DodgeRecoverFade
+                              : GetFullBodyRecoverFade(fade);
+            character.SkillRecoverFade = 0f;
+            character.DodgeRecoverFade = 0f;
             overrideNextLocomotionFade = recoverFade;
             if (upperBase) RestoreUpperBodyAfterFullBody(character, recoverFade); // 玩家：driver 把 Layer1 拉回 weight1 + 当帧重建 base
             else if (HasUpperLayer) UpperLayer.StartFade(1f, recoverFade);

@@ -71,9 +71,10 @@ public class MoveComponent : ICharacterComponent
         }
 
         // 1. 输入组件给的世界空间移动意图 → 期望水平速度（相机/AI 解释已在输入组件做完）
-        // 技能释放中锁水平位移：wishHorizontal=0，重力仍照常，currentHorizontal 自然衰减（位移由 SkillCastComponent 覆写）
+        // 技能释放 / 闪避中锁水平位移：wishHorizontal=0，重力仍照常，currentHorizontal 自然衰减
+        // （位移由 SkillCastComponent / DodgeComponent 覆写 WishVelocity.xz）
         Vector3 wishHorizontal = Vector3.zero;
-        if (!Owner.IsCastingSkill)
+        if (!Owner.IsBusy)
         {
             // MoveWorld 由输入组件保证为世界空间、模 0~1、y=0，这里直接用（不重复归一/压平）
             Vector3 wishDir = input.MoveWorld;

@@ -49,8 +49,9 @@ public class AimComponent : ICharacterComponent
 
         Owner.IsAiming = input.AimHeld;
 
-        // 技能释放中锁朝向：Owner.Rotation 保持释放瞬间的值（SkillCastComponent 锁定前向做位移）
-        if (Owner.IsCastingSkill) return;
+        // 技能释放 / 闪避中锁朝向：Owner.Rotation 保持触发瞬间的值
+        // （SkillCastComponent 锁前向做位移；DodgeComponent 保持朝向、用 4 向 clip + 世界向位移表达闪避方向）
+        if (Owner.IsBusy) return;
 
         Vector3 targetDir;
         if (Owner.IsAiming)

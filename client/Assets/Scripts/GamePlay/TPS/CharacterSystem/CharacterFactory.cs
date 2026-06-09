@@ -5,9 +5,9 @@ using UnityEngine;
 /// 创建 Character：new Character + 装组件 + ViewManager 加载 prefab。
 /// 同时按"配方"造 Weapon Actor（数据 + FireComponent + ReloadComponent），交给 WeaponComponent 持有。
 ///
-/// 组件 Add 顺序（= Tick 顺序）固定为 Aim → Move → Weapon → SkillCast → Gravity → Health → Hitstop → AutoDespawn，原因：
+/// 组件 Add 顺序（= Tick 顺序）固定为 Aim → Move → Weapon → SkillCast → Combo → Dodge → Gravity → Health → Hitstop → AutoDespawn，原因：
 ///   - Aim 在 Move 之前：Move 用 Aim 写入的 Rotation 反算 local 动画方向
-///   - SkillCast 在 Move 之后：技能释放时覆写 WishVelocity.x/z 做位移，Move 在后会抹掉
+///   - SkillCast / Dodge 在 Move 之后：释放时覆写 WishVelocity.x/z 做位移，Move 在后会抹掉
 ///   - Gravity 在 Move/SkillCast 之后：x/z 由前面写完，Gravity 最后一锤定 y
 ///   - Health 顺序无所谓（不 Tick），但要在 Hitstop/AutoDespawn 之前 Add——它俩 Attach 时要 Get HealthComponent 订阅事件
 ///   - Hitstop/AutoDespawn 只订阅 OnDamaged/OnDied，顺序无所谓
@@ -61,6 +61,9 @@ public class CharacterFactory
         // 连招前端：把左键(Light)/V(Heavy) 按当前武器的 ComboGraph 路由成连段，交 SkillCast 执行。
         // 无图的武器（枪 / 当前 knife 未配图）自动回退单招——接连招前的行为零改变。必须在 Input + SkillCast 之后 Add。
         character.AddAfter<ComboComponent, SkillCastComponent>(new ComboComponent());
+        // 闪避：空格 → 按移动意图选 4 向翻滚 + 无敌帧。必须在输入组件 + Move 之后（位移覆写 WishVelocity.xz）、Gravity 之前。
+        // 方向 clip 取自角色级 CharacterAnimSet（PlayerAnimSet 的 DodgeFwd/Bwd/Left/Right），无需额外资产路径。
+        character.AddAfter<DodgeComponent, ComboComponent>(new DodgeComponent());
         // 重力 + 贴地。写 WishVelocity.y，放在所有写 x/z 的组件之后
         character.Add(new GravityComponent());
         character.Add(new HealthComponent

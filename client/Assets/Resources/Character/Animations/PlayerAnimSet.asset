@@ -30,6 +30,10 @@ MonoBehaviour:
   AimStrafeFR: {fileID: 7400004, guid: 47f3e97642d383d4dbfc479141f81683, type: 3}
   AimStrafeBL: {fileID: 7400006, guid: 47f3e97642d383d4dbfc479141f81683, type: 3}
   AimStrafeBR: {fileID: 7400048, guid: 914b09da235eea34ebdc4e71d057e815, type: 3}
+  DodgeFwd: {fileID: 7400000, guid: 5d4b27233a082584e999cf82b470ab87, type: 3}
+  DodgeBwd: {fileID: 7400000, guid: 5cd9465c42ccd6345ab6640c6a13f3b6, type: 3}
+  DodgeLeft: {fileID: 7400000, guid: 7949f5136c6db784c9cf9e314b412010, type: 3}
+  DodgeRight: {fileID: 7400000, guid: 9d5d06d8166d99b4c8020be6ba177b4e, type: 3}
   DeathL: {fileID: 7400122, guid: 914b09da235eea34ebdc4e71d057e815, type: 3}
   DeathR: {fileID: 7400124, guid: 914b09da235eea34ebdc4e71d057e815, type: 3}
   HitReact: {fileID: 7400000, guid: 0665bfc3e5c624948af52b87191543b2, type: 3}

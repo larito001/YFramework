@@ -76,6 +76,9 @@ public class Actor
     public float CurHealth;
     /// <summary>死亡标志位。HealthComponent 在 CurHealth&lt;=0 时置 true；其他组件按需 Tick 头部早退。</summary>
     public bool IsDead;
+    /// <summary>无敌（免伤）标志。true 时 <see cref="HealthComponent.ApplyDamage"/> 直接忽略所有伤害。
+    /// 闪避无敌帧（DodgeComponent）/ 出生保护 / 演出无敌等写它，用完清回 false。默认 false。</summary>
+    public bool IsInvulnerable;
     /// <summary>死亡一次性 trigger：HealthComponent 死亡时置 true（和 IsDead 同帧），view 消费 SetTrigger("Die") 后清回。</summary>
     public bool Die;
     /// <summary>死亡动画变体：HealthComponent 在置 Die 时随机选（0=DeathL，1=DeathR），view 写到 Animator Int。</summary>

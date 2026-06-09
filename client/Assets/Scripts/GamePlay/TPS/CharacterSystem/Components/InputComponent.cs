@@ -19,6 +19,7 @@ public class InputComponent : InputComponentBase
         {
             input.OnFireDown += HandleFireDown;      // 左键按下 → 近战武器放第一个技能（常规枪走 FireHeld 开火）
             input.OnMeleeDown += HandleMelee;        // V 键 → 释放第二个技能（常规枪回退技能 0 近战）
+            input.OnDodgeDown += RaiseDodge;         // 空格 → 闪避（DodgeComponent 订阅 OnDodge）
             input.OnReloadDown += RaiseReload;
             input.OnWeaponSelect += RaiseWeaponSelect;
         }
@@ -30,6 +31,7 @@ public class InputComponent : InputComponentBase
         {
             input.OnFireDown -= HandleFireDown;
             input.OnMeleeDown -= HandleMelee;
+            input.OnDodgeDown -= RaiseDodge;
             input.OnReloadDown -= RaiseReload;
             input.OnWeaponSelect -= RaiseWeaponSelect;
         }

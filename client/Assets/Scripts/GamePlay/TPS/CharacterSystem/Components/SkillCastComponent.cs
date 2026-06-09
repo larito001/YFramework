@@ -139,6 +139,7 @@ public class SkillCastComponent : ICharacterComponent
     {
         if (Owner == null || Owner.IsDead) return;
         if (Owner.IsSwapping) return;                        // 切枪过场中不能放技能（与"技能中不能切枪"对称）
+        if (Owner.IsDodging) return;                         // 闪避中不能放技能（两类全身动作互斥；与"闪避门控 IsBusy"对称）
         if (active != null && !InCancelWindow()) return;     // 不可打断——除非已进入取消窗（命中后摇可被下一击打断 = 连招）
         if (def == null || def.Segments == null || def.Segments.Length == 0)
         {

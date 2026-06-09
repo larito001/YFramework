@@ -12,6 +12,7 @@ public enum InputAction
     InteractWorld,
     ToggleBag,
     Melee,
+    Dodge,
 }
 
 /// <summary>
@@ -67,6 +68,8 @@ public class InputService : IGameService, ITickable
     /// <summary>打开/关闭背包键(默认 B)。</summary>
     public event Action OnToggleBagDown;
     public event Action OnMeleeDown;
+    /// <summary>闪避键（默认空格）：按移动方向翻滚/闪身，带无敌帧。<see cref="DodgeComponent"/> 经 InputComponent 订阅。</summary>
+    public event Action OnDodgeDown;
     /// <summary>数字键 1~9 选择武器槽位，参数为 slot 索引（0..8）。</summary>
     public event Action<int> OnWeaponSelect;
     public event Action<float> OnScroll;
@@ -90,6 +93,7 @@ public class InputService : IGameService, ITickable
         { InputAction.InteractWorld, KeyCode.F },
         { InputAction.ToggleBag, KeyCode.B },
         { InputAction.Melee, KeyCode.V },
+        { InputAction.Dodge, KeyCode.Space },
     };
 
     private readonly Dictionary<InputAction, KeyCode> _bindings = new Dictionary<InputAction, KeyCode>(DefaultBindings);
@@ -101,7 +105,7 @@ public class InputService : IGameService, ITickable
     /// <summary>所有可重绑定的动作(展示顺序固定)。</summary>
     public static IReadOnlyList<InputAction> RebindableActions { get; } = new[]
     {
-        InputAction.Sprint, InputAction.Reload, InputAction.InteractWorld, InputAction.ToggleBag, InputAction.Melee,
+        InputAction.Sprint, InputAction.Reload, InputAction.InteractWorld, InputAction.ToggleBag, InputAction.Melee, InputAction.Dodge,
     };
 
     public KeyCode GetBinding(InputAction action) => _bindings.TryGetValue(action, out var k) ? k : DefaultBindings[action];
@@ -180,6 +184,7 @@ public class InputService : IGameService, ITickable
         OnInteractWorldDown = null;
         OnToggleBagDown = null;
         OnMeleeDown = null;
+        OnDodgeDown = null;
         OnWeaponSelect = null;
         OnScroll = null;
         BindingsChanged = null;
@@ -229,6 +234,7 @@ public class InputService : IGameService, ITickable
 
         if (Input.GetKeyDown(GetBinding(InputAction.Reload))) OnReloadDown?.Invoke();
         if (Input.GetKeyDown(GetBinding(InputAction.Melee))) OnMeleeDown?.Invoke();
+        if (Input.GetKeyDown(GetBinding(InputAction.Dodge))) OnDodgeDown?.Invoke();
 
         for (int i = 0; i < WeaponSlotCount; i++)
         {

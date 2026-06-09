@@ -53,6 +53,16 @@ public class CharacterAnimSet : ScriptableObject
     [Tooltip("后右 (0.707, -0.707)")]
     public AnimationClip AimStrafeBR;
 
+    [Header("闪避（DodgeComponent 按移动意图相对角色朝向 4 向选 clip；clip 为 in-place，位移由代码驱动）")]
+    [Tooltip("前向闪避：移动意图相对角色朝向偏前时")]
+    public AnimationClip DodgeFwd;
+    [Tooltip("后向闪避：偏后时；也是【无方向输入】时的默认后撤步")]
+    public AnimationClip DodgeBwd;
+    [Tooltip("左向闪避：偏左时")]
+    public AnimationClip DodgeLeft;
+    [Tooltip("右向闪避：偏右时")]
+    public AnimationClip DodgeRight;
+
     [Header("死亡变体（DeathVariant 索引）")]
     public AnimationClip DeathL;   // DeathVariant=0
     public AnimationClip DeathR;   // DeathVariant=1
