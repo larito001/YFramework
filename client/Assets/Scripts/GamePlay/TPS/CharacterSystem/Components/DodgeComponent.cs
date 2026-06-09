@@ -11,7 +11,7 @@ using UnityEngine;
 ///     按 <see cref="DistanceProfile"/>（默认 ease-out：起步爆发、收尾刹车）在 <see cref="Duration"/> 内推完 <see cref="Distance"/> 米。
 ///   - **无敌帧**：[<see cref="InvulnStartNorm"/>, <see cref="InvulnEndNorm"/>] 段内置 <see cref="Actor.IsInvulnerable"/>，
 ///     <see cref="HealthComponent"/> 期间完全免伤。
-///   - **门控**：技能/闪避/切枪/死亡中拒绝；<see cref="Cooldown"/> 冷却中拒绝。闪避途中 Move/Aim/Weapon 经
+///   - **门控**：技能/闪避/切枪/死亡中拒绝；冷却中拒绝（二连冷却：第一下短 cd 接第二下、第二下长 cd，见 <see cref="ShortCooldown"/>/<see cref="LongCooldown"/>）。闪避途中 Move/Aim/Weapon 经
 ///     <see cref="Character.IsBusy"/> 被锁（不移动/不转身/不开火），位移由本组件权威写。
 ///
 /// Add 顺序：必须在**输入组件之后**（Attach 里 Get），且在 <see cref="MoveComponent"/> **之后**、<see cref="GravityComponent"/>
@@ -27,9 +27,14 @@ public class DodgeComponent : ICharacterComponent
     /// <summary>位移随进度的分布曲线（x:进度 0→1，y:已位移占比 0→1）。留空/少于 2 帧=默认 ease-out（起步爆发、收尾刹车）。</summary>
     public AnimationCurve DistanceProfile;
 
-    [Header("时机 / 冷却")]
-    /// <summary>闪避冷却（秒）：上次闪避起算，期内再按闪避无效。0=无冷却。</summary>
-    public float Cooldown = 2f;
+    [Header("时机 / 二连冷却（第一下→短 cd 接第二下；第二下→长 cd）")]
+    /// <summary>二连第一下后的短冷却（秒）：这么久后即可接二连第二下闪避。</summary>
+    public float ShortCooldown = 0.5f;
+    /// <summary>二连第二下后的长冷却（秒）：整组用完，要等这么久才能再起新一组（回到第一下）。</summary>
+    public float LongCooldown = 2f;
+    /// <summary>二连复位窗（秒，从第一下闪避起算）：第一下后超过这么久没接第二下，则下次闪避退回"第一下"（仍走短 cd）。
+    /// 一般 = LongCooldown，使"闪一下后久不闪"与"闪满二连"的再次可闪时刻一致。</summary>
+    public float ComboResetWindow = 2f;
     /// <summary>进入闪避的淡入时长（秒）。0=用 CharacterAnimSet.DefaultFade。翻滚要紧凑，给小值。</summary>
     public float EnterFade = 0.3f;
     /// <summary>闪避结束回 locomotion 的淡入时长（秒）。0=默认。</summary>
@@ -53,6 +58,8 @@ public class DodgeComponent : ICharacterComponent
     private float prevFrac;             // 上帧已位移占比
     private Vector3 dashDir;            // 世界空间闪避方向（起手锁定，途中不变）
     private float cooldownTimer;
+    private bool comboPending;          // 已用二连第一下、等第二下（仅在 ComboResetWindow 内为 true，Tick 超时清回 false）
+    private float comboResetTimer;      // 二连复位倒计时（从第一下起算）
 
     public override void Attach(Character owner)
     {
@@ -120,7 +127,19 @@ public class DodgeComponent : ICharacterComponent
         elapsed = 0f;
         prevFrac = 0f;
         dashDir = worldDir;
-        cooldownTimer = Cooldown;
+        // 二连冷却：第一下 → 短 cd（很快可接第二下）；第二下 → 长 cd（整组用完，重来）。
+        // comboPending 只在复位窗内为 true（Tick 超时会清），所以"两次间隔 > 窗口"时这次按第一下处理 → 仍是短 cd（满足"间隔超 2s 重置 0.5cd"）。
+        if (comboPending)
+        {
+            cooldownTimer = LongCooldown;   // 二连第二下：长 cd
+            comboPending = false;           // 二连结束，下次从第一下重来
+        }
+        else
+        {
+            cooldownTimer = ShortCooldown;  // 二连第一下：短 cd
+            comboPending = true;
+            comboResetTimer = ComboResetWindow;
+        }
         Owner.IsDodging = true;
         Owner.DodgeClip = clip;
         Owner.DodgeClipFade = EnterFade;
@@ -130,6 +149,12 @@ public class DodgeComponent : ICharacterComponent
     public override void Tick(float dt)
     {
         if (cooldownTimer > 0f) cooldownTimer -= dt;
+        // 二连复位：第一下后开 ComboResetWindow 计时，期内没接第二下就退回"第一段"（下次闪避走短 cd）。
+        if (comboPending)
+        {
+            comboResetTimer -= dt;
+            if (comboResetTimer <= 0f) comboPending = false;
+        }
         if (Owner == null || !active) return;
 
         if (Owner.IsDead) { EndDodge(); return; }
