@@ -12,7 +12,7 @@ using UnityEngine;
 ///   1. Project 窗口 → Create → TPS → CharacterAnimSet
 ///   2. 放 Assets/Resources/Character/ 下，命名 &lt;角色名&gt;AnimSet.asset（如 PlayerAnimSet.asset）
 ///   3. 拖 Idle / Walk / Run / Sprint（非瞄准）+ AimIdle / AimWalk / 8 方向 strafe（瞄准下身）+ DeathL / DeathR；拖 UpperBody.mask；调阈值
-///   4. 程序员把 Resources 相对路径配到 Factory：character.CurrentCharacterAnimSetPath = "Character/PlayerAnimSet"
+///   4. 程序员把 Resources 相对路径配到 Factory：character.CurrentCharacterAnimSetPath = "Character/Animations/PlayerAnimSet"
 /// </summary>
 [CreateAssetMenu(fileName = "CharacterAnimSet", menuName = "TPS/CharacterAnimSet", order = 99)]
 public class CharacterAnimSet : ScriptableObject

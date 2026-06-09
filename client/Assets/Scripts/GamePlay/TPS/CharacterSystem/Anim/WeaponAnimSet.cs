@@ -10,7 +10,7 @@ using UnityEngine;
 ///
 /// **使用流程**（美工）：
 ///   1. Project 窗口 → Create → TPS → WeaponAnimSet
-///   2. 放 Assets/Resources/Weapon/Anim/ 下，命名 &lt;武器名&gt;.asset（如 Pistol.asset / Rifle.asset）
+///   2. 放 Assets/Resources/Weapon/Animations/ 下，命名 &lt;武器名&gt;.asset（如 Pistol.asset / Rifle.asset）
 ///   3. 拖 IdleGunPose / AimPose（上身持枪 pose）+ Shoot/Reload/Equip/Holster
 ///   4. 程序员把 Resources 相对路径配到 Weapon.AnimSetPath
 ///   详见 docs/Animancer 武器动画指南.md

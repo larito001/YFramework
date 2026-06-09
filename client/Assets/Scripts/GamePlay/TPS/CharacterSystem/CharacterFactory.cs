@@ -25,7 +25,7 @@ public class CharacterFactory
 
     public Character CreateCharacter(Vector3 position = default)
     {
-        var character = new Character { TeamId = 1, CurrentCharacterAnimSetPath = "Character/PlayerAnimSet" };
+        var character = new Character { TeamId = 1, CurrentCharacterAnimSetPath = "Character/Animations/PlayerAnimSet" };
         // 输入抽象：玩家 InputComponent 是 InputService + 相机的唯一消费者，对外只给世界空间意图。
         // 必须**最先 Add**——Aim/Move/Weapon/Skill 在 Attach 里 Owner.Get<InputComponentBase>() 拿它。
         character.Add(new InputComponent());
@@ -51,11 +51,11 @@ public class CharacterFactory
         //   [0] PlayerMelee  —— 常规枪 V 键近战（WeaponSecondarySkill=-1 回退到这）
         //   [1] PlayerKnife  —— knife 左键技能（BuildKnife.PrimarySkillIndex=1）；2 段连击
         //   [2] PlayerKnifeV —— knife V 键技能（BuildKnife.SecondarySkillIndex=2）
-        // **依赖资产**（Resources 相对路径，缺失则 Cast 报 warning 不崩）：Skill/PlayerMelee/PlayerKnife/PlayerKnifeV.asset 均已有。
+        // **依赖资产**（Resources 相对路径，缺失则 Cast 报 warning 不崩）：Character/Skills/PlayerMelee|PlayerKnife|PlayerKnifeV.asset 均已有。
         // Add 顺序在 Move 之后、Gravity 之前——位移覆写 WishVelocity.xz 后由 Gravity 定 y。
         character.AddAfter<SkillCastComponent, MoveComponent>(new SkillCastComponent
         {
-            SkillPaths = new List<string> { "Skill/PlayerMelee", "Skill/PlayerKnife", "Skill/PlayerKnifeV" },
+            SkillPaths = new List<string> { "Character/Skills/PlayerMelee", "Character/Skills/PlayerKnife", "Character/Skills/PlayerKnifeV" },
             // HitLayers 默认全开。生产期建议改成只含敌人层。
         });
         // 连招前端：把左键(Light)/V(Heavy) 按当前武器的 ComboGraph 路由成连段，交 SkillCast 执行。
@@ -72,7 +72,7 @@ public class CharacterFactory
         character.Add(new HitstopOnDamageComponent());
         character.Add(new AutoDespawnComponent { Delay = 3f });
 
-        var view = manager.LoadBaseView<CharacterView>("Player/Player", character);
+        var view = manager.LoadBaseView<CharacterView>("Character/Prefabs/Player", character);
         if (view != null && position != Vector3.zero)
         {
             TeleportTo(view, position);
@@ -90,7 +90,7 @@ public class CharacterFactory
     /// 写 WishVelocity / Rotation / IsShooting）+ MoveComponent + WeaponComponent，不需要造新 Actor 类。</summary>
     public Character CreateDummy(Vector3 position, float maxHealth = 1000f)
     {
-        var character = new Character { TeamId = 2, CurrentCharacterAnimSetPath = "Character/PlayerAnimSet" };
+        var character = new Character { TeamId = 2, CurrentCharacterAnimSetPath = "Character/Animations/PlayerAnimSet" };
         // 给 Dummy 也装重力，spawn 后会被 Gravity + CC 一起拉到地面，避免悬空或半身埋在地形里
         character.Add(new GravityComponent());
         character.Add(new HealthComponent
@@ -101,7 +101,7 @@ public class CharacterFactory
         character.Add(new HitstopOnDamageComponent());
         character.Add(new AutoDespawnComponent { Delay = 3f });
 
-        var view = manager.LoadBaseView<CharacterView>("Player/Player", character);
+        var view = manager.LoadBaseView<CharacterView>("Character/Prefabs/Player", character);
         if (view != null)
         {
             view.gameObject.name = $"Dummy_{character.ID}";
@@ -113,7 +113,7 @@ public class CharacterFactory
 
         // Dummy 没 WeaponComponent，不会触发 LoadWeaponAnimSet —— view.currentAnimSet 一直 null → DriveAnimation 早退 → 死了不播 Death。
         // 这里手动设默认 AnimSet（复用 Pistol 那套 clip），让 view 加载后 Die / Locomotion 都能跑
-        character.CurrentWeaponAnimSetPath = "Weapon/Anim/Pistol";
+        character.CurrentWeaponAnimSetPath = "Weapon/Animations/Pistol";
         character.WeaponAnimDirty = true;
         return character;
     }
@@ -123,16 +123,16 @@ public class CharacterFactory
     /// view 用专门的僵尸 prefab（Zombie 网格 + ZombieView + ZombieAnimancerController）。
     ///
     /// **依赖资产**（用菜单 Tools/TPS/Build Skill & Anim Assets 一键生成）：
-    ///   - Resources/Zombie/Zombie.prefab（MotusMan_v55 角色网格 + ZombieView/Animancer/CC，僵尸动画原生骨架）
-    ///   - Resources/Zombie/ZombieAnimSet.asset（CharacterAnimSet：Idle/Walk/Run + Death + 阈值）
-    ///   - Resources/Skill/ZombieAttack.asset / ZombieLeap.asset（SkillDef）
+    ///   - Resources/Zombie/Prefabs/Zombie.prefab（MotusMan_v55 角色网格 + ZombieView/Animancer/CC，僵尸动画原生骨架）
+    ///   - Resources/Zombie/Animations/ZombieAnimSet.asset（CharacterAnimSet：Idle/Walk/Run + Death + 阈值）
+    ///   - Resources/Zombie/Skills/ZombieAttack.asset / ZombieLeap.asset（SkillDef）
     /// 资产缺失时：locomotion / 技能不播（graceful），AI 仍跑但看不到动作。
     ///
     /// 组件 Add 顺序：AIInput → Aim → Move → SkillCast → Gravity → Health → Hitstop → AutoDespawn
     ///   （AIInput 给意图；Aim 朝移动方向转身；Move 写 locomotion；SkillCast 释放时覆写 x/z；Gravity 定 y）。无 WeaponComponent（僵尸不持枪）。</summary>
     public Character CreateZombie(Vector3 position, float maxHealth = 200f)
     {
-        var character = new Character { TeamId = 2, CurrentCharacterAnimSetPath = "Zombie/ZombieAnimSet" };
+        var character = new Character { TeamId = 2, CurrentCharacterAnimSetPath = "Zombie/Animations/ZombieAnimSet" };
         // 输入源：简单 AI（巡逻→5m 追玩家→2m 面向玩家随机放技能）。必须最先 Add（Aim/Move/Skill 在 Attach 里 Get 它）。
         character.Add(new AIInputComponent
         {
@@ -147,7 +147,7 @@ public class CharacterFactory
         });
         character.Add(new SkillCastComponent
         {
-            SkillPaths = new List<string> { "Skill/ZombieAttack", "Skill/ZombieLeap" },
+            SkillPaths = new List<string> { "Zombie/Skills/ZombieAttack", "Zombie/Skills/ZombieLeap" },
             // HitLayers 默认全开（调试）。生产期设成只含玩家层。
         });
         character.Add(new GravityComponent());
@@ -156,8 +156,8 @@ public class CharacterFactory
         character.Add(new AutoDespawnComponent { Delay = 3f });
 
         // 用专门的僵尸 prefab（Zombie 模型 + ZombieView + ZombieAnimancerController）。
-        // 由菜单 Tools/TPS/Build Skill & Anim Assets 从 Idle fbx 内嵌网格生成到 Resources/Zombie/Zombie.prefab。
-        var view = manager.LoadBaseView<ZombieView>("Zombie/Zombie", character, addIfMissing: true);
+        // 由菜单 Tools/TPS/Build Skill & Anim Assets 从 Idle fbx 内嵌网格生成到 Resources/Zombie/Prefabs/Zombie.prefab。
+        var view = manager.LoadBaseView<ZombieView>("Zombie/Prefabs/Zombie", character, addIfMissing: true);
         if (view != null)
         {
             view.gameObject.name = $"Zombie_{character.ID}";
@@ -185,9 +185,9 @@ public class CharacterFactory
         var w = new Weapon
         {
             Name = "Rifle A",
-            ModelPath = "Weapon/RiflePlaceholder",
-            // 临时复用 Pistol AnimSet（美工建好 RifleA.asset 后改成 "Weapon/Anim/RifleA"）
-            AnimSetPath = "Weapon/Anim/Pistol",
+            ModelPath = "Weapon/Prefabs/RiflePlaceholder",
+            // 临时复用 Pistol AnimSet（美工建好 RifleA.asset 后改成 "Weapon/Animations/RifleA"）
+            AnimSetPath = "Weapon/Animations/Pistol",
             HandLocalPosition = Vector3.zero,
             HandLocalEuler = Vector3.zero,
             // 弹道起点（相对持有者 Position+Rotation 的本地坐标偏移）：玩家身高 1.2m + 朝前 0.6m 避开自己 capsule
@@ -222,9 +222,9 @@ public class CharacterFactory
         var w = new Weapon
         {
             Name = "Rifle B",
-            ModelPath = "Weapon/PistolPlaceholder",
+            ModelPath = "Weapon/Prefabs/PistolPlaceholder",
             // 手枪用 Pistol 专属 WeaponAnimSet（Animancer 直接 Play 里面配的 clip）
-            AnimSetPath = "Weapon/Anim/Pistol",
+            AnimSetPath = "Weapon/Animations/Pistol",
             HandLocalPosition = Vector3.zero,
             HandLocalEuler = Vector3.zero,
             // 弹道起点（相对持有者 Position+Rotation 的本地坐标偏移）：玩家身高 1.2m + 朝前 0.6m 避开自己 capsule
@@ -260,9 +260,9 @@ public class CharacterFactory
         var w = new Weapon
         {
             Name = "Missile Launcher",
-            ModelPath = "Weapon/RiflePlaceholder",
+            ModelPath = "Weapon/Prefabs/RiflePlaceholder",
             // 临时复用 Pistol AnimSet（美工建好 MissileLauncher.asset 后改）
-            AnimSetPath = "Weapon/Anim/Pistol",
+            AnimSetPath = "Weapon/Animations/Pistol",
             HandLocalPosition = Vector3.zero,
             HandLocalEuler = Vector3.zero,
             // 弹道起点（相对持有者 Position+Rotation 的本地坐标偏移）：玩家身高 1.2m + 朝前 0.6m 避开自己 capsule
@@ -304,9 +304,9 @@ public class CharacterFactory
         var w = new Weapon
         {
             Name = "Burst Rifle",
-            ModelPath = "Weapon/RiflePlaceholder",
+            ModelPath = "Weapon/Prefabs/RiflePlaceholder",
             // 用专属 AnimSet——演示切武器时上半身动画切换（下半身保持 PlayerAnimSet locomotion）
-            AnimSetPath = "Weapon/Anim/BurstRifle",
+            AnimSetPath = "Weapon/Animations/BurstRifle",
             HandLocalPosition = Vector3.zero,
             HandLocalEuler = Vector3.zero,
             MuzzleLocalOffset = new Vector3(0f, 1.2f, 0.6f),
@@ -337,17 +337,17 @@ public class CharacterFactory
     /// 上身持刀 pose 走 WeaponAnimSet（IdleGunPose）；两个技能动作走 SkillDef（全身），跟枪的开火/换弹无关。
     ///
     /// **依赖资产**（均已就绪）：
-    ///   - Weapon/knife.prefab（刀模型，mesh-only）
-    ///   - Weapon/Anim/Knife.asset（WeaponAnimSet：IdleGunPose/AimPose=持刀待机 + Equip/Holster；无 Shoot/Reload）
-    ///   - Skill/PlayerKnife.asset（SkillDef）= 左键技能（SkillPaths[1]）
-    ///   - Skill/PlayerKnifeV.asset（SkillDef）= V 键技能（SkillPaths[2]）</summary>
+    ///   - Weapon/Prefabs/knife.prefab（刀模型，mesh-only）
+    ///   - Weapon/Animations/Knife.asset（WeaponAnimSet：IdleGunPose/AimPose=持刀待机 + Equip/Holster；无 Shoot/Reload）
+    ///   - Character/Skills/PlayerKnife.asset（SkillDef）= 左键技能（SkillPaths[1]）
+    ///   - Character/Skills/PlayerKnifeV.asset（SkillDef）= V 键技能（SkillPaths[2]）</summary>
     private static Weapon BuildKnife()
     {
         return new Weapon
         {
             Name = "Knife",
-            ModelPath = "Weapon/knife",
-            AnimSetPath = "Weapon/Anim/Knife",
+            ModelPath = "Weapon/Prefabs/knife",
+            AnimSetPath = "Weapon/Animations/Knife",
             HandLocalPosition = Vector3.zero,
             HandLocalEuler = new Vector3(150f, 10f, 0f),   // 刀握持朝向
             BackLocalPosition = new Vector3(0f, 0.15f, -0.2f),
@@ -366,7 +366,7 @@ public class CharacterFactory
             SecondarySkillIndex = 2,
             // 连招图（菜单 Tools/TPS/Build Combo Demo (Knife) 一键生成）：左键三连段 + 重击分支。
             // 资产缺失（没跑生成器）→ ComboComponent 回退到上面 Primary/Secondary 单招（仅一条 warning，不崩）。
-            ComboGraphPath = "Skill/KnifeCombo",
+            ComboGraphPath = "Character/Skills/KnifeCombo",
         };
     }
 }

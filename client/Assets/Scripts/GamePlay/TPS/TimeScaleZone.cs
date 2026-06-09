@@ -20,8 +20,9 @@ public class TimeScaleZone : MonoBehaviour
     [Tooltip("圈半径（米）。Awake 时同步给能量球；TimeScaleZoneService 用它做距离判断。")]
     public float Radius = 3f;
 
-    // 预制材质资产路径（Resources 下，不含扩展名）。改材质参数在该 .mat 上调即可。
-    private const string BubbleMaterialPath = "Materials/TimeBubble";
+    // 能量球预制体路径（Resources 下，不含扩展名）。由菜单 Tools/TPS/Build TimeBubble Prefab 生成：
+    // 球 mesh + 已挂好 TimeBubble.mat（GUID 引用，材质本体留在 Art/Bubble/ 下，不必进 Resources）。
+    private const string BubblePrefabPath = "Bubble/TimeBubble";
 
     private TimeScaleZoneService zoneService;
 
@@ -44,34 +45,37 @@ public class TimeScaleZone : MonoBehaviour
         BuildBubble();
     }
 
-    // ── 可视化：球体 Mesh + Custom/TimeScaleShield 能量球。纯显示，collider 一律删掉。 ──
+    // ── 可视化：加载预制好的能量球（球 Mesh + TimeBubble.mat）。纯显示，collider 一律删掉。 ──
     private void BuildBubble()
     {
-        var sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-        sphere.name = "TimeBubbleDome";
-        var col = sphere.GetComponent<Collider>();
-        if (col != null) Destroy(col); // 圈是纯逻辑，不要任何物理碰撞体
-
-        var t = sphere.transform;
-        t.SetParent(transform, false);
-        t.localPosition = Vector3.zero;                 // 与圈心同心
-        t.localScale = Vector3.one * (Radius * 2f);     // 球 primitive 直径=1 → ×2R = 半径 Radius
-
-        var mr = sphere.GetComponent<MeshRenderer>();
-        mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-        mr.receiveShadows = false;
-
-        // 用预先做好的材质资产（Resources/Materials/TimeBubble.mat），不在运行时 new Material。
-        var mat = Resources.Load<Material>(BubbleMaterialPath);
-        if (mat == null)
+        // 用预制体（材质已挂好，按 GUID 引用），不在运行时 new Material。
+        var prefab = Resources.Load<GameObject>(BubblePrefabPath);
+        GameObject dome;
+        if (prefab != null)
         {
-            // 兜底：资产缺失时才退回运行时生成，避免完全不显示。
+            dome = Instantiate(prefab, transform);
+        }
+        else
+        {
+            // 兜底：预制体缺失（没跑 Tools/TPS/Build TimeBubble Prefab）时运行时拼一个，避免完全不显示。
+            dome = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            dome.transform.SetParent(transform, false);
+            var mr = dome.GetComponent<MeshRenderer>();
+            mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            mr.receiveShadows = false;
             var sh = Shader.Find("Custom/TimeScaleShield");
             if (sh == null) sh = Shader.Find("Universal Render Pipeline/Unlit");
-            if (sh != null) mat = new Material(sh);
-            Debug.LogWarning($"[TimeScaleZone] 未找到材质 Resources/{BubbleMaterialPath}.mat，已退回运行时生成");
+            if (sh != null) mr.sharedMaterial = new Material(sh);
+            Debug.LogWarning($"[TimeScaleZone] 未找到预制体 Resources/{BubblePrefabPath}，已退回运行时生成（跑 Tools/TPS/Build TimeBubble Prefab 生成）");
         }
-        if (mat != null) mr.sharedMaterial = mat;
+
+        var col = dome.GetComponent<Collider>();
+        if (col != null) Destroy(col); // 圈是纯逻辑，不要任何物理碰撞体
+
+        dome.name = "TimeBubbleDome";
+        var t = dome.transform;
+        t.localPosition = Vector3.zero;                 // 与圈心同心
+        t.localScale = Vector3.one * (Radius * 2f);     // 球 primitive 直径=1 → ×2R = 半径 Radius
     }
 
     private TimeScaleZoneService ZoneService()

@@ -7,7 +7,7 @@ using UnityEngine;
 /// MVP 配方：HealthComponent + Hitstop + AutoDespawn + TowerWeaponComponent（持一把 Linear 步枪）。
 /// 不装 GravityComponent——塔固定不动，IsGrounded 不读、WishVelocity 不写、CC 不需要。
 ///
-/// 占位 view prefab 路径 "Tower/Tower"——按现有约定，Resources 下放一个简单的 cube + Muzzle 子物体即可。
+/// 占位 view prefab 路径 "Tower/Prefabs/Tower"——按现有约定，Resources 下放一个简单的 cube + Muzzle 子物体即可。
 /// 若 prefab 不存在，view 加载会失败但 Tower Actor + 组件仍然存在（开火走 FireOrigin 自己算）。
 /// </summary>
 public class TowerFactory
@@ -39,7 +39,7 @@ public class TowerFactory
             AimTime = 0.5f,   // 锁敌后 0.5s telegraph，避免瞬响应
         });
 
-        var view = manager.LoadBaseView<TowerView>("Tower/Tower", tower);
+        var view = manager.LoadBaseView<TowerView>("Tower/Prefabs/Tower", tower);
         if (view != null)
         {
             view.gameObject.name = $"Tower_{tower.ID}";
@@ -56,7 +56,7 @@ public class TowerFactory
         var w = new Weapon
         {
             Name = "Turret Rifle",
-            ModelPath = "Weapon/RiflePlaceholder",
+            ModelPath = "Weapon/Prefabs/RiflePlaceholder",
             // 视觉挂载偏移（武器 transform 相对持有者 root）：塔顶往前 0.4m
             // 让武器看起来"装在炮塔顶部正前方"。
             HandLocalPosition = new Vector3(0f, 1.5f, 0.4f),

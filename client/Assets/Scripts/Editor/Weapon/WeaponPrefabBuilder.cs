@@ -4,14 +4,14 @@ using UnityEngine;
 
 /// <summary>
 /// 菜单：Tools/TPS/Build Weapon Prefabs
-/// 把 Art/Weapon/ 下的武器 FBX 包成 Resources/Weapon/*.prefab，让运行时 Resources.Load 能加载。
+/// 把 Art/Weapon/ 下的武器 FBX 包成 Resources/Weapon/Prefabs/*.prefab，让运行时 Resources.Load 能加载。
 /// 重跑会覆盖已有的 prefab（guid 保留）。Art/Weapon/ 下的 FBX 原文件不动。
 /// 新增武器：在 FbxAssetPaths 加一行 FBX 路径即可。
 /// </summary>
 public static class WeaponPrefabBuilder
 {
     private const string ResourceFolder = "Assets/Resources";
-    private const string OutSubfolder = "Weapon";
+    private const string OutSubfolder = "Weapon/Prefabs";
 
     private static readonly string[] FbxAssetPaths =
     {
@@ -23,7 +23,8 @@ public static class WeaponPrefabBuilder
     public static void Build()
     {
         EnsureFolder(ResourceFolder, "Assets", "Resources");
-        EnsureFolder($"{ResourceFolder}/{OutSubfolder}", ResourceFolder, OutSubfolder);
+        EnsureFolder($"{ResourceFolder}/Weapon", ResourceFolder, "Weapon");
+        EnsureFolder($"{ResourceFolder}/{OutSubfolder}", $"{ResourceFolder}/Weapon", "Prefabs");
 
         int ok = 0, fail = 0;
         foreach (var fbxPath in FbxAssetPaths)

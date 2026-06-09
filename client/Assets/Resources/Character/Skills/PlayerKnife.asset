@@ -1,0 +1,129 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 380b6113268355d44a1eca7cb631c756, type: 3}
+  m_Name: PlayerKnife
+  m_EditorClassIdentifier: 
+  Name: PlayerMelee
+  RecoverFade: 0.2
+  Segments:
+  - Clip: {fileID: 7400002, guid: 6ee5c0f8025162c428ad98b2cfcd7526, type: 3}
+    Fade: 0.1
+    HoldDuration: 0
+    CancelFromNorm: 0.6
+    ForwardDistance: 1.2
+    DistanceProfile:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0
+        inSlope: 0.03282429
+        outSlope: 0.03282429
+        tangentMode: 34
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0.33333334
+      - serializedVersion: 3
+        time: 0.09487286
+        value: 0.003114134
+        inSlope: 0.122949354
+        outSlope: 0.122949354
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0.33333334
+        outWeight: 0.23632361
+      - serializedVersion: 3
+        time: 0.13697112
+        value: 0.5235306
+        inSlope: 0.031837862
+        outSlope: 0.031837862
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0.37115538
+        outWeight: 0.13653633
+      - serializedVersion: 3
+        time: 0.32045424
+        value: 0.5252451
+        inSlope: 0.10564618
+        outSlope: 0.10564618
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0.3068233
+        outWeight: 0.33333334
+      - serializedVersion: 3
+        time: 0.33072835
+        value: 1.0049858
+        inSlope: 0.04554167
+        outSlope: 0.04554167
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0.33333334
+        outWeight: 0.69398403
+      - serializedVersion: 3
+        time: 1
+        value: 1
+        inSlope: -0.007449605
+        outSlope: -0.007449605
+        tangentMode: 34
+        weightedMode: 0
+        inWeight: 0.33333334
+        outWeight: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    HitWindows:
+    - StartNorm: 0.1
+      EndNorm: 0.2
+      Radius: 1
+      ForwardOffset: 0.8
+      Height: 1
+      Damage:
+        BaseDamage: 20
+        HitstopTier: 2
+        CritChance: 0
+        CritMultiplier: 0
+        Element: 0
+        AppliedBuffs: []
+    - StartNorm: 0.4
+      EndNorm: 0.5
+      Radius: 1
+      ForwardOffset: 0.8
+      Height: 1
+      Damage:
+        BaseDamage: 20
+        HitstopTier: 1
+        CritChance: 0
+        CritMultiplier: 0
+        Element: 0
+        AppliedBuffs: []
+    Vfx:
+    - Path: VFX/Prefabs/ATK_01
+      StartNorm: 0.2
+      EndNorm: 0.3
+      LocalOffset: {x: 0, y: 1, z: 0}
+      RotationEuler: {x: 0, y: 0, z: 180}
+      Scale: 0.8
+      AttachToOwner: 1
+    - Path: VFX/Prefabs/ATK_01
+      StartNorm: 0.4
+      EndNorm: 0.6
+      LocalOffset: {x: 0, y: 1, z: 0}
+      RotationEuler: {x: 0, y: -40, z: 0}
+      Scale: 0.6
+      AttachToOwner: 1
+    Shake:
+    - StartNorm: 0.1
+      Intensity: 0.2
+      Duration: 0.1
+    - StartNorm: 0.4
+      Intensity: 0.5
+      Duration: 0.1

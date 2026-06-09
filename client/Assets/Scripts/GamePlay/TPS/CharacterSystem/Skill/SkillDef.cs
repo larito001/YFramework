@@ -9,7 +9,7 @@ using UnityEngine;
 /// 锁定（IsCastingSkill），并把当前段 clip 交给动画 controller（<see cref="LocomotionAnimController"/> 的技能全身分支）播放。
 ///
 /// **使用流程**（美工/策划，纯 Inspector 编辑）：
-///   1. Create → TPS → SkillDef，放 Resources 下（如 Resources/Skill/PlayerMelee.asset）
+///   1. Create → TPS → SkillDef，放 Resources 下（如 Resources/Character/Skills/PlayerMelee.asset）
 ///   2. 配 Segments：每段拖 Clip，填 ForwardDistance（位移）、HitWindows（何时开伤害 + hitbox + DamageSpec）
 ///      - 原地攻击：单段 [Atk]，ForwardDistance=0，HitWindow 命中帧开伤害
 ///      - 飞扑：[Jump_Start, Jump_Air(ForwardDistance 大), Jump_End]，落地段 HitWindow 开范围伤害

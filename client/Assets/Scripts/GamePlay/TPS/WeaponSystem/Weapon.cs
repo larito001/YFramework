@@ -31,7 +31,7 @@ public class Weapon : Actor
     public string MountSocketName;
 
     // ── 动画 ──
-    /// <summary>武器对应的 <see cref="WeaponAnimSet"/> ScriptableObject 资源路径（Resources 相对路径，如 "Weapon/Anim/Pistol"）。
+    /// <summary>武器对应的 <see cref="WeaponAnimSet"/> ScriptableObject 资源路径（Resources 相对路径，如 "Weapon/Animations/Pistol"）。
     /// 空 / null = 持有者 view 默认 idle pose（不切 Animancer state）。
     /// 切枪时 WeaponComponent.ApplySwap 把本路径写到 Character.CurrentWeaponAnimSetPath，
     /// CharacterView 检测 WeaponAnimDirty trigger 后 ResMgr.Load&lt;WeaponAnimSet&gt; + 用 Animancer.Play 替代 Animator state machine。
@@ -59,7 +59,7 @@ public class Weapon : Actor
     /// 切枪时写到 Character.WeaponSecondarySkill。</summary>
     public int SecondarySkillIndex = -1;
 
-    /// <summary>本武器的连招招式图（<see cref="ComboGraph"/>）资源路径（Resources 相对路径，如 "Skill/KnifeCombo"）。
+    /// <summary>本武器的连招招式图（<see cref="ComboGraph"/>）资源路径（Resources 相对路径，如 "Character/Skills/KnifeCombo"）。
     /// 空 / null（默认）= 本武器无连招：攻击键回退到单招（左键放 <see cref="PrimarySkillIndex"/>、V 放 <see cref="SecondarySkillIndex"/>）。
     /// 配了图 = 走连招（左键/V 按图分支接招）。切枪时 WeaponComponent.ApplySwap 镜像到 Character.CurrentComboGraphPath，ComboComponent 据此重载图。</summary>
     public string ComboGraphPath;
