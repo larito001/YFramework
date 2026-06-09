@@ -7,10 +7,10 @@ using YFramework.Config;
 /// 生成带模型 + 物理的 <see cref="DropItem"/>,靠重力落到地面,玩家靠近按 F 捡回背包。
 /// <see cref="BagSystem.Discard"/> 调 <see cref="DropAtPlayer"/> 在玩家身前丢出。
 ///
-/// **模型(当前)**:按品质上色的 box 占位——URP/Lit 运行时建材质(默认材质在 URP 下会变粉),
-/// 尺寸随配表 <c>Width/Height</c>。
-/// **接真实模型**:给 item 配表加 <c>modelPath</c> 列,改 <see cref="BuildModel"/> 走
-/// <c>ResMgr.Load&lt;GameObject&gt;(cfg.ModelPath)</c> 实例化即可,丢弃/捡起逻辑不动。
+/// **模型(当前)**:按品质加载占位 box 预制体 <c>Item/Prefabs/DropBox_&lt;品质&gt;</c>
+/// (5 个品质各一个、已上色,由菜单 Tools/Bag/Build Item Drop Prefabs 生成),尺寸随配表 <c>Width/Height</c> 缩放;
+/// 预制体缺失时退回运行时拼一个上色 cube(不崩)。
+/// **接真实模型**:把对应 prefab 换成真模型即可;或给 item 配表加 <c>modelPath</c> 列、改 <see cref="BuildModel"/> 走 <c>cfg.ModelPath</c>,丢弃/捡起逻辑不动。
 /// CharacterManager / ViewManager 注册晚于本系统,一律懒取。
 /// </summary>
 public class DropItemSystem : IGameService
@@ -73,22 +73,36 @@ public class DropItemSystem : IGameService
     }
 
     /// <summary>
-    /// 构建掉落物外观。**当前**:按品质上色的 box 占位(URP/Lit 运行时材质,尺寸随配表 Width/Height)。
-    /// 接真实模型时只改这里:resMgr.Load&lt;GameObject&gt;(cfg.ModelPath) → Instantiate。
+    /// 构建掉落物外观:按品质加载占位 box 预制体 <c>Item/Prefabs/DropBox_&lt;品质&gt;</c>(已上色),
+    /// 再按配表 Width/Height 缩放(不同物品尺寸有别)。预制体缺失则退回运行时拼一个上色 cube。
+    /// 接真实模型:换对应 prefab,或 item 配表加 modelPath 后这里改走 cfg.ModelPath。
     /// </summary>
     private GameObject BuildModel(Item cfg)
     {
-        var go = GameObject.CreatePrimitive(PrimitiveType.Cube); // 自带 BoxCollider/MeshRenderer
+        var quality = (ItemQuality)cfg.Quality;
         int w = Mathf.Clamp(cfg.Width <= 0 ? 1 : cfg.Width, 1, 4);
         int h = Mathf.Clamp(cfg.Height <= 0 ? 1 : cfg.Height, 1, 4);
-        go.transform.localScale = new Vector3(w * 0.3f, 0.3f, h * 0.3f); // 不同物品尺寸有别
 
-        var rend = go.GetComponent<MeshRenderer>();
-        if (rend != null) rend.sharedMaterial = GetQualityMaterial((ItemQuality)cfg.Quality);
+        GameObject go;
+        var prefab = Resources.Load<GameObject>($"Item/Prefabs/DropBox_{quality}");
+        if (prefab != null)
+        {
+            go = Object.Instantiate(prefab);
+        }
+        else
+        {
+            // 兜底:预制体缺失(没跑 Tools/Bag/Build Item Drop Prefabs)时运行时拼一个上色 cube,避免不显示。
+            go = GameObject.CreatePrimitive(PrimitiveType.Cube); // 自带 BoxCollider/MeshRenderer
+            var rend = go.GetComponent<MeshRenderer>();
+            if (rend != null) rend.sharedMaterial = GetQualityMaterial(quality);
+            Debug.LogWarning($"[DropItemSystem] 未找到预制体 Item/Prefabs/DropBox_{quality}，已退回运行时生成(跑 Tools/Bag/Build Item Drop Prefabs 生成)");
+        }
+
+        go.transform.localScale = new Vector3(w * 0.3f, 0.3f, h * 0.3f); // 不同物品尺寸有别
         return go;
     }
 
-    /// <summary>取/建某品质的占位材质(按品质上色,缓存复用,避免每次掉落泄漏 Material)。</summary>
+    /// <summary>取/建某品质的占位材质(仅 BuildModel 兜底路径用,按品质上色,缓存复用避免泄漏 Material)。</summary>
     private Material GetQualityMaterial(ItemQuality quality)
     {
         if (matCache.TryGetValue(quality, out var mat) && mat != null) return mat;
