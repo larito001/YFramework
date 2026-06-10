@@ -6,13 +6,13 @@ using UnityEngine;
 /// <summary>
 /// 菜单：Tools/TPS/Build Skill &amp; Anim Assets
 /// 一键生成所有技能 / 动画运行时资产（含 clip 引用 + 配置）：
-///   僵尸（从 Assets/Art/Zombie/Animations 下 fbx）：
-///   - Resources/Zombie/Prefabs/Zombie.prefab（MotusMan_v55 角色网格 = 僵尸动画的 Humanoid 骨架源 + AnimancerComponent + CharacterController + <see cref="ZombieView"/>）
-///   - Resources/Zombie/Animations/ZombieAnimSet.asset（<see cref="CharacterAnimSet"/>）：idle / 慢走(Walk) / 快跑(Chase=Run) + 死亡 + 阈值
-///   - Resources/Zombie/Skills/ZombieAttack.asset（<see cref="SkillDef"/>）：Stand_To_Atk → Atk_Loop(命中窗扣血) → Atk_End，原地无位移
-///   - Resources/Zombie/Skills/ZombieLeap.asset（<see cref="SkillDef"/>）：Jump_Start → Jump_Air(前冲位移) → Jump_End(落地命中窗)
+///   僵尸（从 Assets/Art/Characters/Animations/Zombie 下 fbx）：
+///   - Resources/Character/Zombie/Prefabs/Zombie.prefab（MotusMan_v55 角色网格 = 僵尸动画的 Humanoid 骨架源 + AnimancerComponent + CharacterController + <see cref="ZombieView"/>）
+///   - Resources/Character/Zombie/Animations/ZombieAnimSet.asset（<see cref="CharacterAnimSet"/>）：idle / 慢走(Walk) / 快跑(Chase=Run) + 死亡 + 阈值
+///   - Resources/Character/Zombie/Skills/ZombieAttack.asset（<see cref="SkillDef"/>）：Stand_To_Atk → Atk_Loop(命中窗扣血) → Atk_End，原地无位移
+///   - Resources/Character/Zombie/Skills/ZombieLeap.asset（<see cref="SkillDef"/>）：Jump_Start → Jump_Air(前冲位移) → Jump_End(落地命中窗)
 ///   玩家（从 Assets/Art/Characters/Human/Rifle 下 RifleAnimsetPro fbx）：
-///   - Resources/Character/Skills/PlayerMelee.asset（<see cref="SkillDef"/>）：单段 Rifle_Melee_Hard，前冲 + 命中窗（CharacterFactory 配 V 键释放）
+///   - Resources/Character/Player/Skills/PlayerMelee.asset（<see cref="SkillDef"/>）：单段 Rifle_Melee_Hard，前冲 + 命中窗（CharacterFactory 配 V 键释放）
 /// 同时给 locomotion / Atk_Loop 这些循环 clip 的 fbx 导入设 loopTime=true，保证 mixer 能循环播。
 ///
 /// 生成后 <see cref="CharacterFactory"/>（CreateCharacter / CreateZombie）即可按 Resources 路径加载这些资产跑起来。
@@ -20,7 +20,7 @@ using UnityEngine;
 /// </summary>
 public static class ZombieAssetBuilder
 {
-    private const string Root = "Assets/Art/Zombie/Animations/";
+    private const string Root = "Assets/Art/Characters/Animations/Zombie/";
 
     // ── 玩家近战 clip 所在的 RifleAnimsetPro fbx（多 take，按名查找）──
     private static readonly string[] RifleFbxPaths =
@@ -74,9 +74,9 @@ public static class ZombieAssetBuilder
             return;
         }
 
-        EnsureFolder("Assets/Resources/Zombie/Animations");
-        EnsureFolder("Assets/Resources/Zombie/Skills");
-        EnsureFolder("Assets/Resources/Character/Skills");
+        EnsureFolder("Assets/Resources/" + CharacterResPath.ZombieRoot + "Animations");
+        EnsureFolder("Assets/Resources/" + CharacterResPath.ZombieRoot + "Skills");
+        EnsureFolder("Assets/Resources/" + CharacterResPath.PlayerRoot + "Skills");
 
         // 3. CharacterAnimSet（locomotion + death）
         var animSet = ScriptableObject.CreateInstance<CharacterAnimSet>();
@@ -92,7 +92,7 @@ public static class ZombieAssetBuilder
         animSet.DeathR = deathR;
         animSet.UpperBodyMask = null; // 僵尸单层（攻击/技能全身覆盖）
         animSet.DefaultFade = 0.15f;
-        CreateOrReplace(animSet, "Assets/Resources/Zombie/Animations/ZombieAnimSet.asset");
+        CreateOrReplace(animSet, CharacterResPath.ToAsset(CharacterResPath.ZombieAnimSet));
 
         // 4. 攻击技能：Stand_To_Atk → Atk_Loop(命中窗) → Atk_End，原地
         var attack = ScriptableObject.CreateInstance<SkillDef>();
@@ -107,7 +107,7 @@ public static class ZombieAssetBuilder
             }, new[] { Shake(0.15f, 0.15f, 0.12f) }),
             Seg(atkEnd, 0.05f, 0f, 0f, null),
         };
-        CreateOrReplace(attack, "Assets/Resources/Zombie/Skills/ZombieAttack.asset");
+        CreateOrReplace(attack, CharacterResPath.ToAsset(CharacterResPath.ZombieAttack));
 
         // 5. 飞扑技能：Jump_Start → Jump_Air(前冲) → Jump_End(落地范围伤害)
         var leap = ScriptableObject.CreateInstance<SkillDef>();
@@ -122,7 +122,7 @@ public static class ZombieAssetBuilder
                 Hit(0.0f, 0.4f, 1.8f, 1.0f, 1.0f, 40f, HitstopTier.Long),
             }, new[] { Shake(0.0f, 0.3f, 0.2f) }), // 落地重击大震
         };
-        CreateOrReplace(leap, "Assets/Resources/Zombie/Skills/ZombieLeap.asset");
+        CreateOrReplace(leap, CharacterResPath.ToAsset(CharacterResPath.ZombieLeap));
 
         // 6. 玩家近战技能（恢复 V 键近战）
         BuildPlayerMelee();
@@ -136,7 +136,7 @@ public static class ZombieAssetBuilder
     }
 
     /// <summary>从 MotusMan_v55 角色网格（= 僵尸所有动画 fbx 共用的 Humanoid 骨架/Avatar 源）生成
-    /// Resources/Zombie/Prefabs/Zombie.prefab，挂 AnimancerComponent + CharacterController + <see cref="ZombieView"/>。
+    /// Resources/Character/Zombie/Prefabs/Zombie.prefab，挂 AnimancerComponent + CharacterController + <see cref="ZombieView"/>。
     /// 僵尸动画原生绑在这套骨架上，retarget 完美；它和玩家用的模型不同，外观上是独立的敌人。
     ///
     /// **用 Object.Instantiate（深拷贝成普通 prefab）而非 InstantiatePrefab**——后者存出来是 variant，
@@ -176,8 +176,8 @@ public static class ZombieAssetBuilder
 
             if (go.GetComponent<ZombieView>() == null) go.AddComponent<ZombieView>();
 
-            EnsureFolder("Assets/Resources/Zombie/Prefabs");
-            var saved = PrefabUtility.SaveAsPrefabAsset(go, "Assets/Resources/Zombie/Prefabs/Zombie.prefab", out bool ok);
+            EnsureFolder("Assets/Resources/" + CharacterResPath.ZombieRoot + "Prefabs");
+            var saved = PrefabUtility.SaveAsPrefabAsset(go, CharacterResPath.ToAsset(CharacterResPath.ZombiePrefab, ".prefab"), out bool ok);
             if (!ok || saved == null) Debug.LogError("[ZombieAssetBuilder] 保存 Zombie.prefab 失败");
         }
         finally
@@ -190,7 +190,7 @@ public static class ZombieAssetBuilder
     ///   段0 Rifle_Melee_Hard：前冲 1.2m + 命中窗 [0.25,0.55] 扣 30 伤；
     ///   段1 Rifle_Melee_Kick：前冲 1.0m + 命中窗 [0.20,0.50] 扣 25 伤。
     /// 命中窗去重按段独立 → 同一目标被两段各打一次（2-hit）。展示多段技能链。
-    /// CharacterFactory.CreateCharacter 已把 SkillCastComponent.SkillPaths[0] 配为 "Character/Skills/PlayerMelee" + V 键释放。</summary>
+    /// CharacterFactory.CreateCharacter 已把 SkillCastComponent.SkillPaths[0] 配为 "Character/Player/Skills/PlayerMelee" + V 键释放。</summary>
     private static void BuildPlayerMelee()
     {
         var hard = LoadNamed("Rifle_Melee_Hard", RifleFbxPaths);
@@ -212,7 +212,7 @@ public static class ZombieAssetBuilder
             {
                 Seg(hard, 0.1f, 0f, 1.2f, new[] { Hit(0.25f, 0.55f, 1.0f, 0.8f, 1.0f, 30f, HitstopTier.Long) }, new[] { Shake(0.25f, 0.18f, 0.15f) }),
             };
-        CreateOrReplace(melee, "Assets/Resources/Character/Skills/PlayerMelee.asset");
+        CreateOrReplace(melee, CharacterResPath.ToAsset(CharacterResPath.PlayerMelee));
     }
 
     // ── helpers ──
