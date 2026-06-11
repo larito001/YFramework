@@ -55,6 +55,21 @@ public abstract class LocomotionAnimController
     /// 解决"全身攻击 → 跑步"切换 DefaultFade 太短突兀。</summary>
     protected float overrideNextLocomotionFade;
 
+    // ──────────────────────────── Layer 0 状态机（YStateMachine） ────────────────────────────
+    // 把原 DriveAnimation 的"死亡 > 技能 > 闪避 > Locomotion"优先级级联拆成 4 个互斥状态。
+    //   每帧 SelectBaseState 按 Character 意图字段决出**目标态**（纯选择，不切换），变了才 SwitchState；
+    //   状态自身 UpdateState 做逐帧工作（播 clip / 驱动 locomotion / 维持锁定）。
+    //   进出"全身覆盖"的 Layer 1 让位 / 恢复仍走原 EnterFullBodyOverride / RestoreUpperBodyAfterFullBody 钩子，
+    //   由各状态在合适时机调用——双层耦合关系与改造前完全一致。
+    private readonly AnimFsm baseFsm = new AnimFsm();
+    private LocomotionState locomotionState;
+    private SkillState skillState;
+    private DodgeState dodgeState;
+    private DeathState deathState;
+    /// <summary>本帧 <see cref="DriveAnimation"/> 入口写入，供各状态 Enter/UpdateState 读取
+    /// （IYState 回调不透传 Character，用此字段共享当前帧角色）。</summary>
+    private Character curCharacter;
+
     // ────────────────────────── 分层契约（命名层访问器，替代 Layers[0]/[1] 魔法数字） ──────────────────────────
     //
     //   ┌─ Layer 0  (BaseLayer)  —— 无 mask = 全身 ──────────────────────────────┐
@@ -81,6 +96,13 @@ public abstract class LocomotionAnimController
         Animancer = animancer;
         this.resMgr = resMgr;
         LoadCharacterAnimSet(characterAnimSetPath);
+
+        // Layer 0 状态机：状态只持 controller 引用（嵌套类可访问其私有成员 + protected 钩子），运行时读 curCharacter
+        locomotionState = new LocomotionState(this);
+        skillState = new SkillState(this);
+        dodgeState = new DodgeState(this);
+        deathState = new DeathState(this);
+        baseFsm.ReSet();
     }
 
     /// <summary>每帧驱动。<paramref name="effectiveTimeScale"/> = 全局缩放 × 本 actor 局部缩放
@@ -111,6 +133,12 @@ public abstract class LocomotionAnimController
         layer0FullBodyActive = false;
         useUpperBodyLayer = false;
         overrideNextLocomotionFade = 0f;
+        baseFsm.ReSet();
+        locomotionState = null;
+        skillState = null;
+        dodgeState = null;
+        deathState = null;
+        curCharacter = null;
         resMgr = null;
         Animancer = null;
     }
@@ -126,12 +154,7 @@ public abstract class LocomotionAnimController
     /// 返回 false = 继续走 one-shot 生命周期 + locomotion。基类无战斗，返回 false。</summary>
     protected virtual bool DriveCombat(Character character, float fade) => false;
 
-    /// <summary>全身覆盖 one-shot（layer0FullBodyActive）是否仍在锁定中。
-    /// 基类默认 = <c>IsCastingSkill || IsDodging</c>——技能释放 / 闪避途中持续锁全身（各自组件结束清标志才退出）。
-    /// 派生类一般不需 override（技能 / 闪避都是通用全身动作）。</summary>
-    protected virtual bool IsFullBodyHeld(Character character) => character.IsCastingSkill || character.IsDodging;
-
-    /// <summary>退出全身覆盖回 locomotion 的 fade。基类用 DefaultFade；技能结束走 <see cref="Character.SkillRecoverFade"/>（在 3a 处理）。</summary>
+    /// <summary>退出全身覆盖回 locomotion 的 fade。基类用 DefaultFade；技能/闪避结束优先走各自 RecoverFade（在 LocomotionState.Enter 处理）。</summary>
     protected virtual float GetFullBodyRecoverFade(float defaultFade) => defaultFade;
 
     // ────────────────────────── 上身常驻 pose 钩子（玩家持武器时启用） ──────────────────────────
@@ -257,109 +280,195 @@ public abstract class LocomotionAnimController
         }
     }
 
-    /// <summary>核心状态机。优先级 Die &gt; 战斗段（派生类）&gt; one-shot 生命周期 &gt; Locomotion。</summary>
+    /// <summary>核心状态机入口。Layer 0 由 <see cref="baseFsm"/>（YStateMachine）驱动：
+    /// 每帧按优先级 Die &gt; 技能 &gt; 闪避 &gt; Locomotion 决出目标态（<see cref="SelectBaseState"/>），变了才切换，再 Update 当前态。
+    /// 各状态内部再调战斗段（派生类）/ one-shot 生命周期 / Locomotion 钩子——与改造前同序同效。</summary>
     private void DriveAnimation(Character character)
     {
-        float fade = GetDefaultFade();
+        curCharacter = character;
+        var target = SelectBaseState(character);
+        if (baseFsm.Current != target) baseFsm.SwitchState(target, null);
+        baseFsm.Update(Time.unscaledDeltaTime * CurrentTimeScale);
+    }
 
-        // 1. 死亡：Layer 0 全身覆盖 DeathL/R（fade=0 立即切）；Layer 1 立即静默让位。clip 来自 CharacterAnimSet。
-        if (character.Die)
+    /// <summary>纯选择（不切换）：按优先级决出 Layer 0 目标态。
+    /// 死亡 &gt; 技能（含进段一次性 <see cref="Character.SkillClipDirty"/>）&gt; 闪避 &gt; Locomotion。
+    /// 用 IsCastingSkill/IsDodging 维持锁定，用 *ClipDirty 捕获"起手当帧"——两者任一为真即归属该全身态。</summary>
+    private IYState SelectBaseState(Character character)
+    {
+        if (character.Die || character.IsDead) return deathState;
+        if (character.IsCastingSkill || character.SkillClipDirty) return skillState;
+        if (character.IsDodging || character.DodgeClipDirty) return dodgeState;
+        return locomotionState;
+    }
+
+    /// <summary>供嵌套状态触发死亡事件（event 只能在声明类内 Invoke，嵌套类经此薄封装转发）。</summary>
+    private void RaiseDeath() => OnDeathTriggered?.Invoke();
+
+    // ──────────────────────────── Layer 0 状态机：状态实现（嵌套私有类，可访问 controller 私有成员 + protected 钩子） ────────────────────────────
+
+    /// <summary>暴露 <see cref="YStateMachine.currentState"/> 给 selector 做引用比较（基类是 protected）。</summary>
+    private class AnimFsm : YStateMachine
+    {
+        public IYState Current => currentState;
+    }
+
+    /// <summary>死亡态（终态）。仅 Die trigger 那一帧播 DeathL/R 全身覆盖 + 通知 view；之后纯 IsDead 保持不重播。</summary>
+    private sealed class DeathState : IYState
+    {
+        private readonly LocomotionAnimController c;
+        public DeathState(LocomotionAnimController c) { this.c = c; }
+        public string GetStateName() => "Death";
+        public void EnterState(YStateMachine m, object param)
         {
-            character.Die = false;
-            var clip = character.DeathVariant == 0 ? characterAnimSet.DeathL : characterAnimSet.DeathR;
-            if (clip != null)
+            var ch = c.curCharacter;
+            if (ch.Die) // 真死那一帧才播放 + 通知；纯 IsDead 进入（已死态）静默
             {
-                BaseLayer.SetWeight(1f);
-                activeOneShotState = BaseLayer.Play(clip, 0f);
+                ch.Die = false;
+                var clip = ch.DeathVariant == 0 ? c.characterAnimSet.DeathL : c.characterAnimSet.DeathR;
+                if (clip != null)
+                {
+                    c.BaseLayer.SetWeight(1f);
+                    c.activeOneShotState = c.BaseLayer.Play(clip, 0f);
+                }
+                c.EnterFullBodyOverride(0f, immediate: true); // Layer 1 立即让位
+                c.RaiseDeath();
             }
-            EnterFullBodyOverride(0f, immediate: true); // Layer 1 让位（立即）
-            currentLayer0Mixer = null;
-            layer0FullBodyActive = true;
-            OnDeathTriggered?.Invoke();
-            return;
+            c.currentLayer0Mixer = null;
+            c.layer0FullBodyActive = true;
         }
-        if (character.IsDead) return;
+        public void UpdateState(YStateMachine m, float dt) { } // 终态：保持死亡 pose
+        public void ExitState(YStateMachine m) { }
+    }
 
-        // 2. 技能（全身、不可打断）：通用最高优先级（仅次于 Die）。SkillCastComponent 进段时写 SkillClip + SkillClipDirty，
-        //    这里 Play 到 Layer 0 全身覆盖；IsCastingSkill 期间锁全身（经下方 3a 的 IsFullBodyHeld）。
-        if (character.SkillClipDirty)
+    /// <summary>全身覆盖态基类（技能/闪避同机制）：Enter 置全身锁定标志，UpdateState 消费"进段/起手"clip 并全身 Play +
+    /// 让 Layer 1 让位。退出（动作结束/被打断）由 <see cref="SelectBaseState"/> 决策切走，状态内部不自判退出。</summary>
+    private abstract class FullBodyClipState : IYState
+    {
+        protected readonly LocomotionAnimController c;
+        protected FullBodyClipState(LocomotionAnimController c) { this.c = c; }
+        public abstract string GetStateName();
+        /// <summary>消费本动作的一次性 clip dirty；有新 clip 待播时给出 clip + fade（clip 可为 null=退化段，仅保持锁定）。</summary>
+        protected abstract bool TryConsumeClip(Character ch, out AnimationClip clip, out float fade);
+
+        public void EnterState(YStateMachine m, object param)
         {
-            character.SkillClipDirty = false;
-            // 全身锁定无条件置位（即使本段无 clip——退化段也要保持锁定 + 走统一退出逻辑）
-            layer0FullBodyActive = true;
-            currentLayer0Mixer = null;
-            float f = character.SkillClipFade > 0f ? character.SkillClipFade : fade;
-            if (character.SkillClip != null)
-            {
-                var s = BaseLayer.Play(character.SkillClip, f);
-                if (s != null) s.Time = 0f; // 每段从头播
-                activeOneShotState = s;
-            }
-            EnterFullBodyOverride(f, immediate: false); // Layer 1 让位（淡出）
+            c.layer0FullBodyActive = true;
+            c.currentLayer0Mixer = null;
+            // 起手 clip 不在此播：进入帧的 dirty 与后续进段统一在 UpdateState 消费（同一条路，避免双份逻辑）
         }
-
-        // 2'. 闪避（全身覆盖，与技能同机制）：DodgeComponent 起闪避写 DodgeClip + DodgeClipDirty，这里全身 Play、
-        //     IsDodging 期间锁全身（经 3a 的 IsFullBodyHeld）。方向 clip 已由 DodgeComponent 按移动意图选好，本层只管播。
-        if (character.DodgeClipDirty)
+        public void UpdateState(YStateMachine m, float dt)
         {
-            character.DodgeClipDirty = false;
-            layer0FullBodyActive = true;
-            currentLayer0Mixer = null;
-            float f = character.DodgeClipFade > 0f ? character.DodgeClipFade : fade;
-            if (character.DodgeClip != null)
+            var ch = c.curCharacter;
+            if (TryConsumeClip(ch, out var clip, out var f))
             {
-                var s = BaseLayer.Play(character.DodgeClip, f);
-                if (s != null) s.Time = 0f; // 从头播
-                activeOneShotState = s;
+                if (clip != null)
+                {
+                    var s = c.BaseLayer.Play(clip, f);
+                    if (s != null) s.Time = 0f; // 每段从头播
+                    c.activeOneShotState = s;
+                }
+                c.EnterFullBodyOverride(f, immediate: false); // Layer 1 让位（淡出）
             }
-            EnterFullBodyOverride(f, immediate: false); // Layer 1 让位（淡出）
+            // 无新 clip：Animancer 继续播当前全身 clip，不驱动 combat / locomotion（与原"锁全身 return"一致）
         }
-        if (character.IsCastingSkill || character.IsDodging) return; // 技能 / 闪避播放中：锁全身，跳过 combat + locomotion
+        public void ExitState(YStateMachine m) { }
+    }
 
-        // 3. 战斗段（派生类：玩家武器 one-shot）。返回 true = 触发了全身 one-shot，本帧短路。
-        // upperBase 模式下 DriveCombat 短路（trigger 交给 UpdateUpperBody 消费），仅退化/僵尸走旧逻辑。
-        if (DriveCombat(character, fade)) return;
-
-        // upperBase = Layer 1 承载常驻 base pose（玩家持武器）：跳过旧 3b/3c one-shot 淡出，改走 3d UpdateUpperBody。
-        bool upperBase = HasUpperBodyBasePose(character);
-
-        // 3a. Layer 0 全身覆盖中（技能/melee）：IsFullBodyHeld（= IsCastingSkill）一 false 就退出回 Locomotion。
-        // 过渡 fade：技能结束优先用 SkillRecoverFade，否则 GetFullBodyRecoverFade。
-        if (layer0FullBodyActive)
+    /// <summary>技能态：消费 SkillClipDirty（SkillCastComponent 进段写）。</summary>
+    private sealed class SkillState : FullBodyClipState
+    {
+        public SkillState(LocomotionAnimController c) : base(c) { }
+        public override string GetStateName() => "Skill";
+        protected override bool TryConsumeClip(Character ch, out AnimationClip clip, out float fade)
         {
-            if (IsFullBodyHeld(character)) return; // 仍在锁定中，继续锁 fullbody
-            layer0FullBodyActive = false;
-            // 恢复 fade：技能优先，其次闪避，最后默认。消费后清零两者，避免下次恢复读到上一次的残值（两类动作互斥，各自结束时只写自己那个）。
-            float recoverFade = character.SkillRecoverFade > 0f ? character.SkillRecoverFade
-                              : character.DodgeRecoverFade > 0f ? character.DodgeRecoverFade
-                              : GetFullBodyRecoverFade(fade);
-            character.SkillRecoverFade = 0f;
-            character.DodgeRecoverFade = 0f;
-            overrideNextLocomotionFade = recoverFade;
-            if (upperBase) RestoreUpperBodyAfterFullBody(character, recoverFade); // 玩家：driver 把 Layer1 拉回 weight1 + 当帧重建 base
-            else if (HasUpperLayer) UpperLayer.StartFade(1f, recoverFade);
-            activeOneShotState = null;
+            if (!ch.SkillClipDirty) { clip = null; fade = 0f; return false; }
+            ch.SkillClipDirty = false;
+            clip = ch.SkillClip;
+            fade = ch.SkillClipFade > 0f ? ch.SkillClipFade : c.GetDefaultFade();
+            return true;
         }
-        // 3b/3c. 旧模型（无 base pose：僵尸/单层/无武器）的 one-shot 生命周期。upperBase 模式跳过。
-        else if (!upperBase)
+    }
+
+    /// <summary>闪避态：消费 DodgeClipDirty（DodgeComponent 起闪避写，方向 clip 已选好）。</summary>
+    private sealed class DodgeState : FullBodyClipState
+    {
+        public DodgeState(LocomotionAnimController c) : base(c) { }
+        public override string GetStateName() => "Dodge";
+        protected override bool TryConsumeClip(Character ch, out AnimationClip clip, out float fade)
         {
-            // 3b. 单层模式 + one-shot 未播完：等待（受击 flinch / 单层开火走这条）
-            if (!useUpperBodyLayer && activeOneShotState != null && activeOneShotState.IsPlaying && activeOneShotState.NormalizedTime < 1f)
+            if (!ch.DodgeClipDirty) { clip = null; fade = 0f; return false; }
+            ch.DodgeClipDirty = false;
+            clip = ch.DodgeClip;
+            fade = ch.DodgeClipFade > 0f ? ch.DodgeClipFade : c.GetDefaultFade();
+            return true;
+        }
+    }
+
+    /// <summary>Locomotion 态（默认态）。Enter：若由全身覆盖态切回，算恢复 fade + 让 Layer 1 回常驻 base pose。
+    /// UpdateState：战斗段（派生类）→ one-shot 生命周期（退化路径）→ 上身常驻（upperBase）→ Locomotion always-on。</summary>
+    private sealed class LocomotionState : IYState
+    {
+        private readonly LocomotionAnimController c;
+        public LocomotionState(LocomotionAnimController c) { this.c = c; }
+        public string GetStateName() => "Locomotion";
+
+        public void EnterState(YStateMachine m, object param)
+        {
+            var ch = c.curCharacter;
+            // 从全身覆盖（技能/闪避）恢复（layer0FullBodyActive 仅全身态置真、本态清——故它即"刚退全身"的标记）。
+            // 死亡是终态不会进本态，所以此处不处理死亡恢复。
+            if (c.layer0FullBodyActive)
             {
-                return;
-            }
-            // 3c. 双层模式 + one-shot 播完：淡出 Layer 1
-            else if (activeOneShotState != null && (activeOneShotState.NormalizedTime >= 1f || !activeOneShotState.IsPlaying))
-            {
-                if (HasUpperLayer) UpperLayer.StartFade(0f, fade);
-                activeOneShotState = null;
+                c.layer0FullBodyActive = false;
+                float def = c.GetDefaultFade();
+                // 恢复 fade：技能优先，其次闪避，最后默认。消费后清零两者（两类动作互斥，各自结束只写自己那个）。
+                float recoverFade = ch.SkillRecoverFade > 0f ? ch.SkillRecoverFade
+                                  : ch.DodgeRecoverFade > 0f ? ch.DodgeRecoverFade
+                                  : c.GetFullBodyRecoverFade(def);
+                ch.SkillRecoverFade = 0f;
+                ch.DodgeRecoverFade = 0f;
+                c.overrideNextLocomotionFade = recoverFade;
+                if (c.HasUpperBodyBasePose(ch)) c.RestoreUpperBodyAfterFullBody(ch, recoverFade); // 玩家：driver 把 Layer1 拉回 weight1 + 当帧重建 base
+                else if (c.HasUpperLayer) c.UpperLayer.StartFade(1f, recoverFade);
+                c.activeOneShotState = null;
             }
         }
 
-        // 3d. 新模型：Layer 1 上身常驻状态机（base pose + 叠加 one-shot 回 base）。
-        if (upperBase) UpdateUpperBody(character);
+        public void UpdateState(YStateMachine m, float dt)
+        {
+            var ch = c.curCharacter;
+            float fade = c.GetDefaultFade();
 
-        // 4. Locomotion always-on
-        UpdateLocomotion(character);
+            // 战斗段（派生类武器 one-shot）。返回 true = 触发了全身 one-shot，本帧短路。
+            // upperBase 模式下 DriveCombat 短路（trigger 交给 UpdateUpperBody 消费），仅退化/僵尸走旧逻辑。
+            if (c.DriveCombat(ch, fade)) return;
+
+            // upperBase = Layer 1 承载常驻 base pose（玩家持武器）：跳过退化 one-shot 淡出，改走 UpdateUpperBody。
+            bool upperBase = c.HasUpperBodyBasePose(ch);
+            if (!upperBase)
+            {
+                // 退化模型（无 base pose：僵尸/单层/无武器）的 one-shot 生命周期。
+                // 单层模式 + one-shot 未播完：等待（受击 flinch / 单层开火走这条），不驱动 locomotion。
+                if (!c.useUpperBodyLayer && c.activeOneShotState != null && c.activeOneShotState.IsPlaying && c.activeOneShotState.NormalizedTime < 1f)
+                {
+                    return;
+                }
+                // 双层模式 + one-shot 播完：淡出 Layer 1
+                else if (c.activeOneShotState != null && (c.activeOneShotState.NormalizedTime >= 1f || !c.activeOneShotState.IsPlaying))
+                {
+                    if (c.HasUpperLayer) c.UpperLayer.StartFade(0f, fade);
+                    c.activeOneShotState = null;
+                }
+            }
+
+            // 新模型：Layer 1 上身常驻状态机（base pose + 叠加 one-shot 回 base）。
+            if (upperBase) c.UpdateUpperBody(ch);
+
+            // Locomotion always-on
+            c.UpdateLocomotion(ch);
+        }
+
+        public void ExitState(YStateMachine m) { }
     }
 }

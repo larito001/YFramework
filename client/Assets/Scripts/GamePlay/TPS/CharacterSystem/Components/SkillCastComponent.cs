@@ -355,6 +355,9 @@ public class SkillCastComponent : ICharacterComponent
         {
             Owner.SkillRecoverFade = active != null ? active.RecoverFade : 0f;
             Owner.IsCastingSkill = false;
+            // 清掉未消费的进段 clip dirty：被打断（如闪避打断技能）那帧若恰有 SkillClipDirty 残留，
+            // 动画层 Layer 0 selector 会据它误判仍在技能态、慢一帧才让位给闪避。清零避免这一帧错播。
+            Owner.SkillClipDirty = false;
             // 停下前冲：清水平意图，y 留给 Gravity
             Owner.WishVelocity = new Vector3(0f, Owner.WishVelocity.y, 0f);
         }
