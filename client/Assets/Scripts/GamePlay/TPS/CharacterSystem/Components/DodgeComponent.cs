@@ -83,12 +83,9 @@ public class DodgeComponent : ICharacterComponent
         // 清自己写过的 Owner 字段，避免 writer 离场后 reader 卡在闪避态（Move 永锁 / view 死值 / 永久无敌）
         if (Owner != null)
         {
-            Owner.IsDodging = false;
+            // 仅当全身通道仍被闪避占用才释放（避免踩到他人）；恢复无敌帧
+            if (Owner.IsDodging) Owner.EndFullBody(0f);
             Owner.IsInvulnerable = false;
-            Owner.DodgeClip = null;
-            Owner.DodgeClipDirty = false;
-            Owner.DodgeClipFade = 0f;
-            Owner.DodgeRecoverFade = 0f;
         }
         active = false;
         input = null;
@@ -107,13 +104,10 @@ public class DodgeComponent : ICharacterComponent
         if (cooldownTimer > 0f) return;                  // 冷却中
         if (animSet == null) return;                     // 没动画不闪避
 
-        // 闪避打断技能：正在放技能 → 先硬打断（清命中窗/动效/位移），再起闪避。
-        // 清掉技能写的 SkillRecoverFade，避免闪避结束恢复 locomotion 时误用技能的恢复淡入（应走 DodgeRecoverFade）。
+        // 闪避打断技能：正在放技能 → 先硬打断（清命中窗/动效/位移、释放通道），再起闪避。
+        // 技能 EndCast 写的 RecoverFade 残留会被下面 RequestFullBody(Dodge) 自动清零（新动作占用即清），闪避结束走自己的 RecoverFade。
         if (Owner.IsCastingSkill)
-        {
             Owner.Get<SkillCastComponent>()?.Interrupt();
-            Owner.SkillRecoverFade = 0f;
-        }
 
         // 朝向（水平）
         var fwd = Owner.Rotation * Vector3.forward; fwd.y = 0f;
@@ -151,10 +145,8 @@ public class DodgeComponent : ICharacterComponent
             comboPending = true;
             comboResetTimer = ComboResetWindow;
         }
-        Owner.IsDodging = true;
-        Owner.DodgeClip = clip;
-        Owner.DodgeClipFade = EnterFade;
-        Owner.DodgeClipDirty = true;
+        Owner.RequestFullBody(FullBodyKind.Dodge); // 占用全身通道（已硬打断技能，必成功）
+        Owner.SetFullBodyClip(clip, EnterFade);
     }
 
     public override void Tick(float dt)
@@ -193,9 +185,9 @@ public class DodgeComponent : ICharacterComponent
         prevFrac = 0f;
         if (Owner != null)
         {
-            Owner.IsDodging = false;
+            // 释放全身通道 + 记恢复淡入（替代 IsDodging=false + DodgeRecoverFade=）；解除无敌帧
+            Owner.EndFullBody(RecoverFade);
             Owner.IsInvulnerable = false;
-            Owner.DodgeRecoverFade = RecoverFade;
             // 停下冲刺水平意图，y 留给 Gravity
             Owner.WishVelocity = new Vector3(0f, Owner.WishVelocity.y, 0f);
         }

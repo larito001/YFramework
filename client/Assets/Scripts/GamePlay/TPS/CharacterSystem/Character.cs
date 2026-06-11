@@ -15,53 +15,67 @@ using UnityEngine;
 /// 已经下沉到 <see cref="Actor"/>。本类只持 Character 专属字段（动画 / 武器持有 / 瞄准）。
 /// 详见 ARCHITECTURE.md "字段归属" 小节。
 /// </summary>
-public class 
-    
+public class
     Character : Actor
 {
     // ── 角色动画（MoveComponent 写，view 读取 BlendTree）──
     public float AnimMoveX;
     public float AnimMoveY;
+
     /// <summary>**水平速度真实值 (m/s)**（之前是 ratio，现已改为 m/s）。view 的 Animancer LinearMixerState 用真实 m/s 阈值对齐 4 档 clip blend。</summary>
     public float AnimSpeedRatio;
+
     /// <summary>动画播放倍率（Animator.speed）。MoveComponent 按当前状态（walk/sprint/aim）写入，view 应用。</summary>
     public float AnimPlaybackRate = 1f;
 
     // ── 战斗状态（WeaponComponent 写，view + 其他组件读门控） ──
     public bool IsShooting;
+
     /// <summary>右键按住=瞄准=抬枪。AimComponent 写，view 喂 Animator IsAiming，WeaponComponent 用它门控 IsShooting。</summary>
     public bool IsAiming;
 
-    // ── 技能（SkillCastComponent 写，view 读：全身不可打断技能链，见 SkillDef / SkillCastComponent）──
-    /// <summary>技能播放中。SkillCastComponent 起技能置 true、结束清 false。
-    /// **gating 总开关**：Move/Aim/Weapon 在它为 true 时锁移动/转身/开火（释放途中不可打断）；controller 用它锁全身覆盖。</summary>
-    public bool IsCastingSkill;
-    /// <summary>当前技能段要播的 clip。SkillCastComponent 进段时写，controller 消费 <see cref="SkillClipDirty"/> 时播放。</summary>
-    public AnimationClip SkillClip;
-    /// <summary>一次性：有新段 clip 待播。SkillCastComponent 进段置 true，controller 全身分支 Play(SkillClip) 后清回。</summary>
-    public bool SkillClipDirty;
-    /// <summary>当前段进入淡入时长（秒）。0 = 用 CharacterAnimSet.DefaultFade。</summary>
-    public float SkillClipFade;
-    /// <summary>技能结束回 locomotion 的淡入时长（秒）。SkillCastComponent EndCast 时写（= SkillDef.RecoverFade）。0 = 默认。</summary>
-    public float SkillRecoverFade;
+    // ── 全身互斥动作统一通道（技能 / 闪避 / 未来受击共用，取代旧 Skill*/Dodge* 两套并行字段，见 FullBodyKind / FullBodyRequest）──
+    //   写入：SkillCastComponent / DodgeComponent 等逻辑组件 → RequestFullBody / SetFullBodyClip / EndFullBody
+    //   读取：动画层 LocomotionAnimController（kind-agnostic 播 FullBody.Clip）；gating 经下方 IsCastingSkill/IsDodging/IsBusy 计算属性
+    public FullBodyRequest FullBody;
 
-    // ── 闪避（DodgeComponent 写，view 读 + 其他组件门控）。与技能并列的另一类"全身、自带位移、可带无敌帧"动作，
-    //    但方向在运行时按移动意图选（4 向 clip 来自 CharacterAnimSet），由专用 DodgeComponent 驱动，不走技能/连招的资产编排。──
-    /// <summary>闪避进行中。DodgeComponent 起闪避置 true、结束清 false。
-    /// 经 <see cref="IsBusy"/> 与 <see cref="IsCastingSkill"/> 一起门控 Move/Aim/Weapon（闪避途中锁移动/转身/开火）；controller 用它锁全身覆盖。</summary>
-    public bool IsDodging;
-    /// <summary>当前闪避要播的 clip（DodgeComponent 按方向从 CharacterAnimSet 选 DodgeFwd/Bwd/Left/Right）。controller 消费 <see cref="DodgeClipDirty"/> 时播放。</summary>
-    public AnimationClip DodgeClip;
-    /// <summary>一次性：有新闪避 clip 待播。DodgeComponent 起闪避置 true，controller 全身分支 Play(DodgeClip) 后清回。</summary>
-    public bool DodgeClipDirty;
-    /// <summary>闪避进入淡入时长（秒）。0 = 用 CharacterAnimSet.DefaultFade。</summary>
-    public float DodgeClipFade;
-    /// <summary>闪避结束回 locomotion 的淡入时长（秒）。DodgeComponent 结束时写。0 = 默认。</summary>
-    public float DodgeRecoverFade;
+    /// <summary>正在释放技能（= 全身通道被技能占用）。gating + 动画兼容属性，所有旧读取点不变。</summary>
+    public bool IsCastingSkill => FullBody.Kind == FullBodyKind.Skill;
 
-    /// <summary>角色是否正被"全身互斥动作"占用（技能释放 <see cref="IsCastingSkill"/> 或闪避 <see cref="IsDodging"/>）。
-    /// Move/Aim/Weapon 统一据此门控锁移动/转身/开火——这两类动作的位移与朝向都由各自组件权威写，不该被常规移动/瞄准覆盖。</summary>
-    public bool IsBusy => IsCastingSkill || IsDodging;
+    /// <summary>正在闪避（= 全身通道被闪避占用）。gating + 动画兼容属性，所有旧读取点不变。</summary>
+    public bool IsDodging => FullBody.Kind == FullBodyKind.Dodge;
+
+    /// <summary>角色是否正被"全身互斥动作"占用（技能 / 闪避 / 未来受击）。Move/Aim/Weapon 统一据此门控锁移动/转身/开火
+    /// ——这类动作的位移与朝向都由各自组件权威写，不该被常规移动/瞄准覆盖。</summary>
+    public bool IsBusy => FullBody.Kind != FullBodyKind.None;
+
+    /// <summary>请求占用全身通道（起手）。**集中优先级仲裁**：已有更高优先级动作占用时返回 false（如技能想盖闪避）；
+    /// 同动作再请求（连招接段）幂等。clip 由随后的 <see cref="SetFullBodyClip"/> 设。</summary>
+    public bool RequestFullBody(FullBodyKind kind)
+    {
+        if (FullBody.Kind != FullBodyKind.None && (int)kind < (int)FullBody.Kind) return false;
+        FullBody.Kind = kind;
+        FullBody.RecoverFade = 0f; // 新动作占用：清掉上一动作残留的恢复淡入
+        return true;
+    }
+
+    /// <summary>设当前要播的全身 clip（起手 / 技能进段）。置一次性 <see cref="FullBodyRequest.ClipDirty"/>，动画层 Play 后清回。</summary>
+    public void SetFullBodyClip(AnimationClip clip, float clipFade)
+    {
+        FullBody.Clip = clip;
+        FullBody.ClipFade = clipFade;
+        FullBody.ClipDirty = true;
+    }
+
+    /// <summary>释放全身通道（动作结束 / 被打断）+ 记录恢复淡入（LocomotionState 恢复时消费）。
+    /// 清 ClipDirty 避免动画层那帧误判仍在全身态、慢一帧才让位。</summary>
+    public void EndFullBody(float recoverFade)
+    {
+        FullBody.Kind = FullBodyKind.None;
+        FullBody.Clip = null;
+        FullBody.ClipDirty = false;
+        FullBody.RecoverFade = recoverFade;
+    }
 
     /// <summary>切枪进行中，WeaponComponent 用它门控开火。计时器到期自动清零（覆盖 Holster + Equip 两阶段）。</summary>
     public bool IsSwapping;
@@ -74,15 +88,23 @@ public class
     //   消费：UpperBodyLayerDriver.TryConsumeCombatTrigger 按优先级 TryTake 一个 → Layer 1 one-shot
     //   清除：无 weaponAnimSet / 死亡 / Detach → ClearCombatOneShots()（一行盖全部，加新动作不再逐个漏清）
     private uint _combatOneShots;
+
     /// <summary>请求一个上身 combat one-shot（幂等：同动作重复请求只置一次位，与旧"bool=true"一致）。</summary>
     public void RequestCombatOneShot(CombatOneShot a) => _combatOneShots |= 1u << (int)a;
+
     /// <summary>清空所有挂起的 combat one-shot（无武器 / 死亡 / 卸载时用）。</summary>
     public void ClearCombatOneShots() => _combatOneShots = 0;
+
     /// <summary>按优先级（<see cref="CombatOneShot"/> 声明序，低位优先）取出并清除一个挂起动作；无挂起返 false。
     /// 每帧取一个、其余留到下帧——与旧"多个 bool 各帧依次消费"等价。</summary>
     public bool TryTakeCombatOneShot(out CombatOneShot action)
     {
-        if (_combatOneShots == 0) { action = default; return false; }
+        if (_combatOneShots == 0)
+        {
+            action = default;
+            return false;
+        }
+
         int i = 0;
         for (uint m = _combatOneShots; (m & 1u) == 0; m >>= 1) i++; // 最低 set 位下标 = 最高优先级
         _combatOneShots &= ~(1u << i);
@@ -92,6 +114,7 @@ public class
 
     /// <summary>当前装备武器是否用大后坐力动画。WeaponComponent 在 Equip 时从 currentWeapon.HeavyRecoil 写入。</summary>
     public bool HeavyRecoil;
+
     /// <summary>后坐力动画播放速度倍率。WeaponComponent 在 Equip 时从 currentWeapon.RecoilAnimSpeed 写入，
     /// view 写到 Animator Float 参数 RecoilSpeed，Recoil 层的 Shoot 状态 speedParameter 引用它。</summary>
     public float RecoilAnimSpeed = 1f;
@@ -110,6 +133,7 @@ public class
     /// <summary>当前武器的左键技能下标（指向 <see cref="SkillCastComponent"/>.SkillPaths）。WeaponComponent 切枪时从 currentWeapon.PrimarySkillIndex 镜像写入，InputComponent 读。
     /// -1 = 左键正常开火（常规枪）；&gt;=0 = 近战/技能武器：左键放该技能、不开火。</summary>
     public int WeaponPrimarySkill = -1;
+
     /// <summary>当前武器的 V 键技能下标。WeaponComponent 切枪时从 currentWeapon.SecondarySkillIndex 镜像写入，InputComponent 读。
     /// -1 = 回退技能 0（保持旧"V 近战"行为）。</summary>
     public int WeaponSecondarySkill = -1;
@@ -121,6 +145,7 @@ public class
     /// <summary>当前武器对应的 <see cref="WeaponAnimSet"/> 资源路径（Resources 相对路径）。WeaponComponent.ApplySwap 时
     /// 从 currentWeapon.AnimSetPath 镜像写入。空 / null = 持有者 view 走默认 idle pose。</summary>
     public string CurrentWeaponAnimSetPath;
+
     /// <summary>切武器动画的一次性 trigger。WeaponComponent.ApplySwap 置 true；CharacterView 消费后 ResMgr.Load + 切换 Animancer 状态后清回 false。</summary>
     public bool WeaponAnimDirty;
 

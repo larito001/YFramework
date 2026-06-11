@@ -9,7 +9,7 @@ using YOTO;
 ///   - Locomotion mixer 构造（LinearMixerState 1D，可退化：完整 4 档 / 单段移动 / idle-only / 无）
 ///   - 上下身 Layer + AvatarMask 分离
 ///   - Die 优先级分支（用 <see cref="Actor"/> 基类字段 Die/DeathVariant/IsDead）
-///   - **技能全身分支**（通用）：<see cref="SkillCastComponent"/> 把当前段 clip 交到 Character.SkillClip，这里全身覆盖播放，IsCastingSkill 期间锁全身
+///   - **全身动作分支**（通用，kind-agnostic）：技能/闪避/受击等逻辑组件经 <see cref="Character.FullBody"/> 通道交 clip，这里全身覆盖播放，FullBody.Kind != None 期间锁全身
 ///   - one-shot 生命周期：全身锁定型（技能）+ 播完即回型（Shoot/Reload）
 ///   - mixer Parameter 平滑由派生类决定
 ///
@@ -56,15 +56,14 @@ public abstract class LocomotionAnimController
     protected float overrideNextLocomotionFade;
 
     // ──────────────────────────── Layer 0 状态机（YStateMachine<Character>） ────────────────────────────
-    // 把原 DriveAnimation 的"死亡 > 技能 > 闪避 > Locomotion"优先级级联拆成 4 个互斥状态。
-    //   每帧 SelectBaseState 按 Character 意图字段决出**目标态**（纯选择，不切换），再无条件 Switch（幂等，仅变更时真正切换）；
-    //   状态自身 UpdateState 做逐帧工作（播 clip / 驱动 locomotion / 维持锁定）。Character 经 ctx 透传到每个回调。
-    //   进出"全身覆盖"的 Layer 1 让位 / 恢复仍走 EnterFullBodyOverride / RestoreUpperBodyAfterFullBody 钩子，由各状态在合适时机调用。
-    //   从全身覆盖回 Locomotion 的恢复判定用 baseFsm.Previous（来源态是 skillState / dodgeState）——按来源精确取恢复淡入，不再靠 flag + 字段猜测。
+    // 把"死亡 > 全身动作(技能/闪避/受击…) > Locomotion"优先级级联拆成 3 个互斥状态。
+    //   每帧 SelectBaseState 按 Character 意图决出**目标态**，再无条件 Switch（幂等，仅变更时真正切换）；状态 UpdateState 逐帧工作。Character 经 ctx 透传。
+    //   技能/闪避/受击在动画层是同一种东西（播全身 clip + 锁 + 恢复）→ 合成一个 kind-agnostic 的 FullBodyState，只认 Character.FullBody 通道，不关心是哪种动作。
+    //   进出"全身覆盖"的 Layer 1 让位 / 恢复走 EnterFullBodyOverride / RestoreUpperBodyAfterFullBody 钩子；
+    //   从全身覆盖回 Locomotion 的恢复用 baseFsm.Previous == fullBodyState 判定，恢复淡入取 FullBody.RecoverFade。
     private readonly YStateMachine<Character> baseFsm = new YStateMachine<Character>();
     private LocomotionState locomotionState;
-    private SkillState skillState;
-    private DodgeState dodgeState;
+    private FullBodyState fullBodyState;
     private DeathState deathState;
 
     // ────────────────────────── 分层契约（命名层访问器，替代 Layers[0]/[1] 魔法数字） ──────────────────────────
@@ -96,8 +95,7 @@ public abstract class LocomotionAnimController
 
         // Layer 0 状态机：状态只持 controller 引用（嵌套类可访问其私有成员 + protected 钩子），运行时 Character 经 ctx 透传
         locomotionState = new LocomotionState(this);
-        skillState = new SkillState(this);
-        dodgeState = new DodgeState(this);
+        fullBodyState = new FullBodyState(this);
         deathState = new DeathState(this);
         baseFsm.Reset();
     }
@@ -132,8 +130,7 @@ public abstract class LocomotionAnimController
         overrideNextLocomotionFade = 0f;
         baseFsm.Reset();
         locomotionState = null;
-        skillState = null;
-        dodgeState = null;
+        fullBodyState = null;
         deathState = null;
         resMgr = null;
         Animancer = null;
@@ -285,40 +282,35 @@ public abstract class LocomotionAnimController
         baseFsm.Update(character, Time.unscaledDeltaTime * CurrentTimeScale);
     }
 
-    /// <summary>纯选择（不切换）：按优先级决出 Layer 0 目标态。
-    /// 死亡 &gt; 技能（含进段一次性 <see cref="Character.SkillClipDirty"/>）&gt; 闪避 &gt; Locomotion。
-    /// 用 IsCastingSkill/IsDodging 维持锁定，用 *ClipDirty 捕获"起手当帧"——两者任一为真即归属该全身态。</summary>
+    /// <summary>纯选择（不切换）：按优先级决出 Layer 0 目标态。死亡 &gt; 全身动作 &gt; Locomotion。
+    /// 全身动作（技能/闪避/受击…）共用 <see cref="Character.FullBody"/> 通道：<c>Kind != None</c> 维持锁定、<c>ClipDirty</c> 捕获"起手/进段当帧"
+    /// ——两者任一为真即归属 FullBodyState（具体哪种动作的优先级仲裁在 <see cref="Character.RequestFullBody"/>，动画层不关心 kind）。</summary>
     private IYState<Character> SelectBaseState(Character character)
     {
         if (character.Die || character.IsDead) return deathState;
-        if (character.IsCastingSkill || character.SkillClipDirty) return skillState;
-        if (character.IsDodging || character.DodgeClipDirty) return dodgeState;
+        if (character.FullBody.Kind != FullBodyKind.None || character.FullBody.ClipDirty) return fullBodyState;
         return locomotionState;
     }
 
     /// <summary>供嵌套状态触发死亡事件（event 只能在声明类内 Invoke，嵌套类经此薄封装转发）。</summary>
     private void RaiseDeath() => OnDeathTriggered?.Invoke();
 
-    /// <summary>进入 Layer 0 全身覆盖（死亡 / 技能 / 闪避 Enter 共用）：清当前 mixer 引用 + 置全身标志。
-    /// 标志的清除对称放在 <see cref="FullBodyClipState.ExitState"/>；死亡是终态、不退出，故标志恒真——正确。</summary>
+    /// <summary>进入 Layer 0 全身覆盖（死亡 / 全身动作 Enter 共用）：清当前 mixer 引用 + 置全身标志。
+    /// 标志的清除对称放在 <see cref="FullBodyState.ExitState"/>；死亡是终态、不退出，故标志恒真——正确。</summary>
     private void BeginLayer0FullBody()
     {
         currentLayer0Mixer = null;
         layer0FullBodyActive = true;
     }
 
-    /// <summary>从全身覆盖（技能 / 闪避）切回 Locomotion 的一次性恢复：按来源态取恢复淡入、让 Layer 1 回常驻 base、清 one-shot。
-    /// 由 <see cref="LocomotionState.EnterState"/> 在 Previous∈{skill,dodge} 时调（死亡是终态不会回本态）。
-    /// <paramref name="prev"/> = 来源全身态，用来精确取恢复淡入（技能 SkillRecoverFade / 闪避 DodgeRecoverFade）。
-    /// 标志清除由来源态 Exit 负责，本方法只做"恢复"动作、不碰 layer0FullBodyActive。</summary>
-    private void RecoverToLocomotion(IYState<Character> prev, Character ch)
+    /// <summary>从全身覆盖（技能/闪避/受击…）切回 Locomotion 的一次性恢复：取恢复淡入、让 Layer 1 回常驻 base、清 one-shot。
+    /// 由 <see cref="LocomotionState.EnterState"/> 在 Previous == fullBodyState 时调（死亡是终态不会回本态）。
+    /// 恢复淡入取 <see cref="Character.FullBody"/>.RecoverFade（动作结束时各组件经 EndFullBody 写，kind-agnostic）；标志清除由 fullBodyState.Exit 负责。</summary>
+    private void RecoverToLocomotion(Character ch)
     {
-        bool fromSkill = prev == skillState;
-        float def = GetDefaultFade();
-        float recoverFade = fromSkill ? ch.SkillRecoverFade : ch.DodgeRecoverFade;
-        if (recoverFade <= 0f) recoverFade = GetFullBodyRecoverFade(def);
-        ch.SkillRecoverFade = 0f;
-        ch.DodgeRecoverFade = 0f;
+        float recoverFade = ch.FullBody.RecoverFade;
+        if (recoverFade <= 0f) recoverFade = GetFullBodyRecoverFade(GetDefaultFade());
+        ch.FullBody.RecoverFade = 0f;
         overrideNextLocomotionFade = recoverFade;
         if (HasUpperBodyBasePose(ch)) RestoreUpperBodyAfterFullBody(ch, recoverFade); // 玩家：driver 把 Layer1 拉回 weight1 + 当帧重建 base
         else if (HasUpperLayer) UpperLayer.StartFade(1f, recoverFade);
@@ -353,15 +345,14 @@ public abstract class LocomotionAnimController
         public void ExitState(YStateMachine<Character> m, Character ch) { }
     }
 
-    /// <summary>全身覆盖态基类（技能/闪避同机制）：Enter 置全身锁定标志，UpdateState 消费"进段/起手"clip 并全身 Play +
-    /// 让 Layer 1 让位。退出（动作结束/被打断）由 <see cref="SelectBaseState"/> 决策切走，状态内部不自判退出。</summary>
-    private abstract class FullBodyClipState : IYState<Character>
+    /// <summary>全身覆盖态（技能 / 闪避 / 未来受击共用——动画层 kind-agnostic）：Enter 置全身锁定标志，
+    /// UpdateState 消费 <see cref="Character.FullBody"/> 的"进段/起手"clip 并全身 Play + 让 Layer 1 让位。
+    /// 哪种动作、怎么玩全在逻辑组件，本态只按 FullBody 通道播 clip。退出（动作结束/被打断）由 <see cref="SelectBaseState"/> 决策切走，状态内部不自判退出。</summary>
+    private sealed class FullBodyState : IYState<Character>
     {
-        protected readonly LocomotionAnimController c;
-        protected FullBodyClipState(LocomotionAnimController c) { this.c = c; }
-        public abstract string GetStateName();
-        /// <summary>消费本动作的一次性 clip dirty；有新 clip 待播时给出 clip + fade（clip 可为 null=退化段，仅保持锁定）。</summary>
-        protected abstract bool TryConsumeClip(Character ch, out AnimationClip clip, out float fade);
+        private readonly LocomotionAnimController c;
+        public FullBodyState(LocomotionAnimController c) { this.c = c; }
+        public string GetStateName() => "FullBody";
 
         public void EnterState(YStateMachine<Character> m, Character ch)
         {
@@ -370,9 +361,12 @@ public abstract class LocomotionAnimController
         }
         public void UpdateState(YStateMachine<Character> m, Character ch, float dt)
         {
-            if (TryConsumeClip(ch, out var clip, out var f))
+            if (ch.FullBody.ClipDirty) // 有新 clip 待播（起手 / 技能进段）
             {
-                if (clip != null)
+                ch.FullBody.ClipDirty = false;
+                var clip = ch.FullBody.Clip;
+                float f = ch.FullBody.ClipFade > 0f ? ch.FullBody.ClipFade : c.GetDefaultFade();
+                if (clip != null) // clip==null = 退化段：仅保持锁定，不播
                 {
                     var s = c.BaseLayer.Play(clip, f);
                     if (s != null) s.Time = 0f; // 每段从头播
@@ -382,39 +376,9 @@ public abstract class LocomotionAnimController
             }
             // 无新 clip：Animancer 继续播当前全身 clip，不驱动 combat / locomotion（与原"锁全身 return"一致）
         }
-        // 对称收尾：Enter 置全身标志、Exit 清——切回 Locomotion / 被更高优先级（死亡 / 互相抢占）切走时都正确复位。
-        // 恢复动作（Layer 1 回 base + 恢复淡入）另由 LocomotionState.Enter 按 Previous 处理，与本标志解耦。
+        // 对称收尾：Enter 置全身标志、Exit 清——切回 Locomotion / 被死亡抢占切走时都正确复位。
+        // 恢复动作（Layer 1 回 base + 恢复淡入）另由 LocomotionState.Enter 处理，与本标志解耦。
         public void ExitState(YStateMachine<Character> m, Character ch) => c.layer0FullBodyActive = false;
-    }
-
-    /// <summary>技能态：消费 SkillClipDirty（SkillCastComponent 进段写）。</summary>
-    private sealed class SkillState : FullBodyClipState
-    {
-        public SkillState(LocomotionAnimController c) : base(c) { }
-        public override string GetStateName() => "Skill";
-        protected override bool TryConsumeClip(Character ch, out AnimationClip clip, out float fade)
-        {
-            if (!ch.SkillClipDirty) { clip = null; fade = 0f; return false; }
-            ch.SkillClipDirty = false;
-            clip = ch.SkillClip;
-            fade = ch.SkillClipFade > 0f ? ch.SkillClipFade : c.GetDefaultFade();
-            return true;
-        }
-    }
-
-    /// <summary>闪避态：消费 DodgeClipDirty（DodgeComponent 起闪避写，方向 clip 已选好）。</summary>
-    private sealed class DodgeState : FullBodyClipState
-    {
-        public DodgeState(LocomotionAnimController c) : base(c) { }
-        public override string GetStateName() => "Dodge";
-        protected override bool TryConsumeClip(Character ch, out AnimationClip clip, out float fade)
-        {
-            if (!ch.DodgeClipDirty) { clip = null; fade = 0f; return false; }
-            ch.DodgeClipDirty = false;
-            clip = ch.DodgeClip;
-            fade = ch.DodgeClipFade > 0f ? ch.DodgeClipFade : c.GetDefaultFade();
-            return true;
-        }
     }
 
     /// <summary>Locomotion 态（默认态）。Enter：若由全身覆盖态切回，算恢复 fade + 让 Layer 1 回常驻 base pose。
@@ -427,10 +391,9 @@ public abstract class LocomotionAnimController
 
         public void EnterState(YStateMachine<Character> m, Character ch)
         {
-            // 从全身覆盖（技能/闪避）切回：用 Previous 判定来源态——死亡是终态、不会切回本态，故只可能从 skill/dodge 进来。
-            // 标志清除已对称放在来源态 Exit，本态只负责"恢复"动作（按来源精确取恢复淡入，不再读两个字段猜）。
-            if (m.Previous == c.skillState || m.Previous == c.dodgeState)
-                c.RecoverToLocomotion(m.Previous, ch);
+            // 从全身覆盖（技能/闪避/受击…）切回：Previous == 唯一的 fullBodyState 即"刚退全身"（死亡是终态、不会切回本态）。
+            // 标志清除对称放在 fullBodyState.Exit，本态只负责"恢复"动作，恢复淡入取 FullBody.RecoverFade。
+            if (m.Previous == c.fullBodyState) c.RecoverToLocomotion(ch);
         }
 
         public void UpdateState(YStateMachine<Character> m, Character ch, float dt)

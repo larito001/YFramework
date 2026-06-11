@@ -98,14 +98,8 @@ public class SkillCastComponent : ICharacterComponent
     {
         if (input != null) input.OnCastSkill -= Cast;
         // 清自己写过的 Owner 字段，避免 writer 离场后 reader 读到死值卡住 Move/Weapon/view
-        if (Owner != null)
-        {
-            Owner.IsCastingSkill = false;
-            Owner.SkillClip = null;
-            Owner.SkillClipDirty = false;
-            Owner.SkillClipFade = 0f;
-            Owner.SkillRecoverFade = 0f;
-        }
+        // 仅当全身通道仍被技能占用才释放（避免踩到他人——如已被闪避抢占）
+        if (Owner != null && Owner.IsCastingSkill) Owner.EndFullBody(0f);
         active = null;
         snapTargetId = -1;
         StopAllAttachedVfx(); // 离场前回收跟随型动效（vfxMgr 置 null 之前）
@@ -123,8 +117,8 @@ public class SkillCastComponent : ICharacterComponent
 
     /// <summary>外部强制打断当前技能释放（如**闪避打断技能**）：立即结束本招、回 locomotion，清掉命中窗/动效/位移。
     /// 无技能在放时无操作。注意：本方法**绕过取消窗**，是无条件硬打断（与连招的"取消窗内接招"不同）。
-    /// 打断方负责接管后续动画（如 DodgeComponent 紧接着 Play 闪避 clip）；为避免恢复淡入读到本招的 RecoverFade，
-    /// 不在此写 <see cref="Character.SkillRecoverFade"/>——EndCast 仍会写，故打断方应在调用后自行清零（见 DodgeComponent）。</summary>
+    /// 打断方负责接管后续动画（如 DodgeComponent 紧接着请求自己的全身动作）；EndCast 经 EndFullBody 写的 RecoverFade
+    /// 会被打断方的 <see cref="Character.RequestFullBody"/> 自动清零（新动作占用通道即清残留恢复淡入），无需打断方手动处理。</summary>
     public void Interrupt()
     {
         if (active != null) EndCast();
@@ -157,7 +151,7 @@ public class SkillCastComponent : ICharacterComponent
         }
 
         active = def;
-        Owner.IsCastingSkill = true;
+        Owner.RequestFullBody(FullBodyKind.Skill); // 占用全身通道（连招接段幂等；clip 由 StartSegment 设）。已过 IsDodging 门控，此处不会被拒
         // 起手前向：先取当前朝向（无吸附时即为最终前向）
         var fwd = Owner.Rotation * Vector3.forward;
         fwd.y = 0f;
@@ -343,21 +337,16 @@ public class SkillCastComponent : ICharacterComponent
         segDuration = seg.HoldDuration > 0f ? seg.HoldDuration : (seg.Clip != null ? seg.Clip.length : 0f);
         if (segDuration <= 0f)
             Debug.LogWarning($"[SkillCastComponent] 技能 \"{active.Name}\" 第 {i} 段无 clip 且 HoldDuration<=0，本段被跳过（不会播放/命中/位移）。");
-        // 交 clip 给动画 controller（基类 LocomotionAnimController 的技能全身分支消费）
-        Owner.SkillClip = seg.Clip;
-        Owner.SkillClipFade = seg.Fade;
-        Owner.SkillClipDirty = true;
+        // 交 clip 给动画 controller（经全身通道，FullBodyState 消费播放）
+        Owner.SetFullBodyClip(seg.Clip, seg.Fade);
     }
 
     private void EndCast()
     {
         if (Owner != null)
         {
-            Owner.SkillRecoverFade = active != null ? active.RecoverFade : 0f;
-            Owner.IsCastingSkill = false;
-            // 清掉未消费的进段 clip dirty：被打断（如闪避打断技能）那帧若恰有 SkillClipDirty 残留，
-            // 动画层 Layer 0 selector 会据它误判仍在技能态、慢一帧才让位给闪避。清零避免这一帧错播。
-            Owner.SkillClipDirty = false;
+            // 释放全身通道 + 记恢复淡入；EndFullBody 内清 ClipDirty（避免被打断那帧动画层误判仍在全身态、慢一帧让位）
+            Owner.EndFullBody(active != null ? active.RecoverFade : 0f);
             // 停下前冲：清水平意图，y 留给 Gravity
             Owner.WishVelocity = new Vector3(0f, Owner.WishVelocity.y, 0f);
         }
