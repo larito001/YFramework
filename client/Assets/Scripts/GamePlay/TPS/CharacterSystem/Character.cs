@@ -65,19 +65,30 @@ public class
 
     /// <summary>切枪进行中，WeaponComponent 用它门控开火。计时器到期自动清零（覆盖 Holster + Equip 两阶段）。</summary>
     public bool IsSwapping;
-    /// <summary>取出新枪的一次性 trigger（Equip 阶段开始）：WeaponComponent 在 Holster 阶段结束时置 true，view 消费 SetTrigger("WeaponSwap") 后清回。</summary>
-    public bool WeaponSwap;
-    /// <summary>收回旧枪的一次性 trigger（Holster 阶段开始）：WeaponComponent 按数字键瞬间置 true，view 消费 SetTrigger("WeaponHolster") 后清回。</summary>
-    public bool WeaponHolster;
 
     /// <summary>换弹进行中。WeaponComponent 从 currentWeapon.IsReloading 镜像写入，用于动画 + 开火/近战门控。</summary>
     public bool IsReloading;
-    /// <summary>换弹一次性 trigger：IsReloading 上升沿时 WeaponComponent 置 true，view 消费 SetTrigger("Reload") 后清回。</summary>
-    public bool Reload;
 
-    /// <summary>射击一次性 trigger：FireComponent 每次成功开火 → WeaponComponent 镜像写入 → view 消费 SetTrigger("Shoot") 后清回。
-    /// 用于驱动 Recoil 层的 ShootLight/ShootHeavy 单次动画（每发重新播放，节奏跟随实际开火）。</summary>
-    public bool Shoot;
+    // ── 上身 combat one-shot trigger（旧 WeaponHolster/WeaponSwap/Reload/Shoot 四个 bool 收敛成一个位掩码，见 CombatOneShot）──
+    //   写入：WeaponComponent（切枪/换弹/开火镜像）→ RequestCombatOneShot(...)
+    //   消费：UpperBodyLayerDriver.TryConsumeCombatTrigger 按优先级 TryTake 一个 → Layer 1 one-shot
+    //   清除：无 weaponAnimSet / 死亡 / Detach → ClearCombatOneShots()（一行盖全部，加新动作不再逐个漏清）
+    private uint _combatOneShots;
+    /// <summary>请求一个上身 combat one-shot（幂等：同动作重复请求只置一次位，与旧"bool=true"一致）。</summary>
+    public void RequestCombatOneShot(CombatOneShot a) => _combatOneShots |= 1u << (int)a;
+    /// <summary>清空所有挂起的 combat one-shot（无武器 / 死亡 / 卸载时用）。</summary>
+    public void ClearCombatOneShots() => _combatOneShots = 0;
+    /// <summary>按优先级（<see cref="CombatOneShot"/> 声明序，低位优先）取出并清除一个挂起动作；无挂起返 false。
+    /// 每帧取一个、其余留到下帧——与旧"多个 bool 各帧依次消费"等价。</summary>
+    public bool TryTakeCombatOneShot(out CombatOneShot action)
+    {
+        if (_combatOneShots == 0) { action = default; return false; }
+        int i = 0;
+        for (uint m = _combatOneShots; (m & 1u) == 0; m >>= 1) i++; // 最低 set 位下标 = 最高优先级
+        _combatOneShots &= ~(1u << i);
+        action = (CombatOneShot)i;
+        return true;
+    }
 
     /// <summary>当前装备武器是否用大后坐力动画。WeaponComponent 在 Equip 时从 currentWeapon.HeavyRecoil 写入。</summary>
     public bool HeavyRecoil;

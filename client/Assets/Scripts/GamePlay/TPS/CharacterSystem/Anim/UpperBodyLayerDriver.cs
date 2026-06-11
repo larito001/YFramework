@@ -192,24 +192,28 @@ public class UpperBodyLayerDriver
         public void ExitState(YStateMachine<Character> m, Character ch) { }
     }
 
-    /// <summary>按优先级 Holster &gt; Equip &gt; Reload &gt; Shoot 消费一个 combat trigger（常驻模式与 controller 退化路径共用，保证单一消费方、优先级一致）。
-    /// 返回 true=本帧有 trigger（clip 可能为 null，表示该动作未配 clip——trigger 已消费、不播）。</summary>
+    /// <summary>消费一个挂起的上身 combat one-shot（<see cref="Character.TryTakeCombatOneShot"/> 按 <see cref="CombatOneShot"/> 声明序
+    /// Holster &gt; Equip &gt; Reload &gt; Shoot 取最高优先级），解析成 clip + fade + speed。
+    /// 常驻模式与 controller 退化路径共用——保证单一消费方、优先级一致。
+    /// 返回 true=本帧有挂起动作（clip 可能为 null，表示该动作未配 clip——已消费、不播）。
+    /// **加新动作只改这个 switch**：加一个 case 选 clip / 参数即可，优先级由枚举声明序决定。</summary>
     public static bool TryConsumeCombatTrigger(Character character, WeaponAnimSet weapon, float defaultFade,
         out AnimationClip clip, out float fade, out float speed)
     {
         clip = null; fade = defaultFade; speed = 0f;
-        // 取出/收回按 Character.SwapAnimSpeed 倍率播（过场时长在 WeaponComponent 已同步缩放，clip 完整不被切）
-        if (character.WeaponHolster) { character.WeaponHolster = false; clip = weapon.Holster; speed = character.SwapAnimSpeed; return true; }
-        if (character.WeaponSwap)    { character.WeaponSwap = false;    clip = weapon.Equip;   speed = character.SwapAnimSpeed; return true; }
-        if (character.Reload)        { character.Reload = false;        clip = weapon.Reload;  return true; }
-        if (character.Shoot)
+        if (!character.TryTakeCombatOneShot(out var action)) return false;
+        switch (action)
         {
-            character.Shoot = false;
-            clip = character.HeavyRecoil ? weapon.ShootHeavy : weapon.ShootLight;
-            fade = weapon.ShootFade;
-            speed = character.RecoilAnimSpeed;
-            return true;
+            // 取出/收回按 Character.SwapAnimSpeed 倍率播（过场时长在 WeaponComponent 已同步缩放，clip 完整不被切）
+            case CombatOneShot.Holster: clip = weapon.Holster; speed = character.SwapAnimSpeed; break;
+            case CombatOneShot.Equip:   clip = weapon.Equip;   speed = character.SwapAnimSpeed; break;
+            case CombatOneShot.Reload:  clip = weapon.Reload;  break;
+            case CombatOneShot.Shoot:
+                clip = character.HeavyRecoil ? weapon.ShootHeavy : weapon.ShootLight;
+                fade = weapon.ShootFade;
+                speed = character.RecoilAnimSpeed;
+                break;
         }
-        return false;
+        return true;
     }
 }

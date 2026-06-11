@@ -312,11 +312,12 @@ Character 上的动画字段是**"逻辑组件 → view" 协议层**：
 ```
 WeaponComponent / SkillCastComponent / HealthComponent / AI 组件 等逻辑组件
                   ↓ 写
-Character.{Shoot/Reload/WeaponSwap/WeaponHolster/Die/DeathVariant/
-           IsAiming/IsShooting/IsReloading/HeavyRecoil/RecoilAnimSpeed/
+Character.{RequestCombatOneShot(CombatOneShot)/Die/DeathVariant/
+           IsAiming/IsShooting/IsReloading/HeavyRecoil/RecoilAnimSpeed/SwapAnimSpeed/
            AnimMoveX/Y/AnimSpeedRatio/AnimPlaybackRate/
            CurrentWeaponAnimSetPath/WeaponAnimDirty/
-           IsCastingSkill/SkillClip/SkillClipDirty/SkillClipFade/SkillRecoverFade}
+           IsCastingSkill/SkillClip/SkillClipDirty/SkillClipFade/SkillRecoverFade/
+           IsDodging/DodgeClip/DodgeClipDirty/DodgeClipFade/DodgeRecoverFade}
                   ↓ 读
 CharacterView.LateUpdate
                   ↓ 调用任何方案
@@ -324,6 +325,8 @@ Unity Animator / Animancer / 自研 Playables
 ```
 
 > **技能协议**：`SkillCastComponent`（逻辑侧）owns 技能时间线 + 命中窗伤害 + 位移（写 `WishVelocity`），并把当前段 clip 交到 `SkillClip`/`SkillClipDirty`；`IsCastingSkill` 是全身锁 + gating 总开关（释放途中 Move/Aim/Weapon 全锁，不可打断）。controller 只是"按 SkillClip 播全身"的跟随器。
+
+> **combat one-shot 协议（上身武器动作，Layer 1）**：切枪 / 换弹 / 开火不再是 4 个独立 bool trigger（旧 `Shoot`/`Reload`/`WeaponSwap`/`WeaponHolster`），已收敛成**一个位掩码 + `CombatOneShot` 枚举**（见 `CombatOneShot.cs`）。`WeaponComponent` 写入走 `Owner.RequestCombatOneShot(CombatOneShot.Holster/Equip/Reload/Shoot)`；`UpperBodyLayerDriver.TryConsumeCombatTrigger`（单一消费入口）按枚举**声明序 = 优先级**每帧 `TryTake` 一个，解析成 clip+fade+speed 叠在持枪 pose 上、播完回 base；无武器 / 死亡 / 卸载用 `ClearCombatOneShots()` 一行清空。**加新上身动作（如丢手雷）只需三处**：① 枚举插一个值（定优先级）② 解析 `switch` 加一个 `case`（选 clip/参数）③ `WeaponAnimSet` 加 clip 字段——写入方调 `RequestCombatOneShot` 即可，字段声明 / 优先级仲裁 / 清除全部通用，**两个状态机零改动**。
 
 **view 内部可以用任何动画方案实现**——只要消费 Character 协议字段即可。**当前实现：Animancer + AnimSet ScriptableObject，封装在 `LocomotionAnimController` 基类 + 派生 controller 里**：
 

@@ -7,7 +7,7 @@ using UnityEngine;
 ///   - 切枪：订阅 InputComponentBase.OnWeaponSelect（1~9 数字键）→ Equip(slot) → 走 Holster→Equip 两阶段过场
 ///   - 射击：每帧把 input.FireHeld 写到 Owner.IsShooting（开火行为由 Weapon 的 FireComponent 自己消费）
 ///   - 换弹：订阅 InputComponentBase.OnReload → 转发给 currentWeapon.ReloadRequest，<see cref="ReloadComponent"/> 自己处理。
-///     本组件镜像 currentWeapon.IsReloading → Owner.IsReloading（动画门控），上升沿触发 Owner.Reload trigger。
+///     本组件镜像 currentWeapon.IsReloading → Owner.IsReloading（动画门控），上升沿请求 Reload one-shot（RequestCombatOneShot）。
 ///
 /// 近战已上移为通用"技能"（<see cref="SkillDef"/> + <see cref="SkillCastComponent"/>）。本组件只在 Tick 里**读**
 /// <see cref="Character.IsCastingSkill"/> 做开火/换弹/切枪门控（技能释放途中不可被这些操作打断），不写入技能字段。
@@ -41,7 +41,7 @@ public class WeaponComponent : ICharacterComponent
     private WeaponManager weaponMgr;
     private Weapon currentWeapon;
     private float swapLockTimer;
-    private bool prevReloading;     // 上升沿检测：currentWeapon.IsReloading 从 false→true 时触发 Owner.Reload 一次性 trigger
+    private bool prevReloading;     // 上升沿检测：currentWeapon.IsReloading 从 false→true 时请求 Reload one-shot
     private float mountToHandTimer; // >0 时 currentWeapon 还挂在背上，到点 Mount 到手部
     private Weapon pendingHandMount; // mountToHandTimer 到点时要挂手的武器（= currentWeapon，但显式存避免误读）
     private float holsterTimer;     // >0 时 Holster 阶段进行中，旧武器还在手里、播放 HolsterRifle
@@ -86,11 +86,8 @@ public class WeaponComponent : ICharacterComponent
         {
             Owner.IsShooting = false;
             Owner.IsSwapping = false;
-            Owner.WeaponSwap = false;
-            Owner.WeaponHolster = false;
             Owner.IsReloading = false;
-            Owner.Reload = false;
-            Owner.Shoot = false;
+            Owner.ClearCombatOneShots();
             // "持有武器属性"字段：无 WeaponComponent = 无武器，回默认。
             // -1 = 无武器槽（默认 0 是合法槽，留 0 让 HUD 误以为还持槽 0）；HeavyRecoil/RecoilAnimSpeed 回 Animator 默认。
             Owner.CurrentWeaponSlot = -1;
@@ -129,8 +126,7 @@ public class WeaponComponent : ICharacterComponent
             Owner.IsReloading = false;
             Owner.IsShooting = false;
             Owner.IsSwapping = false;
-            Owner.WeaponSwap = false;
-            Owner.WeaponHolster = false;
+            Owner.ClearCombatOneShots(); // 死亡：清空所有挂起 combat one-shot（含 Reload/Shoot，比旧版只清切枪更彻底、且安全）
             swapLockTimer = 0f;
             holsterTimer = 0f;
             mountToHandTimer = 0f;
@@ -148,10 +144,10 @@ public class WeaponComponent : ICharacterComponent
             currentWeapon.IsReloading = false;
 
         // 镜像 currentWeapon.IsReloading → Owner.IsReloading（view 动画门控）。
-        // 上升沿（false→true）→ 一次性 Owner.Reload trigger，view 消费 SetTrigger("Reload")。
+        // 上升沿（false→true）→ 请求 Reload one-shot（UpperBodyLayerDriver 消费播换弹上身动画）。
         bool currReloading = currentWeapon != null && currentWeapon.IsReloading;
         Owner.IsReloading = currReloading;
-        if (currReloading && !prevReloading) Owner.Reload = true;
+        if (currReloading && !prevReloading) Owner.RequestCombatOneShot(CombatOneShot.Reload);
         prevReloading = currReloading;
 
         // 开火条件：瞄准 + 没在切枪 + 没在近战/闪避 + 没在换弹 + 没死 + 有弹（MagCapacity=0 是无限弹药武器，跳过弹药门控）
@@ -163,7 +159,7 @@ public class WeaponComponent : ICharacterComponent
         if (currentWeapon != null && currentWeapon.ShootEvent)
         {
             currentWeapon.ShootEvent = false;
-            Owner.Shoot = true;
+            Owner.RequestCombatOneShot(CombatOneShot.Shoot);
         }
 
         // 当前武器的开火意图 + 弹道源：FireComponent 自己消费（射速/弹夹/扩散在子组件里再叠）
@@ -257,7 +253,7 @@ public class WeaponComponent : ICharacterComponent
         if (playAnim && slotChanged && currentWeapon != null)
         {
             pendingSwapSlot = slot;
-            Owner.WeaponHolster = true;
+            Owner.RequestCombatOneShot(CombatOneShot.Holster);
             Owner.IsSwapping = true;
             // 过场时长 = clip 自然长度 / SwapAnimSpeed（动画完整播完、速度由武器配置定）。
             //   Holster 跟"被收起的旧武器"走、Equip 跟"取出的新武器"走；时长 <0 回退组件默认，速度 <=0 视作 1。
@@ -327,7 +323,7 @@ public class WeaponComponent : ICharacterComponent
 
         if (playEquipAnim)
         {
-            Owner.WeaponSwap = true;
+            Owner.RequestCombatOneShot(CombatOneShot.Equip);
             if (mountToBack && MountToHandDelay > 0f)
             {
                 pendingHandMount = currentWeapon;

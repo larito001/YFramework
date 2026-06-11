@@ -83,11 +83,7 @@ public class CharacterAnimancerController : LocomotionAnimController
     {
         if (weaponAnimSet == null)
         {
-            // 没 weaponAnimSet 时消费 combat trigger 避免下一帧重复触发
-            if (character.WeaponHolster) character.WeaponHolster = false;
-            if (character.WeaponSwap) character.WeaponSwap = false;
-            if (character.Reload) character.Reload = false;
-            if (character.Shoot) character.Shoot = false;
+            character.ClearCombatOneShots(); // 没 weaponAnimSet：清空挂起 combat one-shot 避免堆积（取代旧版逐个 bool 手动清）
             return false;
         }
 

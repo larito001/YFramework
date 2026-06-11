@@ -102,6 +102,6 @@ public class Weapon : Actor
     /// 应配成 clipDuration / FireInterval 量级，让单次动画能在两次开火之间播完。</summary>
     public float RecoilAnimSpeed = 1f;
     /// <summary>一次性 trigger：FireComponent 在一次成功射击后置 true，
-    /// WeaponComponent 消费并清回，转写到 Owner.Shoot 喂动画 trigger。</summary>
+    /// WeaponComponent 消费并清回，请求 Shoot one-shot（RequestCombatOneShot）喂动画。</summary>
     public bool ShootEvent;
 }
