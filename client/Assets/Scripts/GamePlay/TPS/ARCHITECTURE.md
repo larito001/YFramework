@@ -338,10 +338,10 @@ Unity Animator / Animancer / 自研 Playables
 LocomotionAnimController（基类，普通 class）
   通用层：Die + 全身动作分支（按 FullBody 通道播 clip，kind-agnostic）+ locomotion 1D mixer + 上下身 Layer/Mask + one-shot 生命周期
   **双层状态机（`YStateMachine<Character>`，引用判重 + 幂等切换，Character 经 ctx 透传）**：
-    - Layer 0（全身）= baseFsm：**Death / FullBody / Locomotion 三个互斥态**（技能/闪避/受击在动画层同构 → 合成一个 kind-agnostic 的 FullBodyState，只认 `Character.FullBody` 通道）。
+    - Layer 0（全身）= baseFsm：**Death / FullBody / Locomotion 三个互斥态**（技能/闪避/受击在动画层同构 → 收口进 kind-agnostic 的 `FullBodyDriver`（与 UpperBodyLayerDriver 对称，经 IFullBodyHost 借 controller 的 BaseLayer/钩子），只认 `Character.FullBody` 通道）。
       每帧 SelectBaseState 按优先级 Die > 全身动作(FullBody.Kind != None | FullBody.ClipDirty) > Locomotion
       决出目标态，再无条件 `Switch`（幂等：仅变更时真正切换）；进/退全身覆盖时调 EnterFullBodyOverride / RestoreUpperBodyAfterFullBody 钩子让 Layer 1 让位/恢复。
-      从全身覆盖回 Locomotion 的恢复判定用 `baseFsm.Previous == fullBodyState`，恢复淡入取 `FullBody.RecoverFade`（动作结束时各组件经 EndFullBody 写）。
+      从全身覆盖回 Locomotion 的恢复判定用 `baseFsm.Previous == fullBodyDriver`，恢复淡入取 `FullBody.RecoverFade`（动作结束时各组件经 EndFullBody 写）。
     - Layer 1（上身，玩家持武器）= UpperBodyLayerDriver 内部 FSM：Silent / Pose / OneShot 三态（见下）。
   virtual 钩子：PreDrive / DriveCombat / GetFullBodyRecoverFade / UpdateLocomotion / EnterFullBodyOverride / RestoreUpperBodyAfterFullBody / UpdateUpperBody
   ├─ CharacterAnimancerController（玩家）：武器/瞄准段——weaponAnimSet + Aim 2D mixer + Shoot/Reload/Equip/Holster
@@ -356,7 +356,7 @@ view 侧通过 `CharacterView.CreateController()`（protected virtual）选 cont
 
 - **`SkillDef`**（ScriptableObject，数据）：一组按顺序播的 `SkillSegment`（clip + 位移 + 命中窗 + 动效/震屏 + `CancelFromNorm` 取消窗 + `MoveCancelable`）。纯数据，不含行为。
 - **`SkillCastComponent`**（ICharacterComponent，逻辑 owner，取代旧 MeleeComponent）：`Cast(int)` / `Cast(SkillDef)`；逐段推进时间线；命中窗内 OverlapSphere 扣血（复用 `DamageRouter`）；位移写 `WishVelocity.xz`（逻辑侧，Gravity 定 y）；经 `RequestFullBody(Skill)` 占全身通道锁全角色；近战吸附（起手锁敌、转向 + 前冲收敛到目标身前）；经 `SetFullBodyClip` 把当前段 clip 交给 controller。
-- **controller**（基类 `LocomotionAnimController` 的 FullBodyState）：纯**跟随器**——只按 `Character.FullBody` 通道（Clip/ClipDirty）播放，不持技能时间线、不关心是哪种全身动作。
+- **controller**（基类 `LocomotionAnimController` 的 `FullBodyDriver`）：纯**跟随器**——只按 `Character.FullBody` 通道（Clip/ClipDirty）播放，不持技能时间线、不关心是哪种全身动作。
 - **触发**：AI 订阅 `InputComponentBase.OnCastSkill(int)`（随机下标）；玩家走 `ComboComponent`（见下）；也可外部直接 `Cast`。
 
 **取消窗（可打断）**：段配 `CancelFromNorm<1` 后，到该归一化时间开窗——**再次攻击**可打断接下一招（连招），`MoveCancelable=true` 时**移动**可脱离收招。`=1`（默认）则全程不可打断、播完整段。`CanChainNow`/`InCancelWindow` 暴露给连招层判定。

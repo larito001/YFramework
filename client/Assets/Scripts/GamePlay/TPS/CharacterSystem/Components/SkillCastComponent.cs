@@ -332,7 +332,7 @@ public class SkillCastComponent : ICharacterComponent
         segDuration = seg.HoldDuration > 0f ? seg.HoldDuration : (seg.Clip != null ? seg.Clip.length : 0f);
         if (segDuration <= 0f)
             Debug.LogWarning($"[SkillCastComponent] 技能 \"{active.Name}\" 第 {i} 段无 clip 且 HoldDuration<=0，本段被跳过（不会播放/命中/位移）。");
-        // 交 clip 给动画 controller（经全身通道，FullBodyState 消费播放）
+        // 交 clip 给动画 controller（经全身通道，FullBodyDriver 消费播放）
         Owner.SetFullBodyClip(seg.Clip, seg.Fade);
     }
 

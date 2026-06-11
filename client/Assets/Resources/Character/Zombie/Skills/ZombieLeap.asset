@@ -18,6 +18,7 @@ MonoBehaviour:
   - Clip: {fileID: 7400000, guid: 177d5dd7bb2b4834a91226cf097a31ae, type: 3}
     Fade: 0.1
     HoldDuration: 0
+    Duration: 0.8000001
     CancelFromNorm: 1
     MoveCancelable: 0
     TrackTarget: 1
@@ -34,6 +35,7 @@ MonoBehaviour:
   - Clip: {fileID: 7400000, guid: 5b3039ec412843d4ea92142d3cf1acbc, type: 3}
     Fade: 0
     HoldDuration: 0
+    Duration: 2
     CancelFromNorm: 1
     MoveCancelable: 0
     TrackTarget: 1
@@ -50,6 +52,7 @@ MonoBehaviour:
   - Clip: {fileID: 7400000, guid: 4b9f5c073923f3a48a6c2e0c4e745c77, type: 3}
     Fade: 0
     HoldDuration: 0
+    Duration: 1.0666667
     CancelFromNorm: 1
     MoveCancelable: 0
     TrackTarget: 1

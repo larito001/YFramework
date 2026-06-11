@@ -79,6 +79,8 @@ public class SkillDef : ScriptableObject
         public float Fade;
         [Tooltip("本段持续策略：0=播到 clip 自然结束（按 clip.length）；>0=循环该 clip 这么多秒再进下一段（循环段的 clip 需在 import 设为 Loop）")]
         public float HoldDuration;
+        [Tooltip("本段总时长（秒）——段内归一化时间 n 的分母，命中窗 / 位移 / VFX 都按它算。\n运行时直接用此值、**不再读 clip.length**（让逻辑层 SkillCastComponent 与动画 AnimationClip 解耦：clip 提取移到 view 的 FullBodyDriver）。\n菜单 Tools/TPS/Backfill SkillDef Durations 可一键回填 = HoldDuration 或 clip.length；新建段务必手填，否则运行时该段被跳过。")]
+        public float Duration;
         [Tooltip("取消窗开启的归一化时间 [0,1]：到此之后可被【再次攻击】打断接下一招（连招）。1 或 0=不开取消窗(默认，后摇不可取消)。必须 ≥ 本段所有 HitWindow.EndNorm，否则连招会吃掉命中。例：命中在 0.45 结束，填 0.5 让 0.5 之后可被连招打断。")]
         public float CancelFromNorm = 1f;
         [Tooltip("是否允许【移动】取消本段收招（进入取消窗后玩家有移动意图就 EndCast 脱离）。默认 false：避免与连招抢取消窗——一边走一边连招时不会被走位掐断。\n仅对'想用移动主动脱离后摇'的招（如重攻击想取消去走位）才开。连招招式保持 false，靠'再次攻击'接续。")]

@@ -14,12 +14,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Name: PlayerMelee
   RecoverFade: 0.2
-  ShakeIntensity: 0.18
-  ShakeDuration: 0.15
   Segments:
   - Clip: {fileID: 7400100, guid: 914b09da235eea34ebdc4e71d057e815, type: 3}
     Fade: 0.1
     HoldDuration: 0
+    Duration: 1.3333334
+    CancelFromNorm: 1
+    MoveCancelable: 0
+    TrackTarget: 1
     ForwardDistance: 1.2
     DistanceProfile:
       serializedVersion: 2
@@ -52,3 +54,5 @@ MonoBehaviour:
         CritMultiplier: 0
         Element: 0
         AppliedBuffs: []
+    Vfx: []
+    Shake: []
