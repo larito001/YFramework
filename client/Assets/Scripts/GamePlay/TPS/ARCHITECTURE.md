@@ -51,7 +51,7 @@ TPS/
 | 类 | 字段 |
 |---|---|
 | Actor | 空间（`Position` / `Rotation` / `WishVelocity` / `Velocity` / `IsGrounded`）、生命周期（`LifetimeRemaining` / `OwnerActorId`）、阵营（`TeamId`）、HP 系（`MaxHealth` / `CurHealth` / `IsDead` / `Die` / `DeathVariant`） |
-| Character | 角色动画 / 武器持有 / 瞄准（`AnimMoveX/Y` / `AnimSpeedRatio` / 各 bool trigger / `AimTargetWorldPos` / `MuzzleHeight` / `CurrentWeaponSlot` / `CurrentWeaponAnimSetPath` + `WeaponAnimDirty`） |
+| Character | 角色动画 / 武器持有 / 瞄准（`AnimMoveX/Y` / `AnimSpeedRatio` / `AimTargetWorldPos` / `MuzzleHeight` / `CurrentWeaponSlot` / `CurrentWeaponAnimSetPath`；combat one-shot 走 `_combatOneShots` 位掩码、全身动作走 `FullBody` 通道） |
 | Weapon | 开火几何（`MuzzleLocalOffset` 武器自配的枪口偏移）/ 开火意图（`FireOrigin` / `FireDirection` / `FireTarget` 持枪人每帧写）/ 装弹（`Mag*` / `CurrentAmmo` / `ReloadRequest` / `IsReloading`）/ 挂载（`Hand*` / `Back*` / `ShootEvent`）/ 动画（`AnimSetPath` 武器自带的 WeaponAnimSet ScriptableObject 资源路径） |
 | Tower | `TargetActorId`（TowerTargetingComponent 写、TowerWeaponComponent 读，实现 targeting / 持枪人 解耦） |
 | Bullet | `Damage` |
@@ -275,7 +275,7 @@ Weapon 体系不假设持有者类型——**Character / 塔 / 敌人 / 载具 /
 1. 持有 `List<Weapon>`，Attach 时调 `weaponMgr.Adopt(weapon)` 移交注册
 2. 维护"当前武器" 状态，切换时调 `weaponMgr.Mount/Unmount/MountOnBack` 改 mount socket
 3. 每帧写 `currentWeapon.FireIntent / FireOrigin / FireDirection / FireTarget`——这是 FireComponent 消费的开火数据源。`FireOrigin` 由武器侧配的 `MuzzleLocalOffset` 决定具体偏移：`FireOrigin = holder.Position + holder.Rotation * currentWeapon.MuzzleLocalOffset`，持枪人组件只机械应用，不该硬编码 forward / height 数值
-4. 切枪 / Detach 时把 `currentWeapon.AnimSetPath` 镜像写到 `holder.CurrentWeaponAnimSetPath` + 置 `holder.WeaponAnimDirty=true`，由 view 加载对应 WeaponAnimSet ScriptableObject 切换动画（详见"动画接口协议"小节）
+4. 切枪 / Detach 时把 `currentWeapon.AnimSetPath` 镜像写到 `holder.CurrentWeaponAnimSetPath`，controller 轮询该路径变化即加载对应 WeaponAnimSet ScriptableObject 切换动画（详见"动画接口协议"小节）
 4. Detach 时调 `weaponMgr.Despawn(weapon)` 销毁子 Actor
 
 **不该做**：
@@ -314,8 +314,8 @@ WeaponComponent / SkillCastComponent / HealthComponent / AI 组件 等逻辑组�
                   ↓ 写
 Character.{RequestCombatOneShot(CombatOneShot)/RequestFullBody(FullBodyKind)+SetFullBodyClip+EndFullBody/Die/DeathVariant/
            IsAiming/IsShooting/IsReloading/HeavyRecoil/RecoilAnimSpeed/SwapAnimSpeed/
-           AnimMoveX/Y/AnimSpeedRatio/AnimPlaybackRate/
-           CurrentWeaponAnimSetPath/WeaponAnimDirty}
+           AnimMoveX/Y/AnimSpeedRatio/
+           CurrentWeaponAnimSetPath（controller 轮询变化即重载，无 dirty 标志）}
                   ↓ 读
 CharacterView.LateUpdate
                   ↓ 调用任何方案
@@ -377,7 +377,7 @@ view 侧通过 `CharacterView.CreateController()`（protected virtual）选 cont
 | AnimSet | 字段 | 跟谁绑定 | 何时加载 |
 |---|---|---|---|
 | `CharacterAnimSet` | Locomotion (Idle/Walk/Run/Sprint) + 阈值 + Death(L/R) + UpperBodyMask + DefaultFade | **角色**（玩家 / 僵尸各一份，不同走路 / 死亡姿势） | view Bind 时**一次性**加载（`Character.CurrentCharacterAnimSetPath`，Factory 设） |
-| `WeaponAnimSet` | Aim 1D fallback (AimIdle/AimWalk) + 8 方向 strafe + Combat (Shoot/Reload/Equip/Holster) + aim 阈值 + ShootFade | **武器**（每把枪不同上半身姿势） | **切武器时**重新加载（`Weapon.AnimSetPath` → `Character.CurrentWeaponAnimSetPath` + `WeaponAnimDirty` trigger） |
+| `WeaponAnimSet` | Aim 1D fallback (AimIdle/AimWalk) + 8 方向 strafe + Combat (Shoot/Reload/Equip/Holster) + aim 阈值 + ShootFade | **武器**（每把枪不同上半身姿势） | **切武器时**重新加载（`Weapon.AnimSetPath` → `Character.CurrentWeaponAnimSetPath`，controller 轮询该路径变化即重载） |
 
 > 技能 clip 不在 AnimSet 里——在独立的 `SkillDef` 资产上（玩家近战、僵尸技能各自的 .asset）。
 
@@ -387,7 +387,7 @@ view 侧通过 `CharacterView.CreateController()`（protected virtual）选 cont
 CharacterView.LateUpdate
   ├─ CC.Move(WishVelocity) 物理 + transform 同步（技能位移也走 WishVelocity，由此应用）
   ├─ animController.Tick(character, scale)   ← 委托动画驱动（基类 LocomotionAnimController）
-  │    ├─ PreDrive(character)                ← virtual，玩家在此按 WeaponAnimDirty 加载 WeaponAnimSet
+  │    ├─ PreDrive(character)                ← virtual，玩家在此轮询 CurrentWeaponAnimSetPath 变化加载 WeaponAnimSet
   │    ├─ Animancer.Graph.Speed = scale（全局时间缩放）
   │    └─ DriveAnimation：SelectBaseState 选 Layer 0 目标态 → baseFsm.Switch（幂等）/Update
   │         Death态(播 DeathL/R 终态) / FullBody态(消费 FullBody.ClipDirty 播全身——技能/闪避/受击共用)

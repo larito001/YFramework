@@ -106,7 +106,7 @@ public abstract class LocomotionAnimController
     {
         if (Animancer == null || character == null) return;
 
-        // 派生类的"切 AnimSet"等前置（玩家在这里按 WeaponAnimDirty 加载 weaponAnimSet）
+        // 派生类的"切 AnimSet"等前置（玩家在这里轮询 CurrentWeaponAnimSetPath 变化加载 weaponAnimSet）
         PreDrive(character);
 
         // 动画速度（全局慢动作 / 卡肉 / 局部慢动作 合并后的有效缩放）

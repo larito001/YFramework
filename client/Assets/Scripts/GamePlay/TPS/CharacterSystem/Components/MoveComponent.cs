@@ -5,7 +5,7 @@ using UnityEngine;
 ///   - 移动方向：直接用 <see cref="InputComponentBase.MoveWorld"/>（世界空间意图，相机/AI 解释已在输入组件做完）
 ///   - 三档速度（Walk/Sprint/Aim）+ Acceleration 平滑 magnitude
 ///   - 只写 Owner.WishVelocity 的 **x/z**，y 由 <see cref="GravityComponent"/> 负责
-///   - 同时写 AnimMoveX/Y（Walk BlendTree）+ AnimSpeedRatio（Sprint BlendTree）+ AnimPlaybackRate
+///   - 同时写 AnimSpeedRatio（非瞄准 1D mixer，真实 m/s）+ AnimMoveX/Y（瞄准 2D strafe mixer）
 /// 朝向（Owner.Rotation）由 AimComponent 负责。
 /// </summary>
 public class MoveComponent : ICharacterComponent
@@ -49,7 +49,6 @@ public class MoveComponent : ICharacterComponent
             Owner.AnimMoveX = 0f;
             Owner.AnimMoveY = 0f;
             Owner.AnimSpeedRatio = 0f;
-            Owner.AnimPlaybackRate = 1f;
         }
         input = null;
         currentHorizontal = Vector3.zero;
@@ -66,7 +65,6 @@ public class MoveComponent : ICharacterComponent
             Owner.AnimMoveX = 0f;
             Owner.AnimMoveY = 0f;
             Owner.AnimSpeedRatio = 0f;
-            Owner.AnimPlaybackRate = 1f;
             return;
         }
 
@@ -84,8 +82,6 @@ public class MoveComponent : ICharacterComponent
             else if (input.SprintHeld) maxSpeed = SprintSpeed;
             else maxSpeed = WalkSpeed;
             wishHorizontal = wishDir * maxSpeed;
-            // AnimPlaybackRate 在 Animancer 实现下统一为 1：mixer 按真实 m/s 阈值自动选 clip 匹配步幅，不需要 view 再用倍率拉扯
-            Owner.AnimPlaybackRate = 1f;
         }
 
         // 2. 速度平滑：只平滑 magnitude，方向瞬切（转弯不受加速度影响，起步/停步有 lerp）
@@ -104,7 +100,7 @@ public class MoveComponent : ICharacterComponent
         Owner.WishVelocity = v;
 
         // 4. 动画参数
-        //    AnimMoveX/Y：本地坐标方向 [-1, 1]，给 view（旧 Animator BlendTree 2D 参数）—— 当前 Animancer 实现未使用
+        //    AnimMoveX/Y：本地坐标方向 [-1, 1]，给 view 的瞄准 2D strafe CartesianMixerState（按方向选 8 向 clip；非瞄准时不用）
         //    AnimSpeedRatio：**真实水平速度 (m/s)**，不归一化。view 的 LinearMixerState 用真实 m/s threshold 对齐 4 档 clip
         var localMove = Quaternion.Inverse(Owner.Rotation) * currentHorizontal;
         float invAim = AimSpeed > 0.01f ? 1f / AimSpeed : 0f;

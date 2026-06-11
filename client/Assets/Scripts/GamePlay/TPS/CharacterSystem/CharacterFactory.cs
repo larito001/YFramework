@@ -116,8 +116,7 @@ public class CharacterFactory
 
         // Dummy 没 WeaponComponent，不会触发 LoadWeaponAnimSet —— view.currentAnimSet 一直 null → DriveAnimation 早退 → 死了不播 Death。
         // 这里手动设默认 AnimSet（复用 Pistol 那套 clip），让 view 加载后 Die / Locomotion 都能跑
-        character.CurrentWeaponAnimSetPath = "Weapon/Animations/Pistol";
-        character.WeaponAnimDirty = true;
+        character.CurrentWeaponAnimSetPath = "Weapon/Animations/Pistol"; // controller 轮询此路径变化即加载
         return character;
     }
 

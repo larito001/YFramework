@@ -34,7 +34,7 @@ public class Weapon : Actor
     /// <summary>武器对应的 <see cref="WeaponAnimSet"/> ScriptableObject 资源路径（Resources 相对路径，如 "Weapon/Animations/Pistol"）。
     /// 空 / null = 持有者 view 默认 idle pose（不切 Animancer state）。
     /// 切枪时 WeaponComponent.ApplySwap 把本路径写到 Character.CurrentWeaponAnimSetPath，
-    /// CharacterView 检测 WeaponAnimDirty trigger 后 ResMgr.Load&lt;WeaponAnimSet&gt; + 用 Animancer.Play 替代 Animator state machine。
+    /// controller 轮询该路径变化后 ResMgr.Load&lt;WeaponAnimSet&gt; + 用 Animancer.Play 替代 Animator state machine。
     /// 详见 ARCHITECTURE "动画接口协议" + docs/Animancer 武器动画指南.md。</summary>
     public string AnimSetPath;
 

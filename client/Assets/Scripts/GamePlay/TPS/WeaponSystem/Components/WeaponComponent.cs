@@ -97,9 +97,8 @@ public class WeaponComponent : ICharacterComponent
             Owner.WeaponPrimarySkill = -1;
             Owner.WeaponSecondarySkill = -1;
             Owner.CurrentComboGraphPath = null;
-            // 清动画 set 链：触发 view 回 idle pose
+            // 清动画 set 链：路径置空 → controller 轮询到变化后回 idle pose
             Owner.CurrentWeaponAnimSetPath = null;
-            Owner.WeaponAnimDirty = true;
         }
         currentWeapon = null;
         pendingHandMount = null;
@@ -316,10 +315,8 @@ public class WeaponComponent : ICharacterComponent
         // 武器的连招图路径推给 Owner（ComboComponent 轮询变化重载图）。空 = 该武器无连招 → ComboComponent 回退单招。
         Owner.CurrentComboGraphPath = currentWeapon?.ComboGraphPath;
 
-        // 通知 view 切 WeaponAnimSet（path 空 = 回退默认 idle pose）
-        // CharacterView 检测 WeaponAnimDirty trigger 后 ResMgr.Load<WeaponAnimSet> + Animancer.Play 替代原 Animator state
+        // 切 WeaponAnimSet（path 空 = 回退默认 idle pose）：只写路径，controller 轮询 CurrentWeaponAnimSetPath 变化即重载
         Owner.CurrentWeaponAnimSetPath = currentWeapon?.AnimSetPath;
-        Owner.WeaponAnimDirty = true;
 
         if (playEquipAnim)
         {

@@ -4,7 +4,7 @@ using UnityEngine;
 /// <summary>
 /// **玩家**动画驱动器。继承 <see cref="LocomotionAnimController"/>（locomotion / death / 分层 / 技能全身覆盖），
 /// 在此实现**武器 + 瞄准**的三段式分层：
-///   - <see cref="WeaponAnimSet"/> 加载（**仅上身** combat/持枪 pose 跟武器走，切枪时换；Tick 里按 character.WeaponAnimDirty 自治加载）
+///   - <see cref="WeaponAnimSet"/> 加载（**仅上身** combat/持枪 pose 跟武器走，切枪时换；Tick 里轮询 character.CurrentWeaponAnimSetPath 变化自治加载）
 ///   - **下身（Layer 0）**：瞄准时 2D Cartesian mixer（8 方向 strafe，**clip 来自角色级 CharacterAnimSet**，OnCharacterAnimSetLoaded 时 build 一次、切枪不重建；带 SmoothDamp 平滑），非瞄准回退基类 1D locomotion
 ///   - **上身（Layer 1 mask）**：**全部委托给 <see cref="UpperBodyLayerDriver"/>**——持武器常驻持枪/瞄准 pose + 换弹/后坐力/拿出/收回 one-shot。
 ///     本类的上身钩子（HasUpperBodyBasePose / UpdateUpperBody / EnterFullBodyOverride / RestoreUpperBodyAfterFullBody）都是转发给 driver 的薄封装。
@@ -30,10 +30,15 @@ public class CharacterAnimancerController : LocomotionAnimController
     // ── 上身层驱动（Layer 1 的全部持武器逻辑收口在这里；仅 useUpperBodyLayer 时 new 出来）──
     private UpperBodyLayerDriver upperBody;
 
+    /// <summary>上次加载的 weapon AnimSet 路径——轮询 <see cref="Character.CurrentWeaponAnimSetPath"/> 变化触发重载
+    /// （替代旧 WeaponAnimDirty 一次性 trigger，与 ComboComponent 轮询 CurrentComboGraphPath 同款）。</summary>
+    private string loadedWeaponAnimSetPath;
+
     public override void Dispose()
     {
         weaponAnimSet = null;
         aimLocomotionMixer = null;
+        loadedWeaponAnimSetPath = null;
         smoothedAnimMoveX = 0f;
         smoothedAnimMoveY = 0f;
         smoothMoveXVel = 0f;
@@ -43,12 +48,14 @@ public class CharacterAnimancerController : LocomotionAnimController
         base.Dispose();
     }
 
-    /// <summary>切 WeaponAnimSet（如果 WeaponComponent 通知）+ 同步上身层启用。下身 aim mixer 不动（角色级，跟 CharacterAnimSet 走）。</summary>
+    /// <summary>切 WeaponAnimSet：**轮询 <see cref="Character.CurrentWeaponAnimSetPath"/> 变化即重载**
+    /// （替代旧 WeaponAnimDirty trigger，与 ComboComponent 轮询 CurrentComboGraphPath 同款）+ 同步上身层启用。
+    /// 下身 aim mixer 不动（角色级，跟 CharacterAnimSet 走）。</summary>
     protected override void PreDrive(Character character)
     {
-        if (character.WeaponAnimDirty)
+        if (character.CurrentWeaponAnimSetPath != loadedWeaponAnimSetPath)
         {
-            character.WeaponAnimDirty = false;
+            loadedWeaponAnimSetPath = character.CurrentWeaponAnimSetPath;
             LoadWeaponAnimSet(character.CurrentWeaponAnimSetPath);
             upperBody?.SetWeapon(weaponAnimSet);
             if (!layer0FullBodyActive) upperBody?.SyncActivation(); // 全身覆盖中不升起（由 Restore 接管）
