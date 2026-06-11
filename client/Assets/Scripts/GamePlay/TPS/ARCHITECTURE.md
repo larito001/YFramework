@@ -322,7 +322,11 @@ CharacterView.LateUpdate
 Unity Animator / Animancer / 自研 Playables
 ```
 
-> **全身动作协议（Layer 0）**：技能 / 闪避 / 未来受击是**同一种东西**（播全身 clip + 锁 Move/Aim/Weapon + 恢复），收敛成**一个 `FullBodyRequest` 通道 + `FullBodyKind` 枚举**（见 `FullBodyAction.cs`），取代旧的 `Skill*`/`Dodge*` 两套并行字段。逻辑组件写 `Owner.RequestFullBody(kind)`（集中优先级仲裁，Dodge>Skill）→ `SetFullBodyClip(clip,fade)`（起手/进段）→ `EndFullBody(recoverFade)`（结束/被打断）；gating 经计算属性 `IsCastingSkill`/`IsDodging`/`IsBusy`（= `Kind` 查询）保持所有旧读取点不变。`SkillCastComponent` 仍 owns 技能时间线 + 命中窗 + 位移 + 吸附，只是把"交 clip / 锁 / 恢复"改走通道。**加新全身动作（如受击）只需**：① 枚举加一个值（定优先级）② 写它专属玩法组件（走 RequestFullBody/SetFullBodyClip/EndFullBody + clip）——**Character 不加字段、动画 FSM 不加状态**。
+> **全身动作协议（Layer 0）**：技能 / 闪避 / 未来受击是**同一种东西**（播全身 clip + 锁 Move/Aim/Weapon + 恢复），收敛成**一个 `FullBodyRequest` 通道 + `FullBodyKind` 枚举**（见 `FullBodyAction.cs`），取代旧的 `Skill*`/`Dodge*` 两套并行字段。逻辑组件写 `Owner.RequestFullBody(kind)`（集中优先级仲裁）→ `SetFullBodyClip(clip,fade)`（起手/进段）→ `EndFullBody(recoverFade)`（结束）；gating 经计算属性 `IsCastingSkill`/`IsDodging`/`IsBusy`（= `Kind` 查询）保持所有旧读取点不变。`SkillCastComponent` 仍 owns 技能时间线 + 命中窗 + 位移 + 吸附，只是把"交 clip / 锁 / 恢复"改走通道。
+>
+> **打断 = 所有权自检（无显式 interrupt）**：抢占方只调 `RequestFullBody(kind)` 占走通道；被抢方在自己 `Tick` 里自检 `FullBody.Kind != 自己` → 自行中止时间线（不碰通道）。所以**谁打断谁完全由 `FullBodyKind` 枚举顺序决定**——**声明越靠前 = 优先级越高**（当前 Dodge > Skill；与 `CombatOneShot` 同方向，避免两套枚举方向相反的坑）。`RequestFullBody` 返回 false（被更高优先级占用）即"不能起手"，取代了旧的 `if (IsDodging) return` 之类散落门控。
+>
+> **加新全身动作（如受击）只需**：① 枚举按优先级插一个值 ② 写它专属玩法组件（RequestFullBody/SetFullBodyClip/EndFullBody + Tick 自检中止 + clip）——**Character 不加字段、动画 FSM 不加状态、不写任何 interrupt 调用**。
 
 > **combat one-shot 协议（上身武器动作，Layer 1）**：切枪 / 换弹 / 开火不再是 4 个独立 bool trigger（旧 `Shoot`/`Reload`/`WeaponSwap`/`WeaponHolster`），已收敛成**一个位掩码 + `CombatOneShot` 枚举**（见 `CombatOneShot.cs`）。`WeaponComponent` 写入走 `Owner.RequestCombatOneShot(CombatOneShot.Holster/Equip/Reload/Shoot)`；`UpperBodyLayerDriver.TryConsumeCombatTrigger`（单一消费入口）按枚举**声明序 = 优先级**每帧 `TryTake` 一个，解析成 clip+fade+speed 叠在持枪 pose 上、播完回 base；无武器 / 死亡 / 卸载用 `ClearCombatOneShots()` 一行清空。**加新上身动作（如丢手雷）只需三处**：① 枚举插一个值（定优先级）② 解析 `switch` 加一个 `case`（选 clip/参数）③ `WeaponAnimSet` 加 clip 字段——写入方调 `RequestCombatOneShot` 即可，字段声明 / 优先级仲裁 / 清除全部通用，**两个状态机零改动**。
 
@@ -401,7 +405,7 @@ CharacterView.LateUpdate
 - Locomotion（基类）：`LinearMixerState` 按 `AnimSpeedRatio` 真实 m/s blend；child 数随 CharacterAnimSet 非 null clip 退化（4/2/1/0）
 - Aim Locomotion（玩家 override）：`CartesianMixerState` 9 child (Idle 中心 + 8 方向 strafe) 按 `(AnimMoveX, AnimMoveY)` 2D blend
 - 上下身分离（基类）：`UpperBodyMask` 配了启用 Layer 1（Combat 走上半身 / Locomotion 走全身），mask=null 时单层 Combat 覆盖（僵尸常态）
-- 状态优先级：Die（全身 Layer 0 + Layer 1 weight=0） &gt; 全身动作（`FullBody.Kind != None` 期间锁，结束 `FullBody.RecoverFade` 回 locomotion；技能/闪避/受击共用，组件间优先级由 `RequestFullBody` 仲裁 Dodge>Skill） &gt; DriveCombat 上半身 one-shot（Holster/Equip/Reload/Shoot） &gt; Locomotion
+- 状态优先级：Die（全身 Layer 0 + Layer 1 weight=0） &gt; 全身动作（`FullBody.Kind != None` 期间锁，结束 `FullBody.RecoverFade` 回 locomotion；技能/闪避/受击共用一态，组件间谁打断谁由 `FullBodyKind` 声明序仲裁——**越靠前越高**，当前 Dodge &gt; Skill，被抢方 Tick 自检中止） &gt; DriveCombat 上半身 one-shot（Holster/Equip/Reload/Shoot） &gt; Locomotion
 - 转向 SmoothDamp（玩家 override）：aim mixer.ParameterX/Y 用 `AnimMoveDampTime` 平滑，避免方向瞬切硬切（MoveComponent 转向无 lerp 设计）
 
 **加新角色类型的成本**：复用通用层，只新建一个 `XxxView : CharacterView` override `CreateController`（僵尸甚至直接复用 `CharacterView`），locomotion/death/分层/技能全白送。新动作 = 新建一个 `SkillDef` 资产（不写代码）。

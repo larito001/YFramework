@@ -115,15 +115,6 @@ public class SkillCastComponent : ICharacterComponent
         base.Detach();
     }
 
-    /// <summary>外部强制打断当前技能释放（如**闪避打断技能**）：立即结束本招、回 locomotion，清掉命中窗/动效/位移。
-    /// 无技能在放时无操作。注意：本方法**绕过取消窗**，是无条件硬打断（与连招的"取消窗内接招"不同）。
-    /// 打断方负责接管后续动画（如 DodgeComponent 紧接着请求自己的全身动作）；EndCast 经 EndFullBody 写的 RecoverFade
-    /// 会被打断方的 <see cref="Character.RequestFullBody"/> 自动清零（新动作占用通道即清残留恢复淡入），无需打断方手动处理。</summary>
-    public void Interrupt()
-    {
-        if (active != null) EndCast();
-    }
-
     /// <summary>释放第 index 个技能（指向 <see cref="SkillPaths"/>）。越界报 warning；其余门控见 <see cref="Cast(SkillDef)"/>。
     /// AI 走这条（OnCastSkill 订阅）；玩家连招走 <see cref="ComboComponent"/> → <see cref="Cast(SkillDef)"/>。</summary>
     public void Cast(int index)
@@ -142,7 +133,6 @@ public class SkillCastComponent : ICharacterComponent
     {
         if (Owner == null || Owner.IsDead) return;
         if (Owner.IsSwapping) return;                        // 切枪过场中不能放技能（与"技能中不能切枪"对称）
-        if (Owner.IsDodging) return;                         // 闪避中不能放技能（两类全身动作互斥；与"闪避门控 IsBusy"对称）
         if (active != null && !InCancelWindow()) return;     // 不可打断——除非已进入取消窗（命中后摇可被下一击打断 = 连招）
         if (def == null || def.Segments == null || def.Segments.Length == 0)
         {
@@ -150,8 +140,10 @@ public class SkillCastComponent : ICharacterComponent
             return;
         }
 
+        // 占用全身通道：被更高优先级全身动作（闪避/受击…）占用时被拒 → 放弃起手。
+        // 这一条**取代了旧的 IsDodging 门控**——"谁能起手"完全由 FullBodyKind 优先级（RequestFullBody）说了算。
+        if (!Owner.RequestFullBody(FullBodyKind.Skill)) return;
         active = def;
-        Owner.RequestFullBody(FullBodyKind.Skill); // 占用全身通道（连招接段幂等；clip 由 StartSegment 设）。已过 IsDodging 门控，此处不会被拒
         // 起手前向：先取当前朝向（无吸附时即为最终前向）
         var fwd = Owner.Rotation * Vector3.forward;
         fwd.y = 0f;
@@ -221,6 +213,9 @@ public class SkillCastComponent : ICharacterComponent
             if (active != null) EndCast();
             return;
         }
+        // 被更高优先级全身动作抢占（通道已不归技能）→ 自行中止时间线，不碰通道（新主人负责后续位移/恢复）。
+        // 这就是"所有权自检"：抢占方只需 RequestFullBody 占走通道，无需显式调本组件的打断。
+        if (active != null && !Owner.IsCastingSkill) { AbortCast(); return; }
         if (active == null) return;
 
         // 退化段（无 clip 且无 HoldDuration → segDuration<=0）：跳过，不做 n=1 的瞬移/漏命中
@@ -341,18 +336,29 @@ public class SkillCastComponent : ICharacterComponent
         Owner.SetFullBodyClip(seg.Clip, seg.Fade);
     }
 
+    /// <summary>技能正常结束（播完 / 死亡）：释放全身通道 + 复位水平意图 + 清自身时间线状态。</summary>
     private void EndCast()
     {
         if (Owner != null)
         {
-            // 释放全身通道 + 记恢复淡入；EndFullBody 内清 ClipDirty（避免被打断那帧动画层误判仍在全身态、慢一帧让位）
+            // 释放全身通道 + 记恢复淡入；EndFullBody 内清 ClipDirty（避免那帧动画层误判仍在全身态、慢一帧让位）
             Owner.EndFullBody(active != null ? active.RecoverFade : 0f);
             // 停下前冲：清水平意图，y 留给 Gravity
             Owner.WishVelocity = new Vector3(0f, Owner.WishVelocity.y, 0f);
         }
+        ClearCastState();
+    }
+
+    /// <summary>被更高优先级全身动作抢占时自行中止：只清自身时间线/命中窗/动效记录，**不碰全身通道**（已归抢占方）、
+    /// **不复位 WishVelocity**（抢占方写自己的位移）。由 <see cref="Tick"/> 检测到通道易主时调。</summary>
+    private void AbortCast() => ClearCastState();
+
+    /// <summary>清自身时间线运行态（EndCast / AbortCast 共用）。</summary>
+    private void ClearCastState()
+    {
         active = null;
         snapTargetId = -1;
-        StopAllAttachedVfx(); // 技能结束回收跟随型动效（世界一次性动效自销毁不管）
+        StopAllAttachedVfx(); // 回收跟随型动效（世界一次性动效自销毁不管）
         firedVfx.Clear();
         firedShake.Clear();
         windowHits.Clear();

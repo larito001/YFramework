@@ -12,8 +12,8 @@ using UnityEngine;
 ///   - **无敌帧**：[<see cref="InvulnStartNorm"/>, <see cref="InvulnEndNorm"/>] 段内置 <see cref="Actor.IsInvulnerable"/>，
 ///     <see cref="HealthComponent"/> 期间完全免伤。
 ///   - **门控**：闪避自身/切枪/死亡中拒绝；冷却中拒绝（二连冷却：第一下短 cd 接第二下、第二下长 cd，见 <see cref="ShortCooldown"/>/<see cref="LongCooldown"/>）。
-///     **技能中不拒绝——闪避会硬打断技能再起闪避（全局唯一的主动打断）**。闪避途中 Move/Aim/Weapon 经
-///     <see cref="Character.IsBusy"/> 被锁（不移动/不转身/不开火），位移由本组件权威写。
+///     **技能中不拒绝——闪避在 FullBodyKind 里优先级最高，RequestFullBody(Dodge) 直接占走全身通道，被抢的技能在自己 Tick 里自检通道易主 → 自行中止**。
+///     闪避途中 Move/Aim/Weapon 经 <see cref="Character.IsBusy"/> 被锁（不移动/不转身/不开火），位移由本组件权威写。
 ///
 /// Add 顺序：必须在**输入组件之后**（Attach 里 Get），且在 <see cref="MoveComponent"/> **之后**、<see cref="GravityComponent"/>
 /// **之前**（同 SkillCast：前冲位移覆写 WishVelocity.xz，Move 在前会被抹掉，Gravity 在后定 y）。
@@ -95,7 +95,7 @@ public class DodgeComponent : ICharacterComponent
     }
 
     /// <summary>触发一次闪避。门控：死亡 / 闪避中 / 切枪中 / 冷却中 / 无 AnimSet → 静默忽略。
-    /// **闪避可打断技能**（唯一的主动打断关系）：正在释放技能时不拒绝，而是先硬打断技能再起闪避；
+    /// **闪避可打断技能**：靠 FullBodyKind 优先级（Dodge 最高）——`RequestFullBody(Dodge)` 占走通道即完成打断，技能自检后中止，无需显式调它；
     /// 闪避自身、切枪不可被打断（见 <see cref="Owner.IsDodging"/> / <see cref="Owner.IsSwapping"/> 门控）。</summary>
     public void Dodge()
     {
@@ -103,11 +103,6 @@ public class DodgeComponent : ICharacterComponent
         if (Owner.IsDodging || Owner.IsSwapping) return; // 闪避中 / 切枪中不闪避（这两者不可被闪避打断）
         if (cooldownTimer > 0f) return;                  // 冷却中
         if (animSet == null) return;                     // 没动画不闪避
-
-        // 闪避打断技能：正在放技能 → 先硬打断（清命中窗/动效/位移、释放通道），再起闪避。
-        // 技能 EndCast 写的 RecoverFade 残留会被下面 RequestFullBody(Dodge) 自动清零（新动作占用即清），闪避结束走自己的 RecoverFade。
-        if (Owner.IsCastingSkill)
-            Owner.Get<SkillCastComponent>()?.Interrupt();
 
         // 朝向（水平）
         var fwd = Owner.Rotation * Vector3.forward; fwd.y = 0f;
@@ -127,6 +122,10 @@ public class DodgeComponent : ICharacterComponent
         if (clip == null) clip = animSet.DodgeBwd;
         if (clip == null) clip = animSet.DodgeFwd;
 
+        // 占用全身通道：闪避在 FullBodyKind 里优先级最高，正常必成功；被更高优先级占用则放弃（护栏，谁能起手由优先级说了算）。
+        // 占走通道即"打断"了技能/受击——被抢方在各自 Tick 里自检 FullBody.Kind != 自己 → 自行中止，无需在此显式调它们的打断。
+        if (!Owner.RequestFullBody(FullBodyKind.Dodge)) return;
+
         // 起闪避
         active = true;
         elapsed = 0f;
@@ -145,7 +144,6 @@ public class DodgeComponent : ICharacterComponent
             comboPending = true;
             comboResetTimer = ComboResetWindow;
         }
-        Owner.RequestFullBody(FullBodyKind.Dodge); // 占用全身通道（已硬打断技能，必成功）
         Owner.SetFullBodyClip(clip, EnterFade);
     }
 

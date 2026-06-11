@@ -50,10 +50,11 @@ public class
     public bool IsBusy => FullBody.Kind != FullBodyKind.None;
 
     /// <summary>请求占用全身通道（起手）。**集中优先级仲裁**：已有更高优先级动作占用时返回 false（如技能想盖闪避）；
-    /// 同动作再请求（连招接段）幂等。clip 由随后的 <see cref="SetFullBodyClip"/> 设。</summary>
+    /// 同动作再请求（连招接段）幂等。clip 由随后的 <see cref="SetFullBodyClip"/> 设。
+    /// 优先级方向见 <see cref="FullBodyKind"/>：**声明越靠前 = 优先级越高**，故"靠后（int 更大）= 优先级更低"，被拒。</summary>
     public bool RequestFullBody(FullBodyKind kind)
     {
-        if (FullBody.Kind != FullBodyKind.None && (int)kind < (int)FullBody.Kind) return false;
+        if (FullBody.Kind != FullBodyKind.None && (int)kind > (int)FullBody.Kind) return false; // 新 kind 优先级更低（int 更大）→ 拒绝
         FullBody.Kind = kind;
         FullBody.RecoverFade = 0f; // 新动作占用：清掉上一动作残留的恢复淡入
         return true;
