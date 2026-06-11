@@ -15,12 +15,12 @@ MonoBehaviour:
   Name: ZombieAttack
   RecoverFade: 0.2
   Segments:
-  - Clip: {fileID: 7400000, guid: ba4a038ef75f8284d868b052eb665be7, type: 3}
+  - Clip: {fileID: 7400000, guid: 346544daa36a8ed44a02562ef94438a8, type: 3}
     Fade: 0.1
     HoldDuration: 0
     CancelFromNorm: 1
     MoveCancelable: 0
-    TrackTarget: 0
+    TrackTarget: 1
     ForwardDistance: 0
     DistanceProfile:
       serializedVersion: 2
@@ -28,22 +28,10 @@ MonoBehaviour:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
-    HitWindows:
-    - StartNorm: 0
-      EndNorm: 1
-      Radius: 2
-      ForwardOffset: 0
-      Height: 1.5
-      Damage:
-        BaseDamage: 10
-        HitstopTier: 0
-        CritChance: 0
-        CritMultiplier: 0
-        Element: 0
-        AppliedBuffs: []
+    HitWindows: []
     Vfx: []
     Shake: []
-  - Clip: {fileID: 7400000, guid: 862dfc1fe4b9bae478dc65ca071342dc, type: 3}
+  - Clip: {fileID: 7400000, guid: 118a64668c547af49966bf8d99313112, type: 3}
     Fade: 0.05
     HoldDuration: 0.7
     CancelFromNorm: 1
@@ -70,13 +58,16 @@ MonoBehaviour:
         Element: 0
         AppliedBuffs: []
     Vfx: []
-    Shake: []
-  - Clip: {fileID: 7400000, guid: 17a048d96cd39924faa3168945c686ea, type: 3}
+    Shake:
+    - StartNorm: 0.15
+      Intensity: 0.15
+      Duration: 0.12
+  - Clip: {fileID: 7400000, guid: 1c6545cd82d4f214c928922d29d757b8, type: 3}
     Fade: 0.05
     HoldDuration: 0
     CancelFromNorm: 1
     MoveCancelable: 0
-    TrackTarget: 0
+    TrackTarget: 1
     ForwardDistance: 0
     DistanceProfile:
       serializedVersion: 2
@@ -84,18 +75,6 @@ MonoBehaviour:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
-    HitWindows:
-    - StartNorm: 0
-      EndNorm: 1
-      Radius: 2
-      ForwardOffset: 0
-      Height: 1
-      Damage:
-        BaseDamage: 13
-        HitstopTier: 0
-        CritChance: 0
-        CritMultiplier: 0
-        Element: 0
-        AppliedBuffs: []
+    HitWindows: []
     Vfx: []
     Shake: []

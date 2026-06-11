@@ -140,6 +140,13 @@ public class WeaponComponent : ICharacterComponent
             return;
         }
 
+        // 全身动作（技能 / 闪避，IsBusy）打断换弹：换弹动画走上身 Layer，技能/闪避起手会把上身层淡出截断动画，
+        // 但 Weapon 侧 ReloadComponent 的 timer 仍在后台跑、到点照样把弹补满——表现为"换弹被打断却仍换弹成功"。
+        // 这里把 currentWeapon.IsReloading 写回 false：ReloadComponent 下一 Tick 看到就跳过 timer（外部打断协议），
+        // 换弹作废，玩家需重新按 R 换弹。切枪打断 reload 已在 ApplySwap 单独处理，二者互补覆盖所有打断来源。
+        if (Owner.IsBusy && currentWeapon != null && currentWeapon.IsReloading)
+            currentWeapon.IsReloading = false;
+
         // 镜像 currentWeapon.IsReloading → Owner.IsReloading（view 动画门控）。
         // 上升沿（false→true）→ 一次性 Owner.Reload trigger，view 消费 SetTrigger("Reload")。
         bool currReloading = currentWeapon != null && currentWeapon.IsReloading;

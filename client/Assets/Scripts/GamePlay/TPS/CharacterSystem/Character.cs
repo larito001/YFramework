@@ -15,7 +15,9 @@ using UnityEngine;
 /// 已经下沉到 <see cref="Actor"/>。本类只持 Character 专属字段（动画 / 武器持有 / 瞄准）。
 /// 详见 ARCHITECTURE.md "字段归属" 小节。
 /// </summary>
-public class Character : Actor
+public class 
+    
+    Character : Actor
 {
     // ── 角色动画（MoveComponent 写，view 读取 BlendTree）──
     public float AnimMoveX;

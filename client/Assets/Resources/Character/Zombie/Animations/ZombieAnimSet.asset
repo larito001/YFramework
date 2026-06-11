@@ -17,9 +17,23 @@ MonoBehaviour:
   Run: {fileID: 7400000, guid: 266482df8b01a46429a51ee4e9530edf, type: 3}
   Sprint: {fileID: 0}
   IdleThreshold: 0
-  WalkThreshold: 0.5
+  WalkThreshold: 1.5
   RunThreshold: 4
   SprintThreshold: 6
+  AimIdle: {fileID: 0}
+  AimWalk: {fileID: 0}
+  AimWalkFwd: {fileID: 0}
+  AimWalkBwd: {fileID: 0}
+  AimStrafeLeft: {fileID: 0}
+  AimStrafeRight: {fileID: 0}
+  AimStrafeFL: {fileID: 0}
+  AimStrafeFR: {fileID: 0}
+  AimStrafeBL: {fileID: 0}
+  AimStrafeBR: {fileID: 0}
+  DodgeFwd: {fileID: 0}
+  DodgeBwd: {fileID: 0}
+  DodgeLeft: {fileID: 0}
+  DodgeRight: {fileID: 0}
   DeathL: {fileID: 7400000, guid: 288aefe4cd1133141a10bd8e8f8b12ce, type: 3}
   DeathR: {fileID: 7400000, guid: 264840593b7e20042bb0d89a47d40363, type: 3}
   UpperBodyMask: {fileID: 0}

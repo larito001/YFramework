@@ -121,6 +121,15 @@ public class SkillCastComponent : ICharacterComponent
         base.Detach();
     }
 
+    /// <summary>外部强制打断当前技能释放（如**闪避打断技能**）：立即结束本招、回 locomotion，清掉命中窗/动效/位移。
+    /// 无技能在放时无操作。注意：本方法**绕过取消窗**，是无条件硬打断（与连招的"取消窗内接招"不同）。
+    /// 打断方负责接管后续动画（如 DodgeComponent 紧接着 Play 闪避 clip）；为避免恢复淡入读到本招的 RecoverFade，
+    /// 不在此写 <see cref="Character.SkillRecoverFade"/>——EndCast 仍会写，故打断方应在调用后自行清零（见 DodgeComponent）。</summary>
+    public void Interrupt()
+    {
+        if (active != null) EndCast();
+    }
+
     /// <summary>释放第 index 个技能（指向 <see cref="SkillPaths"/>）。越界报 warning；其余门控见 <see cref="Cast(SkillDef)"/>。
     /// AI 走这条（OnCastSkill 订阅）；玩家连招走 <see cref="ComboComponent"/> → <see cref="Cast(SkillDef)"/>。</summary>
     public void Cast(int index)

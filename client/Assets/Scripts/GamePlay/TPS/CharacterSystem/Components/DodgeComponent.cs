@@ -11,7 +11,8 @@ using UnityEngine;
 ///     按 <see cref="DistanceProfile"/>（默认 ease-out：起步爆发、收尾刹车）在 <see cref="Duration"/> 内推完 <see cref="Distance"/> 米。
 ///   - **无敌帧**：[<see cref="InvulnStartNorm"/>, <see cref="InvulnEndNorm"/>] 段内置 <see cref="Actor.IsInvulnerable"/>，
 ///     <see cref="HealthComponent"/> 期间完全免伤。
-///   - **门控**：技能/闪避/切枪/死亡中拒绝；冷却中拒绝（二连冷却：第一下短 cd 接第二下、第二下长 cd，见 <see cref="ShortCooldown"/>/<see cref="LongCooldown"/>）。闪避途中 Move/Aim/Weapon 经
+///   - **门控**：闪避自身/切枪/死亡中拒绝；冷却中拒绝（二连冷却：第一下短 cd 接第二下、第二下长 cd，见 <see cref="ShortCooldown"/>/<see cref="LongCooldown"/>）。
+///     **技能中不拒绝——闪避会硬打断技能再起闪避（全局唯一的主动打断）**。闪避途中 Move/Aim/Weapon 经
 ///     <see cref="Character.IsBusy"/> 被锁（不移动/不转身/不开火），位移由本组件权威写。
 ///
 /// Add 顺序：必须在**输入组件之后**（Attach 里 Get），且在 <see cref="MoveComponent"/> **之后**、<see cref="GravityComponent"/>
@@ -96,13 +97,23 @@ public class DodgeComponent : ICharacterComponent
         base.Detach();
     }
 
-    /// <summary>触发一次闪避。门控：死亡 / 技能或闪避中（<see cref="Character.IsBusy"/>）/ 切枪中 / 冷却中 / 无 AnimSet → 静默忽略。</summary>
+    /// <summary>触发一次闪避。门控：死亡 / 闪避中 / 切枪中 / 冷却中 / 无 AnimSet → 静默忽略。
+    /// **闪避可打断技能**（唯一的主动打断关系）：正在释放技能时不拒绝，而是先硬打断技能再起闪避；
+    /// 闪避自身、切枪不可被打断（见 <see cref="Owner.IsDodging"/> / <see cref="Owner.IsSwapping"/> 门控）。</summary>
     public void Dodge()
     {
         if (Owner == null || Owner.IsDead) return;
-        if (Owner.IsBusy || Owner.IsSwapping) return;   // 技能 / 闪避 / 切枪中不闪避
-        if (cooldownTimer > 0f) return;                 // 冷却中
-        if (animSet == null) return;                    // 没动画不闪避
+        if (Owner.IsDodging || Owner.IsSwapping) return; // 闪避中 / 切枪中不闪避（这两者不可被闪避打断）
+        if (cooldownTimer > 0f) return;                  // 冷却中
+        if (animSet == null) return;                     // 没动画不闪避
+
+        // 闪避打断技能：正在放技能 → 先硬打断（清命中窗/动效/位移），再起闪避。
+        // 清掉技能写的 SkillRecoverFade，避免闪避结束恢复 locomotion 时误用技能的恢复淡入（应走 DodgeRecoverFade）。
+        if (Owner.IsCastingSkill)
+        {
+            Owner.Get<SkillCastComponent>()?.Interrupt();
+            Owner.SkillRecoverFade = 0f;
+        }
 
         // 朝向（水平）
         var fwd = Owner.Rotation * Vector3.forward; fwd.y = 0f;
