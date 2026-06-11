@@ -55,20 +55,17 @@ public abstract class LocomotionAnimController
     /// 解决"全身攻击 → 跑步"切换 DefaultFade 太短突兀。</summary>
     protected float overrideNextLocomotionFade;
 
-    // ──────────────────────────── Layer 0 状态机（YStateMachine） ────────────────────────────
+    // ──────────────────────────── Layer 0 状态机（YStateMachine<Character>） ────────────────────────────
     // 把原 DriveAnimation 的"死亡 > 技能 > 闪避 > Locomotion"优先级级联拆成 4 个互斥状态。
-    //   每帧 SelectBaseState 按 Character 意图字段决出**目标态**（纯选择，不切换），变了才 SwitchState；
-    //   状态自身 UpdateState 做逐帧工作（播 clip / 驱动 locomotion / 维持锁定）。
-    //   进出"全身覆盖"的 Layer 1 让位 / 恢复仍走原 EnterFullBodyOverride / RestoreUpperBodyAfterFullBody 钩子，
-    //   由各状态在合适时机调用——双层耦合关系与改造前完全一致。
-    private readonly AnimFsm baseFsm = new AnimFsm();
+    //   每帧 SelectBaseState 按 Character 意图字段决出**目标态**（纯选择，不切换），再无条件 Switch（幂等，仅变更时真正切换）；
+    //   状态自身 UpdateState 做逐帧工作（播 clip / 驱动 locomotion / 维持锁定）。Character 经 ctx 透传到每个回调。
+    //   进出"全身覆盖"的 Layer 1 让位 / 恢复仍走 EnterFullBodyOverride / RestoreUpperBodyAfterFullBody 钩子，由各状态在合适时机调用。
+    //   从全身覆盖回 Locomotion 的恢复判定用 baseFsm.Previous（来源态是 skillState / dodgeState）——按来源精确取恢复淡入，不再靠 flag + 字段猜测。
+    private readonly YStateMachine<Character> baseFsm = new YStateMachine<Character>();
     private LocomotionState locomotionState;
     private SkillState skillState;
     private DodgeState dodgeState;
     private DeathState deathState;
-    /// <summary>本帧 <see cref="DriveAnimation"/> 入口写入，供各状态 Enter/UpdateState 读取
-    /// （IYState 回调不透传 Character，用此字段共享当前帧角色）。</summary>
-    private Character curCharacter;
 
     // ────────────────────────── 分层契约（命名层访问器，替代 Layers[0]/[1] 魔法数字） ──────────────────────────
     //
@@ -97,12 +94,12 @@ public abstract class LocomotionAnimController
         this.resMgr = resMgr;
         LoadCharacterAnimSet(characterAnimSetPath);
 
-        // Layer 0 状态机：状态只持 controller 引用（嵌套类可访问其私有成员 + protected 钩子），运行时读 curCharacter
+        // Layer 0 状态机：状态只持 controller 引用（嵌套类可访问其私有成员 + protected 钩子），运行时 Character 经 ctx 透传
         locomotionState = new LocomotionState(this);
         skillState = new SkillState(this);
         dodgeState = new DodgeState(this);
         deathState = new DeathState(this);
-        baseFsm.ReSet();
+        baseFsm.Reset();
     }
 
     /// <summary>每帧驱动。<paramref name="effectiveTimeScale"/> = 全局缩放 × 本 actor 局部缩放
@@ -133,12 +130,11 @@ public abstract class LocomotionAnimController
         layer0FullBodyActive = false;
         useUpperBodyLayer = false;
         overrideNextLocomotionFade = 0f;
-        baseFsm.ReSet();
+        baseFsm.Reset();
         locomotionState = null;
         skillState = null;
         dodgeState = null;
         deathState = null;
-        curCharacter = null;
         resMgr = null;
         Animancer = null;
     }
@@ -285,16 +281,14 @@ public abstract class LocomotionAnimController
     /// 各状态内部再调战斗段（派生类）/ one-shot 生命周期 / Locomotion 钩子——与改造前同序同效。</summary>
     private void DriveAnimation(Character character)
     {
-        curCharacter = character;
-        var target = SelectBaseState(character);
-        if (baseFsm.Current != target) baseFsm.SwitchState(target, null);
-        baseFsm.Update(Time.unscaledDeltaTime * CurrentTimeScale);
+        baseFsm.Switch(SelectBaseState(character), character); // 幂等：仅目标态变更时真正切换
+        baseFsm.Update(character, Time.unscaledDeltaTime * CurrentTimeScale);
     }
 
     /// <summary>纯选择（不切换）：按优先级决出 Layer 0 目标态。
     /// 死亡 &gt; 技能（含进段一次性 <see cref="Character.SkillClipDirty"/>）&gt; 闪避 &gt; Locomotion。
     /// 用 IsCastingSkill/IsDodging 维持锁定，用 *ClipDirty 捕获"起手当帧"——两者任一为真即归属该全身态。</summary>
-    private IYState SelectBaseState(Character character)
+    private IYState<Character> SelectBaseState(Character character)
     {
         if (character.Die || character.IsDead) return deathState;
         if (character.IsCastingSkill || character.SkillClipDirty) return skillState;
@@ -305,23 +299,42 @@ public abstract class LocomotionAnimController
     /// <summary>供嵌套状态触发死亡事件（event 只能在声明类内 Invoke，嵌套类经此薄封装转发）。</summary>
     private void RaiseDeath() => OnDeathTriggered?.Invoke();
 
-    // ──────────────────────────── Layer 0 状态机：状态实现（嵌套私有类，可访问 controller 私有成员 + protected 钩子） ────────────────────────────
-
-    /// <summary>暴露 <see cref="YStateMachine.currentState"/> 给 selector 做引用比较（基类是 protected）。</summary>
-    private class AnimFsm : YStateMachine
+    /// <summary>进入 Layer 0 全身覆盖（死亡 / 技能 / 闪避 Enter 共用）：清当前 mixer 引用 + 置全身标志。
+    /// 标志的清除对称放在 <see cref="FullBodyClipState.ExitState"/>；死亡是终态、不退出，故标志恒真——正确。</summary>
+    private void BeginLayer0FullBody()
     {
-        public IYState Current => currentState;
+        currentLayer0Mixer = null;
+        layer0FullBodyActive = true;
     }
 
+    /// <summary>从全身覆盖（技能 / 闪避）切回 Locomotion 的一次性恢复：按来源态取恢复淡入、让 Layer 1 回常驻 base、清 one-shot。
+    /// 由 <see cref="LocomotionState.EnterState"/> 在 Previous∈{skill,dodge} 时调（死亡是终态不会回本态）。
+    /// <paramref name="prev"/> = 来源全身态，用来精确取恢复淡入（技能 SkillRecoverFade / 闪避 DodgeRecoverFade）。
+    /// 标志清除由来源态 Exit 负责，本方法只做"恢复"动作、不碰 layer0FullBodyActive。</summary>
+    private void RecoverToLocomotion(IYState<Character> prev, Character ch)
+    {
+        bool fromSkill = prev == skillState;
+        float def = GetDefaultFade();
+        float recoverFade = fromSkill ? ch.SkillRecoverFade : ch.DodgeRecoverFade;
+        if (recoverFade <= 0f) recoverFade = GetFullBodyRecoverFade(def);
+        ch.SkillRecoverFade = 0f;
+        ch.DodgeRecoverFade = 0f;
+        overrideNextLocomotionFade = recoverFade;
+        if (HasUpperBodyBasePose(ch)) RestoreUpperBodyAfterFullBody(ch, recoverFade); // 玩家：driver 把 Layer1 拉回 weight1 + 当帧重建 base
+        else if (HasUpperLayer) UpperLayer.StartFade(1f, recoverFade);
+        activeOneShotState = null;
+    }
+
+    // ──────────────────────────── Layer 0 状态机：状态实现（嵌套私有类，可访问 controller 私有成员 + protected 钩子） ────────────────────────────
+
     /// <summary>死亡态（终态）。仅 Die trigger 那一帧播 DeathL/R 全身覆盖 + 通知 view；之后纯 IsDead 保持不重播。</summary>
-    private sealed class DeathState : IYState
+    private sealed class DeathState : IYState<Character>
     {
         private readonly LocomotionAnimController c;
         public DeathState(LocomotionAnimController c) { this.c = c; }
         public string GetStateName() => "Death";
-        public void EnterState(YStateMachine m, object param)
+        public void EnterState(YStateMachine<Character> m, Character ch)
         {
-            var ch = c.curCharacter;
             if (ch.Die) // 真死那一帧才播放 + 通知；纯 IsDead 进入（已死态）静默
             {
                 ch.Die = false;
@@ -334,16 +347,15 @@ public abstract class LocomotionAnimController
                 c.EnterFullBodyOverride(0f, immediate: true); // Layer 1 立即让位
                 c.RaiseDeath();
             }
-            c.currentLayer0Mixer = null;
-            c.layer0FullBodyActive = true;
+            c.BeginLayer0FullBody();
         }
-        public void UpdateState(YStateMachine m, float dt) { } // 终态：保持死亡 pose
-        public void ExitState(YStateMachine m) { }
+        public void UpdateState(YStateMachine<Character> m, Character ch, float dt) { } // 终态：保持死亡 pose（不退出，layer0FullBodyActive 恒真）
+        public void ExitState(YStateMachine<Character> m, Character ch) { }
     }
 
     /// <summary>全身覆盖态基类（技能/闪避同机制）：Enter 置全身锁定标志，UpdateState 消费"进段/起手"clip 并全身 Play +
     /// 让 Layer 1 让位。退出（动作结束/被打断）由 <see cref="SelectBaseState"/> 决策切走，状态内部不自判退出。</summary>
-    private abstract class FullBodyClipState : IYState
+    private abstract class FullBodyClipState : IYState<Character>
     {
         protected readonly LocomotionAnimController c;
         protected FullBodyClipState(LocomotionAnimController c) { this.c = c; }
@@ -351,15 +363,13 @@ public abstract class LocomotionAnimController
         /// <summary>消费本动作的一次性 clip dirty；有新 clip 待播时给出 clip + fade（clip 可为 null=退化段，仅保持锁定）。</summary>
         protected abstract bool TryConsumeClip(Character ch, out AnimationClip clip, out float fade);
 
-        public void EnterState(YStateMachine m, object param)
+        public void EnterState(YStateMachine<Character> m, Character ch)
         {
-            c.layer0FullBodyActive = true;
-            c.currentLayer0Mixer = null;
+            c.BeginLayer0FullBody();
             // 起手 clip 不在此播：进入帧的 dirty 与后续进段统一在 UpdateState 消费（同一条路，避免双份逻辑）
         }
-        public void UpdateState(YStateMachine m, float dt)
+        public void UpdateState(YStateMachine<Character> m, Character ch, float dt)
         {
-            var ch = c.curCharacter;
             if (TryConsumeClip(ch, out var clip, out var f))
             {
                 if (clip != null)
@@ -372,7 +382,9 @@ public abstract class LocomotionAnimController
             }
             // 无新 clip：Animancer 继续播当前全身 clip，不驱动 combat / locomotion（与原"锁全身 return"一致）
         }
-        public void ExitState(YStateMachine m) { }
+        // 对称收尾：Enter 置全身标志、Exit 清——切回 Locomotion / 被更高优先级（死亡 / 互相抢占）切走时都正确复位。
+        // 恢复动作（Layer 1 回 base + 恢复淡入）另由 LocomotionState.Enter 按 Previous 处理，与本标志解耦。
+        public void ExitState(YStateMachine<Character> m, Character ch) => c.layer0FullBodyActive = false;
     }
 
     /// <summary>技能态：消费 SkillClipDirty（SkillCastComponent 进段写）。</summary>
@@ -407,37 +419,22 @@ public abstract class LocomotionAnimController
 
     /// <summary>Locomotion 态（默认态）。Enter：若由全身覆盖态切回，算恢复 fade + 让 Layer 1 回常驻 base pose。
     /// UpdateState：战斗段（派生类）→ one-shot 生命周期（退化路径）→ 上身常驻（upperBase）→ Locomotion always-on。</summary>
-    private sealed class LocomotionState : IYState
+    private sealed class LocomotionState : IYState<Character>
     {
         private readonly LocomotionAnimController c;
         public LocomotionState(LocomotionAnimController c) { this.c = c; }
         public string GetStateName() => "Locomotion";
 
-        public void EnterState(YStateMachine m, object param)
+        public void EnterState(YStateMachine<Character> m, Character ch)
         {
-            var ch = c.curCharacter;
-            // 从全身覆盖（技能/闪避）恢复（layer0FullBodyActive 仅全身态置真、本态清——故它即"刚退全身"的标记）。
-            // 死亡是终态不会进本态，所以此处不处理死亡恢复。
-            if (c.layer0FullBodyActive)
-            {
-                c.layer0FullBodyActive = false;
-                float def = c.GetDefaultFade();
-                // 恢复 fade：技能优先，其次闪避，最后默认。消费后清零两者（两类动作互斥，各自结束只写自己那个）。
-                float recoverFade = ch.SkillRecoverFade > 0f ? ch.SkillRecoverFade
-                                  : ch.DodgeRecoverFade > 0f ? ch.DodgeRecoverFade
-                                  : c.GetFullBodyRecoverFade(def);
-                ch.SkillRecoverFade = 0f;
-                ch.DodgeRecoverFade = 0f;
-                c.overrideNextLocomotionFade = recoverFade;
-                if (c.HasUpperBodyBasePose(ch)) c.RestoreUpperBodyAfterFullBody(ch, recoverFade); // 玩家：driver 把 Layer1 拉回 weight1 + 当帧重建 base
-                else if (c.HasUpperLayer) c.UpperLayer.StartFade(1f, recoverFade);
-                c.activeOneShotState = null;
-            }
+            // 从全身覆盖（技能/闪避）切回：用 Previous 判定来源态——死亡是终态、不会切回本态，故只可能从 skill/dodge 进来。
+            // 标志清除已对称放在来源态 Exit，本态只负责"恢复"动作（按来源精确取恢复淡入，不再读两个字段猜）。
+            if (m.Previous == c.skillState || m.Previous == c.dodgeState)
+                c.RecoverToLocomotion(m.Previous, ch);
         }
 
-        public void UpdateState(YStateMachine m, float dt)
+        public void UpdateState(YStateMachine<Character> m, Character ch, float dt)
         {
-            var ch = c.curCharacter;
             float fade = c.GetDefaultFade();
 
             // 战斗段（派生类武器 one-shot）。返回 true = 触发了全身 one-shot，本帧短路。
@@ -469,6 +466,6 @@ public abstract class LocomotionAnimController
             c.UpdateLocomotion(ch);
         }
 
-        public void ExitState(YStateMachine m) { }
+        public void ExitState(YStateMachine<Character> m, Character ch) { }
     }
 }

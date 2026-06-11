@@ -332,10 +332,11 @@ Unity Animator / Animancer / 自研 Playables
 ```
 LocomotionAnimController（基类，普通 class）
   通用层：Die + 技能全身分支（播 SkillClip）+ locomotion 1D mixer + 上下身 Layer/Mask + one-shot 生命周期
-  **双层状态机（YStateMachine）**：
+  **双层状态机（`YStateMachine<Character>`，引用判重 + 幂等切换，Character 经 ctx 透传）**：
     - Layer 0（全身）= baseFsm：Death / Skill / Dodge / Locomotion 四个互斥态。
       每帧 SelectBaseState 按优先级 Die > 技能(IsCastingSkill|SkillClipDirty) > 闪避(IsDodging|DodgeClipDirty) > Locomotion
-      决出目标态，变了才 SwitchState；进/退全身覆盖时调 EnterFullBodyOverride / RestoreUpperBodyAfterFullBody 钩子让 Layer 1 让位/恢复。
+      决出目标态，再无条件 `Switch`（幂等：仅变更时真正切换）；进/退全身覆盖时调 EnterFullBodyOverride / RestoreUpperBodyAfterFullBody 钩子让 Layer 1 让位/恢复。
+      从全身覆盖回 Locomotion 的恢复判定用 `baseFsm.Previous`（来源态 skillState / dodgeState），按来源精确取恢复淡入（SkillRecoverFade / DodgeRecoverFade）。
     - Layer 1（上身，玩家持武器）= UpperBodyLayerDriver 内部 FSM：Silent / Pose / OneShot 三态（见下）。
   virtual 钩子：PreDrive / DriveCombat / GetFullBodyRecoverFade / UpdateLocomotion / EnterFullBodyOverride / RestoreUpperBodyAfterFullBody / UpdateUpperBody
   ├─ CharacterAnimancerController（玩家）：武器/瞄准段——weaponAnimSet + Aim 2D mixer + Shoot/Reload/Equip/Holster
@@ -383,7 +384,7 @@ CharacterView.LateUpdate
   ├─ animController.Tick(character, scale)   ← 委托动画驱动（基类 LocomotionAnimController）
   │    ├─ PreDrive(character)                ← virtual，玩家在此按 WeaponAnimDirty 加载 WeaponAnimSet
   │    ├─ Animancer.Graph.Speed = scale（全局时间缩放）
-  │    └─ DriveAnimation：SelectBaseState 选 Layer 0 目标态 → baseFsm.SwitchState/Update
+  │    └─ DriveAnimation：SelectBaseState 选 Layer 0 目标态 → baseFsm.Switch（幂等）/Update
   │         Death态(播 DeathL/R 终态) / Skill态(消费 SkillClipDirty 播全身) / Dodge态(消费 DodgeClipDirty 播全身)
   │         / Locomotion态(DriveCombat(virtual) → 退化 one-shot 生命周期 / UpdateUpperBody → UpdateLocomotion(virtual))
   └─ Flash 闪烁 + Death 溶解 视觉反馈

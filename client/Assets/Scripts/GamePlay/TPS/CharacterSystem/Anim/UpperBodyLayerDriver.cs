@@ -26,13 +26,12 @@ public class UpperBodyLayerDriver
     private bool baseIsAiming;               // baseState 当前是 AimPose(true) 还是 IdleGunPose(false)
     private AnimancerState oneShotState;     // 叠在 base 上的 one-shot；null=无
     private bool fromZero;                   // 刚从 weight0 进入，base 首次 Play 用 EnterFade（否则 AimPoseFade）
-    private Character curCharacter;          // 本帧 Tick 写入，供状态 UpdateState 读取
 
     // ── Layer 1 状态机 ──
-    private readonly UpperFsm machine = new UpperFsm();
-    private readonly IYState silentMode;
-    private readonly IYState poseMode;
-    private readonly IYState oneShotMode;
+    private readonly YStateMachine<Character> machine = new YStateMachine<Character>();
+    private readonly IYState<Character> silentMode;
+    private readonly IYState<Character> poseMode;
+    private readonly IYState<Character> oneShotMode;
 
     /// <summary>正在常驻上身（Pose / OneShot 态）。controller 据此跳过退化 one-shot 生命周期、改走本驱动。</summary>
     public bool Active => machine.Current == poseMode || machine.Current == oneShotMode;
@@ -50,7 +49,7 @@ public class UpperBodyLayerDriver
         silentMode = new SilentState(this);
         poseMode = new PoseState(this);
         oneShotMode = new OneShotState(this);
-        machine.SwitchState(silentMode, null); // 初始 Silent
+        machine.Switch(silentMode); // 初始 Silent（Enter 不读 ctx，用无 ctx 重载）
     }
 
     /// <summary>切武器：只换上身集引用，不动 weight（weight 由 <see cref="SyncActivation"/> 处理）。</summary>
@@ -63,13 +62,13 @@ public class UpperBodyLayerDriver
         {
             layer.StartFade(1f, weapon.UpperBodyEnterFade);
             fromZero = true; baseState = null; oneShotState = null;
-            machine.SwitchState(poseMode, null);
+            machine.Switch(poseMode);
         }
         else if (!HasPose && Active)
         {
             layer.StartFade(0f, weapon != null ? weapon.UpperBodyExitFade : defaultFade);
             baseState = null; oneShotState = null; baseIsAiming = false;
-            machine.SwitchState(silentMode, null);
+            machine.Switch(silentMode);
         }
     }
 
@@ -80,7 +79,7 @@ public class UpperBodyLayerDriver
         if (immediate) layer.SetWeight(0f);
         else layer.StartFade(0f, fade);
         baseState = null; oneShotState = null; fromZero = false;
-        if (machine.Current != silentMode) machine.SwitchState(silentMode, null);
+        machine.Switch(silentMode); // 幂等：已是 Silent 则 no-op
     }
 
     /// <summary>技能结束从全身覆盖恢复：weight→1 + 进 Pose（下次 <see cref="Tick"/> 按当前 IsAiming 重建 base）。</summary>
@@ -89,14 +88,13 @@ public class UpperBodyLayerDriver
         if (!HasPose) return;
         layer.StartFade(1f, recoverFade);
         fromZero = false; baseState = null; oneShotState = null;
-        if (machine.Current != poseMode) machine.SwitchState(poseMode, null);
+        machine.Switch(poseMode); // 幂等：已是 Pose 则 no-op
     }
 
     /// <summary>每帧驱动：交给状态机。Silent 态不动；Pose/OneShot 态按状态逻辑维持 base / 叠 one-shot。</summary>
     public void Tick(Character character)
     {
-        curCharacter = character;
-        machine.Update(0f);
+        machine.Update(character, 0f);
     }
 
     public void Dispose()
@@ -106,8 +104,7 @@ public class UpperBodyLayerDriver
         oneShotState = null;
         baseIsAiming = false;
         fromZero = false;
-        curCharacter = null;
-        machine.ReSet();
+        machine.Reset();
     }
 
     // ──────────────────────────── 状态机内部驱动 ────────────────────────────
@@ -146,61 +143,53 @@ public class UpperBodyLayerDriver
         }
     }
 
-    /// <summary>暴露 <see cref="YStateMachine.currentState"/> 给本驱动做引用比较（基类是 protected）。</summary>
-    private class UpperFsm : YStateMachine
-    {
-        public IYState Current => currentState;
-    }
-
     /// <summary>静默态：weight 0、不驱动任何动画（等 SyncActivation/Restore 升起）。</summary>
-    private sealed class SilentState : IYState
+    private sealed class SilentState : IYState<Character>
     {
         private readonly UpperBodyLayerDriver d;
         public SilentState(UpperBodyLayerDriver d) { this.d = d; }
         public string GetStateName() => "Silent";
-        public void EnterState(YStateMachine m, object param) { }
-        public void UpdateState(YStateMachine m, float dt) { }
-        public void ExitState(YStateMachine m) { }
+        public void EnterState(YStateMachine<Character> m, Character ch) { }
+        public void UpdateState(YStateMachine<Character> m, Character ch, float dt) { }
+        public void ExitState(YStateMachine<Character> m, Character ch) { }
     }
 
     /// <summary>常驻 pose 态：有 combat trigger → 起 one-shot 并转 OneShot；否则维持/切换 base pose。</summary>
-    private sealed class PoseState : IYState
+    private sealed class PoseState : IYState<Character>
     {
         private readonly UpperBodyLayerDriver d;
         public PoseState(UpperBodyLayerDriver d) { this.d = d; }
         public string GetStateName() => "Pose";
-        public void EnterState(YStateMachine m, object param) { }
-        public void UpdateState(YStateMachine m, float dt)
+        public void EnterState(YStateMachine<Character> m, Character ch) { }
+        public void UpdateState(YStateMachine<Character> m, Character ch, float dt)
         {
-            var ch = d.curCharacter;
             // 先消费 trigger（与原逻辑同序：起 one-shot 的那帧不再驱动 base）
-            if (d.TryStartOneShot(ch)) { d.machine.SwitchState(d.oneShotMode, null); return; }
+            if (d.TryStartOneShot(ch)) { d.machine.Switch(d.oneShotMode, ch); return; }
             d.DriveBase(ch);
         }
-        public void ExitState(YStateMachine m) { }
+        public void ExitState(YStateMachine<Character> m, Character ch) { }
     }
 
     /// <summary>one-shot 态：新 trigger 替换式重播（留本态）；当前 one-shot 播完 → 清空回 Pose（base 用 crossfade 重建）。</summary>
-    private sealed class OneShotState : IYState
+    private sealed class OneShotState : IYState<Character>
     {
         private readonly UpperBodyLayerDriver d;
         public OneShotState(UpperBodyLayerDriver d) { this.d = d; }
         public string GetStateName() => "OneShot";
-        public void EnterState(YStateMachine m, object param) { }
-        public void UpdateState(YStateMachine m, float dt)
+        public void EnterState(YStateMachine<Character> m, Character ch) { }
+        public void UpdateState(YStateMachine<Character> m, Character ch, float dt)
         {
-            var ch = d.curCharacter;
             if (d.TryStartOneShot(ch)) return; // 新 trigger 替换当前 one-shot，留在本态
             var s = d.oneShotState;
             if (s == null || !s.IsPlaying || s.NormalizedTime >= 1f)
             {
                 d.oneShotState = null;
                 d.baseState = null; // fromZero 保持 false → 回 base 用 AimPoseFade crossfade
-                d.machine.SwitchState(d.poseMode, null);
+                d.machine.Switch(d.poseMode, ch);
                 d.DriveBase(ch);    // 同帧重建 base（与原 DriveOneShot 完成即 DriveBase 同序，避免迟一帧）
             }
         }
-        public void ExitState(YStateMachine m) { }
+        public void ExitState(YStateMachine<Character> m, Character ch) { }
     }
 
     /// <summary>按优先级 Holster &gt; Equip &gt; Reload &gt; Shoot 消费一个 combat trigger（常驻模式与 controller 退化路径共用，保证单一消费方、优先级一致）。
