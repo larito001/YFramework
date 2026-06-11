@@ -329,11 +329,11 @@ public class SkillCastComponent : ICharacterComponent
         firedShake.Clear();
         StopAllAttachedVfx();
         var seg = active.Segments[i];
-        segDuration = seg.HoldDuration > 0f ? seg.HoldDuration : (seg.Clip != null ? seg.Clip.length : 0f);
+        segDuration = seg.Duration; // 显式段时长——不再读 clip.length（逻辑层与 AnimationClip 解耦）；用 Tools/TPS/Backfill 回填现有资产
         if (segDuration <= 0f)
-            Debug.LogWarning($"[SkillCastComponent] 技能 \"{active.Name}\" 第 {i} 段无 clip 且 HoldDuration<=0，本段被跳过（不会播放/命中/位移）。");
-        // 交 clip 给动画 controller（经全身通道，FullBodyDriver 消费播放）
-        Owner.SetFullBodyClip(seg.Clip, seg.Fade);
+            Debug.LogWarning($"[SkillCastComponent] 技能 \"{active.Name}\" 第 {i} 段 Duration<=0，本段被跳过（不播/不命中/不位移）。在 SkillDef Inspector 填 Duration 或跑 Backfill。");
+        // 交**段意图**给动画 controller（经全身通道，FullBodyDriver 读 def.Segments[i].Clip 解析播放——本组件不碰 AnimationClip）
+        Owner.SetFullBodySkillSegment(active, i, seg.Fade);
     }
 
     /// <summary>技能正常结束（播完 / 死亡）：释放全身通道 + 复位水平意图 + 清自身时间线状态。</summary>

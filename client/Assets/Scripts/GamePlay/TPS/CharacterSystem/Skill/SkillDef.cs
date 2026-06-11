@@ -37,9 +37,9 @@ public class SkillDef : ScriptableObject
             var seg = Segments[s];
             if (seg == null) continue;
 
-            // 退化段：无 clip 且无 HoldDuration → 运行时 segDuration<=0 被跳过（不播 / 不命中 / 不位移）
-            if (seg.Clip == null && seg.HoldDuration <= 0f)
-                Debug.LogWarning($"[SkillDef:{name}] 第 {s} 段无 Clip 且 HoldDuration<=0，运行时会被跳过。", this);
+            // 退化段：Duration<=0 → 运行时 segDuration<=0 被跳过（不播 / 不命中 / 不位移）
+            if (seg.Duration <= 0f)
+                Debug.LogWarning($"[SkillDef:{name}] 第 {s} 段 Duration<=0，运行时会被跳过。填 Duration（= clip 时长）或跑菜单 Tools/TPS/Backfill SkillDef Durations。", this);
 
             // 命中窗自检 + 记录最大 EndNorm（给取消窗契约用）
             float maxHitEnd = 0f;

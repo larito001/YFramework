@@ -32,8 +32,8 @@ public class
     public bool IsAiming;
 
     // ── 全身互斥动作统一通道（技能 / 闪避 / 未来受击共用，取代旧 Skill*/Dodge* 两套并行字段，见 FullBodyKind / FullBodyRequest）──
-    //   写入：SkillCastComponent / DodgeComponent 等逻辑组件 → RequestFullBody / SetFullBodyClip / EndFullBody
-    //   读取：动画层 LocomotionAnimController（kind-agnostic 播 FullBody.Clip）；gating 经下方 IsCastingSkill/IsDodging/IsBusy 计算属性
+    //   写入：SkillCastComponent / DodgeComponent 等逻辑组件 → RequestFullBody（占通道）+ SetFullBodyDodge / SetFullBodySkillSegment（发意图，不传 clip）+ EndFullBody
+    //   读取：动画层 FullBodyDriver 按 Kind 解析 clip 播放；gating 经下方 IsCastingSkill/IsDodging/IsBusy 计算属性
     public FullBodyRequest FullBody;
 
     /// <summary>正在释放技能（= 全身通道被技能占用）。gating + 动画兼容属性，所有旧读取点不变。</summary>
@@ -47,7 +47,7 @@ public class
     public bool IsBusy => FullBody.Kind != FullBodyKind.None;
 
     /// <summary>请求占用全身通道（起手）。**集中优先级仲裁**：已有更高优先级动作占用时返回 false（如技能想盖闪避）；
-    /// 同动作再请求（连招接段）幂等。clip 由随后的 <see cref="SetFullBodyClip"/> 设。
+    /// 同动作再请求（连招接段）幂等。意图由随后的 <see cref="SetFullBodyDodge"/> / <see cref="SetFullBodySkillSegment"/> 设。
     /// 优先级方向见 <see cref="FullBodyKind"/>：**声明越靠前 = 优先级越高**，故"靠后（int 更大）= 优先级更低"，被拒。</summary>
     public bool RequestFullBody(FullBodyKind kind)
     {
@@ -57,20 +57,30 @@ public class
         return true;
     }
 
-    /// <summary>设当前要播的全身 clip（起手 / 技能进段）。置一次性 <see cref="FullBodyRequest.ClipDirty"/>，动画层 Play 后清回。</summary>
-    public void SetFullBodyClip(AnimationClip clip, float clipFade)
+    /// <summary>闪避起手：设方向意图（clip 由 <see cref="FullBodyDriver"/> 按方向从 CharacterAnimSet 解析）。置一次性 ClipDirty。</summary>
+    public void SetFullBodyDodge(DodgeDir dir, float clipFade)
     {
-        FullBody.Clip = clip;
+        FullBody.Variant = (int)dir;
+        FullBody.Skill = null;
+        FullBody.ClipFade = clipFade;
+        FullBody.ClipDirty = true;
+    }
+
+    /// <summary>技能起手 / 进段：设技能段意图（clip 由 <see cref="FullBodyDriver"/> 读 <c>def.Segments[seg].Clip</c> 解析）。置一次性 ClipDirty。</summary>
+    public void SetFullBodySkillSegment(SkillDef def, int seg, float clipFade)
+    {
+        FullBody.Skill = def;
+        FullBody.SkillSegment = seg;
         FullBody.ClipFade = clipFade;
         FullBody.ClipDirty = true;
     }
 
     /// <summary>释放全身通道（动作结束 / 被打断）+ 记录恢复淡入（LocomotionState 恢复时消费）。
-    /// 清 ClipDirty 避免动画层那帧误判仍在全身态、慢一帧才让位。</summary>
+    /// 清 ClipDirty 避免动画层那帧误判仍在全身态、慢一帧才让位；清 Skill 引用避免悬挂。</summary>
     public void EndFullBody(float recoverFade)
     {
         FullBody.Kind = FullBodyKind.None;
-        FullBody.Clip = null;
+        FullBody.Skill = null;
         FullBody.ClipDirty = false;
         FullBody.RecoverFade = recoverFade;
     }

@@ -2,11 +2,12 @@ using UnityEngine;
 
 /// <summary>
 /// **闪避组件**（玩家近战手感核心，纯逻辑）：按移动意图做一次**带无敌帧的方向翻滚/闪身**。
-/// 与 <see cref="SkillCastComponent"/> 并列、共用同一套"全身覆盖"动画机制，但更轻量——不走技能/连招的资产编排，
-/// 方向 clip 直接来自角色级 <see cref="CharacterAnimSet"/>（DodgeFwd/Bwd/Left/Right），运行时按方向挑一张：
+/// 与 <see cref="SkillCastComponent"/> 并列、共用同一套"全身覆盖"动画机制，但更轻量——不走技能/连招的资产编排。
+/// **纯逻辑、不碰 AnimationClip**：本组件只算**方向意图**（<see cref="DodgeDir"/>）发给全身通道，clip 由 <see cref="FullBodyDriver"/>
+/// 按方向从角色级 <see cref="CharacterAnimSet"/>（DodgeFwd/Bwd/Left/Right）解析（含缺向兜底）。
 ///   - **触发**：订阅 <see cref="InputComponentBase.OnDodge"/>（玩家空格；AI 可在行为树 RaiseDodge 躲技能）。
 ///   - **方向**：取输入组件的世界移动意图 <see cref="InputComponentBase.MoveWorld"/>；无输入 → 后撤步（角色背向）。
-///     方向相对当前朝向分解，选 4 向 clip；角色朝向**不变**（用 clip + 世界向位移表达闪避方向，不转身）。
+///     方向相对当前朝向分解，选 4 向意图；角色朝向**不变**（用 clip + 世界向位移表达闪避方向，不转身）。
 ///   - **位移**：沿世界闪避向写 <see cref="Character.WishVelocity"/> 的 x/z（y 留给 <see cref="GravityComponent"/>），
 ///     按 <see cref="DistanceProfile"/>（默认 ease-out：起步爆发、收尾刹车）在 <see cref="Duration"/> 内推完 <see cref="Distance"/> 米。
 ///   - **无敌帧**：[<see cref="InvulnStartNorm"/>, <see cref="InvulnEndNorm"/>] 段内置 <see cref="Actor.IsInvulnerable"/>，
@@ -50,8 +51,6 @@ public class DodgeComponent : ICharacterComponent
     public float InvulnEndNorm = 0.6f;
 
     private InputComponentBase input;
-    private YOTO.ResMgr resMgr;
-    private CharacterAnimSet animSet;   // 与 controller 共享同一 Resources 资产（按 CurrentCharacterAnimSetPath 加载，Resources 缓存）
 
     // ── runtime ──
     private bool active;
@@ -65,16 +64,10 @@ public class DodgeComponent : ICharacterComponent
     public override void Attach(Character owner)
     {
         base.Attach(owner);
-        Ctx?.TryGet(out resMgr);
         input = owner.Get<InputComponentBase>();
         if (input != null) input.OnDodge += Dodge;
         else Debug.LogWarning("[DodgeComponent] 找不到 InputComponentBase —— 闪避不会触发。需在输入组件之后 Add。");
-
-        // 方向 clip 来自角色级 CharacterAnimSet（与动画 controller 同一份资产，Resources.Load 缓存，加载两次无额外开销）
-        if (resMgr != null && !string.IsNullOrEmpty(owner.CurrentCharacterAnimSetPath))
-            animSet = resMgr.Load<CharacterAnimSet>(owner.CurrentCharacterAnimSetPath);
-        if (animSet == null)
-            Debug.LogWarning($"[DodgeComponent] CharacterAnimSet 加载失败: {owner.CurrentCharacterAnimSetPath} —— 闪避无动画。");
+        // 方向 clip 不再在此加载——本组件只发方向意图，FullBodyDriver 按方向从 CharacterAnimSet 解析 clip（逻辑层不碰动画资产）
     }
 
     public override void Detach()
@@ -89,12 +82,10 @@ public class DodgeComponent : ICharacterComponent
         }
         active = false;
         input = null;
-        resMgr = null;
-        animSet = null;
         base.Detach();
     }
 
-    /// <summary>触发一次闪避。门控：死亡 / 闪避中 / 切枪中 / 冷却中 / 无 AnimSet → 静默忽略。
+    /// <summary>触发一次闪避。门控：死亡 / 闪避中 / 切枪中 / 冷却中 → 静默忽略（无 dodge clip 也照闪，只是无动画——gameplay 不依赖动画）。
     /// **闪避可打断技能**：靠 FullBodyKind 优先级（Dodge 最高）——`RequestFullBody(Dodge)` 占走通道即完成打断，技能自检后中止，无需显式调它；
     /// 闪避自身、切枪不可被打断（见 <see cref="Owner.IsDodging"/> / <see cref="Owner.IsSwapping"/> 门控）。</summary>
     public void Dodge()
@@ -102,7 +93,6 @@ public class DodgeComponent : ICharacterComponent
         if (Owner == null || Owner.IsDead) return;
         if (Owner.IsDodging || Owner.IsSwapping) return; // 闪避中 / 切枪中不闪避（这两者不可被闪避打断）
         if (cooldownTimer > 0f) return;                  // 冷却中
-        if (animSet == null) return;                     // 没动画不闪避
 
         // 朝向（水平）
         var fwd = Owner.Rotation * Vector3.forward; fwd.y = 0f;
@@ -111,16 +101,13 @@ public class DodgeComponent : ICharacterComponent
         var move = input != null ? input.MoveWorld : Vector3.zero; move.y = 0f;
         Vector3 worldDir = move.sqrMagnitude > 0.01f ? move.normalized : -fwd;
 
-        // 相对朝向分解（local.z=前后, local.x=左右）→ 选 4 向 clip
+        // 相对朝向分解（local.z=前后, local.x=左右）→ 选方向意图（clip 由 FullBodyDriver 按方向解析，本组件不碰 AnimationClip / CharacterAnimSet）
         var local = Quaternion.Inverse(Owner.Rotation) * worldDir;
-        AnimationClip clip;
+        DodgeDir dir;
         if (Mathf.Abs(local.z) >= Mathf.Abs(local.x))
-            clip = local.z >= 0f ? animSet.DodgeFwd : animSet.DodgeBwd;
+            dir = local.z >= 0f ? DodgeDir.Fwd : DodgeDir.Bwd;
         else
-            clip = local.x >= 0f ? animSet.DodgeRight : animSet.DodgeLeft;
-        // 兜底（缺某向 clip）：用 == null（Unity 重载）而非 ?? ——避免 fake-null 取到已销毁引用
-        if (clip == null) clip = animSet.DodgeBwd;
-        if (clip == null) clip = animSet.DodgeFwd;
+            dir = local.x >= 0f ? DodgeDir.Right : DodgeDir.Left;
 
         // 占用全身通道：闪避在 FullBodyKind 里优先级最高，正常必成功；被更高优先级占用则放弃（护栏，谁能起手由优先级说了算）。
         // 占走通道即"打断"了技能/受击——被抢方在各自 Tick 里自检 FullBody.Kind != 自己 → 自行中止，无需在此显式调它们的打断。
@@ -144,7 +131,7 @@ public class DodgeComponent : ICharacterComponent
             comboPending = true;
             comboResetTimer = ComboResetWindow;
         }
-        Owner.SetFullBodyClip(clip, EnterFade);
+        Owner.SetFullBodyDodge(dir, EnterFade);
     }
 
     public override void Tick(float dt)

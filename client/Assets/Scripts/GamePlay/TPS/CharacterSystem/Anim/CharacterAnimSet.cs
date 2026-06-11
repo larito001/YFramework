@@ -74,4 +74,22 @@ public class CharacterAnimSet : ScriptableObject
     [Header("Fade")]
     [Tooltip("Locomotion 之间切换 / 触发 state 进入的淡入时长")]
     public float DefaultFade = 0.1f;
+
+    /// <summary>按方向取闪避 clip，带缺失兜底（缺某向 → DodgeBwd → DodgeFwd）。
+    /// FullBodyDriver 解析闪避意图时调——把原先散在 DodgeComponent 的"选向 + 兜底"逻辑收到资产侧，逻辑层不再碰 clip。
+    /// 用 <c>== null</c>（Unity 重载）而非 ?? ——避免 fake-null 取到已销毁引用。</summary>
+    public AnimationClip GetDodgeClip(DodgeDir dir)
+    {
+        AnimationClip clip = dir switch
+        {
+            DodgeDir.Fwd => DodgeFwd,
+            DodgeDir.Bwd => DodgeBwd,
+            DodgeDir.Left => DodgeLeft,
+            DodgeDir.Right => DodgeRight,
+            _ => DodgeBwd,
+        };
+        if (clip == null) clip = DodgeBwd;
+        if (clip == null) clip = DodgeFwd;
+        return clip;
+    }
 }

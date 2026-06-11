@@ -319,6 +319,7 @@ public abstract class LocomotionAnimController : IFullBodyHost
 
     // ────────────────────────── IFullBodyHost：给 FullBodyDriver 借的最小表面（Layer 0 与 Death/Locomotion 共享 BaseLayer 的代价；显式实现不 widen 公有面） ──────────────────────────
     AnimancerLayer IFullBodyHost.BaseLayer => BaseLayer;
+    CharacterAnimSet IFullBodyHost.AnimSet => characterAnimSet;
     float IFullBodyHost.DefaultFade => GetDefaultFade();
     AnimancerState IFullBodyHost.ActiveOneShot { get => activeOneShotState; set => activeOneShotState = value; }
     void IFullBodyHost.SilenceUpper(float fade, bool immediate) => EnterFullBodyOverride(fade, immediate);

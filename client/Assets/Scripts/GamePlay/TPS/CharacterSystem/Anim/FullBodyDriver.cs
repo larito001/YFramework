@@ -39,10 +39,25 @@ public class FullBodyDriver : IYState<Character>
     // 恢复动作（Layer 1 回 base + 恢复淡入）另由 controller 在回 Locomotion 时处理，与本标志解耦。
     public void ExitState(YStateMachine<Character> m, Character ch) => host.OnFullBodyExit();
 
-    /// <summary>把 <see cref="Character.FullBody"/> 意图解析成要播的 clip。
-    /// **Phase 1**：直接取通道里的 Clip（行为不变）。**Phase 2** 改成按 Kind 解析
-    /// （Dodge 方向→host.AnimSet / Skill 段→SkillDef），逻辑层从此不传 clip。</summary>
-    private AnimationClip ResolveClip(Character ch) => ch.FullBody.Clip;
+    /// <summary>把 <see cref="Character.FullBody"/> **意图**解析成要播的 clip——逻辑层只发 kind + 方向 / 技能段，clip 提取全在此（view 层）。
+    /// 加新全身动作：在此 switch 加一个 case（像上半身的 TryConsumeCombatTrigger）。clip 缺失返 null = 退化段（仅锁定不播）。</summary>
+    private AnimationClip ResolveClip(Character ch)
+    {
+        switch (ch.FullBody.Kind)
+        {
+            case FullBodyKind.Dodge:
+                return host.AnimSet != null ? host.AnimSet.GetDodgeClip((DodgeDir)ch.FullBody.Variant) : null;
+            case FullBodyKind.Skill:
+            {
+                var segs = ch.FullBody.Skill != null ? ch.FullBody.Skill.Segments : null;
+                int i = ch.FullBody.SkillSegment;
+                return (segs != null && i >= 0 && i < segs.Length && segs[i] != null) ? segs[i].Clip : null;
+            }
+            // 将来 HitReact：return host.AnimSet != null ? host.AnimSet.HitReact : null;
+            default:
+                return null;
+        }
+    }
 }
 
 /// <summary>controller 暴露给 <see cref="FullBodyDriver"/> 的最小表面——Layer 0 与 Death/Locomotion 共享 BaseLayer 的代价。
@@ -51,6 +66,8 @@ public interface IFullBodyHost
 {
     /// <summary>Layer 0（全身覆盖播在这）。</summary>
     AnimancerLayer BaseLayer { get; }
+    /// <summary>角色级动画集（FullBodyDriver 解析闪避方向 clip / 将来受击 clip 用）。</summary>
+    CharacterAnimSet AnimSet { get; }
     /// <summary>CharacterAnimSet.DefaultFade。</summary>
     float DefaultFade { get; }
     /// <summary>当前 Layer 0 one-shot 槽（= controller.activeOneShotState，与 Death / Locomotion 共享）。</summary>
