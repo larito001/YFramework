@@ -38,7 +38,7 @@ public class CharacterView : BaseView
     private FlyTextMgr flyTextMgr;
     private ResMgr resMgr;
     private TimeScaleService timeScaleService;
-    private LocomotionAnimController animController;
+    private AnimConductor animController;
 
     private Renderer[] flashRenderers;
     private MaterialPropertyBlock flashMpb;
@@ -78,7 +78,7 @@ public class CharacterView : BaseView
     /// <summary>创建本 view 用的动画驱动器。玩家用 <see cref="CharacterAnimancerController"/>（武器+瞄准）；
     /// 僵尸 view（<see cref="ZombieView"/>）override 返回 <see cref="ZombieAnimancerController"/>（技能链）。
     /// 在 Awake 调用，此时序列化字段已就绪。</summary>
-    protected virtual LocomotionAnimController CreateController()
+    protected virtual AnimConductor CreateController()
         => new CharacterAnimancerController { AnimMoveDampTime = AnimMoveDampTime };
 
     public override void Bind(Actor actor, int id)

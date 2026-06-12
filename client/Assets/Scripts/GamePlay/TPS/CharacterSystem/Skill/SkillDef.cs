@@ -6,7 +6,7 @@ using UnityEngine;
 /// 可配置前向位移 + 可配置命中窗（伤害）。玩家近战、僵尸攻击/飞扑等所有"全身不可打断战斗动作"都用它表达。
 ///
 /// 由 <see cref="SkillCastComponent"/>（逻辑侧）驱动：组件 owns 时间线 + 命中窗 OverlapSphere 扣血 + 位移（写 WishVelocity）+
-/// 锁定（IsCastingSkill），并把当前段 clip 交给动画 controller（<see cref="LocomotionAnimController"/> 的技能全身分支）播放。
+/// 锁定（IsCastingSkill），并把当前段 clip 交给动画 controller（<see cref="AnimConductor"/> 的技能全身分支）播放。
 ///
 /// **使用流程**（美工/策划，纯 Inspector 编辑）：
 ///   1. Create → TPS → SkillDef，放 Resources 下（如 Resources/Character/Player/Skills/PlayerMelee.asset）
@@ -37,9 +37,17 @@ public class SkillDef : ScriptableObject
             var seg = Segments[s];
             if (seg == null) continue;
 
-            // 退化段：Duration<=0 → 运行时 segDuration<=0 被跳过（不播 / 不命中 / 不位移）
+            // 自动填 Duration：拖了 Clip（或设了 HoldDuration 循环）但 Duration 没填 → 自动 = HoldDuration 或 clip.length，省手填。
+            // 只在 Duration<=0 时填（不覆盖手动值）；想按换的新 clip 重填，把 Duration 清 0 即可（或跑 Backfill 菜单）。
             if (seg.Duration <= 0f)
-                Debug.LogWarning($"[SkillDef:{name}] 第 {s} 段 Duration<=0，运行时会被跳过。填 Duration（= clip 时长）或跑菜单 Tools/TPS/Backfill SkillDef Durations。", this);
+            {
+                float auto = seg.HoldDuration > 0f ? seg.HoldDuration : (seg.Clip != null ? seg.Clip.length : 0f);
+                if (auto > 0f) seg.Duration = auto;
+            }
+
+            // 仍 <=0（无 Clip 且无 HoldDuration）才是真退化段：运行时 segDuration<=0 被跳过（不播 / 不命中 / 不位移）
+            if (seg.Duration <= 0f)
+                Debug.LogWarning($"[SkillDef:{name}] 第 {s} 段无 Clip 且 HoldDuration<=0，Duration 填不出来，运行时会被跳过。", this);
 
             // 命中窗自检 + 记录最大 EndNorm（给取消窗契约用）
             float maxHitEnd = 0f;
@@ -79,7 +87,7 @@ public class SkillDef : ScriptableObject
         public float Fade;
         [Tooltip("本段持续策略：0=播到 clip 自然结束（按 clip.length）；>0=循环该 clip 这么多秒再进下一段（循环段的 clip 需在 import 设为 Loop）")]
         public float HoldDuration;
-        [Tooltip("本段总时长（秒）——段内归一化时间 n 的分母，命中窗 / 位移 / VFX 都按它算。\n运行时直接用此值、**不再读 clip.length**（让逻辑层 SkillCastComponent 与动画 AnimationClip 解耦：clip 提取移到 view 的 FullBodyDriver）。\n菜单 Tools/TPS/Backfill SkillDef Durations 可一键回填 = HoldDuration 或 clip.length；新建段务必手填，否则运行时该段被跳过。")]
+        [Tooltip("本段总时长（秒）——段内归一化时间 n 的分母，命中窗 / 位移 / VFX 都按它算。\n运行时直接用此值、**不再读 clip.length**（让逻辑层 SkillCastComponent 与动画 AnimationClip 解耦：clip 提取移到 view 的 FullBodyDriver）。\n**留 0 时 OnValidate 自动按 clip 时长（或 HoldDuration）填**；想按换的新 clip 重填就清 0。批量回填见菜单 Tools/TPS/Backfill SkillDef Durations。")]
         public float Duration;
         [Tooltip("取消窗开启的归一化时间 [0,1]：到此之后可被【再次攻击】打断接下一招（连招）。1 或 0=不开取消窗(默认，后摇不可取消)。必须 ≥ 本段所有 HitWindow.EndNorm，否则连招会吃掉命中。例：命中在 0.45 结束，填 0.5 让 0.5 之后可被连招打断。")]
         public float CancelFromNorm = 1f;

@@ -7,5 +7,5 @@
 /// </summary>
 public class ZombieView : CharacterView
 {
-    protected override LocomotionAnimController CreateController() => new ZombieAnimancerController();
+    protected override AnimConductor CreateController() => new ZombieAnimancerController();
 }

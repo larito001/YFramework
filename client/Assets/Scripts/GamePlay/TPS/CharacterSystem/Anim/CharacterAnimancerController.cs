@@ -1,31 +1,19 @@
-using Animancer;
 using UnityEngine;
 
 /// <summary>
-/// **玩家**动画驱动器。继承 <see cref="LocomotionAnimController"/>（locomotion / death / 分层 / 技能全身覆盖），
-/// 在此实现**武器 + 瞄准**的三段式分层：
+/// **玩家**动画驱动器。继承 <see cref="AnimConductor"/>（locomotion / death / 分层 / 技能全身覆盖），
+/// 在此实现**武器上身**分层（下身 locomotion 含瞄准 2D strafe 已上移到基类 <see cref="LocomotionDriver"/>，本类不再管下身）：
 ///   - <see cref="WeaponAnimSet"/> 加载（**仅上身** combat/持枪 pose 跟武器走，切枪时换；Tick 里轮询 character.CurrentWeaponAnimSetPath 变化自治加载）
-///   - **下身（Layer 0）**：瞄准时 2D Cartesian mixer（8 方向 strafe，**clip 来自角色级 CharacterAnimSet**，OnCharacterAnimSetLoaded 时 build 一次、切枪不重建；带 SmoothDamp 平滑），非瞄准回退基类 1D locomotion
 ///   - **上身（Layer 1 mask）**：**全部委托给 <see cref="UpperBodyLayerDriver"/>**——持武器常驻持枪/瞄准 pose + 换弹/后坐力/拿出/收回 one-shot。
 ///     本类的上身钩子（HasUpperBodyBasePose / UpdateUpperBody / EnterFullBodyOverride / RestoreUpperBodyAfterFullBody）都是转发给 driver 的薄封装。
 ///   - 武器未配任一持枪 pose 时 driver 不接管，退化为旧式 Layer 1 one-shot（播完淡出整层，基类 3c）。
 ///
 /// 全身覆盖（Die / 技能）在基类；进出全身覆盖经 EnterFullBodyOverride / RestoreUpperBodyAfterFullBody 钩子，由 driver 干净接管上身常驻。
 /// </summary>
-public class CharacterAnimancerController : LocomotionAnimController
+public class CharacterAnimancerController : AnimConductor
 {
-    /// <summary>Aim mixer ParameterX/Y 的 SmoothDamp 时间。MoveComponent 转向瞬切，没 damp 会导致 mixer 9 child 权重瞬变硬切。</summary>
-    public float AnimMoveDampTime = 0.1f;
-
     // ── WeaponAnimSet（跟武器走）──
     private WeaponAnimSet weaponAnimSet;
-    private CartesianMixerState aimLocomotionMixer; // 瞄准 8 方向（用 weaponAnimSet 的 clip）
-
-    // Aim mixer SmoothDamp
-    private float smoothedAnimMoveX;
-    private float smoothedAnimMoveY;
-    private float smoothMoveXVel;
-    private float smoothMoveYVel;
 
     // ── 上身层驱动（Layer 1 的全部持武器逻辑收口在这里；仅 useUpperBodyLayer 时 new 出来）──
     private UpperBodyLayerDriver upperBody;
@@ -37,12 +25,7 @@ public class CharacterAnimancerController : LocomotionAnimController
     public override void Dispose()
     {
         weaponAnimSet = null;
-        aimLocomotionMixer = null;
         loadedWeaponAnimSetPath = null;
-        smoothedAnimMoveX = 0f;
-        smoothedAnimMoveY = 0f;
-        smoothMoveXVel = 0f;
-        smoothMoveYVel = 0f;
         upperBody?.Dispose();
         upperBody = null;
         base.Dispose();
@@ -111,43 +94,11 @@ public class CharacterAnimancerController : LocomotionAnimController
         return false;
     }
 
-    /// <summary>瞄准时下身用角色级 2D Cartesian strafe mixer（SmoothDamp 平滑）；否则回退基类 1D locomotion。均在 Layer 0。</summary>
-    protected override void UpdateLocomotion(Character character)
-    {
-        if (character.IsAiming && aimLocomotionMixer != null)
-        {
-            float fade = overrideNextLocomotionFade > 0f ? overrideNextLocomotionFade : GetDefaultFade();
-            if (currentLayer0Mixer != aimLocomotionMixer)
-            {
-                BaseLayer.Play(aimLocomotionMixer, fade);
-                currentLayer0Mixer = aimLocomotionMixer;
-                overrideNextLocomotionFade = 0f;
-            }
-            // dt<=0 时**跳过** SmoothDamp：Unity 的 Mathf.SmoothDamp 在"已 settle（current==target）"那一帧会走 overshoot 分支
-            // 执行 (output-target)/deltaTime，deltaTime==0 → 0/0 = NaN，把 ref 速度 smoothMove*Vel 永久污染成 NaN，
-            // 之后每帧把 NaN 喂给 mixer.ParameterX/Y → ArgumentOutOfRangeException(value must not be NaN/Infinity)。
-            // 用 unscaledDeltaTime × 有效缩放（全局缩放不走 Time.timeScale）：暂停 / 卡肉（CurrentTimeScale=0）/
-            // 首帧 / 编辑器刚恢复时 dt=0，而 LateUpdate 仍会跑。dt<=0 时沿用上一帧平滑值即可。
-            float dt = Time.unscaledDeltaTime * CurrentTimeScale;
-            if (dt > 0f)
-            {
-                smoothedAnimMoveX = Mathf.SmoothDamp(smoothedAnimMoveX, character.AnimMoveX, ref smoothMoveXVel, AnimMoveDampTime, Mathf.Infinity, dt);
-                smoothedAnimMoveY = Mathf.SmoothDamp(smoothedAnimMoveY, character.AnimMoveY, ref smoothMoveYVel, AnimMoveDampTime, Mathf.Infinity, dt);
-            }
-            aimLocomotionMixer.ParameterX = smoothedAnimMoveX;
-            aimLocomotionMixer.ParameterY = smoothedAnimMoveY;
-        }
-        else
-        {
-            base.UpdateLocomotion(character);
-        }
-    }
-
     /// <summary>加载 WeaponAnimSet（切枪时换，仅上身）。aim strafe mixer 是角色级（CharacterAnimSet），切枪不重建。</summary>
     private void LoadWeaponAnimSet(string path)
     {
         weaponAnimSet = null;
-        // 不动 aimLocomotionMixer（角色级，跟 CharacterAnimSet 走）、currentLayer0Mixer、activeOneShotState
+        // 不动下半身 locomotion（1D/aim mixer 在基类 LocomotionDriver，跟 CharacterAnimSet 走、切枪不重建）、activeOneShotState
         // ——切枪不该打断下半身 locomotion，combat trigger 自然下一帧覆盖
 
         if (string.IsNullOrEmpty(path)) return;
@@ -162,46 +113,11 @@ public class CharacterAnimancerController : LocomotionAnimController
         weaponAnimSet = set;
     }
 
-    /// <summary>CharacterAnimSet 加载完（spawn 一次）：构造角色级瞄准 aim mixer（下身 strafe，跟武器无关）+ 创建上身层驱动（仅配了 UpperBodyMask 时）。</summary>
+    /// <summary>CharacterAnimSet 加载完（spawn 一次）：创建上身层驱动（仅配了 UpperBodyMask 时）。下身 aim 2D mixer 已由基类 LocomotionDriver 构造。</summary>
     protected override void OnCharacterAnimSetLoaded()
     {
-        BuildAimMixer();
         upperBody = HasUpperLayer
             ? new UpperBodyLayerDriver(UpperLayer, characterAnimSet.UpperBodyMask, GetDefaultFade())
             : null;
-    }
-
-    /// <summary>构造瞄准 aim mixer：CartesianMixerState 9 child（idle 中心 + 8 方向 strafe），按 (AnimMoveX, AnimMoveY) 2D blend。
-    /// clip 来自 <see cref="LocomotionAnimController.characterAnimSet"/>（角色级）。null 方向 clip 用 AimWalk/AimWalkFwd/Bwd 兜底。</summary>
-    private void BuildAimMixer()
-    {
-        aimLocomotionMixer = null;
-        if (characterAnimSet == null || characterAnimSet.AimIdle == null) return;
-
-        var fallback = characterAnimSet.AimWalk != null ? characterAnimSet.AimWalk : characterAnimSet.AimIdle;
-        var fwd = characterAnimSet.AimWalkFwd != null ? characterAnimSet.AimWalkFwd : fallback;
-        var bwd = characterAnimSet.AimWalkBwd != null ? characterAnimSet.AimWalkBwd : fallback;
-        var right = characterAnimSet.AimStrafeRight != null ? characterAnimSet.AimStrafeRight : fallback;
-        var left = characterAnimSet.AimStrafeLeft != null ? characterAnimSet.AimStrafeLeft : fallback;
-        var fr = characterAnimSet.AimStrafeFR != null ? characterAnimSet.AimStrafeFR : fwd;
-        var fl = characterAnimSet.AimStrafeFL != null ? characterAnimSet.AimStrafeFL : fwd;
-        var br = characterAnimSet.AimStrafeBR != null ? characterAnimSet.AimStrafeBR : bwd;
-        var bl = characterAnimSet.AimStrafeBL != null ? characterAnimSet.AimStrafeBL : bwd;
-
-        aimLocomotionMixer = new CartesianMixerState();
-        aimLocomotionMixer.AddRange(characterAnimSet.AimIdle, fwd, fr, right, br, bwd, bl, left, fl);
-        const float d = 0.7071f;
-        aimLocomotionMixer.SetThresholds(
-            new Vector2(0f, 0f),
-            new Vector2(0f, 1f),
-            new Vector2(d, d),
-            new Vector2(1f, 0f),
-            new Vector2(d, -d),
-            new Vector2(0f, -1f),
-            new Vector2(-d, -d),
-            new Vector2(-1f, 0f),
-            new Vector2(-d, d));
-        var idleChild = aimLocomotionMixer.GetChild(0);
-        if (idleChild != null) aimLocomotionMixer.DontSynchronize(idleChild);
     }
 }

@@ -60,16 +60,22 @@ public class FullBodyDriver : IYState<Character>
     }
 }
 
-/// <summary>controller 暴露给 <see cref="FullBodyDriver"/> 的最小表面——Layer 0 与 Death/Locomotion 共享 BaseLayer 的代价。
-/// controller **显式实现**本接口，不 widen 公有面。</summary>
-public interface IFullBodyHost
+/// <summary>controller 暴露给各动画 driver 的**共享**表面（BaseLayer / AnimSet / DefaultFade）。
+/// FullBodyDriver / LocomotionDriver 各自的专属表面在 <see cref="IFullBodyHost"/> / <see cref="ILocomotionHost"/> 上扩展。
+/// controller **显式实现**，不 widen 公有面。</summary>
+public interface IAnimHost
 {
-    /// <summary>Layer 0（全身覆盖播在这）。</summary>
+    /// <summary>Layer 0（全身覆盖 / locomotion 都播在这）。</summary>
     AnimancerLayer BaseLayer { get; }
-    /// <summary>角色级动画集（FullBodyDriver 解析闪避方向 clip / 将来受击 clip 用）。</summary>
+    /// <summary>角色级动画集（解析闪避方向 clip / 构造 locomotion mixer 用）。</summary>
     CharacterAnimSet AnimSet { get; }
     /// <summary>CharacterAnimSet.DefaultFade。</summary>
     float DefaultFade { get; }
+}
+
+/// <summary>controller 暴露给 <see cref="FullBodyDriver"/> 的表面（在 <see cref="IAnimHost"/> 上加全身覆盖专属）——Layer 0 与 Death/Locomotion 共享 BaseLayer 的代价。</summary>
+public interface IFullBodyHost : IAnimHost
+{
     /// <summary>当前 Layer 0 one-shot 槽（= controller.activeOneShotState，与 Death / Locomotion 共享）。</summary>
     AnimancerState ActiveOneShot { get; set; }
     /// <summary>让 Layer 1 让位（= controller.EnterFullBodyOverride，virtual，玩家转发给 UpperBodyLayerDriver）。</summary>

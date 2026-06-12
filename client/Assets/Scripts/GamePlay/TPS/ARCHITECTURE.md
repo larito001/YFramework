@@ -330,20 +330,19 @@ Unity Animator / Animancer / 自研 Playables
 
 > **combat one-shot 协议（上身武器动作，Layer 1）**：切枪 / 换弹 / 开火不再是 4 个独立 bool trigger（旧 `Shoot`/`Reload`/`WeaponSwap`/`WeaponHolster`），已收敛成**一个位掩码 + `CombatOneShot` 枚举**（见 `CombatOneShot.cs`）。`WeaponComponent` 写入走 `Owner.RequestCombatOneShot(CombatOneShot.Holster/Equip/Reload/Shoot)`；`UpperBodyLayerDriver.TryConsumeCombatTrigger`（单一消费入口）按枚举**声明序 = 优先级**每帧 `TryTake` 一个，解析成 clip+fade+speed 叠在持枪 pose 上、播完回 base；无武器 / 死亡 / 卸载用 `ClearCombatOneShots()` 一行清空。**加新上身动作（如丢手雷）只需三处**：① 枚举插一个值（定优先级）② 解析 `switch` 加一个 `case`（选 clip/参数）③ `WeaponAnimSet` 加 clip 字段——写入方调 `RequestCombatOneShot` 即可，字段声明 / 优先级仲裁 / 清除全部通用，**两个状态机零改动**。
 
-**view 内部可以用任何动画方案实现**——只要消费 Character 协议字段即可。**当前实现：Animancer + AnimSet ScriptableObject，封装在 `LocomotionAnimController` 基类 + 派生 controller 里**：
+**view 内部可以用任何动画方案实现**——只要消费 Character 协议字段即可。**当前实现：Animancer + AnimSet ScriptableObject，封装在 `AnimConductor` 基类 + 派生 controller 里**：
 
 ### Controller 继承结构
 
 ```
-LocomotionAnimController（基类，普通 class）
-  通用层：Die + 全身动作分支（按 FullBody 通道播 clip，kind-agnostic）+ locomotion 1D mixer + 上下身 Layer/Mask + one-shot 生命周期
-  **双层状态机（`YStateMachine<Character>`，引用判重 + 幂等切换，Character 经 ctx 透传）**：
-    - Layer 0（全身）= baseFsm：**Death / FullBody / Locomotion 三个互斥态**（技能/闪避/受击在动画层同构 → 收口进 kind-agnostic 的 `FullBodyDriver`（与 UpperBodyLayerDriver 对称，经 IFullBodyHost 借 controller 的 BaseLayer/钩子），只认 `Character.FullBody` 通道）。
-      每帧 SelectBaseState 按优先级 Die > 全身动作(FullBody.Kind != None | FullBody.ClipDirty) > Locomotion
-      决出目标态，再无条件 `Switch`（幂等：仅变更时真正切换）；进/退全身覆盖时调 EnterFullBodyOverride / RestoreUpperBodyAfterFullBody 钩子让 Layer 1 让位/恢复。
-      从全身覆盖回 Locomotion 的恢复判定用 `baseFsm.Previous == fullBodyDriver`，恢复淡入取 `FullBody.RecoverFade`（动作结束时各组件经 EndFullBody 写）。
-    - Layer 1（上身，玩家持武器）= UpperBodyLayerDriver 内部 FSM：Silent / Pose / OneShot 三态（见下）。
-  virtual 钩子：PreDrive / DriveCombat / GetFullBodyRecoverFade / UpdateLocomotion / EnterFullBodyOverride / RestoreUpperBodyAfterFullBody / UpdateUpperBody
+AnimConductor（**指挥者**基类，普通 class）：持 AnimancerComponent + 两 Layer，每帧仲裁 Layer 0，把播放下放给三个 driver，自己只做编排 + Death + view 接缝
+  **Layer 0 状态机（`YStateMachine<Character>`，引用判重 + 幂等切换，Character 经 ctx 透传）**：
+    - baseFsm：**Death / FullBody / Locomotion 三个互斥态**。每帧 SelectBaseState 按优先级 Die > 全身动作(FullBody.Kind != None | FullBody.ClipDirty) > Locomotion 决出目标态，再无条件 `Switch`（幂等）。
+    - **Death**：终态，留在 conductor（播 DeathL/R + 通知 view）。
+    - **FullBody** = `FullBodyDriver`（baseFsm 的状态）：技能/闪避/受击同构 → kind-agnostic，只认 `Character.FullBody` 通道、按 Kind 解析 clip（Dodge 方向 / Skill 段）。进/退全身覆盖调 EnterFullBodyOverride / RestoreUpperBodyAfterFullBody 让 Layer 1 让位/恢复；回 Locomotion 用 `Previous == fullBodyDriver` 判定、恢复淡入取 `FullBody.RecoverFade`。
+    - **Locomotion** = `LocomotionDriver`：下身 1D 走跑 + 2D 瞄准 strafe **合并在一处**（玩家瞄准 mixer 不再是子类 override）。
+  三个 driver（FullBodyDriver / LocomotionDriver / Layer 1 的 UpperBodyLayerDriver）经 `IAnimHost` / `IFullBodyHost` / `ILocomotionHost` 向 conductor 借 BaseLayer/钩子（显式实现）。
+  virtual 钩子：PreDrive / DriveCombat / GetFullBodyRecoverFade / EnterFullBodyOverride / RestoreUpperBodyAfterFullBody / UpdateUpperBody / OnCharacterAnimSetLoaded
   ├─ CharacterAnimancerController（玩家）：武器/瞄准段——weaponAnimSet + Aim 2D mixer + Shoot/Reload/Equip/Holster
   └─ ZombieAnimancerController（僵尸/AI）：空具体子类（locomotion + 技能全在基类，无武器无瞄准）
 ```
@@ -355,8 +354,8 @@ view 侧通过 `CharacterView.CreateController()`（protected virtual）选 cont
 **全身战斗动作**（玩家近战、僵尸攻击/飞扑）统一为**技能**——职责划分（结构）：
 
 - **`SkillDef`**（ScriptableObject，数据）：一组按顺序播的 `SkillSegment`（clip + 位移 + 命中窗 + 动效/震屏 + `CancelFromNorm` 取消窗 + `MoveCancelable`）。纯数据，不含行为。
-- **`SkillCastComponent`**（ICharacterComponent，逻辑 owner，取代旧 MeleeComponent）：`Cast(int)` / `Cast(SkillDef)`；逐段推进时间线；命中窗内 OverlapSphere 扣血（复用 `DamageRouter`）；位移写 `WishVelocity.xz`（逻辑侧，Gravity 定 y）；经 `RequestFullBody(Skill)` 占全身通道锁全角色；近战吸附（起手锁敌、转向 + 前冲收敛到目标身前）；经 `SetFullBodyClip` 把当前段 clip 交给 controller。
-- **controller**（基类 `LocomotionAnimController` 的 `FullBodyDriver`）：纯**跟随器**——只按 `Character.FullBody` 通道（Clip/ClipDirty）播放，不持技能时间线、不关心是哪种全身动作。
+- **`SkillCastComponent`**（ICharacterComponent，逻辑 owner，取代旧 MeleeComponent）：`Cast(int)` / `Cast(SkillDef)`；逐段推进时间线；命中窗内 OverlapSphere 扣血（复用 `DamageRouter`）；位移写 `WishVelocity.xz`（逻辑侧，Gravity 定 y）；经 `RequestFullBody(Skill)` 占全身通道锁全角色；近战吸附（起手锁敌、转向 + 前冲收敛到目标身前）；经 `SetFullBodySkillSegment` 把当前段**意图**（SkillDef + 段号，**不传 clip**）交给 controller。
+- **controller**（基类 `AnimConductor` 的 `FullBodyDriver`）：纯**跟随器**——按 `Character.FullBody` 通道**按 Kind 解析 clip**（Skill 读 `def.Segments[i].Clip`）播放，不持技能时间线、不关心是哪种全身动作。
 - **触发**：AI 订阅 `InputComponentBase.OnCastSkill(int)`（随机下标）；玩家走 `ComboComponent`（见下）；也可外部直接 `Cast`。
 
 **取消窗（可打断）**：段配 `CancelFromNorm<1` 后，到该归一化时间开窗——**再次攻击**可打断接下一招（连招），`MoveCancelable=true` 时**移动**可脱离收招。`=1`（默认）则全程不可打断、播完整段。`CanChainNow`/`InCancelWindow` 暴露给连招层判定。
@@ -386,7 +385,7 @@ view 侧通过 `CharacterView.CreateController()`（protected virtual）选 cont
 ```
 CharacterView.LateUpdate
   ├─ CC.Move(WishVelocity) 物理 + transform 同步（技能位移也走 WishVelocity，由此应用）
-  ├─ animController.Tick(character, scale)   ← 委托动画驱动（基类 LocomotionAnimController）
+  ├─ animController.Tick(character, scale)   ← 委托动画驱动（基类 AnimConductor）
   │    ├─ PreDrive(character)                ← virtual，玩家在此轮询 CurrentWeaponAnimSetPath 变化加载 WeaponAnimSet
   │    ├─ Animancer.Graph.Speed = scale（全局时间缩放）
   │    └─ DriveAnimation：SelectBaseState 选 Layer 0 目标态 → baseFsm.Switch（幂等）/Update
@@ -396,17 +395,16 @@ CharacterView.LateUpdate
 ```
 
 **封装边界**：
-- `LocomotionAnimController` 自治通用层：mixer 构造 / Layer/Mask 管理 / state 切换 / 技能全身播放 / one-shot 进出生命周期 / 加载 CharacterAnimSet
-- 派生 controller 只填武器 one-shot（玩家）；僵尸子类为空（基类全覆盖）
+- `AnimConductor` 只编排：Layer/Mask 管理 / Layer 0 选态 / Death 终态 / view 接缝 / 加载 CharacterAnimSet。**播放下放给三个 driver**：`LocomotionDriver`（下身 1D+2D aim）/ `FullBodyDriver`（全身覆盖）/ `UpperBodyLayerDriver`（上身）
+- 派生 controller 只填武器 one-shot + 上身 driver（玩家）；僵尸子类为空（基类全覆盖）
 - view 只管 CC 物理 / 受击闪烁 / 死亡溶解 / 飘字 / 订事件 / `CreateController()` 选 controller
 - controller 通过 `OnDeathTriggered` 事件通知 view 做 GameObject 级响应（disable CC 让子弹穿过尸体）
 
 **关键技术细节**（详见各 controller 类注释）：
-- Locomotion（基类）：`LinearMixerState` 按 `AnimSpeedRatio` 真实 m/s blend；child 数随 CharacterAnimSet 非 null clip 退化（4/2/1/0）
-- Aim Locomotion（玩家 override）：`CartesianMixerState` 9 child (Idle 中心 + 8 方向 strafe) 按 `(AnimMoveX, AnimMoveY)` 2D blend
+- Locomotion（`LocomotionDriver`，1D+2D 合并在此）：非瞄准 `LinearMixerState` 按 `AnimSpeedRatio` 真实 m/s blend（child 随非 null clip 退化 4/2/1/0）；瞄准 `CartesianMixerState` 9 child (Idle 中心 + 8 方向 strafe) 按 `(AnimMoveX, AnimMoveY)` 2D blend。按 `IsAiming` 切，无 AimIdle（僵尸）→ 只走 1D
 - 上下身分离（基类）：`UpperBodyMask` 配了启用 Layer 1（Combat 走上半身 / Locomotion 走全身），mask=null 时单层 Combat 覆盖（僵尸常态）
 - 状态优先级：Die（全身 Layer 0 + Layer 1 weight=0） &gt; 全身动作（`FullBody.Kind != None` 期间锁，结束 `FullBody.RecoverFade` 回 locomotion；技能/闪避/受击共用一态，组件间谁打断谁由 `FullBodyKind` 声明序仲裁——**越靠前越高**，当前 Dodge &gt; Skill，被抢方 Tick 自检中止） &gt; DriveCombat 上半身 one-shot（Holster/Equip/Reload/Shoot） &gt; Locomotion
-- 转向 SmoothDamp（玩家 override）：aim mixer.ParameterX/Y 用 `AnimMoveDampTime` 平滑，避免方向瞬切硬切（MoveComponent 转向无 lerp 设计）
+- 转向 SmoothDamp（`LocomotionDriver`）：aim mixer.ParameterX/Y 用 `AnimMoveDampTime`（CharacterView 注入）平滑，避免方向瞬切硬切（MoveComponent 转向无 lerp 设计）
 
 **加新角色类型的成本**：复用通用层，只新建一个 `XxxView : CharacterView` override `CreateController`（僵尸甚至直接复用 `CharacterView`），locomotion/death/分层/技能全白送。新动作 = 新建一个 `SkillDef` 资产（不写代码）。
 
