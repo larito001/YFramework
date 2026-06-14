@@ -67,7 +67,7 @@ public class CharacterFactory
         // 1.0→0.65 砍掉这段死尾；RecoverFade 0.3→0.12 让翻滚收尾更快淡回 locomotion。位移/无敌占比不变。
         character.AddAfter<DodgeComponent, ComboComponent>(new DodgeComponent
         {
-            Duration = 1f,
+            Duration = 0.9f,
             RecoverFade = 0.12f,
         });
         // 重力 + 贴地。写 WishVelocity.y，放在所有写 x/z 的组件之后

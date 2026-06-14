@@ -6,6 +6,9 @@ using UnityEngine;
 /// 没有"落地武器"功能前，未装备就关掉所有 Renderer 隐形（不用 SetActive，否则 inactive 后 LateUpdate
 /// 停跑、状态机收不到 Equip 信号，再也激活不回来）。
 ///
+/// 翻滚时武器仍握在手里：靠动画层把翻滚做成"下半身动作"（保持持枪上身层 Layer 1，dodge clip 不驱动手），
+/// 见 FullBodyDriver / AnimConductor，本 view 无需对翻滚做特殊处理。
+///
 /// 运行时 AddComponent 到 mesh-only 武器 prefab 实例上，prefab 本身不带任何 MonoBehaviour。
 /// </summary>
 public class WeaponView : BaseView

@@ -32,7 +32,12 @@ public class FullBodyDriver : IYState<Character>
             if (s != null) s.Time = 0f; // 每段从头播
             host.ActiveOneShot = s;
         }
-        host.SilenceUpper(f, immediate: false); // Layer 1 让位（淡出）
+        // 翻滚是"下半身动作"：dodge clip 本就不 key 上身（手臂/手 weight 0），保持持枪上身层 Layer 1（含 RightHandProp）
+        // → 手不参与翻滚、武器始终握在手里。其余全身动作（技能/受击）仍让 Layer 1 让位（全身覆盖）。
+        if (ch.FullBody.Kind == FullBodyKind.Dodge)
+            host.RaiseUpper(ch, f);
+        else
+            host.SilenceUpper(f, immediate: false); // Layer 1 让位（淡出）
     }
 
     // 对称收尾：Enter 置全身标志、Exit 清——切回 Locomotion / 被死亡抢占切走时都复位。
@@ -80,6 +85,9 @@ public interface IFullBodyHost : IAnimHost
     AnimancerState ActiveOneShot { get; set; }
     /// <summary>让 Layer 1 让位（= controller.EnterFullBodyOverride，virtual，玩家转发给 UpperBodyLayerDriver）。</summary>
     void SilenceUpper(float fade, bool immediate);
+    /// <summary>把 Layer 1（持枪上身层）升起/保持到 weight 1 + 重建 base pose——给"只用下半身的全身动作"（翻滚）用：
+    /// 手臂/手保持持枪姿态，不参与该动作。即便之前被技能静默过也能拉回（覆盖 skill→dodge 打断）。</summary>
+    void RaiseUpper(Character ch, float fade);
     /// <summary>进入全身覆盖：置全身标志 + 清当前 mixer 引用。</summary>
     void OnFullBodyEnter();
     /// <summary>退出全身覆盖：清全身标志。</summary>

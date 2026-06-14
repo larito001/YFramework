@@ -275,6 +275,14 @@ public abstract class AnimConductor : IFullBodyHost, ILocomotionHost
     // FullBodyDriver 专属
     AnimancerState IFullBodyHost.ActiveOneShot { get => activeOneShotState; set => activeOneShotState = value; }
     void IFullBodyHost.SilenceUpper(float fade, bool immediate) => EnterFullBodyOverride(fade, immediate);
+    void IFullBodyHost.RaiseUpper(Character ch, float fade)
+    {
+        // 与 RecoverToLocomotion 的上身恢复同路：玩家持武器 → driver 把 Layer 1 拉回 weight1 + 重建持枪 base pose；
+        // 否则（无 driver/无 mask）直接把上身层淡到 weight1。翻滚期间 fullBody 态不 Tick UpdateUpperBody，
+        // 但 Animancer 会持续播这条 base pose（weight1）→ 手与 RightHandProp 保持握持，整个翻滚不掉。
+        if (HasUpperBodyBasePose(ch)) RestoreUpperBodyAfterFullBody(ch, fade);
+        else if (HasUpperLayer) UpperLayer.StartFade(1f, fade);
+    }
     void IFullBodyHost.OnFullBodyEnter() => BeginLayer0FullBody();
     void IFullBodyHost.OnFullBodyExit() => layer0FullBodyActive = false;
     // LocomotionDriver 专属
