@@ -447,11 +447,27 @@ public class FogOfWarManager : IGameService, ILateTickable
         }
         if (viewMgr != null && viewMgr.TryGetView(id, out var view) && view != null)
         {
-            var rr = view.GetComponentsInChildren<Renderer>(true);
+            var rr = CollectOwnRenderers(view);
             rendererCache[id] = rr;
             return rr;
         }
         return null;
+    }
+
+    /// <summary>取一个 view 自身的 renderer，**排除挂在子 view（如挂在角色骨骼上的武器）下的 renderer**。
+    /// 否则父角色恒可见 → fog 每帧把挂在它身上的武器 renderer 一并点亮，覆盖切枪/卸下时武器自己那一格的隐藏。
+    /// 判定：renderer 沿父链找到的最近 <see cref="BaseView"/> 必须就是本 view，否则它属于某个嵌套子 view，跳过。</summary>
+    private static Renderer[] CollectOwnRenderers(BaseView view)
+    {
+        var all = view.GetComponentsInChildren<Renderer>(true);
+        var own = new List<Renderer>(all.Length);
+        for (int i = 0; i < all.Length; i++)
+        {
+            var r = all[i];
+            if (r == null) continue;
+            if (r.GetComponentInParent<BaseView>() == view) own.Add(r); // 最近的 BaseView 是自己 → 属于本 view
+        }
+        return own.ToArray();
     }
 
     private static void SetRenderersEnabled(Renderer[] rends, bool on)
