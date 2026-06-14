@@ -63,7 +63,13 @@ public class CharacterFactory
         character.AddAfter<ComboComponent, SkillCastComponent>(new ComboComponent());
         // 闪避：空格 → 按移动意图选 4 向翻滚 + 无敌帧。必须在输入组件 + Move 之后（位移覆写 WishVelocity.xz）、Gravity 之前。
         // 方向 clip 取自角色级 CharacterAnimSet（PlayerAnimSet 的 DodgeFwd/Bwd/Left/Right），无需额外资产路径。
-        character.AddAfter<DodgeComponent, ComboComponent>(new DodgeComponent());
+        // 手感调校：缩短后摇——Duration 是全身锁定总时长（ease-out 下后段几乎不位移又解了无敌=纯破绽），
+        // 1.0→0.65 砍掉这段死尾；RecoverFade 0.3→0.12 让翻滚收尾更快淡回 locomotion。位移/无敌占比不变。
+        character.AddAfter<DodgeComponent, ComboComponent>(new DodgeComponent
+        {
+            Duration = 1f,
+            RecoverFade = 0.12f,
+        });
         // 重力 + 贴地。写 WishVelocity.y，放在所有写 x/z 的组件之后
         character.Add(new GravityComponent());
         character.Add(new HealthComponent
