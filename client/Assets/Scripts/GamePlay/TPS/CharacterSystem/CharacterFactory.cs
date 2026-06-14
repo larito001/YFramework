@@ -30,7 +30,9 @@ public class CharacterFactory
         // 必须**最先 Add**——Aim/Move/Weapon/Skill 在 Attach 里 Owner.Get<InputComponentBase>() 拿它。
         character.Add(new InputComponent());
         character.Add(new AimComponent());
-        character.Add(new MoveComponent());
+        // 瞄准常驻 → 瞄准移动(AimSpeed)成了默认行走速度，旧的 1.5 太慢，提到 4.5（接近原 WalkSpeed，仍明显慢于 Shift 冲刺 7）。
+        // 脚步打滑就调 MoveComponent.AimAnimSpeed。冲刺/走路速度保持组件默认。
+        character.Add(new MoveComponent { AimSpeed = 2.5f });
         character.Add(new WeaponComponent
         {
             Weapons = new List<Weapon>

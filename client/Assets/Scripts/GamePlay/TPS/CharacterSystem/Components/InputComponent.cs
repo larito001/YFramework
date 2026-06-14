@@ -57,7 +57,9 @@ public class InputComponent : InputComponentBase
         MoveWorld = dir;
 
         SprintHeld = input.SprintHeld;
-        AimHeld = input.AimHeld;
+        // 瞄准常驻：默认始终瞄准（面向鼠标 + AimSpeed 移动）；按住 Shift 进入冲刺（暂时退出瞄准、朝移动方向跑、SprintSpeed），
+        // 松开即回到瞄准。瞄准与冲刺互斥，所以这里直接 AimHeld = !SprintHeld（不再读 RMB）。
+        AimHeld = !input.SprintHeld;
         // 近战/技能武器（WeaponPrimarySkill>=0）：左键改放技能（见 HandleFireDown），不写开火意图。常规枪正常持续开火。
         FireHeld = Owner.WeaponPrimarySkill >= 0 ? false : input.FireHeld;
 

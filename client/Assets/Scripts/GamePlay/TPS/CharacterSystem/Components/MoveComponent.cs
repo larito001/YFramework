@@ -18,7 +18,8 @@ public class MoveComponent : ICharacterComponent
     public float SprintSpeed = 7f;
     /// <summary>冲刺动画播放倍率。SprintLoop 内禀大致 3 m/s，body=6 想跟脚 → 2x。</summary>
     public float SprintAnimSpeed = 1.5f;
-    /// <summary>瞄准移动速度 (m/s)。瞄准时 Shift 失效。</summary>
+    /// <summary>瞄准移动速度 (m/s)。瞄准常驻方案下这就是**默认行走速度**（CharacterFactory 覆盖成 4.5）；
+    /// 按 Shift 退出瞄准进入冲刺（SprintSpeed）。字段默认 1.5 留给 AI / 不瞄准角色。</summary>
     public float AimSpeed = 1.5f;
     /// <summary>瞄准走路动画播放倍率。Walk clip 内禀大致 1.6 m/s，body=1.5 接近 → ~1x。</summary>
     public float AimAnimSpeed = 1f;
