@@ -216,5 +216,8 @@ public class CharacterView : BaseView
         }
 
         if (needWrite) WriteShaderState(flashK, dissolveK);
+
+        // 4. 战争迷雾遮挡剔除：view 自己读 Owner.Visible 开关自身 renderer（和上面读 LocalScale 消费时间缩放同构）
+        ApplyFogVisibility();
     }
 }

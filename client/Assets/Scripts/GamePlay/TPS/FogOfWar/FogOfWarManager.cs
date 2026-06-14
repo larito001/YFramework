@@ -63,7 +63,6 @@ public class FogOfWarManager : IGameService, ILateTickable
     private GameContext ctx;
     private CharacterManager characterMgr;
     private ActorWorld world;
-    private ViewManager viewMgr;
 
     // 网格
     private int mapW, mapH;
@@ -83,6 +82,8 @@ public class FogOfWarManager : IGameService, ILateTickable
     private readonly List<int> tilesBuf = new List<int>();
     private readonly List<int> obsBuf = new List<int>();
     private float[] distBuf;
+    // 障碍排序比较器缓存：避免 obsBuf.Sort 每次重算分配闭包委托（~6.7 次/秒）。distBuf 是字段，捕获 this 一次性建。
+    private Comparison<int> obsCompare;
     // 上一次重算置 visible=true 的格子：下次重算前精确清回 false，避免每帧 Array.Clear 整张 visible。
     private readonly List<int> lastVisibleTiles = new List<int>();
 
@@ -112,6 +113,7 @@ public class FogOfWarManager : IGameService, ILateTickable
         ResolveServices();
         if (WallMask == 0) WallMask = LayerMask.GetMask("Terrain");
         AllocateGrid();
+        obsCompare = (a, b) => distBuf[a].CompareTo(distBuf[b]); // 缓存一次，避免每次重算分配委托
         // 障碍网格延迟到首次出现玩家时再扫：FOW 在 bootstrap 早期 Init，那时游戏场景的墙体还没加载。
         BuildRenderObjects();
     }
@@ -122,9 +124,8 @@ public class FogOfWarManager : IGameService, ILateTickable
         if (root != null)Object.Destroy(root.gameObject);
         if (fogTex != null) Object.Destroy(fogTex);
         root = null; fogTex = null; fogMat = null;
-        rendererCache.Clear();
         actorBuffer.Clear();
-        ctx = null; characterMgr = null; world = null; viewMgr = null;
+        ctx = null; characterMgr = null; world = null;
     }
 
     public void LateTick(float dt)
@@ -167,7 +168,6 @@ public class FogOfWarManager : IGameService, ILateTickable
         if (ctx == null) return;
         ctx.TryGet(out characterMgr);
         ctx.TryGet(out world);
-        ctx.TryGet(out viewMgr);
     }
 
     // ── 网格 / 坐标 ─────────────────────────────────────────────
@@ -212,6 +212,11 @@ public class FogOfWarManager : IGameService, ILateTickable
         }
     }
 
+    /// <summary>标记障碍网格为脏：下次见到玩家时重扫一次。**场景切换 / 墙体大改后调用**——
+    /// 本服务与雾面是 DontDestroyOnLoad、跨场景存活，<see cref="obstaclesBuilt"/> 不会自动失效，
+    /// 否则换图后仍按旧墙体算遮挡 + actor 剔除(#9)。</summary>
+    public void MarkObstaclesDirty() => obstaclesBuilt = false;
+
     private int TileX(int idx) => idx % mapW;
     private int TileY(int idx) => idx / mapW;
     private bool InGrid(int x, int y) => x >= 0 && y >= 0 && x < mapW && y < mapH;
@@ -251,15 +256,7 @@ public class FogOfWarManager : IGameService, ILateTickable
         if (!hasWindow) return;
 
         // 目标浓度只在活动窗口内重算（窗口外格子静止：要么未探索黑、要么已探索灰，不必每次重算）。
-        // 可见=0 / 已探索=MemoryAlpha / 未探索=1
-        for (int y = winY0; y <= winY1; y++)
-            for (int x = winX0; x <= winX1; x++)
-            {
-                int i = x + y * mapW;
-                if (visible[i]) target[i] = 0f;
-                else if (ExploredMemory && explored[i]) target[i] = MemoryAlpha;
-                else target[i] = 1f;
-            }
+        RecomputeTargetWindow(winX0, winY0, winX1, winY1);
 
         for (int p = 0; p < BlurPasses; p++) BoxBlurWindow();
     }
@@ -290,8 +287,8 @@ public class FogOfWarManager : IGameService, ILateTickable
             }
         }
 
-        // 障碍按距离近→远遮挡更远的格子
-        obsBuf.Sort((a, b) => distBuf[a].CompareTo(distBuf[b]));
+        // 障碍按距离近→远遮挡更远的格子（用缓存的比较器，避免每次分配委托）
+        obsBuf.Sort(obsCompare);
         for (int o = 0; o < obsBuf.Count; o++)
         {
             int obIdx = obsBuf[o];
@@ -365,36 +362,85 @@ public class FogOfWarManager : IGameService, ILateTickable
 
     private void StepTemporal(float dt)
     {
-        if (!hasWindow) return;
         float k = 1f - Mathf.Exp(-LerpSpeed * dt); // 与帧率无关
+        bool dirty = false;
 
-        // 瞬移 / 重生：新旧窗口完全不相交时，先把上一帧窗口直接收敛到目标并上传，避免旧位置留亮斑残影。
-        if (prevWinValid &&
-            (winX1 < prevWinX0 || winX0 > prevWinX1 || winY1 < prevWinY0 || winY0 > prevWinY1))
-            WriteWindow(prevWinX0, prevWinY0, prevWinX1, prevWinY1, 1f);
+        if (hasWindow)
+        {
+            // 瞬移 / 重生：新旧窗口完全不相交时，先**重算旧窗口的 target**（玩家已离开 → 不可见 → 已探索灰/黑），
+            // 再收敛上传——否则旧窗口仍用"玩家站那里时算的 target=0"，会在旧位置留一块永久全亮无雾(#1)。
+            if (prevWinValid &&
+                (winX1 < prevWinX0 || winX0 > prevWinX1 || winY1 < prevWinY0 || winY0 > prevWinY1))
+            {
+                // 旧窗口已被彻底抛下（与新窗口不相交）→ 一律按"不可见"算目标（已探索灰 / 未探索黑），
+                // 不读 visible[]：重生那帧 RecomputeVisibility 可能还没把旧位置的 visible 清掉，读它会误判为"可见→全清"。
+                SettleTargetWindow(prevWinX0, prevWinY0, prevWinX1, prevWinY1);
+                dirty |= WriteWindow(prevWinX0, prevWinY0, prevWinX1, prevWinY1, 1f);
+            }
 
-        WriteWindow(winX0, winY0, winX1, winY1, k);
+            dirty |= WriteWindow(winX0, winY0, winX1, winY1, k);
+            prevWinX0 = winX0; prevWinY0 = winY0; prevWinX1 = winX1; prevWinY1 = winY1;
+            prevWinValid = true;
+        }
+        else if (prevWinValid)
+        {
+            // #8：玩家离开迷雾网格 → 让最后停留的窗口继续淡出到目标（已不可见 → 已探索灰/黑），否则那块雾会卡在
+            // 半淡状态不闭合。同样按"不可见"算目标（玩家已不在格内）。收敛后置 prevWinValid=false 停止每帧刷新。
+            SettleTargetWindow(prevWinX0, prevWinY0, prevWinX1, prevWinY1);
+            dirty = WriteWindow(prevWinX0, prevWinY0, prevWinX1, prevWinY1, k);
+            if (!dirty) prevWinValid = false;
+        }
 
-        prevWinX0 = winX0; prevWinY0 = winY0; prevWinX1 = winX1; prevWinY1 = winY1;
-        prevWinValid = true;
+        // #4：仅在确有像素变化时上传一次——玩家静止、雾已收敛则零上传；瞬移帧两块也合并成一次 Apply。
+        if (dirty) fogTex.Apply(false);
     }
 
-    /// <summary>窗口内缓动 displayed 朝 target（k=1 即直接收敛 / settle），写 alpha，并把该窗口块**局部**上传到雾贴图
-    /// （SetPixels32 区域版，避免每帧拷贝 + 上传整张图）。</summary>
-    private void WriteWindow(int x0, int y0, int x1, int y1, float k)
+    /// <summary>窗口内缓动 displayed 朝 target（k=1 即直接收敛 / settle），写 alpha 到 pixels 并 SetPixels32 该窗口块
+    /// （区域版，避免每帧拷贝/上传整张图）。返回本窗口是否有像素变化（无变化则跳过 SetPixels32，由调用方决定是否 Apply）。
+    /// windowPixels 按需扩容：兼容运行时调大 VisionRadius/ActiveMargin 使窗口超过初始缓冲(#2)，否则会越界。</summary>
+    private bool WriteWindow(int x0, int y0, int x1, int y1, float k)
     {
-        int bw = x1 - x0 + 1, bh = y1 - y0 + 1;
-        int w = 0;
+        int bw = x1 - x0 + 1, bh = y1 - y0 + 1, need = bw * bh;
+        if (windowPixels == null || windowPixels.Length < need) windowPixels = new Color32[need];
+
+        int w = 0; bool changed = false;
         for (int y = y0; y <= y1; y++)
             for (int x = x0; x <= x1; x++)
             {
                 int i = x + y * mapW;
                 displayed[i] += (target[i] - displayed[i]) * k;
-                pixels[i].a = (byte)(Mathf.Clamp01(displayed[i]) * 255f);
+                byte a = (byte)(Mathf.Clamp01(displayed[i]) * 255f);
+                if (a != pixels[i].a) changed = true;
+                pixels[i].a = a;
                 windowPixels[w++] = pixels[i]; // 行优先填窗口块（与 SetPixels32 区域版一致：colors[0]→(x0,y0)）
             }
-        fogTex.SetPixels32(x0, y0, bw, bh, windowPixels);
-        fogTex.Apply(false);
+        if (changed) fogTex.SetPixels32(x0, y0, bw, bh, windowPixels);
+        return changed;
+    }
+
+    /// <summary>重算指定窗口内每格的目标雾浓度：可见=0 / 已探索=MemoryAlpha / 未探索=1。</summary>
+    private void RecomputeTargetWindow(int x0, int y0, int x1, int y1)
+    {
+        for (int y = y0; y <= y1; y++)
+            for (int x = x0; x <= x1; x++)
+            {
+                int i = x + y * mapW;
+                if (visible[i]) target[i] = 0f;
+                else if (ExploredMemory && explored[i]) target[i] = MemoryAlpha;
+                else target[i] = 1f;
+            }
+    }
+
+    /// <summary>把一个**被抛下的**窗口（瞬移旧址 / 玩家离开网格）的目标浓度按"不可见"算：已探索=MemoryAlpha / 未探索=1，
+    /// 不读 visible[]（该窗口玩家已离开，无论 visible 是否还残留旧值都视为不可见）。</summary>
+    private void SettleTargetWindow(int x0, int y0, int x1, int y1)
+    {
+        for (int y = y0; y <= y1; y++)
+            for (int x = x0; x <= x1; x++)
+            {
+                int i = x + y * mapW;
+                target[i] = (ExploredMemory && explored[i]) ? MemoryAlpha : 1f;
+            }
     }
 
     // ── 渲染对象 ─────────────────────────────────────────────────
@@ -452,37 +498,32 @@ public class FogOfWarManager : IGameService, ILateTickable
 
     // ── 遮挡剔除 ─────────────────────────────────────────────────
 
+    /// <summary>每帧给所有 actor 写 <see cref="Actor.Visible"/> 字段（和 TimeScaleZoneService 写 ZoneScale 同构）。
+    /// **本服务只写字段、不碰 Renderer**——渲染剔除由各 view 在自己的 LateUpdate 里读 Owner.Visible 自行消费
+    /// （见 BaseView.ApplyFogVisibility / WeaponView）。这样任何新 actor 类型零成本接入，且没有"manager 反向操作别人
+    /// renderer"的双权威 + 缓存 + 类型特例。</summary>
     private void UpdateActorVisibility(Character player)
     {
         actorBuffer.Clear();
         world.AppendAll(actorBuffer);
 
-        // pass 1：写所有"独立定位"actor（角色 / 塔 / 宝箱 / 掉落物 / 子弹…）的 Actor.Visible 字段
-        // ——和 TimeScaleZoneService 每帧给所有 actor 写 ZoneScale 同构。玩家恒可见；
-        // Weapon 是"挂载在持有者身上"的跟随型 actor，位置由持有者驱动，留到 pass 2 按持有者算。
+        // pass 1：独立定位的 actor（角色 / 塔 / 宝箱 / 掉落物 / 子弹…）按自身所在格是否可见。玩家恒可见；
+        // Weapon 是挂在持有者身上的跟随型 actor，位置由持有者驱动，留到 pass 2 按持有者算。
         for (int i = 0; i < actorBuffer.Count; i++)
         {
             var a = actorBuffer[i];
             if (a == null) continue;
-            if (a is Weapon) continue; // 跟随型，pass 2 处理
+            if (a is Weapon) continue;
             a.Visible = a.ID == player.ID || IsWorldPosVisible(a.Position);
         }
 
-        // pass 2：武器跟随持有者（已装备 且 持有者可见）。持有者的 Visible 已在 pass 1 写好，直接读字段。
+        // pass 2：武器只跟随持有者的**迷雾可见性**（不掺装备态——装备/卸下由 WeaponView 自己叠加）。
+        // 无主武器记 Visible=true，由 WeaponView 的装备态决定显隐。
         for (int i = 0; i < actorBuffer.Count; i++)
         {
             if (!(actorBuffer[i] is Weapon w)) continue;
-            bool ownerVisible = w.OwnerActorId >= 0 && world.TryGet(w.OwnerActorId, out var owner) && owner != null && owner.Visible;
-            w.Visible = w.IsEquipped && ownerVisible;
-        }
-
-        // pass 3：按 Actor.Visible 开关各 actor view 的 Renderer（字段是权威，渲染只是消费）。
-        for (int i = 0; i < actorBuffer.Count; i++)
-        {
-            var a = actorBuffer[i];
-            if (a == null) continue;
-            var rends = GetRenderers(a.ID);
-            if (rends != null) SetRenderersEnabled(rends, a.Visible);
+            w.Visible = w.OwnerActorId < 0
+                || (world.TryGet(w.OwnerActorId, out var owner) && owner != null && owner.Visible);
         }
     }
 
@@ -493,56 +534,13 @@ public class FogOfWarManager : IGameService, ILateTickable
         return visible[tx + ty * mapW];
     }
 
+    /// <summary>迷雾关闭 / 无玩家时，把所有 actor 的 Visible 复位为 true；各 view 下一帧 LateUpdate 自行恢复 renderer。</summary>
     private void RevealAll()
     {
         if (world == null) return;
         actorBuffer.Clear();
         world.AppendAll(actorBuffer);
         for (int i = 0; i < actorBuffer.Count; i++)
-        {
-            var a = actorBuffer[i];
-            if (a == null) continue;
-            a.Visible = true; // 字段复位：迷雾关闭 / 无玩家时所有 actor 视为可见
-            var rends = GetRenderers(a.ID);
-            if (rends != null) SetRenderersEnabled(rends, true);
-        }
-    }
-
-    private Renderer[] GetRenderers(int id)
-    {
-        if (rendererCache.TryGetValue(id, out var cached))
-        {
-            if (cached != null && cached.Length > 0 && cached[0] != null) return cached;
-            rendererCache.Remove(id);
-        }
-        if (viewMgr != null && viewMgr.TryGetView(id, out var view) && view != null)
-        {
-            var rr = CollectOwnRenderers(view);
-            rendererCache[id] = rr;
-            return rr;
-        }
-        return null;
-    }
-
-    /// <summary>取一个 view 自身的 renderer，**排除挂在子 view（如挂在角色骨骼上的武器）下的 renderer**。
-    /// 否则父角色恒可见 → fog 每帧把挂在它身上的武器 renderer 一并点亮，覆盖切枪/卸下时武器自己那一格的隐藏。
-    /// 判定：renderer 沿父链找到的最近 <see cref="BaseView"/> 必须就是本 view，否则它属于某个嵌套子 view，跳过。</summary>
-    private static Renderer[] CollectOwnRenderers(BaseView view)
-    {
-        var all = view.GetComponentsInChildren<Renderer>(true);
-        var own = new List<Renderer>(all.Length);
-        for (int i = 0; i < all.Length; i++)
-        {
-            var r = all[i];
-            if (r == null) continue;
-            if (r.GetComponentInParent<BaseView>() == view) own.Add(r); // 最近的 BaseView 是自己 → 属于本 view
-        }
-        return own.ToArray();
-    }
-
-    private static void SetRenderersEnabled(Renderer[] rends, bool on)
-    {
-        for (int i = 0; i < rends.Length; i++)
-            if (rends[i] != null && rends[i].enabled != on) rends[i].enabled = on;
+            if (actorBuffer[i] != null) actorBuffer[i].Visible = true;
     }
 }

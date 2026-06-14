@@ -159,11 +159,11 @@ public class BagSystem : IGameService
         if (GetItemType(item.itemId) == ItemType.QuestItem) return false;
 
         // 先抓数据(移除后实例失效),再移除,最后丢到世界。
-        int itemId = item.itemId, count = item.count, rotation = item.rotation;
+        int itemId = item.itemId, count = item.count;
         if (!bag.RemoveItem(instanceId)) return false;
 
         if (dropSystem == null && ctx != null) ctx.TryGet(out dropSystem);
-        dropSystem?.DropAtPlayer(itemId, count, rotation);
+        dropSystem?.DropAtPlayer(itemId, count);
         return true;
     }
 

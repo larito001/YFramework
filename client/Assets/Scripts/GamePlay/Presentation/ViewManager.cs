@@ -86,6 +86,7 @@ public class ViewManager : IGameService
         }
 
         view.Bind(owner, owner.ID);
+        view.Owner = owner; // 注入 Owner，view 自行消费 Owner.Visible 做迷雾剔除
 
         if (Views.ContainsKey(view.ID))
         {
@@ -118,6 +119,7 @@ public class ViewManager : IGameService
         }
 
         view.Bind(owner, owner.ID);
+        view.Owner = owner; // 注入 Owner，view 自行消费 Owner.Visible 做迷雾剔除
 
         if (Views.ContainsKey(view.ID))
         {
@@ -156,5 +158,63 @@ public abstract class BaseView : MonoBehaviour
 {
     public int ID = -1;
 
+    /// <summary>绑定的 Actor，由 <see cref="ViewManager"/> 在 Bind 后注入。各 view 读 <see cref="Actor.Visible"/>
+    /// 自行做战争迷雾遮挡剔除（和 CharacterView 读 Owner.LocalScale 消费时间缩放同构），不再由 FogOfWarManager 反向操作 Renderer。</summary>
+    public Actor Owner { get; set; }
+
     public abstract void Bind(Actor actor, int ID);
+
+    // ── 战争迷雾遮挡剔除：view 自己消费 Owner.Visible ──
+    private Renderer[] fogRenderers;   // 本 view 自身的 renderer（排除挂在子 view 下的，如挂角色身上的武器）
+    private bool fogCached;
+    private bool fogApplied;
+    private bool fogLastVisible;
+
+    /// <summary>按 <see cref="Actor.Visible"/> 开关本 view 自身的 Renderer。各 view 在 LateUpdate 末尾调一次。
+    /// 仅在可见性翻转时操作 Renderer（缓存上次值），稳态零开销。</summary>
+    protected void ApplyFogVisibility()
+    {
+        if (Owner == null) return;
+        EnsureFogRenderers();
+        bool vis = Owner.Visible;
+        if (fogApplied && vis == fogLastVisible) return;
+        fogApplied = true; fogLastVisible = vis;
+        for (int i = 0; i < fogRenderers.Length; i++)
+            if (fogRenderers[i] != null && fogRenderers[i].enabled != vis) fogRenderers[i].enabled = vis;
+    }
+
+    /// <summary>本 view 自身的 renderer 数组（懒收集 + 缓存）。WeaponView 等需要在可见性上再叠加自己的开关逻辑时取用。</summary>
+    protected Renderer[] FogRenderers { get { EnsureFogRenderers(); return fogRenderers; } }
+
+    /// <summary>renderer 结构变化（如增删挂件）后调用，下次 ApplyFogVisibility 重新收集。</summary>
+    protected void InvalidateFogRenderers() { fogCached = false; }
+
+    /// <summary>池化 view 回收时复位：重新启用 renderer + 清缓存标志，避免下次取出残留隐藏态。</summary>
+    protected void ResetFogVisibility()
+    {
+        fogApplied = false; fogLastVisible = true; fogCached = false;
+        // 不强制 enable 这里——下次 ApplyFogVisibility 会按新 Owner.Visible 应用；但池化对象先恢复可见更安全
+    }
+
+    private void EnsureFogRenderers()
+    {
+        if (fogCached && fogRenderers != null) return;
+        fogRenderers = CollectOwnRenderers(this);
+        fogCached = true;
+    }
+
+    /// <summary>取一个 view 自身的 renderer，**排除挂在子 view（如挂角色骨骼上的武器）下的 renderer**——
+    /// 否则父角色一隐藏会连子 view 一起，或反之。判定：renderer 沿父链最近的 BaseView 必须是本 view。</summary>
+    private static Renderer[] CollectOwnRenderers(BaseView view)
+    {
+        var all = view.GetComponentsInChildren<Renderer>(true);
+        var own = new System.Collections.Generic.List<Renderer>(all.Length);
+        for (int i = 0; i < all.Length; i++)
+        {
+            var r = all[i];
+            if (r == null) continue;
+            if (r.GetComponentInParent<BaseView>() == view) own.Add(r);
+        }
+        return own.ToArray();
+    }
 }

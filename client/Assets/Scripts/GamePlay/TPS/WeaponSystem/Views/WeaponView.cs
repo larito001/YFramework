@@ -17,6 +17,7 @@ public class WeaponView : BaseView
     private int currentOwnerId = -2;
     private string currentSocketName;
     private bool currentEquipped;
+    private bool currentVisible;
     private bool initialized;
 
     public override void Bind(Actor actor, int id)
@@ -43,16 +44,21 @@ public class WeaponView : BaseView
     {
         if (weapon == null) return;
 
+        // 加入 weapon.Visible：武器是"挂在持有者身上"的跟随型 actor，FogOfWarManager 把持有者的迷雾可见性
+        // 写到 weapon.Visible（见 UpdateActorVisibility pass 2）。装备态决定挂不挂、Visible 决定挂上后显不显
+        // （持有者在墙后 → 连武器一起隐藏）。两路输入任一变化都重新应用。
         bool changed = !initialized
             || weapon.IsEquipped != currentEquipped
             || weapon.OwnerActorId != currentOwnerId
-            || weapon.MountSocketName != currentSocketName;
+            || weapon.MountSocketName != currentSocketName
+            || weapon.Visible != currentVisible;
         if (!changed) return;
 
         ApplyMount();
         currentEquipped = weapon.IsEquipped;
         currentOwnerId = weapon.OwnerActorId;
         currentSocketName = weapon.MountSocketName;
+        currentVisible = weapon.Visible;
         initialized = true;
     }
 
@@ -91,7 +97,8 @@ public class WeaponView : BaseView
         transform.SetParent(mount, worldPositionStays: false);
         transform.localPosition = weapon.LocalPosition;
         transform.localRotation = Quaternion.Euler(weapon.LocalEuler);
-        SetRenderersEnabled(true);
+        // 装备并挂载好后，再叠加战争迷雾可见性：持有者在墙后/范围外时 weapon.Visible=false → 武器一并隐藏。
+        SetRenderersEnabled(weapon.Visible);
     }
 
     private void SetRenderersEnabled(bool enabled)

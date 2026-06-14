@@ -19,6 +19,10 @@ public class GameStartScene : YSceneBase
         var manager = Context.Get<CharacterManager>();
         manager.GenneratePlayer();
 
+        // 战争迷雾的服务跨场景存活(DontDestroyOnLoad),换图后障碍网格不会自动失效 —— 本场景墙体已加载,
+        // 标记重扫一次,避免按上一张图的墙算遮挡。
+        if (Context.TryGet<FogOfWarManager>(out var fog)) fog.MarkObstaclesDirty();
+
         RegisterItemUseHandlers(); // 物品使用逻辑(gameplay 内容,放场景而非组装层)
         SpawnChests();             // 玩家附近随机散布三种品质的宝箱
 

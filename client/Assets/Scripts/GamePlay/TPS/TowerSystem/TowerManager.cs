@@ -1,84 +1,45 @@
-using System.Collections.Generic;
+using UnityEngine;
 
 /// <summary>
-/// Tower 集合 + 每帧驱动。结构对照 CharacterManager：维护 List + Tick + 延迟 Remove + AutoDespawn 事件订阅。
+/// Tower 集合 + 每帧驱动。复用 <see cref="ActorManager{T}"/> 的 List + Tick + ActorWorld 注册 + 延迟移除骨架，
+/// 本类只管 spawn 配方 + AutoDespawn 生命周期钩子。
 ///
-/// **Tick 顺序**：必须在 WeaponManager 之前——TowerWeaponComponent.Tick 写 currentWeapon.FireIntent / FireOrigin /
-/// FireDirection / FireTarget，FireComponent 在 WeaponManager.Tick 里消费。GameLoop / GameBootstrapper 注册顺序：
+/// **Tick 顺序**：必须在 WeaponManager 之前——TowerWeaponComponent.Tick 写 currentWeapon.FireIntent 等，
+/// FireComponent 在 WeaponManager.Tick 里消费。注册顺序：
 ///   TimeScaleService → CharacterManager → TowerManager → WeaponManager → BulletManager。
 /// </summary>
-public class TowerManager : IGameService, ITickable
+public class TowerManager : ActorManager<Tower>, ITickable
 {
-    private GameContext ctx;
-    private ViewManager viewMgr;
-    private ActorWorld world;
     private TowerFactory factory;
-    private readonly List<Tower> towers = new List<Tower>();
-    // Deferred removal：组件 Tick 期间调 RemoveTower 不会改正在遍历的 towers 列表，攒到本帧 Tick 末统一清。
-    private readonly List<Tower> toRemove = new List<Tower>();
 
-    public void Init(GameContext context)
+    protected override void OnInit()
     {
-        ctx = context;
-        viewMgr = context.Get<ViewManager>();
-        world = context.Get<ActorWorld>();
         factory = new TowerFactory();
-        factory.BindViewManager(viewMgr);
+        factory.BindViewManager(ViewMgr);
     }
 
-    public void Shutdown()
-    {
-        for (int i = towers.Count - 1; i >= 0; i--)
-        {
-            var t = towers[i];
-            world.Unregister(t.ID);
-            viewMgr.RemoveBaseView(t.ID);
-            t.Dispose();
-        }
-        towers.Clear();
-    }
-
-    public void Tick(float dt)
-    {
-        for (int i = 0; i < towers.Count; i++)
-            towers[i].Tick(dt);
-
-        if (toRemove.Count > 0)
-        {
-            for (int i = 0; i < toRemove.Count; i++) RemoveImmediate(toRemove[i]);
-            toRemove.Clear();
-        }
-    }
+    /// <summary>塔有 Targeting / Weapon 等组件需每帧驱动 → 实现 ITickable，转调基类 TickActors。</summary>
+    public void Tick(float dt) => TickActors(dt);
 
     /// <summary>外部 API：在指定位置 spawn 一座塔。
     /// teamId：默认 1=玩家军；ownerActorId：放置者 Actor.ID（玩家放置传玩家 ID，关卡预设传 -1=无主），用于击杀归属 / 摧毁通知。</summary>
-    public Tower SpawnTower(UnityEngine.Vector3 position, int teamId = 1, int ownerActorId = -1, float maxHealth = 500f)
+    public Tower SpawnTower(Vector3 position, int teamId = 1, int ownerActorId = -1, float maxHealth = 500f)
     {
         var t = factory.CreateTower(position, teamId, ownerActorId, maxHealth);
         AttachLifecycleHooks(t);
-        towers.Add(t);
-        world.Register(t);
+        Track(t);
         return t;
     }
 
-    /// <summary>请求移除 Tower（deferred）。组件 Tick 中调用安全；实际清理发生在本帧 Tick 末尾。
-    /// 已在队列里的请求会被去重，重复调用无副作用。</summary>
-    public void RemoveTower(Tower tower)
-    {
-        if (tower == null) return;
-        if (toRemove.Contains(tower)) return;
-        toRemove.Add(tower);
-    }
-
-    /// <summary>给新 spawn 的 Tower 挂上 Manager 侧的事件订阅（同 CharacterManager 套路）：
-    /// AutoDespawnComponent.OnDespawnReady → 倒计时到点 → RemoveTower（deferred）。</summary>
+    /// <summary>给新 spawn 的 Tower 挂 AutoDespawnComponent.OnDespawnReady → 倒计时到点 → Remove（deferred）。</summary>
     private void AttachLifecycleHooks(Tower t)
     {
         var ad = t.Get<AutoDespawnComponent>();
         if (ad != null) ad.OnDespawnReady += OnAutoDespawnReady;
     }
 
-    private void DetachLifecycleHooks(Tower t)
+    /// <summary>移除前显式退订（即便 AutoDespawnComponent.Detach 会兜底，也走这步，避免依赖发布方清理协议）。</summary>
+    protected override void OnRemoving(Tower t)
     {
         var ad = t.Get<AutoDespawnComponent>();
         if (ad != null) ad.OnDespawnReady -= OnAutoDespawnReady;
@@ -86,16 +47,6 @@ public class TowerManager : IGameService, ITickable
 
     private void OnAutoDespawnReady(Actor a)
     {
-        if (a is Tower t) RemoveTower(t);
-    }
-
-    private void RemoveImmediate(Tower tower)
-    {
-        if (tower == null) return;
-        DetachLifecycleHooks(tower);
-        towers.Remove(tower);
-        world.Unregister(tower.ID);
-        viewMgr.RemoveBaseView(tower.ID);
-        tower.Dispose();
+        if (a is Tower t) Remove(t);
     }
 }

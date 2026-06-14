@@ -12,8 +12,6 @@ public class DropItemActor : Actor
     public int ItemId;
     /// <summary>堆叠数量。捡起时背包放不下的剩余会写回这里（留在地上）。</summary>
     public int Count;
-    /// <summary>丢弃时的朝向（0~3，预留：捡回时尽量保持原朝向）。</summary>
-    public int DropRotation;
     /// <summary>交互范围（米）。</summary>
     public float InteractRange = 2f;
     /// <summary>提示用显示名（取自 item 配表，缺省 "物品"）。</summary>

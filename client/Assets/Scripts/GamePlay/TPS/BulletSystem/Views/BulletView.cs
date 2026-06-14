@@ -14,6 +14,7 @@ public class BulletView : BaseView, IPoolable
     public override void Bind(Actor actor, int id)
     {
         bullet = actor as Bullet;
+        Owner = actor; // 池化 view 由 BulletManager 直接 Bind（不走 ViewManager），这里自行注入 Owner 供迷雾剔除
         ID = id;
         if (bullet != null)
         {
@@ -29,13 +30,16 @@ public class BulletView : BaseView, IPoolable
         transform.position = bullet.Position;
         if (bullet.Velocity.sqrMagnitude > 1e-4f)
             transform.rotation = Quaternion.LookRotation(bullet.Velocity);
+        ApplyFogVisibility(); // 战争迷雾遮挡剔除：读 Owner.Visible 开关自身 renderer
     }
 
     public void OnSpawn() { /* Bind 紧跟在 Get 之后调用，这里无需操作 */ }
 
     public void OnDespawn()
     {
+        ResetFogVisibility(); // 池化复用前复位迷雾隐藏态，避免下次取出残留隐藏
         bullet = null;
+        Owner = null;
         ID = -1;
     }
 }

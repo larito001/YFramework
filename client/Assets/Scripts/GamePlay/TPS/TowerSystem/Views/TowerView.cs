@@ -32,5 +32,6 @@ public class TowerView : BaseView
         if (tower == null) return;
         transform.position = tower.Position;
         transform.rotation = tower.Rotation;
+        ApplyFogVisibility(); // 战争迷雾遮挡剔除：读 Owner.Visible 开关自身 renderer
     }
 }

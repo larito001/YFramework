@@ -37,8 +37,10 @@ public class DropItemView : BaseView, IInteractable
 
     private void LateUpdate()
     {
+        if (drop == null) return;
         // 物理驱动 transform，回写到 actor（actor 保持权威坐标，供其它系统读）。
-        if (drop != null) drop.Position = transform.position;
+        drop.Position = transform.position;
+        ApplyFogVisibility(); // 战争迷雾遮挡剔除：读 Owner.Visible 开关自身 renderer
     }
 
     public void Interact()
@@ -52,7 +54,7 @@ public class DropItemView : BaseView, IInteractable
         if (leftover <= 0)
         {
             // 全捡走：请求掉落物系统移除本 actor（统一注销 ActorWorld + 销毁 view）。
-            if (ctx.TryGet<DropItemSystem>(out var sys)) sys.RemoveDropItem(drop);
+            if (ctx.TryGet<DropItemSystem>(out var sys)) sys.Remove(drop);
             return;
         }
 

@@ -43,9 +43,9 @@ public class ChestView : BaseView, IInteractable
     private void LateUpdate()
     {
         if (chest == null) return;
-        // 被动同步：actor 是权威，view 跟随（宝箱不动，等同保持摆位）。
-        transform.position = chest.Position;
-        transform.rotation = chest.Rotation;
+        // 宝箱是静止物，位姿在工厂创建时设定一次即可，不再每帧强写 transform——避免和宝箱模型自带的
+        // Rigidbody/动画打架（被撞后永远弹回、抖动）。需要逻辑移动宝箱时另设接口。
+        ApplyFogVisibility(); // 战争迷雾遮挡剔除：读 Owner.Visible 开关自身 renderer
     }
 
     public void Interact()
