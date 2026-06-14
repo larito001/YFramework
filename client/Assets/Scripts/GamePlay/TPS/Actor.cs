@@ -57,6 +57,14 @@ public class Actor
     /// <summary>是否贴地。CharacterView 调 CC.isGrounded 后回写。Bullet/Weapon 不用。</summary>
     public bool IsGrounded;
 
+    // ── 战争迷雾可见性 ──
+    /// <summary>本 actor 当前是否在战争迷雾视野内（可见）。由 <see cref="FogOfWarManager"/> 每帧遍历 <see cref="ActorWorld"/>
+    /// 里**所有 actor** 统一写入——和 <see cref="ZoneScale"/> 由 TimeScaleZoneService 统一写入完全同构：纯逻辑
+    /// 网格 / 距离判断，不依赖任何物理，不区分 actor 类型。默认 true（迷雾未启用 / 无玩家 / 落在迷雾网格外都视为可见）。
+    /// 消费：FogOfWarManager 据此开关 view 的 Renderer 做"墙后看不到"的遮挡剔除；其它系统（AI 锁敌、UI 血条）
+    /// 也可直接读本字段，不必各自再算迷雾。武器等"挂载在持有者身上"的 actor 跟随持有者的本字段，不按自身位置算。</summary>
+    public bool Visible = true;
+
     // ── 生命周期（多数 Actor 用，少数不写） ──
     /// <summary>剩余寿命（秒）。Bullet / 投射物 / 临时召唤物用，&lt;=0 视为不限制或已结束。
     /// Character / Weapon 一般不写本字段，清理走 AutoDespawnComponent。</summary>

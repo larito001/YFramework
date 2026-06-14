@@ -12,7 +12,8 @@ using Object = UnityEngine.Object;
 ///   3. 每格雾浓度：可见=0 / 已探索未见=<see cref="MemoryAlpha"/>(灰) / 从未见=1(黑)；写进一张世界固定的 Texture2D。
 ///   4. **时间缓动**：每帧把"显示浓度"朝"目标浓度"lerp，雾平滑散开/合拢，不跳变。贴图 Bilinear 采样 + CPU 盒模糊 → 软边。
 ///   5. 雾贴图盖在一块世界固定 quad 上（UV 0..1 对应整张图）。
-///   6. **遮挡剔除**：角色所在格不可见(在雾里) → 关其 Renderer，满足"墙后看不到"。直接复用可见网格，不再逐帧打射线。
+///   6. **遮挡剔除**：任意 actor（角色 / 塔 / 宝箱 / 掉落物 / 子弹…）所在格不可见(在雾里) → 关其 Renderer，
+///      满足"墙后看不到"。直接复用可见网格，不再逐帧打射线。武器跟随持有者可见性，不按自身位置算。
 ///
 /// 走 ILateTickable，读 view 写完的玩家最新位置。视觉依赖 Resources/Shaders/FogOfWarOverlay；缺失则只做遮挡剔除。
 /// 障碍网格是**静态**的（启动扫一次）；墙体移动/增删后调 <see cref="RebuildObstacles"/> 重扫。
@@ -87,7 +88,6 @@ public class FogOfWarManager : IGameService, ILateTickable
     // 遮挡剔除缓存
     private readonly List<Actor> actorBuffer = new List<Actor>();
     private readonly Dictionary<int, Renderer[]> rendererCache = new Dictionary<int, Renderer[]>();
-    private readonly Dictionary<int, bool> charVisible = new Dictionary<int, bool>();
 
     private static readonly int HashColor = Shader.PropertyToID("_Color");
     private static readonly int HashMainTex = Shader.PropertyToID("_MainTex");
@@ -387,29 +387,32 @@ public class FogOfWarManager : IGameService, ILateTickable
         actorBuffer.Clear();
         world.AppendAll(actorBuffer);
 
-        // pass 1：角色。玩家恒可见；其余看其所在格本帧是否可见。
-        charVisible.Clear();
-        charVisible[player.ID] = true;
+        // pass 1：写所有"独立定位"actor（角色 / 塔 / 宝箱 / 掉落物 / 子弹…）的 Actor.Visible 字段
+        // ——和 TimeScaleZoneService 每帧给所有 actor 写 ZoneScale 同构。玩家恒可见；
+        // Weapon 是"挂载在持有者身上"的跟随型 actor，位置由持有者驱动，留到 pass 2 按持有者算。
         for (int i = 0; i < actorBuffer.Count; i++)
         {
             var a = actorBuffer[i];
-            if (a == null || a.ID == player.ID || !(a is Character)) continue;
-
-            bool vis = IsWorldPosVisible(a.Position);
-            charVisible[a.ID] = vis;
-            var rends = GetRenderers(a.ID);
-            if (rends != null) SetRenderersEnabled(rends, vis);
+            if (a == null) continue;
+            if (a is Weapon) continue; // 跟随型，pass 2 处理
+            a.Visible = a.ID == player.ID || IsWorldPosVisible(a.Position);
         }
 
-        // pass 2：武器跟随持有者可见性（已装备 且 持有者可见）。
+        // pass 2：武器跟随持有者（已装备 且 持有者可见）。持有者的 Visible 已在 pass 1 写好，直接读字段。
+        for (int i = 0; i < actorBuffer.Count; i++)
+        {
+            if (!(actorBuffer[i] is Weapon w)) continue;
+            bool ownerVisible = w.OwnerActorId >= 0 && world.TryGet(w.OwnerActorId, out var owner) && owner != null && owner.Visible;
+            w.Visible = w.IsEquipped && ownerVisible;
+        }
+
+        // pass 3：按 Actor.Visible 开关各 actor view 的 Renderer（字段是权威，渲染只是消费）。
         for (int i = 0; i < actorBuffer.Count; i++)
         {
             var a = actorBuffer[i];
-            if (!(a is Weapon w)) continue;
-            bool ownerVisible = w.OwnerActorId >= 0 && charVisible.TryGetValue(w.OwnerActorId, out var ov) && ov;
-            bool vis = w.IsEquipped && ownerVisible;
+            if (a == null) continue;
             var rends = GetRenderers(a.ID);
-            if (rends != null) SetRenderersEnabled(rends, vis);
+            if (rends != null) SetRenderersEnabled(rends, a.Visible);
         }
     }
 
@@ -429,6 +432,7 @@ public class FogOfWarManager : IGameService, ILateTickable
         {
             var a = actorBuffer[i];
             if (a == null) continue;
+            a.Visible = true; // 字段复位：迷雾关闭 / 无玩家时所有 actor 视为可见
             var rends = GetRenderers(a.ID);
             if (rends != null) SetRenderersEnabled(rends, true);
         }
