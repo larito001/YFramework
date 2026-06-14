@@ -24,7 +24,7 @@ public class FogOfWarManager : IGameService, ILateTickable
     /// <summary>迷雾覆盖的世界区域中心（XZ）。</summary>
     public Vector2 AreaCenter = Vector2.zero;
     /// <summary>迷雾覆盖的世界区域大小（XZ，米）。玩家活动范围要落在里面。</summary>
-    public Vector2 AreaSize = new Vector2(100f, 100f);
+    public Vector2 AreaSize = new Vector2(1000f, 1000f);
     /// <summary>网格格子边长（米）。越小越精细、越多格子。</summary>
     public float TileSize = 1f;
     /// <summary>挡视线 / 算障碍的层。默认 Terrain（墙体放 Terrain 层，避免把地面/角色当墙）。</summary>
@@ -40,6 +40,11 @@ public class FogOfWarManager : IGameService, ILateTickable
     public float UpdateInterval = 0.15f;
     /// <summary>时间缓动速度（越大越快跟上目标，雾散合越利落）。</summary>
     public float LerpSpeed = 8f;
+    /// <summary>**活动窗口**在视野半径之外额外覆盖的格数（缓动余量）。每帧只处理「玩家所在格 ± (视野格数+本余量)」
+    /// 这个矩形窗口内的格子，使每帧 / 每次重算的成本只跟视野大小挂钩、**与地图总格数无关**（1000m 大图也不变贵）。
+    /// 余量是为了让格子离开可见范围后仍有若干帧留在窗口内缓动到目标浓度，避免移动时窗口边缘留亮斑残影：
+    /// 太小有残影，太大白算格子。经验值 ≈ 玩家速度 × 缓动收敛时间 / TileSize，留点富余。</summary>
+    public int ActiveMargin = 10;
 
     // ── 外观 ──
     /// <summary>雾颜色；a 作为整体浓度倍率。</summary>
@@ -78,6 +83,15 @@ public class FogOfWarManager : IGameService, ILateTickable
     private readonly List<int> tilesBuf = new List<int>();
     private readonly List<int> obsBuf = new List<int>();
     private float[] distBuf;
+    // 上一次重算置 visible=true 的格子：下次重算前精确清回 false，避免每帧 Array.Clear 整张 visible。
+    private readonly List<int> lastVisibleTiles = new List<int>();
+
+    // ── 活动窗口（只处理玩家周围的格子）──
+    private int winX0, winY0, winX1, winY1; // 当前帧活动窗口（含边界，格坐标）
+    private bool hasWindow;                 // 玩家是否落在迷雾网格内（否则本帧不处理窗口）
+    private int prevWinX0, prevWinY0, prevWinX1, prevWinY1; // 上一帧窗口（检测瞬移/重生跳变用）
+    private bool prevWinValid;
+    private Color32[] windowPixels;         // 局部纹理上传缓冲（窗口大小），避免每帧 SetPixels32 整张图
 
     // 渲染
     private Transform root;
@@ -128,6 +142,9 @@ public class FogOfWarManager : IGameService, ILateTickable
         // 首次见到玩家：此时游戏场景 + 墙体已加载，扫一次障碍网格。
         if (!obstaclesBuilt) { RebuildObstacles(); obstaclesBuilt = true; updateTimer = UpdateInterval; }
 
+        // 每帧算活动窗口（玩家周围）：StepTemporal 每帧用、RecomputeVisibility 重算帧用，都只动窗口内格子。
+        ComputeActiveWindow(player.Position);
+
         // 重算可见性（低频）
         updateTimer += dt;
         if (updateTimer >= UpdateInterval)
@@ -172,6 +189,12 @@ public class FogOfWarManager : IGameService, ILateTickable
         distBuf = new float[n];
         pixels = new Color32[n];
         for (int i = 0; i < n; i++) { displayed[i] = 1f; target[i] = 1f; pixels[i] = new Color32(0, 0, 0, 255); }
+
+        // 局部上传缓冲：最大窗口边长 = 2*(视野格数 + 余量) + 1，面积封顶到 n（小图大视野时）。
+        int maxWinSide = 2 * (Mathf.CeilToInt(VisionRadius / Mathf.Max(0.0001f, TileSize)) + Mathf.Max(0, ActiveMargin)) + 1;
+        windowPixels = new Color32[Mathf.Min(maxWinSide * maxWinSide, n)];
+        prevWinValid = false;
+        lastVisibleTiles.Clear();
     }
 
     /// <summary>用 Physics.CheckBox 把区域扫成障碍网格。墙体移动 / 增删后可手动再调一次。</summary>
@@ -200,25 +223,45 @@ public class FogOfWarManager : IGameService, ILateTickable
         return InGrid(tx, ty);
     }
 
+    /// <summary>按玩家位置算当前帧活动窗口（玩家所在格 ± (视野格数 + ActiveMargin)，clamp 到网格）。
+    /// 每帧 LateTick 调一次，StepTemporal（每帧）/ RecomputeVisibility（重算帧）共用。玩家在网格外则 hasWindow=false。</summary>
+    private void ComputeActiveWindow(Vector3 playerPos)
+    {
+        hasWindow = WorldToTile(playerPos, out int px, out int py);
+        if (!hasWindow) return;
+        int winR = Mathf.CeilToInt(VisionRadius / TileSize) + Mathf.Max(0, ActiveMargin);
+        winX0 = Mathf.Max(0, px - winR);
+        winY0 = Mathf.Max(0, py - winR);
+        winX1 = Mathf.Min(mapW - 1, px + winR);
+        winY1 = Mathf.Min(mapH - 1, py + winR);
+    }
+
     // ── 可见性重算 ───────────────────────────────────────────────
 
     private void RecomputeVisibility(Vector3 playerPos)
     {
-        Array.Clear(visible, 0, visible.Length);
+        // 精确清回上次置 true 的可见格（窗口外 visible 恒为 false，actor 剔除据此判定）——不再 Array.Clear 整张图。
+        for (int i = 0; i < lastVisibleTiles.Count; i++) visible[lastVisibleTiles[i]] = false;
+        lastVisibleTiles.Clear();
 
-        // viewers：当前只有玩家；要加友军/塔在这里追加格子坐标即可。
+        // viewers：当前只有玩家；要加友军/塔在这里再 ComputeViewer 一次即可（同样只动各自视野窗口）。
         if (WorldToTile(playerPos, out int px, out int py))
             ComputeViewer(px, py, VisionRadius / TileSize);
 
-        // 目标浓度：可见=0 / 已探索=MemoryAlpha / 未探索=1
-        for (int i = 0; i < target.Length; i++)
-        {
-            if (visible[i]) target[i] = 0f;
-            else if (ExploredMemory && explored[i]) target[i] = MemoryAlpha;
-            else target[i] = 1f;
-        }
+        if (!hasWindow) return;
 
-        for (int p = 0; p < BlurPasses; p++) BoxBlur();
+        // 目标浓度只在活动窗口内重算（窗口外格子静止：要么未探索黑、要么已探索灰，不必每次重算）。
+        // 可见=0 / 已探索=MemoryAlpha / 未探索=1
+        for (int y = winY0; y <= winY1; y++)
+            for (int x = winX0; x <= winX1; x++)
+            {
+                int i = x + y * mapW;
+                if (visible[i]) target[i] = 0f;
+                else if (ExploredMemory && explored[i]) target[i] = MemoryAlpha;
+                else target[i] = 1f;
+            }
+
+        for (int p = 0; p < BlurPasses; p++) BoxBlurWindow();
     }
 
     /// <summary>单个 viewer 的可见性：圆形范围 + 障碍角度遮挡，结果并入全局 visible/explored。</summary>
@@ -266,11 +309,11 @@ public class FogOfWarManager : IGameService, ILateTickable
             }
         }
 
-        // 并入全局，并清掉本 viewer 的临时标记
+        // 并入全局，记录置 true 的格子（供下次精确清除），并清掉本 viewer 的临时标记
         for (int t = 0; t < tilesBuf.Count; t++)
         {
             int idx = tilesBuf[t];
-            if (visibleTmp[idx]) { visible[idx] = true; explored[idx] = true; }
+            if (visibleTmp[idx]) { visible[idx] = true; explored[idx] = true; lastVisibleTiles.Add(idx); }
             visibleTmp[idx] = false;
         }
     }
@@ -291,11 +334,16 @@ public class FogOfWarManager : IGameService, ILateTickable
         return false;
     }
 
-    private void BoxBlur()
+    /// <summary>盒模糊只在活动窗口内做。先把窗口 target 拷到 targetTmp，再从 targetTmp（窗口内）/ target（窗口外静止值）
+    /// 读、写回 target —— **不整组 swap**，否则会用 targetTmp 的脏旧值覆盖窗口外的 target。</summary>
+    private void BoxBlurWindow()
     {
-        for (int y = 0; y < mapH; y++)
-        {
-            for (int x = 0; x < mapW; x++)
+        for (int y = winY0; y <= winY1; y++)
+            for (int x = winX0; x <= winX1; x++)
+            { int i = x + y * mapW; targetTmp[i] = target[i]; }
+
+        for (int y = winY0; y <= winY1; y++)
+            for (int x = winX0; x <= winX1; x++)
             {
                 float sum = 0f; int cnt = 0;
                 for (int dy = -1; dy <= 1; dy++)
@@ -304,26 +352,48 @@ public class FogOfWarManager : IGameService, ILateTickable
                     for (int dx = -1; dx <= 1; dx++)
                     {
                         int xx = x + dx; if (xx < 0 || xx >= mapW) continue;
-                        sum += target[xx + yy * mapW]; cnt++;
+                        bool inWin = xx >= winX0 && xx <= winX1 && yy >= winY0 && yy <= winY1;
+                        sum += inWin ? targetTmp[xx + yy * mapW] : target[xx + yy * mapW];
+                        cnt++;
                     }
                 }
-                targetTmp[x + y * mapW] = sum / cnt;
+                target[x + y * mapW] = sum / cnt;
             }
-        }
-        var t = target; target = targetTmp; targetTmp = t;
     }
 
     // ── 时间缓动 + 上传 ──────────────────────────────────────────
 
     private void StepTemporal(float dt)
     {
+        if (!hasWindow) return;
         float k = 1f - Mathf.Exp(-LerpSpeed * dt); // 与帧率无关
-        for (int i = 0; i < displayed.Length; i++)
-        {
-            displayed[i] += (target[i] - displayed[i]) * k;
-            pixels[i].a = (byte)(Mathf.Clamp01(displayed[i]) * 255f);
-        }
-        fogTex.SetPixels32(pixels);
+
+        // 瞬移 / 重生：新旧窗口完全不相交时，先把上一帧窗口直接收敛到目标并上传，避免旧位置留亮斑残影。
+        if (prevWinValid &&
+            (winX1 < prevWinX0 || winX0 > prevWinX1 || winY1 < prevWinY0 || winY0 > prevWinY1))
+            WriteWindow(prevWinX0, prevWinY0, prevWinX1, prevWinY1, 1f);
+
+        WriteWindow(winX0, winY0, winX1, winY1, k);
+
+        prevWinX0 = winX0; prevWinY0 = winY0; prevWinX1 = winX1; prevWinY1 = winY1;
+        prevWinValid = true;
+    }
+
+    /// <summary>窗口内缓动 displayed 朝 target（k=1 即直接收敛 / settle），写 alpha，并把该窗口块**局部**上传到雾贴图
+    /// （SetPixels32 区域版，避免每帧拷贝 + 上传整张图）。</summary>
+    private void WriteWindow(int x0, int y0, int x1, int y1, float k)
+    {
+        int bw = x1 - x0 + 1, bh = y1 - y0 + 1;
+        int w = 0;
+        for (int y = y0; y <= y1; y++)
+            for (int x = x0; x <= x1; x++)
+            {
+                int i = x + y * mapW;
+                displayed[i] += (target[i] - displayed[i]) * k;
+                pixels[i].a = (byte)(Mathf.Clamp01(displayed[i]) * 255f);
+                windowPixels[w++] = pixels[i]; // 行优先填窗口块（与 SetPixels32 区域版一致：colors[0]→(x0,y0)）
+            }
+        fogTex.SetPixels32(x0, y0, bw, bh, windowPixels);
         fogTex.Apply(false);
     }
 
