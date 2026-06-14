@@ -17,6 +17,9 @@ public static class CharacterResPath
     // —— 玩家 ——
     public const string PlayerPrefab  = PlayerRoot + "Prefabs/Player";
     public const string PlayerAnimSet = PlayerRoot + "Animations/PlayerAnimSet";
+    /// <summary>翻滚手感配置（DodgeConfig 资产）。菜单 Assets/Create/TPS/Dodge Config 创建，放到
+    /// Resources/Character/Player/Config/DodgeConfig.asset。缺失则 DodgeComponent 用内置默认。</summary>
+    public const string PlayerDodgeConfig = PlayerRoot + "Config/DodgeConfig";
     public const string PlayerMelee   = PlayerRoot + "Skills/PlayerMelee";
     public const string PlayerKnife   = PlayerRoot + "Skills/PlayerKnife";
     public const string PlayerKnifeV  = PlayerRoot + "Skills/PlayerKnifeV";

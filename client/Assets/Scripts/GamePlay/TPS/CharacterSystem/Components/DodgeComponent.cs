@@ -21,6 +21,10 @@ using UnityEngine;
 /// </summary>
 public class DodgeComponent : ICharacterComponent
 {
+    /// <summary>翻滚手感配置资产（Resources 相对路径）。Attach 时加载 <see cref="DodgeConfig"/> 覆盖下方默认值——
+    /// 让 Distance/Duration/曲线/无敌帧等可在 Inspector 拖曲线调。空 / 加载失败 → 用下方组件内置默认（不崩）。</summary>
+    public string DodgeConfigPath;
+
     [Header("位移")]
     /// <summary>一次闪避的总位移（米）。</summary>
     public float Distance = 4f;
@@ -40,7 +44,7 @@ public class DodgeComponent : ICharacterComponent
     /// <summary>进入闪避的淡入时长（秒）。0=用 CharacterAnimSet.DefaultFade。翻滚要紧凑，给小值。</summary>
     public float EnterFade = 0.3f;
     /// <summary>闪避结束回 locomotion 的淡入时长（秒）。0=默认。</summary>
-    public float RecoverFade = 0.3f;
+    public float RecoverFade = 0.12f;
 
     [Header("无敌帧")]
     /// <summary>是否开启无敌帧。false=纯位移闪身（无免伤）。</summary>
@@ -51,6 +55,7 @@ public class DodgeComponent : ICharacterComponent
     public float InvulnEndNorm = 0.6f;
 
     private InputComponentBase input;
+    private YOTO.ResMgr resMgr;
 
     // ── runtime ──
     private bool active;
@@ -67,12 +72,40 @@ public class DodgeComponent : ICharacterComponent
         input = owner.Get<InputComponentBase>();
         if (input != null) input.OnDodge += Dodge;
         else Debug.LogWarning("[DodgeComponent] 找不到 InputComponentBase —— 闪避不会触发。需在输入组件之后 Add。");
+
+        // 翻滚手感从 DodgeConfig 资产读（可 Inspector 拖曲线）；缺失则用上方组件内置默认。
+        if (!string.IsNullOrEmpty(DodgeConfigPath))
+        {
+            Ctx?.TryGet(out resMgr);
+            var cfg = resMgr != null ? resMgr.Load<DodgeConfig>(DodgeConfigPath) : null;
+            if (cfg != null) ApplyConfig(cfg);
+            else Debug.LogWarning($"[DodgeComponent] DodgeConfig 加载失败（用内置默认）: {DodgeConfigPath}");
+        }
         // 方向 clip 不再在此加载——本组件只发方向意图，FullBodyDriver 按方向从 CharacterAnimSet 解析 clip（逻辑层不碰动画资产）
+    }
+
+    /// <summary>把 DodgeConfig 的数值覆盖到运行时字段（DistanceProfile 为空/少于 2 帧时 SampleProfile 仍回退 ease-out）。</summary>
+    private void ApplyConfig(DodgeConfig c)
+    {
+        Distance = c.Distance;
+        Duration = c.Duration;
+        DistanceProfile = c.DistanceProfile;
+        ShortCooldown = c.ShortCooldown;
+        LongCooldown = c.LongCooldown;
+        ComboResetWindow = c.ComboResetWindow;
+        EnterFade = c.EnterFade;
+        RecoverFade = c.RecoverFade;
+        Invulnerable = c.Invulnerable;
+        InvulnStartNorm = c.InvulnStartNorm;
+        InvulnEndNorm = c.InvulnEndNorm;
     }
 
     public override void Detach()
     {
         if (input != null) input.OnDodge -= Dodge;
+        // 释放 config 引用计数（玩家重生会重建本组件，避免每次重生 Load 不还导致泄漏）。
+        if (resMgr != null && !string.IsNullOrEmpty(DodgeConfigPath)) resMgr.Release<DodgeConfig>(DodgeConfigPath);
+        resMgr = null;
         // 清自己写过的 Owner 字段，避免 writer 离场后 reader 卡在闪避态（Move 永锁 / view 死值 / 永久无敌）
         if (Owner != null)
         {
