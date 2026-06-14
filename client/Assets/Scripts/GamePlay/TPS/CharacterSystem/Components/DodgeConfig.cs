@@ -31,6 +31,14 @@ public class DodgeConfig : ScriptableObject
     [Tooltip("翻滚结束回 locomotion 的淡入时长（秒）")]
     public float RecoverFade = 0.12f;
 
+    [Header("尾段转向瞄准（翻滚结束面向鼠标）")]
+    [Tooltip("是否在翻滚尾段把朝向转向瞄准/移动方向。false=整段保持起手朝向")]
+    public bool TurnToAim = true;
+    [Tooltip("从归一化进度的哪一点开始转向（前段保持起手朝向把方向 clip 滚干净）。0.6 ≈ 位移基本走完+无敌帧结束后才转，避免半截转身")]
+    [Range(0f, 1f)] public float TurnToAimStartNorm = 0.6f;
+    [Tooltip("尾段转向的 slerp 速率（指数收敛、帧率无关）。25 ≈ 在剩余尾段+恢复淡入内转到位")]
+    public float TurnToAimRate = 25f;
+
     [Header("无敌帧")]
     [Tooltip("是否开启无敌帧。false=纯位移闪身（无免伤）")]
     public bool Invulnerable = true;

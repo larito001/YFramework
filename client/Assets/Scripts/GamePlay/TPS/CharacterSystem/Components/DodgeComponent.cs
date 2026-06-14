@@ -7,7 +7,10 @@ using UnityEngine;
 /// 按方向从角色级 <see cref="CharacterAnimSet"/>（DodgeFwd/Bwd/Left/Right）解析（含缺向兜底）。
 ///   - **触发**：订阅 <see cref="InputComponentBase.OnDodge"/>（玩家空格；AI 可在行为树 RaiseDodge 躲技能）。
 ///   - **方向**：取输入组件的世界移动意图 <see cref="InputComponentBase.MoveWorld"/>；无输入 → 后撤步（角色背向）。
-///     方向相对当前朝向分解，选 4 向意图；角色朝向**不变**（用 clip + 世界向位移表达闪避方向，不转身）。
+///     **起手**按当前朝向分解选 4 向 clip + 锁定世界向 dashDir（位移方向，途中不变）。
+///   - **朝向**：前段锁朝向（AimComponent 因 IsBusy 让位），把方向 clip 滚干净；到**尾段过渡期**（n ≥ <see cref="TurnToAimStartNorm"/>）
+///     本组件自己把朝向 slerp 向瞄准点 / 移动方向，使翻滚结束正好面向鼠标——避免半截转身穿帮。翻滚结束后 AimComponent 自然接管。
+///     位移（dashDir）与朝向（Rotation）相互独立：只转身、不改落点。
 ///   - **位移**：沿世界闪避向写 <see cref="Character.WishVelocity"/> 的 x/z（y 留给 <see cref="GravityComponent"/>），
 ///     按 <see cref="DistanceProfile"/>（默认 ease-out：起步爆发、收尾刹车）在 <see cref="Duration"/> 内推完 <see cref="Distance"/> 米。
 ///   - **无敌帧**：[<see cref="InvulnStartNorm"/>, <see cref="InvulnEndNorm"/>] 段内置 <see cref="Actor.IsInvulnerable"/>，
@@ -45,6 +48,15 @@ public class DodgeComponent : ICharacterComponent
     public float EnterFade = 0.3f;
     /// <summary>闪避结束回 locomotion 的淡入时长（秒）。0=默认。</summary>
     public float RecoverFade = 0.12f;
+
+    [Header("尾段转向瞄准")]
+    /// <summary>是否在翻滚尾段把朝向转向瞄准/移动方向（让翻滚结束面向鼠标）。false=整段保持起手朝向。</summary>
+    public bool TurnToAim = true;
+    /// <summary>从归一化进度（相对 Duration）的哪一点开始转向。前段（&lt;此值）保持起手朝向把方向 clip 滚干净，
+    /// 此点起进入"过渡转向"。0.6 ≈ 位移基本走完（ease-out）+ 无敌帧结束后才转，避免半截转身穿帮。</summary>
+    public float TurnToAimStartNorm = 0.6f;
+    /// <summary>尾段转向的 slerp 速率（指数收敛，帧率无关）。25 ≈ 在剩余尾段 + 恢复淡入内转到位。</summary>
+    public float TurnToAimRate = 25f;
 
     [Header("无敌帧")]
     /// <summary>是否开启无敌帧。false=纯位移闪身（无免伤）。</summary>
@@ -95,6 +107,9 @@ public class DodgeComponent : ICharacterComponent
         ComboResetWindow = c.ComboResetWindow;
         EnterFade = c.EnterFade;
         RecoverFade = c.RecoverFade;
+        TurnToAim = c.TurnToAim;
+        TurnToAimStartNorm = c.TurnToAimStartNorm;
+        TurnToAimRate = c.TurnToAimRate;
         Invulnerable = c.Invulnerable;
         InvulnStartNorm = c.InvulnStartNorm;
         InvulnEndNorm = c.InvulnEndNorm;
@@ -194,7 +209,23 @@ public class DodgeComponent : ICharacterComponent
         // 无敌帧：窗内置免伤，窗外（含收尾破绽）解除
         Owner.IsInvulnerable = Invulnerable && n >= InvulnStartNorm && n <= InvulnEndNorm;
 
+        // 尾段过渡转向：前段保持起手朝向把方向 clip 滚干净，n≥TurnToAimStartNorm 才转向瞄准/移动方向，
+        // 翻滚结束正好面向鼠标，避免半截转身穿帮。结束后 AimComponent 自然接管。
+        if (TurnToAim && dt > 0f && n >= TurnToAimStartNorm) FaceAimTarget(dt);
+
         if (elapsed >= Duration) EndDodge();
+    }
+
+    /// <summary>把朝向 slerp 向瞄准点（瞄准中）/ 移动方向（非瞄准）。复用 AimComponent 同款目标选择，仅在翻滚尾段调。</summary>
+    private void FaceAimTarget(float dt)
+    {
+        if (input == null) return;
+        Vector3 targetDir = input.AimHeld ? (input.AimWorldPoint - Owner.Position) : input.MoveWorld;
+        targetDir.y = 0f;
+        if (targetDir.sqrMagnitude < 1e-4f) return; // 没有目标方向 → 保持当前朝向
+        var targetRot = Quaternion.LookRotation(targetDir, Vector3.up);
+        float t = 1f - Mathf.Exp(-TurnToAimRate * dt);
+        Owner.Rotation = Quaternion.Slerp(Owner.Rotation, targetRot, t);
     }
 
     private void EndDodge()

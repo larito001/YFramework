@@ -21,11 +21,29 @@ MonoBehaviour:
       time: 0
       value: 0
       inSlope: 0
-      outSlope: 2
+      outSlope: 0
       tangentMode: 0
       weightedMode: 0
       inWeight: 0
       outWeight: 0
+    - serializedVersion: 3
+      time: 0.44113326
+      value: 0.5739748
+      inSlope: 1.3560115
+      outSlope: 1.3560115
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.14762491
+    - serializedVersion: 3
+      time: 0.6346573
+      value: 0.8211751
+      inSlope: 0.83313125
+      outSlope: 0.83313125
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.5954381
     - serializedVersion: 3
       time: 1
       value: 1
@@ -43,6 +61,9 @@ MonoBehaviour:
   ComboResetWindow: 2
   EnterFade: 0.3
   RecoverFade: 0.12
+  TurnToAim: 1
+  TurnToAimStartNorm: 0.95
+  TurnToAimRate: 25
   Invulnerable: 1
   InvulnStartNorm: 0
   InvulnEndNorm: 0.6
