@@ -79,7 +79,15 @@
       "Bash(git add *)",
       "Bash(git commit -m '@ *)",
       "Bash(git commit *)",
-      "Bash(git restore *)"
+      "Bash(git restore *)",
+      "Read(//mnt/c/UnityProject/YFramework/client/Assets/Resources/**)",
+      "Bash(rm -f FogOfWarMask.shader FogOfWarMask.shader.meta FogOfWarEdge.shader FogOfWarEdge.shader.meta)",
+      "Bash(gh api *)",
+      "Bash(grep -iE '\\\\.\\(cs|shader|compute|hlsl|cginc\\)$')",
+      "Bash(gh auth *)",
+      "Bash(curl -s \"https://api.github.com/repos/QinZhuo/FogOfWar_ForUnity\")",
+      "Bash(curl -s \"https://api.github.com/repos/QinZhuo/FogOfWar_ForUnity/git/trees/master?recursive=1\")",
+      "Bash(git -C C:/UnityProject/YFramework/client status --short)"
     ]
   }
 }

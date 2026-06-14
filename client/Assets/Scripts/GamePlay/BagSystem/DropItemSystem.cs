@@ -3,26 +3,37 @@ using UnityEngine;
 using YFramework.Config;
 
 /// <summary>
-/// 掉落物系统(<see cref="IGameService"/>)。统一负责把物品"丢"到世界:
-/// 生成带模型 + 物理的 <see cref="DropItem"/>,靠重力落到地面,玩家靠近按 F 捡回背包。
-/// <see cref="BagSystem.Discard"/> 调 <see cref="DropAtPlayer"/> 在玩家身前丢出。
+/// 掉落物系统(<see cref="IGameService"/> + <see cref="ITickable"/>)。统一负责把物品"丢"到世界,
+/// 并管理掉落物 Actor 的生命周期 —— 既是**工厂**(建模型 + 物理 + <see cref="DropItemActor"/> + <see cref="DropItemView"/>)
+/// 又是**管理器**(维护 actor 列表、注册 <see cref="ActorWorld"/>、Tick、延迟移除),对照 <see cref="TowerManager"/>。
+/// 生成的掉落物靠重力落到地面,玩家靠近按 F 捡回背包。<see cref="BagSystem.Discard"/> 调 <see cref="DropAtPlayer"/> 在玩家身前丢出。
+///
+/// 掉落物纳入 Actor/View 体系(和角色/塔一致):模型 GameObject 由本系统运行时拼装(非单一 prefab),
+/// 故走 <see cref="ViewManager.RegisterView"/> 注册已建好的 view,而非 LoadBaseView。
+/// 当前掉落物无逻辑组件,Tick 是廉价空转,保留是为了一致 + 便于以后加组件(如限时消失)。
 ///
 /// **模型(当前)**:按品质加载占位 box 预制体 <c>Item/Prefabs/DropBox_&lt;品质&gt;</c>
 /// (5 个品质各一个、已上色,由菜单 Tools/Bag/Build Item Drop Prefabs 生成),尺寸随配表 <c>Width/Height</c> 缩放;
 /// 预制体缺失时退回运行时拼一个上色 cube(不崩)。
 /// **接真实模型**:把对应 prefab 换成真模型即可;或给 item 配表加 <c>modelPath</c> 列、改 <see cref="BuildModel"/> 走 <c>cfg.ModelPath</c>,丢弃/捡起逻辑不动。
-/// CharacterManager / ViewManager 注册晚于本系统,一律懒取。
+/// CharacterManager / ViewManager / ActorWorld 注册晚于本系统,一律懒取。
 /// </summary>
-public class DropItemSystem : IGameService
+public class DropItemSystem : IGameService, ITickable
 {
     private const int IgnoreRaycastLayer = 2; // Unity 内置层:掉落物落地碰撞照常,但不被射线(子弹等)命中
 
     private GameContext ctx;
     private CharacterManager characterMgr;
     private ViewManager viewMgr;
+    private ActorWorld world;
     private BagSystem bagSystem;
     // 占位 box 材质按品质缓存复用:每丢一次 new Material 会泄漏(不随 GameObject 回收),故只建 5 个共用。
     private readonly Dictionary<ItemQuality, Material> matCache = new Dictionary<ItemQuality, Material>();
+
+    private readonly List<DropItemActor> drops = new List<DropItemActor>();
+    // 延迟移除:捡起在 F 触发回调里发生(不在 Tick 内),但统一走 deferred 更安全(去重、避免改正在遍历的列表)。
+    private readonly List<DropItemActor> toRemove = new List<DropItemActor>();
+    private bool ticking;
 
     public void Init(GameContext context)
     {
@@ -32,13 +43,60 @@ public class DropItemSystem : IGameService
 
     public void Shutdown()
     {
+        for (int i = drops.Count - 1; i >= 0; i--)
+            RemoveImmediate(drops[i]);
+        drops.Clear();
+        toRemove.Clear();
+
         foreach (var mat in matCache.Values)
             if (mat != null) Object.Destroy(mat);
         matCache.Clear();
         ctx = null;
         characterMgr = null;
         viewMgr = null;
+        world = null;
         bagSystem = null;
+    }
+
+    public void Tick(float dt)
+    {
+        ticking = true;
+        try
+        {
+            for (int i = 0; i < drops.Count; i++)
+                drops[i].Tick(dt);
+        }
+        finally { ticking = false; }
+
+        if (toRemove.Count > 0)
+        {
+            for (int i = 0; i < toRemove.Count; i++) RemoveImmediate(toRemove[i]);
+            toRemove.Clear();
+        }
+    }
+
+    /// <summary>请求移除掉落物(deferred):<see cref="DropItemView.Interact"/> 全部捡走后调。
+    /// 统一注销 ActorWorld + 销毁 view(连带 GameObject) + Dispose actor。</summary>
+    public void RemoveDropItem(DropItemActor actor)
+    {
+        if (actor == null) return;
+        if (ticking)
+        {
+            if (!toRemove.Contains(actor)) toRemove.Add(actor);
+            return;
+        }
+        RemoveImmediate(actor);
+    }
+
+    private void RemoveImmediate(DropItemActor actor)
+    {
+        if (actor == null) return;
+        drops.Remove(actor);
+        if (world == null) ctx?.TryGet(out world);
+        world?.Unregister(actor.ID);
+        if (viewMgr == null) ctx?.TryGet(out viewMgr);
+        viewMgr?.RemoveBaseView(actor.ID); // 销毁 view 的 GameObject
+        actor.Dispose();
     }
 
     /// <summary>在玩家身前丢出一个掉落物(给一点向前上方的初速度,落到地面)。</summary>
@@ -52,7 +110,7 @@ public class DropItemSystem : IGameService
         if (rb != null) rb.velocity = forward * 2.5f + Vector3.up * 1.5f; // 向前上方抛出
     }
 
-    /// <summary>在世界指定位置生成一个掉落物(模型 + 碰撞 + 重力 + <see cref="DropItem"/>)。失败返回 null。</summary>
+    /// <summary>在世界指定位置生成一个掉落物(模型 + 碰撞 + 重力 + <see cref="DropItemActor"/> + <see cref="DropItemView"/>)。失败返回 null。</summary>
     public GameObject Spawn(int itemId, int count, int rotation, Vector3 worldPos)
     {
         var cfg = bagSystem != null ? bagSystem.GetItem(itemId) : null;
@@ -67,8 +125,23 @@ public class DropItemSystem : IGameService
         var rb = go.AddComponent<Rigidbody>();
         rb.mass = 1f;
 
-        var drop = go.AddComponent<DropItem>();
-        drop.Setup(itemId, count, rotation);
+        // 纳入 Actor/View 体系:建 actor + 在模型 GO 上挂 view,经 ViewManager 注册(模型是运行时拼的,
+        // 用 RegisterView 而非 LoadBaseView),再注册 ActorWorld + 入管理列表。
+        var actor = new DropItemActor
+        {
+            ItemId = itemId,
+            Count = Mathf.Max(1, count),
+            DropRotation = rotation,
+            DisplayName = !string.IsNullOrEmpty(cfg.Name) ? cfg.Name : "物品",
+        };
+        actor.Position = worldPos;
+
+        var view = go.AddComponent<DropItemView>();
+        if (viewMgr == null) ctx.TryGet(out viewMgr);
+        if (world == null) ctx.TryGet(out world);
+        viewMgr?.RegisterView(view, actor); // 内部 Bind(actor) → 注册世界交互 + 入 Views 字典
+        world?.Register(actor);
+        drops.Add(actor);
         return go;
     }
 

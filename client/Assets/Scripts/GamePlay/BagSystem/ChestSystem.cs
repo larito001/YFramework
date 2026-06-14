@@ -6,8 +6,8 @@ using YFramework.Config;
 /// 宝箱系统(<see cref="IGameService"/>,由 <see cref="GameProjectBootstrapper"/> 注册)。
 /// 读 chest / chestDrop 两张配表,提供「随机生成宝箱内容」工厂 + 「当前打开的宝箱」引用(供 <see cref="ChestPanel"/> 渲染)。
 ///
-/// **刷新策略**:宝箱首次打开 <see cref="Roll"/> 一次,生成的 <see cref="GridBag"/> 由各宝箱世界实例
-/// (<see cref="ChestEntity"/>)自己持有、整局保持(玩家拿走/放入都留在该实例上);
+/// **刷新策略**:宝箱首次打开 <see cref="Roll"/> 一次,生成的 <see cref="GridBag"/> 由各宝箱世界 actor
+/// (<see cref="ChestActor"/>.RolledGrid)自己持有、整局保持(玩家拿走/放入都留在该实例上);
 /// **不持久化到磁盘**,游戏重开即丢失 → 重新 roll。本系统只负责生成与「当前引用」,不缓存各实例内容。
 ///
 /// **生成规则**:<c>Chest.GroupSeq[i]</c> 这组掉落抽 <c>Chest.RollSeq[i]</c> 次(平行数组,i 为开启次序);
@@ -64,7 +64,7 @@ public class ChestSystem : IGameService
 
     /// <summary>
     /// 工厂:按宝箱配置 + 开启次序 <paramref name="openIndex"/> 随机生成一个**新**宝箱网格并返回。
-    /// 不缓存、不设为 Current —— 由调用方(<see cref="ChestEntity"/>)持有以实现整局保持。
+    /// 不缓存、不设为 Current —— 由调用方(<see cref="ChestView"/>,存到 <see cref="ChestActor"/>.RolledGrid)持有以实现整局保持。
     /// </summary>
     public GridBag Roll(int chestId, int openIndex)
     {

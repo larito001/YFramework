@@ -57,11 +57,19 @@ public static partial class GameBootstrapper
         // BagSystem.Init 里 ctx.Get 取得后接配表 + 桥接 RefreshBagList 给 UI。
         ctx.Register(new BagSystem());
         // 宝箱系统在 BagSystem 之后注册：Init 里 ctx.Get<BagSystem>() 复用其物品配置。
+        // 注意分工：ChestSystem = 配表 + roll 工厂（数据服务）；ChestManager = 世界宝箱 Actor 的生命周期管理。
         ctx.Register(new ChestSystem());
+        // 宝箱管理器：把世界宝箱纳入 Actor/View 体系（同 TowerManager），维护 actor 列表 + 注册 ActorWorld + Tick。
+        ctx.Register(new ChestManager());
         // 世界交互（靠近宝箱 + F 打开）：Init 只订阅 InputService 的 F 键，CharacterManager/ViewManager 在 Tick 里懒取。
         ctx.Register(new WorldInteractionSystem());
         // 掉落物系统：丢弃物品时在玩家身前生成可拾取的世界掉落物(靠近 + F 捡回)。BagSystem.Discard 调它。
+        // 同时是掉落物 Actor 的工厂 + 管理器（ITickable，纳入 Actor/View 体系）。
         ctx.Register(new DropItemSystem());
+        // 战争迷雾：玩家周围 360° 视野，被 Terrain 墙体遮挡的扇区变黑，墙后 / 范围外的角色 Renderer 关闭不可见。
+        // ILateTickable，在所有 view 写完 transform 后跑（读玩家最新位置）。Init 走延迟阶段，可安全 TryGet
+        // 后续注册的 CharacterManager / ActorWorld / ViewManager。
+        ctx.Register(new FogOfWarManager());
         // ctx.Register(new EnemiesManager());
         // ctx.Register(new SceneResManager());
     }

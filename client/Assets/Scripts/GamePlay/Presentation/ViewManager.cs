@@ -98,6 +98,38 @@ public class ViewManager : IGameService
         return view;
     }
 
+    /// <summary>
+    /// 注册一个**已在外部实例化好**的 view（模型在运行时拼装、不是单一 Resources prefab 的场景，如掉落物
+    /// <see cref="DropItemSystem"/> 按品质拼模型 + 加物理）。走和 <see cref="LoadBaseView{TView}"/> 同一个
+    /// Views 字典，统一 <see cref="TryGetView"/> 查询 + <see cref="RemoveBaseView"/> 清理；
+    /// 因为没有 prefab 路径，<see cref="RemoveBaseView"/> 只 Destroy GameObject、不做 resMgr.Release。
+    /// </summary>
+    public TView RegisterView<TView>(TView view, Actor owner) where TView : BaseView
+    {
+        if (view == null)
+        {
+            Debug.LogError("[ViewManager] RegisterView: view 为 null");
+            return null;
+        }
+        if (owner == null)
+        {
+            Debug.LogError("[ViewManager] RegisterView: owner 为 null");
+            return null;
+        }
+
+        view.Bind(owner, owner.ID);
+
+        if (Views.ContainsKey(view.ID))
+        {
+            Debug.LogError($"[ViewManager] view ID 冲突: {view.ID}（前一个 view 将被覆盖）");
+            RemoveBaseView(view.ID);
+        }
+
+        Views[view.ID] = view;
+        // 不写 viewPaths：外部实例化的 view 无 prefab 引用计数，移除时只 Destroy 不 Release。
+        return view;
+    }
+
     /// <summary>按 Actor.ID 查 view。外部模块需要拿 view（如相机跟随、跨 actor reparent）走这里，不要持有 view 引用。</summary>
     public bool TryGetView(int id, out BaseView view) => Views.TryGetValue(id, out view);
 

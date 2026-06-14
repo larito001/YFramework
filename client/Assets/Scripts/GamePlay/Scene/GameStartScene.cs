@@ -49,28 +49,19 @@ public class GameStartScene : YSceneBase
     private const float ChestMinDistance = 4f;  // 离出生点最小距离(避免压在玩家身上)
     private const float ChestYOffset = 0.5f;    // 模型抬高(y 轴向上 0.5 米)
 
-    /// <summary>在玩家出生点周围随机散布 <see cref="ChestCount"/> 个宝箱,每个随机选一种品质。</summary>
+    /// <summary>在玩家出生点周围随机散布 <see cref="ChestCount"/> 个宝箱,每个随机选一种品质。
+    /// 走 <see cref="ChestManager.SpawnChest"/> 把宝箱纳入 Actor/View 体系（同角色/塔），不再手挂 MonoBehaviour。</summary>
     private void SpawnChests()
     {
-        var res = Context.Get<YOTO.ResMgr>();
+        var chestMgr = Context.Get<ChestManager>();
         Vector3 center = GetPlayerSpawnPos();
 
         for (int i = 0; i < ChestCount; i++)
         {
             var kind = ChestKinds[Random.Range(0, ChestKinds.Length)]; // 随机品质
-            var prefab = res.Load<GameObject>(kind.prefab);
-            if (prefab == null)
-            {
-                Debug.LogWarning($"[GameStartScene] 找不到宝箱模型 {kind.prefab}");
-                continue;
-            }
-
             Vector3 pos = RandomGroundPos(center) + Vector3.up * ChestYOffset; // y 抬高 0.5
-            var go = Object.Instantiate(prefab, pos, Quaternion.Euler(0f, Random.Range(0f, 360f), 0f));
-            var chest = go.GetComponent<ChestEntity>();
-            if (chest == null) chest = go.AddComponent<ChestEntity>();
-            chest.chestId = kind.chestId;
-            chest.interactRange = 3.5f;
+            var rot = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
+            chestMgr.SpawnChest(kind.chestId, kind.prefab, pos, rot, interactRange: 3.5f);
         }
     }
 
